@@ -1,0 +1,31 @@
+# Unity
+unity/**/Library/
+unity/**/Temp/
+unity/**/Obj/
+unity/**/Build/
+unity/**/Builds/
+unity/**/Logs/
+unity/**/UserSettings/
+unity/**/MemoryCaptures/
+*.csproj
+*.sln
+*.pidb
+*.user
+
+# Big, re-fetchable geodata (regenerate with pipeline/)
+data/raw/
+data/interim/
+data/out/terrain/*.raw
+
+# Legacy archive + salvage output
+3dexplore/
+3dexplore.tar.gz
+salvage/extracted/
+tools/AssetRipper/
+tools/AssetRipper.tar.xz
+tools/.*.log
+
+.DS_Store
+salvage/extracted/
+salvage/*.png
+data/derived/margate.gpkg

@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(tar -tzf ~/Downloads/3dexplore.tar.gz)",
+      "Bash(tar -xzf 3dexplore.tar.gz)"
+    ]
+  }
+}

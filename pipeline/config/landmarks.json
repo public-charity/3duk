@@ -1,0 +1,11 @@
+{
+  "_comment": "Hand-authored overrides for buildings the LIDAR p50 estimator gets wrong. Keyed by OSM name.",
+  "Arlington House": {
+    "h_body": 57.0, "roof": "flat", "tier": "hero",
+    "why": "18-storey tower on a large podium; p50 samples the podium (7.0m from 22px). Real height ~57m."
+  },
+  "Jubilee Clock Tower": {
+    "h_body": 24.0, "roof": "tower", "tier": "hero",
+    "why": "Tiny footprint (7px) undersamples the tower. Real height ~24m."
+  }
+}
