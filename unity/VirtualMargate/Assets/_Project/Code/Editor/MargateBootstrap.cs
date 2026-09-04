@@ -20,7 +20,7 @@ public static class MargateBootstrap
         MargateTerrainImporter.Import();
         MargateBuildingGenerator.Generate();
         MargateRoadGenerator.Generate();
-        MargateTerrainMaterial.Apply();
+        MargateCoastGenerator.Generate();
         MargateSceneSetup.Setup();
 
         Directory.CreateDirectory("Assets/_Project/Scenes");

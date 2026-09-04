@@ -17,16 +17,17 @@ public static class MargateShots
         Vector3 L(double e, double n, float y) => new Vector3((float)(e - 632800), y, (float)(n - 168200));
 
         var shots = new[] {
-            // All coordinates are real OSM landmark centroids in British National Grid.
-            new Shot { name="01_overhead",       pos = L(635400, 168900, 1350), look = L(635400, 171100, 0),  fov = 55 },
-            new Shot { name="08_plan_80m",       pos = L(635175, 170742, 80),   look = L(635175, 170743, 0),  fov = 60 },
-            new Shot { name="07_streets_close",  pos = L(635500, 170750, 150),  look = L(635420, 171150, 6),  fov = 62 },
-            new Shot { name="02_harbour_air",    pos = L(635150, 170300, 190),  look = L(635360, 171230, 8),  fov = 60 },
-            new Shot { name="03_oldtown_street", pos = L(635547, 171055, 0),    look = L(635420, 171200, 4),  fov = 70, ground = true },
-            new Shot { name="04_harbour_quay",   pos = L(635300, 171180, 0),    look = L(635389, 171231, 10), fov = 65, ground = true },
-            new Shot { name="05_arlington",      pos = L(635060, 170700, 0),    look = L(634906, 170626, 40), fov = 72, ground = true },
-            new Shot { name="06_clocktower",     pos = L(635240, 170830, 0),    look = L(635174, 170755, 12), fov = 68, ground = true },
+            // over the bay, looking down at the water so fresnel isn't grazing
+            new Shot { name="20_bay_down",   pos = L(635150, 170450, 230), look = L(635150, 171550, -1), fov = 60 },
+            // standing on Main Sands at the waterline
+            new Shot { name="21_waterline",  pos = L(635120, 171150, 0),   look = L(635000, 171700, 2),  fov = 68, ground = true },
+            // from the Harbour Arm looking west across the bay
+            new Shot { name="22_from_arm",   pos = L(635300, 171330, 0),   look = L(634800, 171450, 3),  fov = 72, ground = true },
+            // straight down on the waterline: beach -> shallow -> deep
+            new Shot { name="23_plan_shore", pos = L(635120, 171250, 110), look = L(635120, 171251, 0),  fov = 62 },
         };
+
+
 
         var go = new GameObject("ShotCam"); var cam = go.AddComponent<Camera>();
         cam.farClipPlane = 6000; cam.nearClipPlane = 0.2f;

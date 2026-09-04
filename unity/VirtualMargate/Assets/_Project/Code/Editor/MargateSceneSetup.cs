@@ -33,21 +33,7 @@ public static class MargateSceneSetup
         RenderSettings.ambientEquatorColor= new Color(0.52f, 0.54f, 0.55f);
         RenderSettings.ambientGroundColor = new Color(0.36f, 0.34f, 0.30f);
 
-        // Sea at y=0 ODN
-        if (GameObject.Find("Sea") == null)
-        {
-            var sea = GameObject.CreatePrimitive(PrimitiveType.Plane);
-            sea.name = "Sea";
-            sea.transform.position = new Vector3(MargateWorld.NX * MargateWorld.TileM * 0.5f, 0f,
-                                                 MargateWorld.NY * MargateWorld.TileM * 0.5f);
-            sea.transform.localScale = new Vector3(900, 1, 900);
-            Object.DestroyImmediate(sea.GetComponent<MeshCollider>());
-            var m = new Material(Shader.Find("Universal Render Pipeline/Lit") ?? Shader.Find("Standard"));
-            m.color = new Color(0.22f, 0.36f, 0.42f);
-            m.SetFloat("_Smoothness", 0.85f);
-            AssetDatabase.CreateAsset(m, "Assets/Generated/M_Sea.mat");
-            sea.GetComponent<MeshRenderer>().sharedMaterial = m;
-        }
+        // Sea is built by MargateCoastGenerator (real water shader).
 
         // Player, dropped on the Harbour Arm end of the Old Town
         var p = GameObject.Find("Player");
