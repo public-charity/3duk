@@ -5,7 +5,19 @@
       "Bash(tar -xzf 3dexplore.tar.gz)",
       "WebSearch",
       "WebFetch(domain:radiancefields.com)",
-      "WebFetch(domain:www.360images.fr)"
+      "WebFetch(domain:www.360images.fr)",
+      "Bash(awk '{print $1}')",
+      "Bash(git check-ignore *)",
+      "Bash(chmod +x run.sh pipeline/01_fetch_osm.sh pipeline/03_build_mosaics.sh)",
+      "Bash(./run.sh --list)",
+      "Bash(./run.sh --only 03)",
+      "Bash(./run.sh --only 01)",
+      "Bash(ogrinfo -q data/derived/margate.gpkg)",
+      "Bash(ogrinfo -so data/derived/margate.gpkg multipolygons)",
+      "Bash(ogrinfo -so data/derived/margate.gpkg lines)",
+      "Bash(time ./run.sh --only 04)",
+      "Bash(ogrinfo -so /private/tmp/claude-501/-Users-alex-breadman-vibe-pigs/e781540e-3693-475b-884b-9860515b670d/scratchpad/margate_orig.gpkg multipolygons)",
+      "Bash(./run.sh --only 04)"
     ]
   }
 }

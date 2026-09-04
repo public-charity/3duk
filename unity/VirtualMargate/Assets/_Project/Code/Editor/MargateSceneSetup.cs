@@ -48,6 +48,9 @@ public static class MargateSceneSetup
             camGo.GetComponent<Camera>().farClipPlane = 3000f;
             p.GetComponent<MargateWalker>().cam = camGo.transform;
         }
+        if (p.GetComponent<MargateMinimap>() == null) p.AddComponent<MargateMinimap>();
+        {
+        }
         // BNG 635450, 171150 -- the Old Town lanes, one street back from the harbour.
         // Walk north to Droit House and the Harbour Arm; west along the front to Dreamland.
         p.transform.position = new Vector3(635450f - (float)MargateWorld.E0, 30f,
