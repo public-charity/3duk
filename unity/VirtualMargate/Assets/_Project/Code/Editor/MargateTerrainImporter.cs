@@ -53,7 +53,7 @@ public static class MargateTerrainImporter
             go.transform.position = new Vector3(i * MargateWorld.TileM,
                                                 MargateWorld.YBase,
                                                 j * MargateWorld.TileM);
-            go.GetComponent<Terrain>().heightmapPixelError = 3f;
+            go.GetComponent<Terrain>().heightmapPixelError = 1f;   // 3 let distant terrain LOD rise above the road meshes
             made++;
         }
         AssetDatabase.SaveAssets();

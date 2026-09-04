@@ -19,6 +19,7 @@ public static class MargateBootstrap
         var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
         MargateTerrainImporter.Import();
         MargateBuildingGenerator.Generate();
+        MargateRoadGenerator.Generate();
         MargateTerrainMaterial.Apply();
         MargateSceneSetup.Setup();
 

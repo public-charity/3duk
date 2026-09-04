@@ -29,3 +29,4 @@ tools/.*.log
 salvage/extracted/
 salvage/*.png
 data/derived/margate.gpkg
+unity/VirtualMargate/Assets/Generated/

@@ -19,6 +19,8 @@ public static class MargateShots
         var shots = new[] {
             // All coordinates are real OSM landmark centroids in British National Grid.
             new Shot { name="01_overhead",       pos = L(635400, 168900, 1350), look = L(635400, 171100, 0),  fov = 55 },
+            new Shot { name="08_plan_80m",       pos = L(635175, 170742, 80),   look = L(635175, 170743, 0),  fov = 60 },
+            new Shot { name="07_streets_close",  pos = L(635500, 170750, 150),  look = L(635420, 171150, 6),  fov = 62 },
             new Shot { name="02_harbour_air",    pos = L(635150, 170300, 190),  look = L(635360, 171230, 8),  fov = 60 },
             new Shot { name="03_oldtown_street", pos = L(635547, 171055, 0),    look = L(635420, 171200, 4),  fov = 70, ground = true },
             new Shot { name="04_harbour_quay",   pos = L(635300, 171180, 0),    look = L(635389, 171231, 10), fov = 65, ground = true },
