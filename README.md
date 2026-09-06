@@ -232,6 +232,29 @@ are diagnostics — use them before assuming a generator is broken.
 assets and every re-import shows as a diff across all 91. Check `.gitattributes` before
 adding more generated binaries.
 
+### Props
+
+Street furniture lives in `Assets/_Project/Art/Props/<Name>/` as an FBX + albedo pair
+written headlessly by `tools/props/build_<name>.py` (Blender), and
+
+```
+Margate/7 - Build Props
+```
+
+(`MargatePropBuilder`) turns each pair into URP materials, an LODGroup, a collider and a
+`P_<Name>.prefab` beside the source. First asset: the **Glasdon Jubilee 110 litter bin**,
+scanned from a real Thanet bin and rebuilt as clean geometry — 1.158 × 0.598 × 0.553 m,
+2216 / 1128 / 308 tris, one 1024×512 texture. The scan-to-asset pipeline and the caveats
+that cost time are in `tools/props/README.md`; capture details in
+`data/provenance/litterbin.json`.
+
+**Caveats**
+- `.fbx` and `.png` are LFS. Commit with git-lfs installed or you commit pointers.
+- Unity writes `.meta` files on first import. After pulling, run `Margate/7 - Build Props`
+  once and commit the `.meta`, `.mat` and `.prefab` it produces.
+- Nothing places props in the scene yet. The OSM extract already has
+  `amenity=waste_basket` nodes; a scatter pass is the next step.
+
 ---
 
 # Part B — The photoreal layer (Gaussian splatting)
@@ -417,11 +440,13 @@ pipeline/            numbered build scripts + config/margate.json (source of tru
   config/            margate.json, landmarks.json, _tiles.json
   lib/
 tools/               fetch_osm.sh, build_when_free.sh, AssetRipper, render_2013.py
+  props/             build_litterbin.py -> Assets/_Project/Art/Props/LitterBin/ (FBX + albedo), README.md
 data/
   raw/               OSM extract + LIDAR GeoTIFFs (fetched, not committed)
   interim/           VRT mosaics, pickled features, stats arrays  (not committed)
   derived/           margate.gpkg  (not committed)
   provenance/        osm.json -- what was fetched, when, and its SHA-256  (committed)
+                     litterbin.json -- capture, scan, spec and scale of the litter bin prop
   out/               terrain/ networks/ massing/ coast/ + QA json  -> consumed by Unity
 unity/VirtualMargate Unity 6000.3.23f1 project
 salvage/             3dexplore/  earlier experiments
