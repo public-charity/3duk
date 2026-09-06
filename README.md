@@ -39,7 +39,7 @@ BNG metres. Get this wrong and adjacent tiles have a seam you cannot fix in Unit
 ## Quick rebuild
 
 ```bash
-./run.sh              # every data step, 01 -> 09
+./run.sh              # every data step, 01 -> 10
 ./run.sh --from 04    # resume from a step
 ./run.sh --only 06    # single step
 ./run.sh --unity      # then drive Unity headlessly (MargateBootstrap.BuildAll)
@@ -211,6 +211,33 @@ a water surface.
   flown at low tide*. Land/sea has to come from the coastline vector and sand from the beach
   polygons. Expect the same trap in any tidal town.
 
+### 10 — Street furniture
+
+```bash
+python3.14 pipeline/10_furniture.py       # → data/out/furniture/furniture_x{i}_y{j}.jsonl + qa_furniture.json
+```
+
+OSM `amenity` nodes → one placement record per prop: local-metre position, yaw, height.
+Only `waste_basket` → `LitterBin` so far; `PROPS` is the map to extend. Reads the
+GeoPackage `points` layer and `data/out/networks`, nothing else — no DTM, seconds to run.
+
+**Caveats**
+- **Height comes from the road, not the DTM.** A bin on a pavement sits on the kerb the
+  road generator builds, 0.12 m above the draped centreline. Sampling the DTM would put it
+  a kerb-height under the pavement. Nodes more than a pavement's width from any road get
+  `"y":null` and Unity drops them onto the terrain.
+- **Props are squared to the nearest road** (`yaw`). Random rotation beside a straight kerb
+  reads as wrong from twenty metres.
+- **Nodes mapped in the carriageway are pushed onto the pavement** (`"nudged":true`). Aerial
+  mapping is good to a couple of metres, which is enough to put a bin in the road.
+- **`amenity` is not a column.** The default OSM driver config keeps it inside the
+  `other_tags` hstore of the `points` layer; the script parses it from there.
+- **This step has not yet been run against the extract.** It was written on the Windows box,
+  where the GDAL stack deliberately isn't installed. The placement geometry (nearest road,
+  kerb height, yaw, nudge, tiling) was exercised against the committed `data/out/networks`
+  with synthetic nodes; the GeoPackage read path was not. First run: read the counts it prints
+  and `qa_furniture.json` before trusting the scene.
+
 ### Unity assembly
 
 Open `unity/VirtualMargate` (Unity **6000.3.23f1**) and run the menu in order:
@@ -222,6 +249,8 @@ Margate/3 - Setup Scene and Player
 Margate/4 - Terrain Material
 Margate/5 - Generate Roads
 Margate/6 - Generate Sea and Beach
+Margate/7 - Build Props
+Margate/8 - Scatter Street Furniture
 ```
 
 Generators are in `Assets/_Project/Code/Editor/`, runtime in `Code/Runtime/`
@@ -252,8 +281,9 @@ that cost time are in `tools/props/README.md`; capture details in
 - `.fbx` and `.png` are LFS. Commit with git-lfs installed or you commit pointers.
 - Unity writes `.meta` files on first import. After pulling, run `Margate/7 - Build Props`
   once and commit the `.meta`, `.mat` and `.prefab` it produces.
-- Nothing places props in the scene yet. The OSM extract already has
-  `amenity=waste_basket` nodes; a scatter pass is the next step.
+- Placement is step 10 + `Margate/8 - Scatter Street Furniture` (`MargateFurnitureGenerator`):
+  every OSM `waste_basket` node becomes a `P_LitterBin` instance, squared to the nearest
+  road and standing on its kerb. Step 10's output is not committed yet — see its caveats.
 
 ---
 
@@ -437,6 +467,7 @@ pipeline/            numbered build scripts + config/margate.json (source of tru
   02_fetch_lidar.py  EA 1m DTM/DSM per tile over WCS
   03_build_mosaics.sh  gdalbuildvrt -> data/interim/{dtm,dsm}.vrt
   04..09             heights, terrain, networks, massing, coast  (no 08)
+  10_furniture.py    OSM amenity nodes -> per-tile prop placements (position, yaw, kerb height)
   config/            margate.json, landmarks.json, _tiles.json
   lib/
 tools/               fetch_osm.sh, build_when_free.sh, AssetRipper, render_2013.py
@@ -447,7 +478,7 @@ data/
   derived/           margate.gpkg  (not committed)
   provenance/        osm.json -- what was fetched, when, and its SHA-256  (committed)
                      litterbin.json -- capture, scan, spec and scale of the litter bin prop
-  out/               terrain/ networks/ massing/ coast/ + QA json  -> consumed by Unity
+  out/               terrain/ networks/ massing/ coast/ furniture/ + QA json  -> consumed by Unity
 unity/VirtualMargate Unity 6000.3.23f1 project
 salvage/             3dexplore/  earlier experiments
 ```
