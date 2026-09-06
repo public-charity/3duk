@@ -1,7 +1,7 @@
 #!/bin/bash
 # Rebuild Virtual Margate's data layer from scratch.
 #
-#   ./run.sh              run every data step, 01 -> 09
+#   ./run.sh              run every data step, 01 -> 10
 #   ./run.sh --from 04    resume from a step (steps are individually resumable)
 #   ./run.sh --only 06    run a single step
 #   ./run.sh --unity      after the data steps, drive Unity headlessly to rebuild the scene
@@ -29,6 +29,7 @@ STEPS=(
   "06:pipeline/06_build_networks.py:OSM highways -> draped centrelines + widths"
   "07:pipeline/07_massing.py:semantic per-building massing records"
   "09:pipeline/09_coast.py:coastline, beach splat maps, sea extent"
+  "10:pipeline/10_furniture.py:street furniture placements from OSM amenity nodes"
 )
 # There is no 08. It was abandoned; the numbering is kept so log output and this
 # script agree with the filenames on disk.

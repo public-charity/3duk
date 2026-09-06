@@ -1,0 +1,45 @@
+{
+  "asset": "Glasdon Jubilee 110 litter bin, Thanet District Council livery",
+  "recorded_utc": "2026-09-06T19:01:11+00:00",
+  "unity_asset": "unity/VirtualMargate/Assets/_Project/Art/Props/LitterBin/SM_LitterBin_Jubilee110.fbx",
+  "rebuild": "blender --background --factory-startup --python tools/props/build_litterbin.py",
+  "capture": {
+    "date": "2026-09-06",
+    "device": "Android 14 phone, rear camera, 1280x720 portrait, 30 fps playback (120 fps sensor)",
+    "clip": "bin-1.mp4, 9.15 s, 275 frames, handheld orbit at chest height",
+    "frames_used": 138,
+    "frame_extraction": "ffmpeg -vf fps=15 -q:v 1 -qmin 1, native resolution, no blur culling needed (blurdetect median 4.06, max 7.08)",
+    "exif": "none -- video frames carry no focal length; RealityScan solved it"
+  },
+  "photogrammetry": {
+    "software": "RealityScan 2.2.0.119430",
+    "export": "bin.obj, 253738 vertices / 507480 faces, 8192x8192 diffuse, Z-up, arbitrary units",
+    "reconstruction_region": "not tightened; car park, planter and passer-by removed in Blender"
+  },
+  "cleanup": {
+    "software": "Blender 5.2.1 LTS headless (bpy + numpy)",
+    "steps": [
+      "crop to bin by ground-plane fit and radial gap (bin r<6.5, background r>30)",
+      "upright by wall-normal eigenvector (4.3 deg lean vs car park), squared by min-area rectangle, ground bisected",
+      "decimate 507k -> 100k, stubber hole cut r=1.8 with 1.0 skirt, sky-reflection hood recoloured",
+      "profile measured at 60 z-slices: body half-width 3.78 (n=5.2), bands 4.02-4.05 (n=3.4), hood 4.00, shoulder to plateau r=2.9 at z=14.85",
+      "apertures 4.0 x 2.0 at z=12.6 (all four faces agree), plates measured from the baked atlas",
+      "parametric superellipse shell rebuilt, scan texture baked (Cycles selected-to-active) then replaced by a generated stylised albedo"
+    ]
+  },
+  "spec": {
+    "product": "Glasdon Jubilee 110",
+    "height_mm": 1158, "width_mm": 598, "depth_mm": 553,
+    "sources": [
+      "https://www.externalworksindex.co.uk/entry/126506/Glasdon-UK/Glasdon-Jubilee-110litre-litter-bin/",
+      "https://source.thenbs.com/product/glasdon-jubilee-110/5QMpJjDCj599naq7xkeBH1"
+    ]
+  },
+  "scale": {
+    "metres_per_scan_unit": 0.07608,
+    "method": "uniform, matched to spec height (15.22 scan units incl. restored 0.37 foot); scan width/depth read +1.8% over spec",
+    "proportion_check": "scan 7.80:7.15 vs spec 598:553 -- the bin is rectangular, not square"
+  },
+  "lods": { "LitterBin_LOD0": 2216, "LitterBin_LOD1": 1128, "LitterBin_LOD2": 308 },
+  "texture": "T_LitterBin_D.png 1024x512 sRGB, UV strip (u = around, v = up the profile), shared by all LODs"
+}
