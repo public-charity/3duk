@@ -11,3 +11,6 @@ data/
 # Python
 __pycache__/
 *.pyc
+
+# Throwaway site configs written by sources/tests/dryrun.py
+sources/config/sites/_*.json

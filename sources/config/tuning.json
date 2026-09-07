@@ -36,6 +36,8 @@
     "percentile_note": "p50 as the wall/body height and p90 as the ridge: p99 and max chase chimneys and aerials, the mean is dragged down by roof pitch.",
     "ground_percentile": 15,
     "qa_ridge_spread_m": 8.0,
+    "skirt_below_min_m": 0.5,
+    "skirt_note": "How far below the lowest sampled ground a footprint's skirt extends, so a building on a slope does not float at its downhill edge.",
     "default_roof": "gabled",
     "flat_roof_types": ["garage", "garages", "shed", "roof", "industrial", "retail", "commercial", "supermarket"],
     "type_priors_m": {

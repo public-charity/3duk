@@ -36,7 +36,11 @@ lib.mkdirs(OUT)
 
 dtm = gdal.Open(os.path.join(P["interim"], "dtm.vrt"))
 gt  = dtm.GetGeoTransform()
-A   = dtm.GetRasterBand(1).ReadAsArray().astype(np.float32)
+_band = dtm.GetRasterBand(1)
+A   = _band.ReadAsArray().astype(np.float32)
+# Nodata by the band's declared sentinel; the isfinite() tests below then catch it
+# whatever the value is, instead of a -9999 reading as 9 km below the foreshore.
+A[lib.nodata_mask(A, _band.GetNoDataValue())] = np.nan
 Hh, Ww = A.shape
 
 # Tile size in PIXELS, from the raster -- never assumed equal to tile_m.

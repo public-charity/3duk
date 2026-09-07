@@ -14,6 +14,9 @@
   "bbox_wgs84": [51.365, 1.345, 51.402, 1.432],
   "bbox_note": "S,W,N,E -- Overpass order, which is not the order anything else here uses.",
 
+  "vertical_datum": "ODN",
+  "vertical_datum_note": "Ordnance Datum Newlyn -- the datum of the EA LIDAR. Every elevation the pipeline emits, including water_level, is metres above this.",
+
   "water_level": -0.6,
 
   "height_calib": {

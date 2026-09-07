@@ -73,7 +73,20 @@ it is comparing like with like.
 | 10 | `furniture/furniture_x*_y*.jsonl` — prop key, position, `bearing` degrees clockwise from grid north |
 
 Every step writes a manifest beside its output recording the CRS, the origin and the
-parameters it ran under.
+parameters it ran under. **[sources/OUTPUT.md](sources/OUTPUT.md) is the contract** — every
+field, its units, what `null` means, and which values are measurements versus opinions.
+
+## Checking it without GDAL
+
+```bash
+python3 sources/tests/dryrun.py
+```
+
+Runs steps 05–10 and the Unity adapter against a synthetic two-tile site through a fake
+in-memory GDAL. Needs numpy only. It proves the wiring, the schemas in `OUTPUT.md`, and the
+fidelity guarantees (nodata by declared sentinel, honest bridge elevation, buildings without
+LIDAR emitted rather than dropped, calibration from config, north-up rasters, adapter refusing
+to clip terrain). It does not exercise GDAL itself or steps 01–04.
 
 ### Consumers
 

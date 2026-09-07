@@ -1,3 +1,14 @@
+# Text sources are always LF in the repo AND on checkout. A CRLF shebang line is
+# "bad interpreter" on the linux/mac machines this pipeline actually runs on, and
+# that must not depend on whichever core.autocrlf a contributor happens to have.
+*.sh    text eol=lf
+*.py    text eol=lf
+*.json  text eol=lf
+*.md    text eol=lf
+.gitignore      text eol=lf
+.gitattributes  text eol=lf
+
+# Binary art goes through LFS
 *.psd  filter=lfs diff=lfs merge=lfs -text
 *.png  filter=lfs diff=lfs merge=lfs -text
 *.jpg  filter=lfs diff=lfs merge=lfs -text

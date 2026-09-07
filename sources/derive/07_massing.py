@@ -66,16 +66,27 @@ def rings(geom):
             if len(pts) >= 4: out.append({"hole": ri > 0, "pts": pts})
     return out
 
-buckets, qa, nlm = {}, [], 0
+def r2(v):
+    return None if v is None else round(float(v), 2)
+
+buckets, qa, nlm, no_lidar = {}, [], 0, 0
 for k, rec in enumerate(feats):
-    if k not in S: continue
-    p25, p50, p90, npx, d15, dmin = S[k]
+    if k in S:
+        p25, p50, p90, npx, d15, dmin = S[k]
+    else:
+        # No LIDAR sample inside the footprint at all -- outside coverage, or a sliver.
+        # The old code dropped these buildings from the model without a word, which on
+        # a site with partial LIDAR silently deletes whole streets. Emit them with the
+        # ground unknown and let `src` say how the height was reached.
+        p25 = p50 = p90 = d15 = dmin = None
+        npx = 0
+        no_lidar += 1
     g = ogr.CreateGeometryFromWkb(rec["wkb"])
     x0,x1,y0,y1 = g.GetEnvelope(); cx, cy = (x0+x1)/2, (y0+y1)/2
     i, j = int((cx-E0)//T), int((cy-N0)//T)
     btype = rec.get("building") or "yes"
     name  = rec.get("name")
-    lv    = tv(rec, "building:levels")
+    lv    = rec.get("levels") or tv(rec, "building:levels")
     try: levels = int(float(lv)) if lv else None
     except: levels = None
 
@@ -96,14 +107,19 @@ for k, rec in enumerate(feats):
     roof = tv(rec, "roof:shape") or ("flat" if btype in FLAT else TUN["default_roof"])
     if name in LM:                                   # hand override wins
         o = LM[name]; h = o.get("h_body", h); roof = o.get("roof", roof); src = "landmark_override"; nlm += 1
-    if npx < MINPX or (p90 - p50) > TUN["qa_ridge_spread_m"]:
-        qa.append({"osm_id": rec["osm_id"], "name": name,
-                   "px": int(npx), "p50": round(p50,1), "p90": round(p90,1)})
+    if npx < MINPX or (p90 is not None and (p90 - p50) > TUN["qa_ridge_spread_m"]):
+        qa.append({"osm_id": rec["osm_id"], "name": name, "px": int(npx),
+                   "p50": None if p50 is None else round(p50, 1),
+                   "p90": None if p90 is None else round(p90, 1)})
 
     buckets.setdefault((i,j), []).append({
         "id": rec["osm_id"], "name": name, "type": btype,
-        "h": round(float(h),2), "ridge": round(float(max(p90,h)),2), "eaves": round(float(p25),2),
-        "base_z": round(float(d15),2), "skirt": round(float(dmin-0.5),2),
+        "h": r2(h),
+        "ridge": r2(max(p90, h)) if p90 is not None else r2(h),
+        "eaves": r2(p25),
+        "base_z": r2(d15),
+        "skirt": r2(dmin - TUN["skirt_below_min_m"]) if dmin is not None else None,
+        "lidar_px": int(npx),
         "levels": levels, "roof": roof, "src": src,
         "seed": int(hashlib.md5(str(rec["osm_id"]).encode()).hexdigest()[:8], 16),
         "rings": rings(g),
@@ -120,6 +136,7 @@ json.dump({"site": CFG["site"], "crs": CFG["crs"], "coordinates": "CRS eastings/
            "origin": CFG["origin"], "tile_m": CFG["tile_m"],
            "height_calib": CAL, "buildings": n, "tiles": len(buckets),
            "by_height_source": dict(by_src), "landmark_overrides": nlm,
+           "buildings_without_lidar": no_lidar,
            "qa_flagged": len(qa)},
           open(os.path.join(OUT, "massing_manifest.json"), "w"), indent=1)
 json.dump(qa, open(os.path.join(P["out"], "qa_height_outliers.json"), "w"), indent=1)

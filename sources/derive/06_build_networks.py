@@ -42,7 +42,11 @@ SKIP = set(TUN["skip"])
 
 dtm_ds = gdal.Open(os.path.join(P["interim"], "dtm.vrt"))
 gt = dtm_ds.GetGeoTransform()
-DTM = dtm_ds.GetRasterBand(1).ReadAsArray().astype(np.float32)
+_band = dtm_ds.GetRasterBand(1)
+DTM = _band.ReadAsArray().astype(np.float32)
+# Mark nodata by the band's declared sentinel so ground() sees it as a gap whatever
+# the value is -- a -9999 would otherwise drape roads 10 km underground.
+DTM[lib.nodata_mask(DTM, _band.GetNoDataValue())] = np.nan
 H, W = DTM.shape
 
 
@@ -57,7 +61,7 @@ def ground(e, n):
     x0 = min(max(x0, 0), W - 2); y0 = min(max(y0, 0), H - 2)
     a = DTM[y0, x0]; b = DTM[y0, x0+1]; c = DTM[y0+1, x0]; d = DTM[y0+1, x0+1]
     v = (a*(1-tx) + b*tx)*(1-ty) + (c*(1-tx) + d*tx)*ty
-    return (float(v), True) if np.isfinite(v) and v > -1e30 else (0.0, False)
+    return (float(v), True) if np.isfinite(v) else (0.0, False)
 
 
 def tagval(ot, key):

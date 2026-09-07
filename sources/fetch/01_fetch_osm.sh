@@ -40,7 +40,7 @@ ogr2ogr -f GPKG -t_srs "$CRS" "$GPKG" "$OSM" points lines multipolygons
 # extent against the bbox reprojected through the same CRS. If -t_srs silently did not
 # apply, the extent is still in degrees and will not land anywhere near it.
 "$PY" - "$GPKG" "$BBOX" "$CRS" <<'PYEOF'
-import subprocess, sys, re
+import sys
 from osgeo import ogr, osr
 gpkg, bbox, crs = sys.argv[1:4]
 s, w, n, e = (float(v) for v in bbox.split(","))

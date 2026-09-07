@@ -24,7 +24,10 @@ dsm_ds = gdal.Open(os.path.join(P["interim"], "dsm.vrt"))
 gt = dtm_ds.GetGeoTransform(); W, H = dtm_ds.RasterXSize, dtm_ds.RasterYSize
 dtm = dtm_ds.GetRasterBand(1).ReadAsArray().astype(np.float32)
 dsm = dsm_ds.GetRasterBand(1).ReadAsArray().astype(np.float32)
-bad = ~np.isfinite(dtm) | ~np.isfinite(dsm) | (dtm < -1e30) | (dsm < -1e30)
+# Nodata by each band's DECLARED sentinel, not a `< -1e30` guess: a -9999 sentinel
+# would otherwise read as a valid -9999 m surface and poison every percentile.
+bad = (lib.nodata_mask(dtm, dtm_ds.GetRasterBand(1).GetNoDataValue())
+       | lib.nodata_mask(dsm, dsm_ds.GetRasterBand(1).GetNoDataValue()))
 ndsm = np.where(bad, np.nan, dsm - dtm)
 print(f"grid {W}x{H}  nodata {100*bad.mean():.2f}%", flush=True)
 
