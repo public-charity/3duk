@@ -116,7 +116,7 @@ def rings(geom):
 def r2(v):
     return None if v is None else round(float(v), 2)
 
-buckets, qa, nlm, no_lidar, outside = {}, [], 0, 0, 0
+buckets, qa, nlm, no_lidar, no_dsm, outside = {}, [], 0, 0, 0, 0
 for k, rec in enumerate(feats):
     g = ogr.CreateGeometryFromWkb(rec["wkb"])
     x0,x1,y0,y1 = g.GetEnvelope(); cx, cy = (x0+x1)/2, (y0+y1)/2
@@ -126,6 +126,12 @@ for k, rec in enumerate(feats):
         continue
     if k in S:
         p25, p50, p90, npx, d15, dmin = S[k]
+        npx = int(npx)
+        if npx == 0:
+            # Ground known from the DTM, height unknown: the footprint sits in a DSM gap
+            # (flight-strip coverage). base_z stays real; only h goes down the ladder.
+            p25 = p50 = p90 = None
+            no_dsm += 1
     else:
         # No LIDAR sample inside the footprint at all -- outside coverage, or a sliver.
         # The old code dropped these buildings from the model without a word, which on
@@ -188,12 +194,14 @@ json.dump({"site": CFG["site"], "crs": CFG["crs"], "coordinates": "CRS eastings/
            "buildings": n, "tiles": len(buckets), "outside_grid": outside,
            "by_height_source": dict(by_src), "landmark_overrides": nlm,
            "buildings_without_lidar": no_lidar,
+           "buildings_without_dsm": no_dsm,
            "qa_flagged": len(qa)},
           open(os.path.join(OUT, "massing_manifest.json"), "w"), indent=1)
 json.dump(qa, open(os.path.join(P["out"], "qa_height_outliers.json"), "w"), indent=1)
 
 print(f"wrote {n} buildings across {len(buckets)} tiles -> {OUT}")
-print(f"landmark overrides applied: {nlm}   QA flagged: {len(qa)}")
+print(f"landmark overrides applied: {nlm}   QA flagged: {len(qa)}   ground-only (DSM gap): {no_dsm}   "
+      f"no LIDAR at all: {no_lidar}   off-grid: {outside}")
 print("height source:", dict(by_src))
 print("roof form   :", dict(Counter(b["roof"] for v in buckets.values() for b in v).most_common(6)))
 

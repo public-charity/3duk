@@ -17,8 +17,8 @@
   "vertical_datum": "ODN",
   "vertical_datum_note": "Ordnance Datum Newlyn -- the datum of the EA LIDAR. Every elevation the pipeline emits, including water_level, is metres above this.",
 
-  "water_level": -2.4,
-  "water_level_note": "MEASURED from the EA DTM tiles fetched by step 02 on 2026-09-07: the composite carries a flat water surface over the open sea and the harbour, sharply peaked at -2.4 m ODN (103k flat cells in the northern tile row, median -2.38, p10 -2.44, p90 -2.16). The survey was flown near low water; Whitby's tidal range is ~5 m. Every tile has data -- there is no no-DTM sea here.",
+  "water_level": -2.3,
+  "water_level_note": "MEASURED from the EA DTM tiles fetched by step 02 on 2026-09-07. The composite carries the surveyed water surface over the open sea and the harbour as one broad peak: mode -2.25 m ODN, 1.3M locally-flat cells between -2.6 and -2.0, then a thin tail up to -0.9 that is exposed low-tide sand. The survey was flown near low water; Whitby's tidal range is ~5 m. Every tile has data -- there is no no-DTM sea here. Note the first-return DSM does NOT share this coverage: it has flight-strip gaps over 187 ha of land, which is why step 04 samples ground and height independently.",
 
   "height_calib": {
     "mode": "auto",
@@ -32,9 +32,10 @@
     "foreshore_max_odn": 2.5,
     "rock_slope_deg": [25.0, 45.0],
     "water_margin_m": 0.75,
-    "water_tolerance_m": 0.3,
+    "water_tolerance_m": 0.4,
     "missing_tiles_are_water": false,
-    "note": "foreshore_max_odn is PROVISIONAL: the DTM shows the sea at -2.4 m, so sand lies between that and roughly mean high water springs (~2.5 m ODN here); check it does not paint the harbour quays. rock_slope_deg was checked against the real DTM: the shale cliffs measure a 53 degree median face (28 m wide for a 31 m drop), so a 25-45 ramp reads them as rock. water_tolerance_m: cells within this of water_level and flat are classified water -- the DTM's sea surface is a plane, not ground. missing_tiles_are_water: all 30 tiles have data here, so it is irrelevant; leave false unless a site has no-DTM tiles that are known to be open sea."
+    "water_tolerance_note": "MEASURED: the sea-surface peak spans -2.6..-2.0 m around water_level -2.3, so +/-0.4 takes the whole peak; the tail above -1.9 is left as foreshore sand. Anything below the water level is water regardless.",
+    "note": "foreshore_max_odn is PROVISIONAL: the DTM shows the sea at -2.3 m, so sand lies between that and roughly mean high water springs (~2.5 m ODN here); check it does not paint the harbour quays. rock_slope_deg was checked against the real DTM: the shale cliffs measure a 53 degree median face (28 m wide for a 31 m drop), so a 25-45 ramp reads them as rock. water_tolerance_m: cells within this of water_level and flat are classified water -- the DTM's sea surface is a plane, not ground. missing_tiles_are_water: all 30 tiles have data here, so it is irrelevant; leave false unless a site has no-DTM tiles that are known to be open sea."
   },
 
   "wcs": {

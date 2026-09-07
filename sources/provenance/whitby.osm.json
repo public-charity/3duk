@@ -1,0 +1,16 @@
+{
+  "site": "whitby",
+  "source": "OpenStreetMap via Overpass API",
+  "licence": "ODbL",
+  "crs": "EPSG:27700",
+  "extract_mtime_utc": "2026-09-07T20:51:47+00:00",
+  "recorded_utc": "2026-09-07T21:08:47+00:00",
+  "bbox_wgs84_swne": "54.473,-0.632,54.5,-0.579",
+  "bytes": 3834174,
+  "sha256": "677f0a8bc3e067c85f37901cdf2afdb17f748576ae883dafd2d5eba84a37599c",
+  "counts": {
+    "buildings": 3330,
+    "highways": 1425
+  },
+  "note": "Re-fetching later will differ; archive C:/Users/Shadow/code/3duk/data/whitby/raw/whitby.osm to reproduce."
+}

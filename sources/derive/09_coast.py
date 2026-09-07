@@ -117,7 +117,13 @@ dz[:, :-1] = np.fmin(dz[:, :-1], np.abs(Af[:, :-1] - Af[:, 1:]))
 dz[1:, :]  = np.fmin(dz[1:, :],  np.abs(Af[1:, :] - Af[:-1, :]))
 dz[:-1, :] = np.fmin(dz[:-1, :], np.abs(Af[:-1, :] - Af[1:, :]))
 WFLAT = float(COAST.get("water_flat_dz_per_m", 0.08)) * min(pw, ph)     # ~4.6 degrees at the calmest side
-water = np.isfinite(A) & (np.abs(A - WATER_Y) < WTOL) & (dz < WFLAT)
+# Two rules, because the surveyed sea is not one plane. Flight strips flown at different
+# tide states, plus swell, spread the surface over several decimetres (Whitby: one broad
+# peak, -2.3 +/- 0.3 m). Anything BELOW the water level cannot be exposed ground, whatever
+# its slope; anything within tolerance of it and locally flat is more of the same surface.
+below = np.isfinite(A) & (A < WATER_Y - 0.1)
+band  = np.isfinite(A) & (np.abs(A - WATER_Y) < WTOL) & (dz < WFLAT)
+water = below | band
 sand = sand & ~water
 print(f"water surface (|z - {WATER_Y}| < {WTOL} m and flat): {water.sum()*px_area/1e4:.1f} ha")
 

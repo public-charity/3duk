@@ -163,7 +163,9 @@ try:
             ("b10", {"building": "house", "other_tags": '"building:levels"=>"2"'},          rect(E0 + 120, N0 + 300, 8, 8),   (6.0, 7.0, 8.0, 50, 11.0, 10.9)),
             ("b11", {"building": "house", "other_tags": '"building:levels"=>"3"'},          rect(E0 + 140, N0 + 300, 8, 8),   (8.0, 9.0, 10.0, 50, 11.0, 10.9)),
             ("b12", {"building": "house", "other_tags": '"building:levels"=>"4"'},          rect(E0 + 160, N0 + 300, 8, 8),   (10.0, 11.0, 12.0, 50, 11.0, 10.9)),
-            ("b13", {"building": "house"},                                                   rect(E0 - 100, N0 + 100, 8, 8),   (4.0, 5.0, 6.0, 50, 3.0, 2.9))]   # off-grid
+            ("b13", {"building": "house"},                                                   rect(E0 - 100, N0 + 100, 8, 8),   (4.0, 5.0, 6.0, 50, 3.0, 2.9)),   # off-grid
+            # in a DSM coverage gap: 04 found ground (DTM) but no first-return cells -> height must come down the ladder, ground must stay real
+            ("b14", {"building": "house", "other_tags": '"building:levels"=>"2"'},          rect(E0 + 180, N0 + 300, 8, 8),   (np.nan, np.nan, np.nan, 0, 11.0, 10.9))]
     nodesA = [("n1", E0 + 300, N0 + 201, '"amenity"=>"waste_basket"'),   # 1 m off a 7 m road: in carriageway
               ("n2", E0 + 300, N0 + 205, '"amenity"=>"waste_basket"'),   # on the pavement
               ("n3", E0 + 300, N0 + 240, '"amenity"=>"waste_basket"'),   # 40 m away: beyond snap
@@ -225,8 +227,11 @@ try:
     bl = jl(os.path.join(out, "massing", "buildings_*.jsonl")); bb = {b["id"]: b for b in bl}
     mm = json.load(open(os.path.join(out, "massing", "massing_manifest.json")))
     cal = mm["height_calib"]
-    check("A07 12 buildings emitted (off-grid b13 dropped), incl. the 2 without LIDAR", len(bl) == 12 and "b13" not in bb and mm["outside_grid"] == 1
+    check("A07 13 buildings emitted (off-grid b13 dropped), incl. the 2 without LIDAR", len(bl) == 13 and "b13" not in bb and mm["outside_grid"] == 1
           and bb["b6"]["base_z"] is None and bb["b6"]["lidar_px"] == 0)
+    check("A07 DSM-gap building keeps its real ground; only the height goes down the ladder",
+          bb["b14"]["base_z"] == 11.0 and bb["b14"]["skirt"] == 10.4 and bb["b14"]["lidar_px"] == 0 and bb["b14"]["eaves"] is None
+          and bb["b14"]["src"] == "osm_levels" and mm["buildings_without_dsm"] == 1 and mm["buildings_without_lidar"] == 2, str(bb["b14"]))
     check("A07 calibration FITTED from the site's own buildings, outlier rejected", cal["source"] == "fitted" and mm["height_calib_fit"]["n"] == 6
           and mm["height_calib_fit"]["rejected"] == 1 and 1.6 < cal["m_per_level"] < 2.0 and 2.5 < cal["intercept"] < 4.5, str(cal) + str(mm["height_calib_fit"]))
     check("A07 osm_levels rung uses the fitted line, not the fallback", bb["b6"]["src"] == "osm_levels"

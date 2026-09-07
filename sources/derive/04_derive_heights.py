@@ -26,10 +26,16 @@ dtm = dtm_ds.GetRasterBand(1).ReadAsArray().astype(np.float32)
 dsm = dsm_ds.GetRasterBand(1).ReadAsArray().astype(np.float32)
 # Nodata by each band's DECLARED sentinel, not a `< -1e30` guess: a -9999 sentinel
 # would otherwise read as a valid -9999 m surface and poison every percentile.
-bad = (lib.nodata_mask(dtm, dtm_ds.GetRasterBand(1).GetNoDataValue())
-       | lib.nodata_mask(dsm, dsm_ds.GetRasterBand(1).GetNoDataValue()))
-ndsm = np.where(bad, np.nan, dsm - dtm)
-print(f"grid {W}x{H}  nodata {100*bad.mean():.2f}%", flush=True)
+badD = lib.nodata_mask(dtm, dtm_ds.GetRasterBand(1).GetNoDataValue())
+badS = lib.nodata_mask(dsm, dsm_ds.GetRasterBand(1).GetNoDataValue())
+dtm[badD] = np.nan
+# Ground (DTM) and height (nDSM) are sampled INDEPENDENTLY. The EA first-return DSM has
+# flight-strip gaps over land where the DTM is complete (Whitby: 187 ha, a whole tile row
+# and a third of the next), and a building in such a gap still has a perfectly good ground
+# level -- only its height is unknown. Requiring both threw the ground away too, and 630
+# buildings came out floating on nothing with another town's heights.
+ndsm = np.where(badD | badS, np.nan, dsm - dtm)
+print(f"grid {W}x{H}  nodata: dtm {100*badD.mean():.2f}%  dsm {100*badS.mean():.2f}%", flush=True)
 
 # ---- collect footprints -------------------------------------------------
 src = ogr.Open(P["gpkg"])
@@ -63,7 +69,7 @@ PX_W, PX_H = lib.pixel_size(gt)
 EROSION = min(PX_W, PX_H) / 2.0
 
 # ---- rasterise all footprints into one ID raster ------------------------
-mem = ogr.GetDriverByName("Memory").CreateDataSource("m")
+mem = ogr.GetDriverByName("MEM").CreateDataSource("m")
 srs = osr.SpatialReference(); srs.ImportFromEPSG(lib.epsg(CFG))
 ml = mem.CreateLayer("b", srs, ogr.wkbMultiPolygon)
 ml.CreateField(ogr.FieldDefn("idx", ogr.OFTInteger))
@@ -110,11 +116,16 @@ for k in range(len(feats)):
     if b <= a: continue
     nv = nd_v[a:b]; dv = dt_v[a:b]
     nv = nv[np.isfinite(nv)]; dv = dv[np.isfinite(dv)]
-    if nv.size == 0 or dv.size == 0: continue
-    stats[k] = (float(np.percentile(nv, TUN["eaves_percentile"])), float(np.percentile(nv, TUN["wall_percentile"])),
-                float(np.percentile(nv, TUN["ridge_percentile"])), int(nv.size),
-                float(np.percentile(dv, TUN["ground_percentile"])), float(dv.min()))
-print(f"buildings with LIDAR: {len(stats)} / {len(feats)} ({100*len(stats)/len(feats):.1f}%)", flush=True)
+    if dv.size == 0: continue                        # no ground at all: outside the DTM
+    if nv.size:
+        hp = (float(np.percentile(nv, TUN["eaves_percentile"])), float(np.percentile(nv, TUN["wall_percentile"])),
+              float(np.percentile(nv, TUN["ridge_percentile"])))
+    else:
+        hp = (np.nan, np.nan, np.nan)                # DSM gap: ground known, height not
+    stats[k] = (*hp, int(nv.size), float(np.percentile(dv, TUN["ground_percentile"])), float(dv.min()))
+n_h = sum(1 for v in stats.values() if v[3] > 0)
+print(f"buildings with DTM ground: {len(stats)} / {len(feats)}   with DSM height: {n_h} ({100*n_h/max(len(feats),1):.1f}%)"
+      f"   ground-only (DSM gap): {len(stats) - n_h}", flush=True)
 json.dump({"n_feats": len(feats)}, open(os.path.join(P["interim"], "_h_meta.json"),"w"))
 np.save(os.path.join(P["interim"], "_stats_keys.npy"), np.array(sorted(stats.keys())))
 np.save(os.path.join(P["interim"], "_stats_vals.npy"), np.array([stats[k] for k in sorted(stats)]))

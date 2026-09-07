@@ -68,8 +68,18 @@ composite carries the surveyed water surface as a flat plane, which is where Whi
 buildings (2 with `building:levels`), a cliff way, 4 beach polygons, 1,432 highways, 8 bins
 — and needed the retry logic: all three public mirrors returned 504 on the first pass.
 
-Steps 03–10 have not run on real data. The dry run proves their wiring; the first GDAL
-machine proves GDAL.
+**The whole pipeline, 01–10 plus the Unity adapter, then ran end to end on Whitby** with a
+conda-forge GDAL 3.13 (11 s for the data layer). It found two things the dry run could not:
+the EA first-return DSM has flight-strip gaps over 187 ha of land where the DTM is complete
+(630 buildings — step 04 now samples ground and height independently so they keep their real
+ground), and the sea surface is not one plane but a −2.3 ± 0.3 m spread (the water rule now
+takes anything below the water level, plus a tolerance band). Also caught for real: a GDAL
+Python lifetime bug in the adapter that the fake could not see. The adapter's heightmaps
+round-trip the neutral tiles exactly.
+
+A GDAL environment for this: `micromamba create -p <dir> -c conda-forge python=3.13 gdal
+numpy scipy`, then `PATH=<dir>/Library/bin:$PATH PY=<dir>/python.exe` — `run.sh` finds
+`GDAL_DATA` and `PROJ_DATA` beside the binaries itself.
 
 ## Cliffs
 

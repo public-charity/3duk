@@ -82,14 +82,15 @@ footprints with no LIDAR coverage** (they carry `lidar_px: 0` and null ground).
 | `ridge`, `eaves` | Also above ground: nDSM p90 and p25 inside the footprint. `eaves` is null without LIDAR. |
 | `base_z` | Absolute ground elevation at the footprint (DTM p15). **null without LIDAR** — drape it. |
 | `skirt` | Absolute elevation to extend walls down to, so a building on a slope does not float. null without LIDAR. |
-| `lidar_px` | How many LIDAR cells fell inside the footprint. Your confidence measure. |
+| `lidar_px` | How many first-return (DSM) cells fell inside the footprint — the evidence behind a LIDAR height. `0` with a real `base_z` means **the DSM has a gap here but the DTM does not**: the EA first-return composite has flight-strip holes over land (Whitby: 187 ha, 630 buildings). Ground is measured; height came down the ladder. `0` with `base_z: null` means no LIDAR at all. |
 | `roof` | OSM `roof:shape` if tagged, else `flat` for the types in tuning, else the tuning default. |
 | `src` | Which rung produced `h`, in order of trust: `osm_height`, `lidar_p50`, `lidar_p50_disputed` (LIDAR disagrees with `building:levels` by more than `height_calib.dispute_m`), `lidar_lowconf` (fewer than `min_pixels` samples), `osm_levels` (`height_calib` regression, **site-specific**), `type_prior` (**no evidence at all** — a per-type guess measured at another site; see `tuning.json`), `landmark_override` (hand-authored in the site config). |
 | `seed` | Stable per-building hash for deterministic variation. |
 | `rings` | Exterior first, then holes. `[E, N]` pairs, closed. |
 
 `massing_manifest.json` — `by_height_source` is the histogram of `src`;
-`buildings_without_lidar` and `outside_grid` are counted. `height_calib` is the line the
+`buildings_without_lidar` (no ground, no height), `buildings_without_dsm` (ground yes,
+height no — a DSM coverage gap) and `outside_grid` are counted. `height_calib` is the line the
 `osm_levels` rung actually used, with `source` = `fitted` (regressed from this site's own
 buildings that carry both `building:levels` and a trustworthy LIDAR p50 — the default),
 `config` (pinned in the site config) or `fallback` (too few buildings to fit; another
@@ -105,11 +106,14 @@ OSM beach polygons **plus everything below `coast.foreshore_max_odn`** — a pro
 survey's tide state, recorded in the manifest. Rock is a slope ramp between
 `coast.rock_slope_deg`.
 
-**Water is the DTM's own flat surface.** The EA composite carries the surveyed water level
-as a plane (measured at Whitby: −2.4 m ODN, razor-flat, 100% coverage even over open sea).
-Cells within `water_tolerance_m` of `water_level` whose calmest neighbour is flat are
-`water`, and are excluded from sand. That plane is not ground: a consumer that drapes a water
-surface at `water_level` will z-fight it, so sink or cut the terrain under the water band.
+**Water is the DTM's own surveyed surface.** The EA composite carries the water surface
+over sea and harbour with 100% coverage (Whitby: one broad peak at −2.3 ± 0.3 m ODN —
+flight strips at different tide states, plus swell — not a single plane). A cell is `water`
+if it is **below `water_level`** (it cannot be exposed ground) or **within
+`water_tolerance_m` of it with a flat calmest neighbour**; water is excluded from sand. That
+surface is not ground: a consumer that drapes a water plane at `water_level` will z-fight
+it, so sink or cut the terrain under the water band. Surface noise above the tolerance reads
+as foreshore sand — on Whitby's pure-sea tiles that residue is 2–6%.
 
 Tiles with no DTM at all get no raster and are listed as `tiles_without_dtm`. They are added
 to `water_tiles` only if the site config says `coast.missing_tiles_are_water` — whether a

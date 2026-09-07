@@ -62,6 +62,7 @@ ogr2ogr -f GPKG -t_srs "$CRS" "$GPKG" "$OSM" points lines multipolygons
 "$PY" - "$GPKG" "$BBOX" "$CRS" <<'PYEOF'
 import sys
 from osgeo import ogr, osr
+ogr.UseExceptions(); osr.UseExceptions()
 gpkg, bbox, crs = sys.argv[1:4]
 s, w, n, e = (float(v) for v in bbox.split(","))
 src = osr.SpatialReference(); src.ImportFromEPSG(4326)

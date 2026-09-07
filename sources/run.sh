@@ -53,6 +53,23 @@ done
 command -v "$PY" >/dev/null || { echo "FATAL: $PY not found (override with PY=...)" >&2; exit 1; }
 command -v ogr2ogr >/dev/null || { echo "FATAL: GDAL CLI not found" >&2; exit 1; }
 
+# GDAL needs its data directory for the OSM driver (osmconf.ini) and PROJ needs proj.db.
+# Packaged GDALs (conda, OSGeo4W) set these on activation; a bare PATH does not, and the
+# failure is a wall of driver names that hides "cannot find osmconf.ini". Find them next
+# to the binary and say so, rather than letting step 01 die confusingly.
+GDAL_BIN="$(dirname "$(command -v ogr2ogr)")"
+if [ -z "${GDAL_DATA:-}" ]; then
+  for G in "$GDAL_BIN/../share/gdal" "$GDAL_BIN/../../share/gdal"; do
+    if [ -f "$G/osmconf.ini" ]; then export GDAL_DATA="$(cd "$G" && pwd)"; echo "GDAL_DATA unset -> $GDAL_DATA"; break; fi
+  done
+fi
+if [ -z "${PROJ_DATA:-}" ] && [ -z "${PROJ_LIB:-}" ]; then
+  for G in "$GDAL_BIN/../share/proj" "$GDAL_BIN/../../share/proj"; do
+    if [ -f "$G/proj.db" ]; then export PROJ_DATA="$(cd "$G" && pwd)"; echo "PROJ_DATA unset -> $PROJ_DATA"; break; fi
+  done
+fi
+ogrinfo --formats 2>/dev/null | grep -q "OSM" || { echo "FATAL: this GDAL has no OSM driver (or cannot find osmconf.ini -- set GDAL_DATA)" >&2; exit 1; }
+
 # Resolve the site once, up front, so an ambiguous SITE fails before any downloading.
 eval "$("$PY" sources/lib.py env)"
 echo "site: $SITE   crs: $CRS   grid: ${NX}x${NY}   -> data/$SITE/"

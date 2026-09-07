@@ -63,7 +63,8 @@ def terrain():
     o = os.path.join(OUT, "terrain"); lib.mkdirs(o)
     n = 0
     for t in man["tiles"]:
-        a = gdal.Open(os.path.join(d, t["file"])).GetRasterBand(1).ReadAsArray().astype(np.float64)
+        ds = gdal.Open(os.path.join(d, t["file"]))   # keep the dataset alive while its band is read
+        a = ds.GetRasterBand(1).ReadAsArray().astype(np.float64)
         h = np.clip((a - yb) / ys, 0.0, 1.0)
         h = np.flipud(h)                       # GeoTIFF north-first -> Unity south-first
         (h * 65535.0).round().astype("<u2").tofile(
