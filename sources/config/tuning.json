@@ -1,0 +1,68 @@
+{
+  "_note": "Cross-site tuning. These are opinions, not measurements -- kept here so a step never has to be edited to change one, and so the assumptions a model was built under are visible in one file.",
+
+  "roads": {
+    "widths_m": {
+      "_note": "carriageway width, pavement each side. Draw order and any rendering lift belong to the consumer, not to this data.",
+      "motorway": [14.0, 0.0], "motorway_link": [7.0, 0.0],
+      "trunk": [12.0, 2.0], "trunk_link": [7.0, 1.5],
+      "primary": [10.0, 2.0], "primary_link": [6.5, 1.5],
+      "secondary": [8.5, 2.0], "secondary_link": [6.0, 1.5],
+      "tertiary": [7.0, 1.8], "tertiary_link": [5.5, 1.5],
+      "residential": [6.0, 1.5], "unclassified": [5.5, 1.5],
+      "living_street": [5.0, 1.2], "service": [3.5, 0.0],
+      "pedestrian": [6.0, 0.0], "track": [3.0, 0.0],
+      "bridleway": [3.0, 0.0], "cycleway": [2.5, 0.0],
+      "footway": [2.0, 0.0], "path": [1.8, 0.0],
+      "steps": [2.0, 0.0]
+    },
+    "skip": ["construction", "proposed", "no", "corridor", "elevator", "platform", "raceway"],
+    "lane_width_m": 3.0,
+    "lane_margin_m": 1.0,
+    "width_quantum_m": 0.5,
+    "densify_step_m": 8.0,
+    "chaikin_iters": 2,
+    "chaikin_note": "Corner-cutting to stop OSM's angular vertices reading as facets. It MOVES the centreline, by up to a quarter of the vertex spacing -- a presentation choice, not a survey. Set to 0 for geometry faithful to OSM; the value used is recorded in the manifest.",
+    "junction_min_ways": 3,
+    "junction_margin_m": 0.4
+  },
+
+  "buildings": {
+    "min_pixels": 6,
+    "min_pixels_note": "Fewer LIDAR samples than this inside a footprint and p50 is noise; the height is still emitted but tagged lidar_lowconf.",
+    "wall_percentile": 50,
+    "ridge_percentile": 90,
+    "eaves_percentile": 25,
+    "percentile_note": "p50 as the wall/body height and p90 as the ridge: p99 and max chase chimneys and aerials, the mean is dragged down by roof pitch.",
+    "ground_percentile": 15,
+    "qa_ridge_spread_m": 8.0,
+    "default_roof": "gabled",
+    "flat_roof_types": ["garage", "garages", "shed", "roof", "industrial", "retail", "commercial", "supermarket"],
+    "type_priors_m": {
+      "_note": "LAST-RESORT heights for footprints with no OSM height, no levels and no usable LIDAR. Measured from Margate's own LIDAR, so they encode one town's vernacular -- a different settlement pattern wants its own set. Records that fall back to these are tagged src=type_prior and counted in the run summary; if that count is large for a new site, re-measure rather than shipping Margate's terraces.",
+      "_measured_at": "margate",
+      "house": 6.97, "residential": 7.30, "yes": 6.64, "semidetached_house": 6.98,
+      "retail": 8.99, "terrace": 8.13, "apartments": 9.42, "garage": 2.43,
+      "detached": 6.35, "shed": 2.37, "garages": 2.43, "commercial": 7.02,
+      "school": 4.29, "industrial": 5.75, "hospital": 4.19, "bungalow": 4.24,
+      "roof": 3.81
+    },
+    "type_prior_default_m": 6.6
+  },
+
+  "coast": {
+    "class_res": 256,
+    "class_res_note": "Ground-classification raster resolution per tile edge. Must divide the tile size in pixels exactly; step 09 fails loudly if it does not."
+  },
+
+  "furniture": {
+    "props": { "waste_basket": "LitterBin" },
+    "props_note": "OSM amenity value -> an abstract prop key. Mapping a key to a mesh is the consumer's job.",
+    "snap_m": 25.0,
+    "snap_note": "Further than this from any road centreline, the road tells us nothing about elevation; leave it null and let the consumer drape onto terrain.",
+    "kerb_m": 0.12,
+    "kerb_note": "How far a pavement top sits above the carriageway centreline. A property of how the consumer builds roads -- override per project.",
+    "verge_margin_m": 1.0,
+    "carriageway_nudge_m": 0.6
+  }
+}

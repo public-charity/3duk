@@ -1,0 +1,55 @@
+{
+  "crs": "EPSG:27700",
+  "crs_note": "British National Grid. Every raster and vector in the pipeline is held in this CRS; OSM arrives in WGS84 degrees and is reprojected by step 01.",
+
+  "origin": { "E": 632800, "N": 168200 },
+  "origin_note": "South-west corner of the tile grid, in CRS units.",
+
+  "tile_m": 512,
+  "nx": 13,
+  "ny": 7,
+  "grid_res": 513,
+  "grid_res_note": "Samples per tile edge. 513 = 512 + 1 so adjacent tiles share an identical edge row and there is no seam.",
+
+  "bbox_wgs84": [51.365, 1.345, 51.402, 1.432],
+  "bbox_note": "S,W,N,E -- Overpass order, which is not the order anything else here uses.",
+
+  "water_level": -0.6,
+
+  "height_calib": {
+    "intercept": 3.16,
+    "m_per_level": 1.84,
+    "dispute_m": 4.0,
+    "note": "height = intercept + m_per_level * building:levels, regressed against this site's own LIDAR. A LIDAR p50 disagreeing with this by more than dispute_m is tagged lidar_p50_disputed rather than silently trusted. Re-measure per site: a town of Victorian terraces and one of post-war flats do not share a storey height."
+  },
+
+  "coast": {
+    "foreshore_max_odn": 1.2,
+    "rock_slope_deg": [22.0, 40.0],
+    "water_margin_m": 0.75,
+    "note": "foreshore_max_odn reclassifies low ground as sand rather than grass, and is a property of THIS survey: the EA flew Margate at low tide, so the intertidal flat reads as land. A site flown at high tide, or an inland one, wants this at or below water_level. rock_slope_deg is the slope ramp over which ground reads as rock -- tuned to the Cliftonville cliffs."
+  },
+
+  "wcs": {
+    "dtm": {
+      "url": "https://environment.data.gov.uk/spatialdata/lidar-composite-digital-terrain-model-dtm-1m/wcs",
+      "coverage": "13787b9a-26a4-4775-8523-806d13af58fc__Lidar_Composite_Elevation_DTM_1m"
+    },
+    "dsm": {
+      "url": "https://environment.data.gov.uk/spatialdata/lidar-composite-digital-surface-model-first-return-dsm-1m/wcs",
+      "coverage": "df4e3ec3-315e-48aa-aaaf-b5ae74d7b2bb__Lidar_Composite_Elevation_FZ_DSM_1m"
+    }
+  },
+
+  "landmarks": {
+    "_note": "Hand-authored overrides for buildings the LIDAR p50 estimator gets wrong, keyed by OSM name. Name-keyed matching is fragile -- an OSM rename silently drops the override, and step 07 reports how many applied so a drop is visible.",
+    "Arlington House": {
+      "h_body": 57.0, "roof": "flat", "tier": "hero",
+      "why": "18-storey tower on a large podium; p50 samples the podium (7.0m from 22px). Real height ~57m."
+    },
+    "Jubilee Clock Tower": {
+      "h_body": 24.0, "roof": "tower", "tier": "hero",
+      "why": "Tiny footprint (7px) undersamples the tower. Real height ~24m."
+    }
+  }
+}

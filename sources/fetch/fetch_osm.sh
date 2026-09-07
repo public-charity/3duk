@@ -1,9 +1,13 @@
 #!/bin/bash
-# Fetch all Margate OSM layers needed for the massing pipeline.
-# bbox order for Overpass is S,W,N,E
+# Overpass fetch. Called by step 01, which supplies BBOX and OUT from the site config.
+# bbox order for Overpass is S,W,N,E.
+#
+# No default bbox: a hardcoded fallback here means an unset BBOX silently downloads
+# somewhere else entirely, and the first sign of it is a model of the wrong town.
 set -euo pipefail
-BBOX="${BBOX:-51.365,1.345,51.402,1.432}"
-OUT="${OUT:-data/raw/margate.osm}"
+: "${BBOX:?set BBOX=S,W,N,E (step 01 passes this from the site config)}"
+: "${OUT:?set OUT=<path for the .osm extract>}"
+mkdir -p "$(dirname "$OUT")"
 read -r -d '' Q <<QUERY || true
 [out:xml][timeout:900][maxsize:1073741824];
 (

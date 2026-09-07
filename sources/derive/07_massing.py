@@ -1,32 +1,53 @@
 #!/usr/bin/env python3.14
-"""Emit per-tile semantic massing records (JSONL) for the Unity generator.
+"""Per-tile semantic massing records (JSONL), one per building footprint.
 
 Deliberately semantic, not geometric: ~200 bytes per building, diffable and
-version-controllable, and Unity can re-tune the art without re-running GDAL.
-Geometry is emitted in LOCAL metres (x = E-E0, z = N-N0) ready for Unity.
+version-controllable, so a consumer can re-tune its art without re-running GDAL.
+
+Coordinates are CRS eastings/northings in metres -- no local origin offset and no
+engine axis convention. A consumer that wants local coordinates subtracts the origin
+from the manifest; sources/adapters/unity.py shows the conversion.
+
+Every height carries `src` saying which rung of the fallback ladder produced it:
+  osm_height          the building's own OSM height tag
+  lidar_p50           LIDAR, enough samples to trust
+  lidar_p50_disputed  LIDAR, but it disagrees with building:levels by more than dispute_m
+  lidar_lowconf       LIDAR, too few samples to trust
+  osm_levels          building:levels through the site's height_calib regression
+  type_prior          no evidence at all -- a per-type guess, see tuning.json
+  landmark_override   hand-authored in the site config
 """
-import json, os, pickle, hashlib
+import json, os, sys, pickle, hashlib
 import numpy as np
 from osgeo import ogr
 ogr.UseExceptions()
 
-ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-CFG  = json.load(open(f"{ROOT}/sources/config/margate.json"))
-LM   = json.load(open(f"{ROOT}/sources/config/landmarks.json"))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import lib
+
+CFG = lib.load()
+TUN = CFG["tuning"]["buildings"]
+P   = lib.paths(CFG)
 E0, N0, T = CFG["origin"]["E"], CFG["origin"]["N"], CFG["tile_m"]
-OUT = f"{ROOT}/data/out/massing"; os.makedirs(OUT, exist_ok=True)
+OUT = os.path.join(P["out"], "massing")
+lib.mkdirs(OUT)
 
-feats = pickle.load(open(f"{ROOT}/data/interim/_feats.pkl","rb"))
-keys  = np.load(f"{ROOT}/data/interim/_stats_keys.npy")
-vals  = np.load(f"{ROOT}/data/interim/_stats_vals.npy")
+# The site's own levels->height regression. This used to be hardcoded here while the
+# config declared different numbers that nothing read, so tuning the config did nothing.
+CAL     = CFG["height_calib"]
+LM      = CFG.get("landmarks", {})
+PRIOR   = {k: v for k, v in TUN["type_priors_m"].items() if not k.startswith("_")}
+PRIOR_D = TUN["type_prior_default_m"]
+FLAT    = set(TUN["flat_roof_types"])
+MINPX   = TUN["min_pixels"]
+
+def h_from_levels(levels):
+    return CAL["intercept"] + CAL["m_per_level"] * levels
+
+feats = pickle.load(open(os.path.join(P["interim"], "_feats.pkl"), "rb"))
+keys  = np.load(os.path.join(P["interim"], "_stats_keys.npy"))
+vals  = np.load(os.path.join(P["interim"], "_stats_vals.npy"))
 S = {int(k): v for k, v in zip(keys, vals)}
-
-# Margate's own vernacular, measured from its own LIDAR (fallback rung 6)
-PRIOR = {"house":6.97,"residential":7.30,"yes":6.64,"semidetached_house":6.98,"retail":8.99,
-         "terrace":8.13,"apartments":9.42,"garage":2.43,"detached":6.35,"shed":2.37,
-         "garages":2.43,"commercial":7.02,"school":4.29,"industrial":5.75,"hospital":4.19,
-         "bungalow":4.24,"roof":3.81}
-FLAT = {"garage","garages","shed","roof","industrial","retail","commercial","supermarket"}
 
 def tv(rec, key):
     ot = rec.get("other") or ""
@@ -35,12 +56,13 @@ def tv(rec, key):
     j = ot.find('"', i+len(tok)); return ot[i+len(tok):j]
 
 def rings(geom):
+    """Exterior + hole rings as CRS coordinates, metres."""
     out = []
     for gi in range(geom.GetGeometryCount() if geom.GetGeometryName()=="MULTIPOLYGON" else 1):
         poly = geom.GetGeometryRef(gi) if geom.GetGeometryName()=="MULTIPOLYGON" else geom
         for ri in range(poly.GetGeometryCount()):
             r = poly.GetGeometryRef(ri)
-            pts = [(round(r.GetX(n)-E0,3), round(r.GetY(n)-N0,3)) for n in range(r.GetPointCount())]
+            pts = [(round(r.GetX(n), 3), round(r.GetY(n), 3)) for n in range(r.GetPointCount())]
             if len(pts) >= 4: out.append({"hole": ri > 0, "pts": pts})
     return out
 
@@ -63,24 +85,25 @@ for k, rec in enumerate(feats):
     if ht:
         try: h, src = float(str(ht).split()[0]), "osm_height"
         except: pass
-    if h is None and npx >= 6:
+    if h is None and npx >= MINPX:
         h, src = p50, "lidar_p50"
-        if levels and abs(h - (3.16 + 1.84*levels)) > 4.0: src = "lidar_p50_disputed"
+        if levels and abs(h - h_from_levels(levels)) > CAL["dispute_m"]: src = "lidar_p50_disputed"
     elif h is None and npx >= 1:
         h, src = p50, "lidar_lowconf"
-    if h is None and levels: h, src = 3.16 + 1.84*levels, "osm_levels"
-    if h is None: h, src = PRIOR.get(btype, 6.6), "type_prior"
+    if h is None and levels: h, src = h_from_levels(levels), "osm_levels"
+    if h is None: h, src = PRIOR.get(btype, PRIOR_D), "type_prior"
 
-    roof = tv(rec, "roof:shape") or ("flat" if btype in FLAT else "gabled")
+    roof = tv(rec, "roof:shape") or ("flat" if btype in FLAT else TUN["default_roof"])
     if name in LM:                                   # hand override wins
         o = LM[name]; h = o.get("h_body", h); roof = o.get("roof", roof); src = "landmark_override"; nlm += 1
-    if npx < 6 or (p90 - p50) > 8: qa.append({"osm_id": rec["osm_id"], "name": name,
-                                              "px": int(npx), "p50": round(p50,1), "p90": round(p90,1)})
+    if npx < MINPX or (p90 - p50) > TUN["qa_ridge_spread_m"]:
+        qa.append({"osm_id": rec["osm_id"], "name": name,
+                   "px": int(npx), "p50": round(p50,1), "p90": round(p90,1)})
 
     buckets.setdefault((i,j), []).append({
         "id": rec["osm_id"], "name": name, "type": btype,
         "h": round(float(h),2), "ridge": round(float(max(p90,h)),2), "eaves": round(float(p25),2),
-        "base_y": round(float(d15),2), "skirt": round(float(dmin-0.5),2),
+        "base_z": round(float(d15),2), "skirt": round(float(dmin-0.5),2),
         "levels": levels, "roof": roof, "src": src,
         "seed": int(hashlib.md5(str(rec["osm_id"]).encode()).hexdigest()[:8], 16),
         "rings": rings(g),
@@ -88,11 +111,31 @@ for k, rec in enumerate(feats):
 
 n = 0
 for (i,j), items in sorted(buckets.items()):
-    with open(f"{OUT}/buildings_x{i}_y{j}.jsonl","w") as f:
+    with open(os.path.join(OUT, f"buildings_x{i}_y{j}.jsonl"), "w") as f:
         for b in items: f.write(json.dumps(b, separators=(",",":"))+"\n"); n += 1
-json.dump(qa, open(f"{ROOT}/data/out/qa_height_outliers.json","w"), indent=1)
+
 from collections import Counter
+by_src = Counter(b["src"] for v in buckets.values() for b in v)
+json.dump({"site": CFG["site"], "crs": CFG["crs"], "coordinates": "CRS eastings/northings, metres",
+           "origin": CFG["origin"], "tile_m": CFG["tile_m"],
+           "height_calib": CAL, "buildings": n, "tiles": len(buckets),
+           "by_height_source": dict(by_src), "landmark_overrides": nlm,
+           "qa_flagged": len(qa)},
+          open(os.path.join(OUT, "massing_manifest.json"), "w"), indent=1)
+json.dump(qa, open(os.path.join(P["out"], "qa_height_outliers.json"), "w"), indent=1)
+
 print(f"wrote {n} buildings across {len(buckets)} tiles -> {OUT}")
 print(f"landmark overrides applied: {nlm}   QA flagged: {len(qa)}")
-print("height source:", dict(Counter(b["src"] for v in buckets.values() for b in v)))
+print("height source:", dict(by_src))
 print("roof form   :", dict(Counter(b["roof"] for v in buckets.values() for b in v).most_common(6)))
+
+# type_prior means "no evidence at all". A few is normal; a lot means this site is being
+# described by another site's vernacular, which is exactly the failure worth shouting about.
+if n and by_src.get("type_prior", 0) / n > 0.05:
+    pct = 100 * by_src["type_prior"] / n
+    print(f"07: WARNING -- {pct:.1f}% of buildings fell back to type_priors_m, which were "
+          f"measured at '{CFG['tuning']['buildings']['type_priors_m'].get('_measured_at','?')}'. "
+          f"Re-measure them for {CFG['site']} before trusting this massing.")
+if nlm < sum(1 for k in LM if not k.startswith("_")):
+    print(f"07: NOTE -- {sum(1 for k in LM if not k.startswith('_')) - nlm} landmark override(s) "
+          f"did not match any building name; an OSM rename silently drops them.")

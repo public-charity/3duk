@@ -1,43 +1,74 @@
 #!/usr/bin/env python3.14
-"""DTM GeoTIFF -> Unity 16-bit RAW heightmaps (one per 512m tile).
+"""Per-tile terrain: cleaned Float32 GeoTIFF in the site CRS, elevation in real metres.
 
-Unity TerrainData indexes heights[z, x] with z increasing NORTH; GeoTIFF row 0
-is NORTH, so we flip vertically. Values are unsigned 16-bit little-endian,
-normalised over [y_base, y_base + y_size] in metres ODN.
+This is deliberately NOT an engine heightmap. It stays north-up, georeferenced and
+unnormalised, so it is readable by anything that reads a GeoTIFF and carries no
+consumer's row order or encoding window. sources/adapters/unity.py turns these into
+16-bit RAW heightmaps; write a sibling adapter for any other consumer.
+
+Two things this step exists to do beyond copying pixels:
+  * fill nodata honestly (nearest-valid where scipy is available, and say so when not)
+  * report the true elevation range, so a consumer encoding into a fixed window can
+    be told when its window would clip real ground rather than discovering a plateau
 """
-import json, os, glob
+import json, os, sys
 import numpy as np
-from osgeo import gdal
+from osgeo import gdal, osr
 gdal.UseExceptions()
 
-ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-CFG  = json.load(open(f"{ROOT}/sources/config/margate.json"))
-OUT  = f"{ROOT}/data/out/terrain"; os.makedirs(OUT, exist_ok=True)
-YB, YS, RES = CFG["terrain_y_base"], CFG["terrain_y_size"], CFG["heightmap_res"]
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import lib
 
-manifest, lo, hi = [], 1e9, -1e9
+CFG = lib.load()
+P = lib.paths(CFG)
+OUT = os.path.join(P["out"], "terrain")
+lib.mkdirs(OUT)
+RES = CFG["grid_res"]
+
+srs = osr.SpatialReference(); srs.ImportFromEPSG(lib.epsg(CFG))
+wkt = srs.ExportToWkt()
+drv = gdal.GetDriverByName("GTiff")
+
+manifest, lo, hi, methods = [], 1e9, -1e9, {}
 for i in range(CFG["nx"]):
     for j in range(CFG["ny"]):
-        src = f"{ROOT}/data/raw/lidar/dtm_x{i}_y{j}.tif"
-        if not os.path.exists(src): continue
+        src = os.path.join(P["lidar"], f"dtm_x{i}_y{j}.tif")
+        if not os.path.exists(src):
+            continue
         d = gdal.Open(src); b = d.GetRasterBand(1)
-        a = b.ReadAsArray().astype(np.float64)
-        nd = b.GetNoDataValue()
-        if nd is not None:
-            bad = ~np.isfinite(a) | (a <= nd/2)
-            if bad.any():                      # nearest-valid fill
-                from scipy import ndimage      # optional; fall back to median
-                a[bad] = np.median(a[~bad]) if (~bad).any() else 0.0
-        assert a.shape == (RES, RES), f"{src} is {a.shape}, expected {(RES,RES)}"
-        lo, hi = min(lo, a.min()), max(hi, a.max())
-        h = np.clip((a - YB) / YS, 0.0, 1.0)
-        h = np.flipud(h)                        # GeoTIFF north-first -> Unity south-first
-        (h * 65535.0).round().astype("<u2").tofile(f"{OUT}/hm_x{i}_y{j}.raw")
+        a = b.ReadAsArray().astype(np.float32)
+        bad = lib.nodata_mask(a, b.GetNoDataValue())
+        m = lib.fill_nodata(a, bad, label=f"dtm_x{i}_y{j}")
+        methods[m] = methods.get(m, 0) + 1
+        if a.shape != (RES, RES):
+            sys.exit(f"05: FATAL -- {src} is {a.shape}, expected {(RES, RES)}; "
+                     f"grid_res and the WCS request window disagree")
+        lo, hi = min(lo, float(a.min())), max(hi, float(a.max()))
+
+        dst = drv.Create(os.path.join(OUT, f"dtm_x{i}_y{j}.tif"), RES, RES, 1,
+                         gdal.GDT_Float32, options=["COMPRESS=DEFLATE", "PREDICTOR=3", "TILED=YES"])
+        dst.SetGeoTransform(d.GetGeoTransform())
+        dst.SetProjection(wkt)
+        dst.GetRasterBand(1).WriteArray(a)
+        dst.FlushCache()
         manifest.append({"x": i, "y": j,
-                         "min_odn": round(float(a.min()), 2),
-                         "max_odn": round(float(a.max()), 2)})
-json.dump({"origin": CFG["origin"], "tile_m": CFG["tile_m"], "res": RES,
-           "y_base": YB, "y_size": YS, "tiles": manifest},
-          open(f"{OUT}/terrain_manifest.json", "w"), indent=1)
-print(f"wrote {len(manifest)} heightmaps -> {OUT}")
-print(f"ODN range across town: {lo:.2f} .. {hi:.2f} m  (encoded over {YB}..{YB+YS})")
+                         "file": f"dtm_x{i}_y{j}.tif",
+                         "min_m": round(float(a.min()), 2),
+                         "max_m": round(float(a.max()), 2),
+                         "nodata_cells": int(bad.sum()),
+                         "fill": m})
+
+json.dump({"site": CFG["site"], "crs": CFG["crs"],
+           "origin": CFG["origin"], "tile_m": CFG["tile_m"], "res": RES,
+           "vertical_datum": CFG.get("vertical_datum", "source datum (ODN for EA LIDAR)"),
+           "elevation_units": "metres",
+           "range_m": [round(lo, 2), round(hi, 2)],
+           "tiles": manifest},
+          open(os.path.join(OUT, "terrain_manifest.json"), "w"), indent=1)
+
+print(f"wrote {len(manifest)} terrain tiles -> {OUT}")
+print(f"elevation range across site: {lo:.2f} .. {hi:.2f} m")
+print(f"nodata fill: {methods}")
+if "median (degraded)" in methods:
+    print("05: NOTE -- some tiles used the degraded median fill; install scipy for a true "
+          "nearest-valid fill before treating this output as final.")

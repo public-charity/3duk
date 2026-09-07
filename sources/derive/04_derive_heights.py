@@ -11,13 +11,16 @@ import numpy as np
 from osgeo import gdal, ogr, osr
 gdal.UseExceptions(); ogr.UseExceptions()
 
-ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-CFG  = json.load(open(f"{ROOT}/sources/config/margate.json"))
-E0, N0, T = CFG["origin"]["E"], CFG["origin"]["N"], CFG["tile_m"]
-CAL = CFG["height_calib"]
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import lib
 
-dtm_ds = gdal.Open(f"{ROOT}/data/interim/dtm.vrt")
-dsm_ds = gdal.Open(f"{ROOT}/data/interim/dsm.vrt")
+CFG = lib.load()
+TUN = CFG["tuning"]["buildings"]
+P   = lib.paths(CFG)
+E0, N0, T = CFG["origin"]["E"], CFG["origin"]["N"], CFG["tile_m"]
+
+dtm_ds = gdal.Open(os.path.join(P["interim"], "dtm.vrt"))
+dsm_ds = gdal.Open(os.path.join(P["interim"], "dsm.vrt"))
 gt = dtm_ds.GetGeoTransform(); W, H = dtm_ds.RasterXSize, dtm_ds.RasterYSize
 dtm = dtm_ds.GetRasterBand(1).ReadAsArray().astype(np.float32)
 dsm = dsm_ds.GetRasterBand(1).ReadAsArray().astype(np.float32)
@@ -26,7 +29,7 @@ ndsm = np.where(bad, np.nan, dsm - dtm)
 print(f"grid {W}x{H}  nodata {100*bad.mean():.2f}%", flush=True)
 
 # ---- collect footprints -------------------------------------------------
-src = ogr.Open(f"{ROOT}/data/derived/margate.gpkg")
+src = ogr.Open(P["gpkg"])
 lyr = src.GetLayer("multipolygons")
 lyr.SetAttributeFilter("building IS NOT NULL AND building != 'no'")
 feats = []
@@ -51,14 +54,19 @@ def tagval(rec, key):
     j = ot.find('"', i+len(tok))
     return ot[i+len(tok):j]
 
+# Erode by half a pixel so a footprint does not sample its neighbours across a shared
+# wall. Derived from the raster, never assumed: at 2 m or 50 cm this must change with it.
+PX_W, PX_H = lib.pixel_size(gt)
+EROSION = min(PX_W, PX_H) / 2.0
+
 # ---- rasterise all footprints into one ID raster ------------------------
 mem = ogr.GetDriverByName("Memory").CreateDataSource("m")
-srs = osr.SpatialReference(); srs.ImportFromEPSG(27700)
+srs = osr.SpatialReference(); srs.ImportFromEPSG(lib.epsg(CFG))
 ml = mem.CreateLayer("b", srs, ogr.wkbMultiPolygon)
 ml.CreateField(ogr.FieldDefn("idx", ogr.OFTInteger))
 for k, rec in enumerate(feats):
     g = ogr.CreateGeometryFromWkb(rec["wkb"])
-    e = g.Buffer(-0.5)                       # half-pixel erosion
+    e = g.Buffer(-EROSION)                   # half a pixel, whatever the pixel is
     if e is None or e.IsEmpty(): e = g       # slivers/garages collapse -> keep original
     ft = ogr.Feature(ml.GetLayerDefn()); ft.SetGeometry(e); ft.SetField("idx", k+1)
     ml.CreateFeature(ft)
@@ -100,11 +108,11 @@ for k in range(len(feats)):
     nv = nd_v[a:b]; dv = dt_v[a:b]
     nv = nv[np.isfinite(nv)]; dv = dv[np.isfinite(dv)]
     if nv.size == 0 or dv.size == 0: continue
-    stats[k] = (float(np.percentile(nv,25)), float(np.percentile(nv,50)),
-                float(np.percentile(nv,90)), int(nv.size),
-                float(np.percentile(dv,15)), float(dv.min()))
+    stats[k] = (float(np.percentile(nv, TUN["eaves_percentile"])), float(np.percentile(nv, TUN["wall_percentile"])),
+                float(np.percentile(nv, TUN["ridge_percentile"])), int(nv.size),
+                float(np.percentile(dv, TUN["ground_percentile"])), float(dv.min()))
 print(f"buildings with LIDAR: {len(stats)} / {len(feats)} ({100*len(stats)/len(feats):.1f}%)", flush=True)
-json.dump({"n_feats": len(feats)}, open(f"{ROOT}/data/interim/_h_meta.json","w"))
-np.save(f"{ROOT}/data/interim/_stats_keys.npy", np.array(sorted(stats.keys())))
-np.save(f"{ROOT}/data/interim/_stats_vals.npy", np.array([stats[k] for k in sorted(stats)]))
-import pickle; pickle.dump(feats, open(f"{ROOT}/data/interim/_feats.pkl","wb"))  # wkb-safe
+json.dump({"n_feats": len(feats)}, open(os.path.join(P["interim"], "_h_meta.json"),"w"))
+np.save(os.path.join(P["interim"], "_stats_keys.npy"), np.array(sorted(stats.keys())))
+np.save(os.path.join(P["interim"], "_stats_vals.npy"), np.array([stats[k] for k in sorted(stats)]))
+import pickle; pickle.dump(feats, open(os.path.join(P["interim"], "_feats.pkl"),"wb"))  # wkb-safe

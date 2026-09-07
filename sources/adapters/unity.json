@@ -1,0 +1,31 @@
+{
+  "_note": "Unity-specific consumer settings. Nothing in sources/derive/ reads this file. These are the conventions and fudges that used to be baked into the data layer; they live here because they are properties of one consumer, not of the survey.",
+
+  "terrain": {
+    "y_base": -5.0,
+    "y_size": 60.0,
+    "note": "TerrainData encodes height as unsigned 16-bit normalised over [y_base, y_base + y_size] metres. Ground outside this window CANNOT be represented -- the adapter refuses to clip silently and tells you to widen it."
+  },
+
+  "roads": {
+    "class_lift_m": {
+      "_note": "Draw-order lift so a service road meeting a trunk road loses the depth test instead of z-fighting. Purely a rendering hack; it is not survey data and must not travel with it.",
+      "motorway": 0.24, "motorway_link": 0.24,
+      "trunk": 0.24, "trunk_link": 0.24,
+      "primary": 0.22, "primary_link": 0.22,
+      "secondary": 0.20, "secondary_link": 0.20,
+      "tertiary": 0.18, "tertiary_link": 0.18,
+      "residential": 0.16, "unclassified": 0.16,
+      "living_street": 0.16, "service": 0.14,
+      "pedestrian": 0.14, "track": 0.12,
+      "bridleway": 0.12, "cycleway": 0.12,
+      "footway": 0.10, "path": 0.10,
+      "steps": 0.10
+    },
+    "default_lift_m": 0.12,
+    "junction_lift_m": 0.085,
+    "bridge_offset_m": 3.0,
+    "tunnel_offset_m": -4.0,
+    "offset_note": "Invented deck/bore offsets. OSM gives no structure height, so these are a look, not a measurement -- which is exactly why they belong to the consumer."
+  }
+}
