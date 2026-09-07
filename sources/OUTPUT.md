@@ -28,7 +28,8 @@ manifest says how many cells and by which method per tile.
 `terrain_manifest.json` — `range_m` is the true site-wide elevation range. A consumer
 encoding into a fixed window must compare against it; the pipeline will not clip for you.
 `fill` per tile is `none`, `nearest` (scipy present) or `median (degraded)` — treat the
-last as provisional.
+last as provisional. `tiles_missing` lists grid positions that have **no tile at all**
+(the source returned nothing there — beyond its coverage); do not assume they are sea.
 
 `slope_qa` — `max_deg` and `pct_cells_over_45deg` site-wide, plus `slope_max_deg`,
 `slope_p99_deg` and `cells_over_45deg` per tile, all at native resolution. **This is how you
@@ -53,7 +54,7 @@ pixel-error/LOD decimation down.
 | `cls` | OSM `highway` value. Only classes listed in `tuning.json → roads.widths_m` are emitted. |
 | `w`, `pav` | Carriageway width and pavement width **each side**, metres — from tuning, widened by OSM `lanes`. Opinions, not survey; recorded in the manifest. |
 | `bridge`, `tunnel` | OSM flags, passed through. The elevation is **not** adjusted for them — it is the ground under the structure. Raise the deck yourself. |
-| `z_gap` | `true` if any vertex fell on a DTM gap; its elevation was carried from the nearest valid vertex along the way. |
+| `z_gap` | `true` if any vertex **of this segment** fell on a DTM gap — nodata, or beyond the mosaic's extent; its elevation was carried from the nearest sampled vertex along the way (both directions). Segments of the same way that were fully sampled stay `false`. |
 | `pts` | `[E, N, z]`. Draped on the DTM by bilinear sample, after Chaikin smoothing (`manifest.smoothing.chaikin_iters`; 0 = faithful to OSM vertices). |
 
 Records with `"cls":"_junction"` are different: `{"cls":"_junction","r":3.4,"pts":[[E,N,z]]}`
@@ -98,13 +99,25 @@ is describing this town with another town's building stock.
 
 ## `coast/` — step 09
 
-`ground_x{i}_y{j}.tif` — Byte, three bands **grass, sand, rock** as fractions 0–255 that sum
-to 255, at `class_res × class_res` (256) per tile, georeferenced. Sand includes OSM beach
-polygons **plus everything below `coast.foreshore_max_odn`** — a property of the survey's
-tide state, recorded in the manifest. Rock is a slope ramp between `coast.rock_slope_deg`.
+`ground_x{i}_y{j}.tif` — Byte, four bands **grass, sand, rock, water** as fractions 0–255
+that sum to 255, at `class_res × class_res` (256) per tile, georeferenced. Sand includes
+OSM beach polygons **plus everything below `coast.foreshore_max_odn`** — a property of the
+survey's tide state, recorded in the manifest. Rock is a slope ramp between
+`coast.rock_slope_deg`.
+
+**Water is the DTM's own flat surface.** The EA composite carries the surveyed water level
+as a plane (measured at Whitby: −2.4 m ODN, razor-flat, 100% coverage even over open sea).
+Cells within `water_tolerance_m` of `water_level` whose calmest neighbour is flat are
+`water`, and are excluded from sand. That plane is not ground: a consumer that drapes a water
+surface at `water_level` will z-fight it, so sink or cut the terrain under the water band.
+
+Tiles with no DTM at all get no raster and are listed as `tiles_without_dtm`. They are added
+to `water_tiles` only if the site config says `coast.missing_tiles_are_water` — whether a
+no-data tile is open sea or just beyond coverage is a per-site fact, not an assumption.
 
 `coast_manifest.json` — `water_tiles` lists `[i, j]` pairs whose lowest ground is within
-`water_margin_m` of `water_level`, i.e. tiles that need a water surface.
+`water_margin_m` of `water_level`, i.e. tiles that need a water surface; `bands`,
+`thresholds`, `water_tolerance_m` and `tiles_without_dtm` are recorded.
 
 ## `furniture/` — step 10
 

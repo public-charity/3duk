@@ -17,7 +17,7 @@ Every height carries `src` saying which rung of the fallback ladder produced it:
   type_prior          no evidence at all -- a per-type guess, see tuning.json
   landmark_override   hand-authored in the site config
 """
-import json, os, sys, pickle, hashlib
+import glob, json, os, sys, pickle, hashlib
 import numpy as np
 from osgeo import ogr
 ogr.UseExceptions()
@@ -173,6 +173,8 @@ for k, rec in enumerate(feats):
         "rings": rings(g),
     })
 
+for old in glob.glob(os.path.join(OUT, "buildings_*.jsonl")):   # no stale tiles from a previous grid
+    os.remove(old)
 n = 0
 for (i,j), items in sorted(buckets.items()):
     with open(os.path.join(OUT, f"buildings_x{i}_y{j}.jsonl"), "w") as f:

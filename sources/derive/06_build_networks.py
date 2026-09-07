@@ -21,7 +21,7 @@ Chaikin smoothing IS still applied, because OSM's angular vertices otherwise rea
 facets -- but it moves the centreline, so the iteration count is configurable and
 recorded in the manifest. Set chaikin_iters to 0 for geometry faithful to OSM.
 """
-import json, math, os, sys
+import glob, json, math, os, sys
 from collections import Counter, defaultdict
 import numpy as np
 from osgeo import gdal, ogr
@@ -57,9 +57,13 @@ def ground(e, n):
     instead of silently dropping the road to zero."""
     fx = (e - gt[0]) / gt[1] - 0.5
     fy = (n - gt[3]) / gt[5] - 0.5
+    if not (0.0 <= fx <= W - 1 and 0.0 <= fy <= H - 1):
+        # Outside the DTM's extent. The old code clamped to the edge pixel here, which
+        # gave every vertex beyond the mosaic a confident, wrong elevation. It is a gap.
+        return (0.0, False)
     x0, y0 = int(math.floor(fx)), int(math.floor(fy))
+    x0 = min(x0, W - 2); y0 = min(y0, H - 2)          # last row/col still interpolates inward
     tx, ty = fx - x0, fy - y0
-    x0 = min(max(x0, 0), W - 2); y0 = min(max(y0, 0), H - 2)
     a = DTM[y0, x0]; b = DTM[y0, x0+1]; c = DTM[y0+1, x0]; d = DTM[y0+1, x0+1]
     v = (a*(1-tx) + b*tx)*(1-ty) + (c*(1-tx) + d*tx)*ty
     return (float(v), True) if np.isfinite(v) else (0.0, False)
@@ -167,7 +171,6 @@ for wy in ways:
         z, ok = ground(e, n)
         samp.append((e, n, z if ok else None, tile))
     zs = [s[2] for s in samp]
-    gap = any(z is None and t is not None for (_, _, z, t) in samp)
     n_nodata += sum(1 for (_, _, z, t) in samp if z is None and t is not None)
     last = None
     for idx in range(len(zs)):
@@ -178,21 +181,24 @@ for wy in ways:
         if zs[idx] is not None: nxt = zs[idx]
         elif nxt is not None and samp[idx][3] is not None: zs[idx] = nxt
 
-    run, cur = [], None
-    for (e, n, _, tile), z in zip(samp, zs):
+    # z_gap is per SEGMENT: only the tile runs that actually contain a filled vertex carry
+    # it, so a consumer can trust the segments that were fully sampled.
+    run, cur, run_gap = [], None, False
+    for (e, n, z_raw, tile), z in zip(samp, zs):
+        filled = z_raw is None
         if tile is None:                                 # off the grid: close the run here
-            flush(cur, run, wy, gap)
-            run, cur = [], None
+            flush(cur, run, wy, run_gap)
+            run, cur, run_gap = [], None, False
             continue
         if z is None: z = 0.0                            # the whole way sits in a DTM hole
         if cur is None: cur = tile
         v = [round(e, 2), round(n, 2), round(z, 2)]
         if tile != cur:
-            run.append(v)                                # duplicate at the seam
-            flush(cur, run, wy, gap)
-            run = [run[-1]]; cur = tile
-        run.append(v)
-    flush(cur, run, wy, gap)
+            run.append(v); run_gap |= filled             # the seam vertex belongs to both runs
+            flush(cur, run, wy, run_gap)
+            run = [run[-1]]; cur = tile; run_gap = filled
+        run.append(v); run_gap |= filled
+    flush(cur, run, wy, run_gap)
     for a, b in zip(pts, pts[1:]): total_len += math.hypot(b[0] - a[0], b[1] - a[1])
 
 for (e, n), w in junc.items():
@@ -202,6 +208,10 @@ for (e, n), w in junc.items():
     buckets[tile].append({"cls": "_junction", "r": round(w / 2.0 + TUN["junction_margin_m"], 2),
                           "pts": [[round(e, 2), round(n, 2), round(z, 2)]]})
 
+# Clear the previous run's tiles first: after a grid or bbox change the old files would
+# otherwise sit beside the new ones and step 10 would read both.
+for old in glob.glob(os.path.join(OUT, "roads_*.jsonl")):
+    os.remove(old)
 n = 0
 for (i, j), items in sorted(buckets.items()):
     with open(os.path.join(OUT, f"roads_x{i}_y{j}.jsonl"), "w") as fh:

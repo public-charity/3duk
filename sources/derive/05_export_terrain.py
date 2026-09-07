@@ -11,7 +11,7 @@ Two things this step exists to do beyond copying pixels:
   * report the true elevation range, so a consumer encoding into a fixed window can
     be told when its window would clip real ground rather than discovering a plateau
 """
-import json, os, sys
+import glob, json, os, sys
 import numpy as np
 from osgeo import gdal, osr
 gdal.UseExceptions()
@@ -24,17 +24,20 @@ P = lib.paths(CFG)
 OUT = os.path.join(P["out"], "terrain")
 lib.mkdirs(OUT)
 RES = CFG["grid_res"]
+for old in glob.glob(os.path.join(OUT, "dtm_x*_y*.tif")):   # no stale tiles from a previous grid
+    os.remove(old)
 
 srs = osr.SpatialReference(); srs.ImportFromEPSG(lib.epsg(CFG))
 wkt = srs.ExportToWkt()
 drv = gdal.GetDriverByName("GTiff")
 
-manifest, lo, hi, methods = [], 1e9, -1e9, {}
+manifest, lo, hi, methods, missing = [], 1e9, -1e9, {}, []
 slope_max, over45, cells = 0.0, 0, 0
 for i in range(CFG["nx"]):
     for j in range(CFG["ny"]):
         src = os.path.join(P["lidar"], f"dtm_x{i}_y{j}.tif")
         if not os.path.exists(src):
+            missing.append([i, j])       # step 02 got EMPTY here: beyond the source's coverage
             continue
         d = gdal.Open(src); b = d.GetRasterBand(1)
         a = b.ReadAsArray().astype(np.float32)
@@ -82,10 +85,11 @@ json.dump({"site": CFG["site"], "crs": CFG["crs"],
                         "note": "Steepness that went into the product, at native resolution. If a consumer's "
                                 "terrain shows nothing steeper than ~45 degrees where this says 70+, the "
                                 "consumer resampled or decimated it -- the data did not."},
-           "tiles": manifest},
+           "tiles": manifest,
+           "tiles_missing": missing},
           open(os.path.join(OUT, "terrain_manifest.json"), "w"), indent=1)
 
-print(f"wrote {len(manifest)} terrain tiles -> {OUT}")
+print(f"wrote {len(manifest)} terrain tiles -> {OUT}" + (f"   ({len(missing)} grid positions have no source tile: {missing})" if missing else ""))
 print(f"elevation range across site: {lo:.2f} .. {hi:.2f} m")
 print(f"slope QA: steepest cell {slope_max:.1f} deg, {100.0 * over45 / max(cells, 1):.3f}% of cells over 45 deg")
 print(f"nodata fill: {methods}")

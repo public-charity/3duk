@@ -13,18 +13,21 @@ leaked into the code.
 
   site A  coastal, 1 m pixels, 512 m tiles, 513 res, sea + cliff + beach, DTM hole,
           auto-fitted height calibration, landmark overrides, roads and buildings that
-          stray off the grid
+          stray off the grid, stale files from a "previous run" that must be cleared
   site B  inland, 2 m pixels, 512 m tiles, 257 res, different origin, no water anywhere,
-          fixed height calibration, no landmarks
+          fixed height calibration, no landmarks, and a DTM that covers only 2 of the 3
+          tile columns (the third is "beyond coverage")
 
 It does NOT prove anything about GDAL itself -- rasterisation here is envelope-fill and
-line clipping is vertex-keep -- and does not cover steps 01-04.
+line clipping is vertex-keep -- and does not cover steps 01-04. lib.tiff_info is checked
+against a real EA tile when one is present under data/.
 """
 import glob, json, os, pickle, runpy, shutil, sys, tempfile, traceback
 import numpy as np
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 SRC = os.path.dirname(HERE)
+REPO = os.path.dirname(SRC)
 sys.path.insert(0, os.path.join(HERE, "fake_osgeo"))
 sys.path.insert(0, SRC)
 import osgeo
@@ -46,23 +49,32 @@ def jl(pattern):
     return [json.loads(l) for p in sorted(glob.glob(pattern)) for l in open(p)]
 
 EA_WCS = {"dtm": {"url": "x", "coverage": "x"}, "dsm": {"url": "x", "coverage": "x"}}
+STEPS = ["derive/05_export_terrain.py", "derive/06_build_networks.py", "derive/07_massing.py",
+         "derive/09_coast.py", "derive/10_furniture.py", "adapters/unity.py"]
 
 
 def synth(site, cfg_extra, px, RES, NX, NY, zfun, nodata_patch=None, ways=(), beach=None,
-          buildings=(), nodes=()):
+          buildings=(), nodes=(), vrt_nx=None, decoys=False):
     """Write a site config, build the DTM/VRT/tiles/GeoPackage/interim in the fake GDAL,
-    run the steps, and return what the checks need."""
+    run the steps, and return what the checks need. vrt_nx limits how many tile columns
+    the DTM covers (the rest are 'beyond coverage'); decoys plants stale output files."""
     E0, N0, T = cfg_extra["origin"]["E"], cfg_extra["origin"]["N"], 512
     ND = -9999.0
+    vrt_nx = NX if vrt_nx is None else vrt_nx
     os.environ["SITE"] = site
     json.dump({"crs": "EPSG:27700", "tile_m": T, "nx": NX, "ny": NY, "grid_res": RES,
                "bbox_wgs84": [51.0, 1.0, 51.1, 1.1], "vertical_datum": "TEST", "wcs": EA_WCS,
                **cfg_extra}, open(os.path.join(SITES_DIR, f"{site}.json"), "w"), indent=1)
     cfg = lib.load(); P = lib.paths(cfg)
     lib.mkdirs(*[P[k] for k in ("raw", "interim", "derived", "out", "lidar")])
+    if decoys:
+        for sub, name in (("terrain", "dtm_x9_y9.tif"), ("networks", "roads_x9_y9.jsonl"),
+                          ("massing", "buildings_x9_y9.jsonl"), ("coast", "ground_x9_y9.tif")):
+            lib.mkdirs(os.path.join(P["out"], sub))
+            open(os.path.join(P["out"], sub, name), "w").write("stale\n")
 
     tpx = T // px
-    W, H = NX * tpx + 1, NY * tpx + 1
+    W, H = vrt_nx * tpx + 1, NY * tpx + 1
     gt = (E0 - px / 2, px, 0.0, N0 + NY * T + px / 2, 0.0, -px)
     EE, NN = np.meshgrid(E0 + px * np.arange(W), N0 + NY * T - px * np.arange(H))
     Z = zfun(EE, NN).astype(np.float32)
@@ -72,7 +84,7 @@ def synth(site, cfg_extra, px, RES, NX, NY, zfun, nodata_patch=None, ways=(), be
     vrt = gdal.GetDriverByName("MEM").Create(os.path.join(P["interim"], "dtm.vrt"), W, H, 1, gdal.GDT_Float32)
     vrt.SetGeoTransform(gt); vrt.SetProjection("FAKE"); vrt.GetRasterBand(1).SetNoDataValue(ND)
     vrt.GetRasterBand(1).WriteArray(Z)
-    for i in range(NX):
+    for i in range(vrt_nx):
         for j in range(NY):
             c0, r0 = i * tpx, (NY - 1 - j) * tpx
             t = gdal.GetDriverByName("GTiff").Create(os.path.join(P["lidar"], f"dtm_x{i}_y{j}.tif"), RES, RES, 1, gdal.GDT_Float32)
@@ -103,8 +115,7 @@ def synth(site, cfg_extra, px, RES, NX, NY, zfun, nodata_patch=None, ways=(), be
     ds = ogr.DataSource(); ds.layers = {"lines": lines, "multipolygons": mp, "points": pts}
     osgeo.VECTORS[osgeo._norm(P["gpkg"])] = ds
 
-    for rel in ["derive/05_export_terrain.py", "derive/06_build_networks.py", "derive/07_massing.py",
-                "derive/09_coast.py", "derive/10_furniture.py", "adapters/unity.py"]:
+    for rel in STEPS:
         print(f"\n=== [{site}] {rel}")
         runpy.run_path(os.path.join(SRC, rel), run_name="__main__")
     return dict(P=P, out=P["out"], Z=Z, E0=E0, N0=N0, T=T, NX=NX, NY=NY, RES=RES, px=px)
@@ -115,15 +126,15 @@ rect = lambda x, y, w, h: [(x, y), (x + w, y), (x + w, y + h), (x, y + h), (x, y
 try:
     # ================================================================ site A: coastal, 1 m
     E0, N0, T, NX, NY, RES = 500000, 150000, 512, 2, 1, 513
-    SLOPE, CLIFF_N, CLIFF_H, SEA_N = 0.02, 306, 20.0, 60
+    SLOPE, CLIFF_N, CLIFF_H, SEA_N, SEA_Z = 0.02, 306, 20.0, 60, -1.0
     def zA(EE, NN):
         Z = 5.0 + SLOPE * (EE - E0)
         Z = np.where(NN >= N0 + CLIFF_N, Z + CLIFF_H, Z)
-        return np.where(NN < N0 + SEA_N, -1.0, Z)
+        return np.where(NN < N0 + SEA_N, SEA_Z, Z)
     def z_at(e, n):
         z = 5.0 + SLOPE * (e - E0)
         if n >= N0 + CLIFF_N: z += CLIFF_H
-        if n < N0 + SEA_N: z = -1.0
+        if n < N0 + SEA_N: z = SEA_Z
         return z
     J = (E0 + 600, N0 + 200)
     waysA = [
@@ -159,19 +170,24 @@ try:
               ("n4", E0 - 50, N0 + 100, '"amenity"=>"waste_basket"'),    # outside the grid
               ("n5", E0 + 310, N0 + 205, '"amenity"=>"bench"')]          # not a mapped prop
     A = synth("_dryrun_a", {
-        "origin": {"E": E0, "N": N0}, "water_level": -0.6,
+        "origin": {"E": E0, "N": N0}, "water_level": SEA_Z,
         "height_calib": {"mode": "auto", "min_buildings": 3, "fallback": {"intercept": 9.9, "m_per_level": 9.9}, "dispute_m": 4.0},
-        "coast": {"foreshore_max_odn": 1.2, "rock_slope_deg": [22.0, 40.0], "water_margin_m": 0.75},
+        "coast": {"foreshore_max_odn": 1.2, "rock_slope_deg": [22.0, 40.0], "water_margin_m": 0.75, "water_tolerance_m": 0.3},
         "landmarks": {"_note": "test", "Test Tower": {"h_body": 57.0, "roof": "flat"}, "Never Matches": {"h_body": 1.0}},
     }, px=1, RES=RES, NX=NX, NY=NY, zfun=zA, nodata_patch=(E0 + 700, E0 + 740, N0 + 400, N0 + 440),
-       ways=waysA, beach=rect(E0, N0 + SEA_N, 400, 60), buildings=bldA, nodes=nodesA)
+       ways=waysA, beach=rect(E0, N0 + SEA_N, 400, 60), buildings=bldA, nodes=nodesA, decoys=True)
     out, Z = A["out"], A["Z"]
     print("\n=== checks: site A")
 
+    # ---- stale outputs
+    check("A   stale files from a previous run are cleared by every step",
+          not any(glob.glob(os.path.join(out, sub, "*x9_y9*")) for sub in ("terrain", "networks", "massing", "coast")))
+
     # ---- 05 terrain
     tm = json.load(open(os.path.join(out, "terrain", "terrain_manifest.json")))
-    check("A05 manifest: crs, origin, true range, datum", tm["crs"] == "EPSG:27700" and tm["origin"]["E"] == E0
-          and tm["range_m"][0] == -1.0 and abs(tm["range_m"][1] - z_at(E0 + 1024, N0 + 511)) < 0.01 and tm["vertical_datum"] == "TEST", str(tm["range_m"]))
+    check("A05 manifest: crs, origin, true range, datum, no missing tiles", tm["crs"] == "EPSG:27700" and tm["origin"]["E"] == E0
+          and tm["range_m"][0] == SEA_Z and abs(tm["range_m"][1] - z_at(E0 + 1024, N0 + 511)) < 0.01 and tm["vertical_datum"] == "TEST"
+          and tm["tiles_missing"] == [], str(tm["range_m"]))
     check("A05 nodata cells counted on the patched tile only", [t["nodata_cells"] > 0 for t in tm["tiles"]] == [False, True])
     tiles = {(t["x"], t["y"]): gdal.Open(os.path.join(out, "terrain", t["file"])).GetRasterBand(1).ReadAsArray() for t in tm["tiles"]}
     check("A05 -9999 never reaches the output", all(a.min() > -100 for a in tiles.values()))
@@ -228,16 +244,23 @@ try:
 
     # ---- 09 ground cover
     cm = json.load(open(os.path.join(out, "coast", "coast_manifest.json")))
-    check("A09 both tiles need water (sea strip)", sorted(map(tuple, cm["water_tiles"])) == [(0, 0), (1, 0)])
+    check("A09 both tiles need water (sea strip); none without DTM", sorted(map(tuple, cm["water_tiles"])) == [(0, 0), (1, 0)] and cm["tiles_without_dtm"] == [])
     g0 = gdal.Open(os.path.join(out, "coast", "ground_x0_y0.tif"))
-    grass, sand, rock = (g0.GetRasterBand(i).ReadAsArray().astype(int) for i in (1, 2, 3))
-    check("A09 raster is north-up: sand (sea+beach) in the BOTTOM rows", sand[-10:].mean() > 240 and sand[:10].mean() < 10)
+    check("A09 four bands: grass, sand, rock, water", g0.RasterCount == 4 and cm["bands"] == ["grass", "sand", "rock", "water"])
+    grass, sand, rock, water = (g0.GetRasterBand(i).ReadAsArray().astype(int) for i in (1, 2, 3, 4))
+    sea_rows, beach_rows = SEA_N // 2, (SEA_N + 60) // 2
+    # The sea/land boundary at N0+60 falls inside the northernmost sea cell (2 m cells over
+    # integer-centred 1 m samples), so that one row is legitimately half water, half land.
+    check("A09 north-up: the DTM's flat sea is WATER in the bottom rows, not sand; boundary cell is mixed",
+          water[-(sea_rows - 1):].min() == 255 and sand[-(sea_rows - 1):].max() == 0
+          and 100 <= water[-sea_rows].max() <= 160 and water[:-sea_rows].max() == 0)
+    check("A09 OSM beach polygon is sand, just above the water", sand[-beach_rows:-sea_rows, :200].min() == 255 and sand[:10].max() == 0)
     cliff_row = (T - CLIFF_N) // 2
     check("A09 rock at the cliff row, nowhere else", rock[cliff_row].max() > 200 and rock[:cliff_row - 2].max() == 0)
-    check("A09 bands sum to ~255 everywhere", int((grass + sand + rock).min()) >= 252)
+    check("A09 bands sum to ~255 everywhere", int((grass + sand + rock + water).min()) >= 252)
     ggt = g0.GetGeoTransform()
     check("A09 raster is georeferenced (origin, 2 m cells, north-up)", ggt[0] == E0 and ggt[3] == N0 + T and ggt[1] == 2.0 and ggt[5] == -2.0)
-    check("A09 manifest records thresholds and row order", cm["thresholds"]["foreshore_max_odn"] == 1.2 and "north" in cm["row_order"])
+    check("A09 manifest records thresholds, tolerance and row order", cm["thresholds"]["foreshore_max_odn"] == 1.2 and cm["water_tolerance_m"] == 0.3 and "north" in cm["row_order"])
 
     # ---- 10 furniture
     fl = jl(os.path.join(out, "furniture", "furniture_*.jsonl")); ff = {r["id"]: r for r in fl}
@@ -266,7 +289,12 @@ try:
     um = jl(os.path.join(U, "massing", "buildings_*.jsonl")); ub = {b["id"]: b for b in um}
     check("adapter massing: local rings, base_y", ub["b1"]["rings"][0]["pts"][0][0] == 150.0 and ub["b1"]["base_y"] == 9.4 and "base_z" not in ub["b1"])
     sp = gdal.Open(os.path.join(U, "coast", "splat_x0_y0.png"))
-    check("adapter splat PNG == flipud(ground GeoTIFF)", np.array_equal(sp.GetRasterBand(2).ReadAsArray(), np.flipud(g0.GetRasterBand(2).ReadAsArray())))
+    spg, sps, spk = (sp.GetRasterBand(i).ReadAsArray().astype(int) for i in (1, 2, 3))
+    check("adapter splat: 3 bands summing to 255, sand == flipud(neutral sand), grass fills under water", sp.RasterCount == 3
+          and np.array_equal(sps, np.flipud(g0.GetRasterBand(2).ReadAsArray()).astype(int))
+          and (spg + sps + spk).min() >= 253 and spg[:sea_rows - 2].min() == 255)
+    wm = gdal.Open(os.path.join(U, "coast", "water_x0_y0.png"))
+    check("adapter water mask PNG == flipud(neutral water band)", np.array_equal(wm.GetRasterBand(1).ReadAsArray(), np.flipud(g0.GetRasterBand(4).ReadAsArray())))
     uf = {r["id"]: r for r in jl(os.path.join(U, "furniture", "furniture_*.jsonl"))}
     check("adapter furniture: x/z local, y=z, yaw==bearing", uf["n2"]["x"] == 300.0 and uf["n2"]["y"] == ff["n2"]["z"] and uf["n2"]["yaw"] == ff["n2"]["bearing"])
     ns = runpy.run_path(os.path.join(SRC, "adapters", "unity.py"), run_name="not_main")
@@ -277,12 +305,12 @@ try:
         refused = "does not fit" in str(e)
     check("adapter REFUSES a pinned window that would clip terrain", refused)
 
-    # ================================================================ site B: inland, 2 m
+    # ================================================================ site B: inland, 2 m, DTM covers 2 of 3 columns
     E0b, N0b, NXb, NYb, RESb = 300000, 700000, 3, 2, 257
     def zB(EE, NN):
         return 100.0 + 0.05 * (EE - E0b) + 0.01 * (NN - N0b)
     def zb_at(e, n): return 100.0 + 0.05 * (e - E0b) + 0.01 * (n - N0b)
-    waysB = [("r1", "primary", [(E0b + 100, N0b + 300), (E0b + 1400, N0b + 300)], "Long Road", '"lanes"=>"4"'),   # crosses 2 seams
+    waysB = [("r1", "primary", [(E0b + 100, N0b + 300), (E0b + 1400, N0b + 300)], "Long Road", '"lanes"=>"4"'),   # runs into the uncovered column
              ("r2", "footway", [(E0b + 500, N0b + 300), (E0b + 500, N0b + 900)], None, None)]
     bldB = [("k1", {"building": "house", "other_tags": '"building:levels"=>"2"'}, rect(E0b + 200, N0b + 320, 10, 10), (4.0, 6.0, 8.0, 40, 105.0, 104.8)),
             ("k2", {"building": "house", "other_tags": '"building:levels"=>"2"'}, rect(E0b + 900, N0b + 700, 10, 10), None)]   # no LIDAR -> fixed calib
@@ -292,12 +320,12 @@ try:
         "height_calib": {"mode": "fixed", "intercept": 2.5, "m_per_level": 3.0, "dispute_m": 4.0},
         "coast": {"foreshore_max_odn": -50.0, "rock_slope_deg": [25.0, 45.0], "water_margin_m": 0.75},
         "landmarks": {},
-    }, px=2, RES=RESb, NX=NXb, NY=NYb, zfun=zB, ways=waysB, buildings=bldB, nodes=nodesB)
+    }, px=2, RES=RESb, NX=NXb, NY=NYb, zfun=zB, ways=waysB, buildings=bldB, nodes=nodesB, vrt_nx=2)
     outb, Zb = B["out"], B["Z"]
     print("\n=== checks: site B")
     tmb = json.load(open(os.path.join(outb, "terrain", "terrain_manifest.json")))
-    check("B05 6 tiles at 257x257 from 2 m pixels; range from the data", len(tmb["tiles"]) == 6 and tmb["res"] == 257
-          and abs(tmb["range_m"][0] - 100.0) < 0.01 and abs(tmb["range_m"][1] - zb_at(E0b + 1536, N0b + 1024)) < 0.01, str(tmb["range_m"]))
+    check("B05 4 tiles at 257x257 from 2 m pixels; the uncovered column is listed as missing", len(tmb["tiles"]) == 4 and tmb["res"] == 257
+          and tmb["tiles_missing"] == [[2, 0], [2, 1]] and abs(tmb["range_m"][0] - 100.0) < 0.01, str(tmb["tiles_missing"]))
     tb = gdal.Open(os.path.join(outb, "terrain", "dtm_x0_y1.tif")).GetRasterBand(1).ReadAsArray()
     check("B05 tile content matches the VRT at 2 m (north tile, north-west corner)", tb.shape == (257, 257) and np.array_equal(tb[0], Zb[0, :257]))
     check("B05 slope QA reflects a gentle site (max ~3 deg), not site A's cliff", tmb["slope_qa"]["max_deg"] < 5 and tmb["slope_qa"]["pct_cells_over_45deg"] == 0)
@@ -305,8 +333,11 @@ try:
     r1 = sorted([s for s in segb if s["id"] == "r1"], key=lambda s: s["pts"][0][0])
     check("B06 road split across 3 tiles at a different origin, lanes=4 -> 13 m", len(r1) == 3 and r1[0]["w"] == 13.0 and all(E0b <= v[0] <= E0b + 1536 for s in r1 for v in s["pts"]))
     check("B06 draped on the 2 m DTM (z follows the plane)", abs(r1[0]["pts"][0][2] - zb_at(E0b + 100, N0b + 300)) < 0.06)
+    edge_z = zb_at(E0b + 1024, N0b + 300)
+    check("B06 beyond the DTM: NOT clamped to the edge pixel -- z carried from the last covered vertex, z_gap set",
+          r1[2]["z_gap"] is True and all(abs(v[2] - edge_z) < 0.5 for v in r1[2]["pts"]) and r1[0]["z_gap"] is False, str(r1[2]["pts"][-1]))
     nmb = json.load(open(os.path.join(outb, "networks", "networks_manifest.json")))
-    check("B06 no DTM gaps, nothing off-grid", nmb["vertices_without_dtm"] == 0 and nmb["vertices_outside_grid"] == 0)
+    check("B06 manifest counts the uncovered vertices as DTM gaps, none off-grid", nmb["vertices_without_dtm"] > 0 and nmb["vertices_outside_grid"] == 0)
     kb = {b["id"]: b for b in jl(os.path.join(outb, "massing", "buildings_*.jsonl"))}
     mmb = json.load(open(os.path.join(outb, "massing", "massing_manifest.json")))
     check("B07 FIXED calibration from config, recorded as such", mmb["height_calib"]["source"] == "config" and mmb["height_calib"]["intercept"] == 2.5)
@@ -314,14 +345,18 @@ try:
     check("B07 rings in this site's CRS range, not site A's", 300000 <= kb["k1"]["rings"][0]["pts"][0][0] < 302000)
     cmb = json.load(open(os.path.join(outb, "coast", "coast_manifest.json")))
     gb = gdal.Open(os.path.join(outb, "coast", "ground_x1_y0.tif"))
-    check("B09 inland: no water tiles, no sand, no rock -- all grass", cmb["water_tiles"] == [] and gb.GetRasterBand(2).ReadAsArray().max() == 0
-          and gb.GetRasterBand(3).ReadAsArray().max() == 0 and gb.GetRasterBand(1).ReadAsArray().min() == 255)
+    check("B09 inland: no water tiles, no sand, no rock, no water -- all grass", cmb["water_tiles"] == [] and gb.GetRasterBand(2).ReadAsArray().max() == 0
+          and gb.GetRasterBand(3).ReadAsArray().max() == 0 and gb.GetRasterBand(4).ReadAsArray().max() == 0 and gb.GetRasterBand(1).ReadAsArray().min() == 255)
+    check("B09 uncovered column: no raster, listed as tiles_without_dtm, NOT assumed to be sea",
+          cmb["tiles_without_dtm"] == [[2, 0], [2, 1]] and not glob.glob(os.path.join(outb, "coast", "ground_x2_*.tif")) and cmb["missing_tiles_are_water"] is False)
     check("B09 georeferenced at the 2 m site: 256 cells of 2 m per tile", gb.GetGeoTransform()[0] == E0b + 512 and gb.GetGeoTransform()[1] == 2.0 and gb.RasterXSize == 256)
     fb = {r["id"]: r for r in jl(os.path.join(outb, "furniture", "furniture_*.jsonl"))}
     check("B10 one bin placed on the kerb of the 13 m road, bench ignored", list(fb) == ["m1"] and fb["m1"]["src"] == "kerb" and fb["m1"]["cls"] == "primary")
     umb = json.load(open(os.path.join(outb, "unity", "terrain", "terrain_manifest.json")))
     ybb, ysb = umb["y_base"], umb["y_size"]
-    check("B-adapter auto window follows THIS site's range (95 .. 193)", ybb == 95.0 and ysb == 98.0, f"{ybb} {ysb}")
+    # only the covered columns exist, so the range tops out at E0b+1024: 161.4 m -> ceil(166.4) = 167
+    check("B-adapter auto window follows THIS site's covered range (95 .. 167); 4 heightmaps", ybb == 95.0 and ysb == 72.0
+          and len(glob.glob(os.path.join(outb, "unity", "terrain", "hm_*.raw"))) == 4, f"{ybb} {ysb}")
     rawb = np.fromfile(os.path.join(outb, "unity", "terrain", "hm_x0_y1.raw"), "<u2").reshape(257, 257)
     expb = (np.flipud(np.clip((tb.astype(np.float64) - ybb) / ysb, 0, 1)) * 65535).round()
     check("B-adapter heightmap correct at 257 res", np.abs(rawb.astype(float) - expb).max() <= 1)
@@ -345,6 +380,15 @@ try:
     except SystemExit:
         ambiguous = True
     check("lib.site_name refuses to guess when several sites are configured", ambiguous)
+    check("lib.tiff_info: not-a-TIFF and empty file -> None",
+          lib.tiff_info(os.path.abspath(__file__)) is None and lib.tiff_info(os.path.join(SRC, "config", "tuning.json")) is None)
+    real = sorted(glob.glob(os.path.join(REPO, "data", "*", "raw", "lidar", "dtm_x0_y0.tif")))
+    if real:
+        info = lib.tiff_info(real[0])
+        check(f"lib.tiff_info on a REAL EA tile ({os.path.relpath(real[0], REPO)}): 513x513 float32, nodata -3.4e38",
+              info == {"width": 513, "height": 513, "dtype": "float32", "nodata": info["nodata"]} and info["nodata"] is not None and info["nodata"] < -1e30, str(info))
+    else:
+        print("  SKIP  lib.tiff_info on a real EA tile (none under data/)")
 
 except Exception:
     traceback.print_exc()

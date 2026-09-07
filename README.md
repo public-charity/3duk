@@ -57,6 +57,20 @@ Storey height is regressed per site from its own buildings (`height_calib.mode: 
 so a town of Victorian terraces and one of post-war flats each get their own line; the
 manifest records which line was used and how well it fit.
 
+## Checked against real data
+
+Steps 01 (fetch) and 02 ran for real on Whitby on 2026-09-07 — the only two that need no
+GDAL. The 60 EA tiles are 513×513 float32, georeferenced by `ModelTransformation` with pixel
+centres on integer metres, nodata `-3.4e38`, and 100% valid **including open sea**: the
+composite carries the surveyed water surface as a flat plane, which is where Whitby's
+`water_level` of −2.4 m comes from and why step 09 has a water band. Elevation runs
+−2.9..68.8 m; the shale cliffs measure a 53° median face. The Overpass extract holds 3,330
+buildings (2 with `building:levels`), a cliff way, 4 beach polygons, 1,432 highways, 8 bins
+— and needed the retry logic: all three public mirrors returned 504 on the first pass.
+
+Steps 03–10 have not run on real data. The dry run proves their wiring; the first GDAL
+machine proves GDAL.
+
 ## Cliffs
 
 The EA DTM holds cliff faces at 65–80° — measured at Cliftonville, 5 m wide for a 10 m

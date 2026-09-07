@@ -17,22 +17,24 @@
   "vertical_datum": "ODN",
   "vertical_datum_note": "Ordnance Datum Newlyn -- the datum of the EA LIDAR. Every elevation the pipeline emits, including water_level, is metres above this.",
 
-  "water_level": 0.0,
-  "water_level_note": "PROVISIONAL. Whitby's tidal range is ~5 m and the survey's tide state is unknown until the DTM is on disk. After step 03, read the flat sea-surface value off dtm.vrt north of the piers and set this to it.",
+  "water_level": -2.4,
+  "water_level_note": "MEASURED from the EA DTM tiles fetched by step 02 on 2026-09-07: the composite carries a flat water surface over the open sea and the harbour, sharply peaked at -2.4 m ODN (103k flat cells in the northern tile row, median -2.38, p10 -2.44, p90 -2.16). The survey was flown near low water; Whitby's tidal range is ~5 m. Every tile has data -- there is no no-DTM sea here.",
 
   "height_calib": {
     "mode": "auto",
     "min_buildings": 30,
     "fallback": { "intercept": 3.16, "m_per_level": 1.84 },
     "dispute_m": 4.0,
-    "note": "mode auto: step 07 regresses height = intercept + m_per_level * building:levels from this site's own buildings that carry both a levels tag and a trustworthy LIDAR p50, records the fit in massing_manifest.json, and uses it. The fallback is Margate's line and is NOT a measurement of Whitby -- if the manifest says it was used, Whitby has too few tagged buildings and the fit needs seeding by hand."
+    "note": "mode auto: step 07 regresses height = intercept + m_per_level * building:levels from this site's own buildings that carry both a levels tag and a trustworthy LIDAR p50, records the fit in massing_manifest.json, and uses it. EXPECT THE FALLBACK HERE: the 2026-09-07 Overpass extract holds 3,330 buildings and only 2 carry building:levels, so no fit is possible and the manifest will say source=fallback. It barely matters -- LIDAR coverage is 100%, so nearly every height is lidar_p50 and the osm_levels rung almost never fires. The fallback is Margate's line, not a measurement of Whitby."
   },
 
   "coast": {
-    "foreshore_max_odn": 1.5,
+    "foreshore_max_odn": 2.5,
     "rock_slope_deg": [25.0, 45.0],
     "water_margin_m": 0.75,
-    "note": "PROVISIONAL, to be checked against the first DTM. foreshore_max_odn: Whitby has sandy beaches under West Cliff and a rocky scar under East Cliff; set it just above the surveyed high-water sand so the beach reads as sand without painting the harbour quays. rock_slope_deg: the cliffs here are shale and boulder clay -- slumped and stepped, not a single chalk face -- so the ramp starts a little later than Margate's."
+    "water_tolerance_m": 0.3,
+    "missing_tiles_are_water": false,
+    "note": "foreshore_max_odn is PROVISIONAL: the DTM shows the sea at -2.4 m, so sand lies between that and roughly mean high water springs (~2.5 m ODN here); check it does not paint the harbour quays. rock_slope_deg was checked against the real DTM: the shale cliffs measure a 53 degree median face (28 m wide for a 31 m drop), so a 25-45 ramp reads them as rock. water_tolerance_m: cells within this of water_level and flat are classified water -- the DTM's sea surface is a plane, not ground. missing_tiles_are_water: all 30 tiles have data here, so it is irrelevant; leave false unless a site has no-DTM tiles that are known to be open sea."
   },
 
   "wcs": {

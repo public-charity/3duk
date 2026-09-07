@@ -17,9 +17,29 @@ PROV="sources/provenance/${SITE}.osm.json"
 
 mkdir -p "$DIR_RAW" "$DIR_DERIVED" sources/provenance
 
-if [ -s "$OSM" ]; then
-  echo "01: $OSM present ($(du -h "$OSM" | cut -f1)) -- skipping fetch (rm it to force)"
-else
+# Reuse an extract only if it really is one and was fetched for THIS bbox. The provenance
+# file records the bbox, so a changed config refetches instead of quietly modelling the
+# old area. An extract with no provenance (one archived by hand) is used, with a warning.
+NEED_FETCH=1
+if [ -s "$OSM" ] && head -c 200 "$OSM" | grep -q "<?xml"; then
+  if [ -s "$PROV" ]; then
+    OLD_BBOX=$("$PY" -c 'import json,sys;print(json.load(open(sys.argv[1])).get("bbox_wgs84_swne",""))' "$PROV")
+    if [ "$OLD_BBOX" = "$BBOX" ]; then
+      echo "01: $OSM present ($(du -h "$OSM" | cut -f1)), bbox matches provenance -- skipping fetch (rm it to force)"
+      NEED_FETCH=0
+    else
+      echo "01: $OSM was fetched for bbox $OLD_BBOX but the config now says $BBOX -- refetching"
+      rm -f "$OSM"
+    fi
+  else
+    echo "01: $OSM present with no provenance -- using it, but its bbox cannot be verified"
+    NEED_FETCH=0
+  fi
+elif [ -e "$OSM" ]; then
+  echo "01: $OSM is not an XML extract (a failed download?) -- refetching"
+  rm -f "$OSM"
+fi
+if [ "$NEED_FETCH" = 1 ]; then
   echo "01: fetching OSM for $SITE, bbox $BBOX ..."
   BBOX="$BBOX" OUT="$OSM" ./sources/fetch/fetch_osm.sh
 fi

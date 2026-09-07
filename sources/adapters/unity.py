@@ -132,22 +132,36 @@ def ground():
     o = os.path.join(OUT, "coast"); lib.mkdirs(o)
     png = gdal.GetDriverByName("PNG")
     mem = gdal.GetDriverByName("MEM")
-    n = 0
+    n, nw = 0, 0
     for path in sorted(glob.glob(os.path.join(d, "ground_*.tif"))):
         ds = gdal.Open(path)
         w, h = ds.RasterXSize, ds.RasterYSize
+        bands = [ds.GetRasterBand(b + 1).ReadAsArray().astype(np.float64) for b in range(min(ds.RasterCount, 4))]
+        g, s, k = bands[0], bands[1], bands[2]
+        # Unity alphamaps must sum to 1 per cell. Where the neutral raster says "water" the
+        # three ground layers sum to less; give the remainder to grass so the terrain under
+        # the water plane is still painted, and hand the water mask over separately.
+        g = np.clip(g + np.clip(255.0 - (g + s + k), 0, 255), 0, 255)
         tmp = mem.Create("", w, h, 3, gdal.GDT_Byte)
-        for b in range(3):                     # north-first -> south-first alphamap order
-            tmp.GetRasterBand(b + 1).WriteArray(np.flipud(ds.GetRasterBand(b + 1).ReadAsArray()))
+        for b, arr in enumerate((g, s, k)):    # north-first -> south-first alphamap order
+            tmp.GetRasterBand(b + 1).WriteArray(np.flipud(arr).astype(np.uint8))
         name = os.path.basename(path).replace("ground_", "splat_").replace(".tif", ".png")
         png.CreateCopy(os.path.join(o, name), tmp)
         n += 1
+        if len(bands) >= 4:
+            wm = mem.Create("", w, h, 1, gdal.GDT_Byte)
+            wm.GetRasterBand(1).WriteArray(np.flipud(bands[3]).astype(np.uint8))
+            png.CreateCopy(os.path.join(o, name.replace("splat_", "water_")), wm)
+            nw += 1
     wt = man["water_tiles"]
     json.dump({"water_level": man["water_level"], "splat_res": man["class_res"],
-               "tile_m": man["tile_m"], "layers": man["bands"],
-               "water_tiles_flat": [v for t in wt for v in t]},
+               "tile_m": man["tile_m"], "layers": man["bands"][:3],
+               "water_mask": "water_x{i}_y{j}.png -- 255 where the DTM carries the flat water "
+                             "surface; sink or cut the terrain there so it does not z-fight the water plane",
+               "water_tiles_flat": [v for t in wt for v in t],
+               "tiles_without_dtm_flat": [v for t in man.get("tiles_without_dtm", []) for v in t]},
               open(os.path.join(o, "coast_manifest.json"), "w"), indent=1)
-    print(f"ground  : {n} splat PNGs, {len(wt)} water tiles")
+    print(f"ground  : {n} splat PNGs, {nw} water masks, {len(wt)} water tiles")
 
 
 # ---- furniture: CRS + bearing -> local + yaw ----------------------------

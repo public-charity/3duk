@@ -118,6 +118,55 @@ def nodata_mask(a, nd):
     return bad
 
 
+# ---- TIFF header, without GDAL -------------------------------------------
+# Step 02 runs before any GDAL step and must be able to tell a real tile from a truncated
+# download, an HTML error page or a server-side resample. A size heuristic cannot; the
+# header can. Reads only the first IFD.
+
+def tiff_info(path):
+    """{'width','height','dtype','nodata'} of a classic TIFF's first image, or None if the
+    file is not a TIFF. dtype is e.g. 'float32'."""
+    import struct
+    try:
+        with open(path, "rb") as f:
+            head = f.read(8)
+            if len(head) < 8 or head[:2] not in (b"II", b"MM"):
+                return None
+            bo = "<" if head[:2] == b"II" else ">"
+            if struct.unpack(bo + "H", head[2:4])[0] != 42:
+                return None                      # BigTIFF or garbage
+            off = struct.unpack(bo + "I", head[4:8])[0]
+            f.seek(off)
+            n = struct.unpack(bo + "H", f.read(2))[0]
+            entries = f.read(12 * n)
+            if len(entries) < 12 * n:
+                return None
+            sizes = {1: 1, 2: 1, 3: 2, 4: 4, 5: 8, 6: 1, 7: 1, 8: 2, 9: 4, 10: 8, 11: 4, 12: 8}
+            vals = {}
+            for k in range(n):
+                tag, typ, cnt = struct.unpack(bo + "HHI", entries[12 * k:12 * k + 8])
+                raw = entries[12 * k + 8:12 * k + 12]
+                sz = sizes.get(typ, 1) * cnt
+                if sz > 4:
+                    p = struct.unpack(bo + "I", raw)[0]
+                    f.seek(p); data = f.read(sz)
+                else:
+                    data = raw[:sz]
+                if tag in (256, 257, 258, 339):
+                    unit = sizes.get(typ, 1)
+                    vals[tag] = struct.unpack(bo + {2: "H", 4: "I"}.get(unit, "H"), data[:unit])[0]
+                elif tag == 42113:
+                    try:
+                        vals["nodata"] = float(data.decode("latin1").rstrip("\x00"))
+                    except ValueError:
+                        pass
+        fmt = {1: "uint", 2: "int", 3: "float"}.get(vals.get(339, 1), "uint")
+        return {"width": vals.get(256), "height": vals.get(257),
+                "dtype": f"{fmt}{vals.get(258)}", "nodata": vals.get("nodata")}
+    except (OSError, struct.error):
+        return None
+
+
 # ---- shell bridge -------------------------------------------------------
 # `eval "$(python3 sources/lib.py env)"` gives the .sh steps the same resolved site,
 # CRS and paths the .py steps get, so there is one source of truth and no shell-side

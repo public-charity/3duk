@@ -39,7 +39,8 @@
     "skirt_below_min_m": 0.5,
     "skirt_note": "How far below the lowest sampled ground a footprint's skirt extends, so a building on a slope does not float at its downhill edge.",
     "default_roof": "gabled",
-    "flat_roof_types": ["garage", "garages", "shed", "roof", "industrial", "retail", "commercial", "supermarket"],
+    "flat_roof_types": ["garage", "garages", "shed", "roof", "industrial", "retail", "commercial", "supermarket", "static_caravan"],
+    "flat_roof_note": "static_caravan added after the Whitby extract showed 359 of them (caravan parks): low, near-flat roofs, and a gabled default read wrong at walking distance.",
     "type_priors_m": {
       "_note": "LAST-RESORT heights for footprints with no OSM height, no levels and no usable LIDAR. Measured from Margate's own LIDAR, so they encode one town's vernacular -- a different settlement pattern wants its own set. Records that fall back to these are tagged src=type_prior and counted in the run summary; if that count is large for a new site, re-measure rather than shipping Margate's terraces.",
       "_measured_at": "margate",
@@ -47,7 +48,7 @@
       "retail": 8.99, "terrace": 8.13, "apartments": 9.42, "garage": 2.43,
       "detached": 6.35, "shed": 2.37, "garages": 2.43, "commercial": 7.02,
       "school": 4.29, "industrial": 5.75, "hospital": 4.19, "bungalow": 4.24,
-      "roof": 3.81
+      "roof": 3.81, "static_caravan": 3.0
     },
     "type_prior_default_m": 6.6
   },
