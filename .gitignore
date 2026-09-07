@@ -1,32 +1,9 @@
-# Unity
-unity/**/Library/
-unity/**/Temp/
-unity/**/Obj/
-unity/**/Build/
-unity/**/Builds/
-unity/**/Logs/
-unity/**/UserSettings/
-unity/**/MemoryCaptures/
-*.csproj
-*.sln
-*.pidb
-*.user
-
-# Big, re-fetchable geodata (regenerate with pipeline/)
-data/raw/
-data/interim/
-data/out/terrain/*.raw
-
-# Legacy archive + salvage output
-3dexplore/
-3dexplore.tar.gz
-salvage/extracted/
-tools/AssetRipper/
-tools/AssetRipper.tar.xz
-tools/.*.log
+# Everything the pipeline produces. All of it is re-fetchable from OpenStreetMap
+# and the Environment Agency, so none of it is committed -- run sources/run.sh.
+#   data/raw/       Overpass extract + LIDAR GeoTIFFs as downloaded
+#   data/interim/   VRT mosaics and intermediate arrays
+#   data/derived/   margate.gpkg
+#   data/out/       tiled roads, massing, coast splats, terrain heightmaps
+data/
 
 .DS_Store
-salvage/extracted/
-salvage/*.png
-data/derived/margate.gpkg
-unity/VirtualMargate/Assets/Generated/
