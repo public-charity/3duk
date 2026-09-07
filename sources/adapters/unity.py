@@ -16,7 +16,7 @@ assumptions the data layer used to carry:
 
 Writes into data/<site>/out/unity/ and never touches the neutral output.
 """
-import glob, json, os, sys
+import glob, json, math, os, sys
 import numpy as np
 from osgeo import gdal
 gdal.UseExceptions()
@@ -44,9 +44,17 @@ def need(path, what):
 def terrain():
     d = os.path.join(SRC, "terrain")
     man = json.load(open(need(os.path.join(d, "terrain_manifest.json"), "terrain manifest")))
-    yb, ys = ADP["terrain"]["y_base"], ADP["terrain"]["y_size"]
     lo, hi = man["range_m"]
-    # The old pipeline clipped to this window in silence. A site with ground outside it
+    tc = ADP["terrain"]
+    if tc["y_base"] == "auto" or tc["y_size"] == "auto":
+        # One window for the whole site, derived from the measured range: every tile
+        # shares it (Unity needs that for seamless neighbours) and nothing can fall outside.
+        m = float(tc.get("auto_margin_m", 5.0))
+        yb = float(math.floor(lo - m))
+        ys = float(math.ceil(hi + m) - yb)
+    else:
+        yb, ys = float(tc["y_base"]), float(tc["y_size"])
+    # The old pipeline clipped to a fixed window in silence. A site with ground outside it
     # came out as a plateau with no error anywhere. Refuse instead.
     if lo < yb or hi > yb + ys:
         sys.exit(f"unity adapter: site elevation {lo}..{hi} m does not fit the encoding window "

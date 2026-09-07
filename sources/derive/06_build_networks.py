@@ -34,6 +34,7 @@ CFG = lib.load()
 TUN = CFG["tuning"]["roads"]
 P   = lib.paths(CFG)
 E0, N0, T = CFG["origin"]["E"], CFG["origin"]["N"], CFG["tile_m"]
+NX, NY = CFG["nx"], CFG["ny"]
 OUT = os.path.join(P["out"], "networks")
 lib.mkdirs(OUT)
 
@@ -136,36 +137,70 @@ for wy in ways:
 # ---- pass 2: smooth, drape, split per tile ------------------------------
 KEEP = ("id", "cls", "w", "pav", "name", "bridge", "tunnel")
 buckets = defaultdict(list)
-total_len, n_nodata = 0.0, 0
+total_len, n_nodata, n_outside = 0.0, 0, 0
+
+
+def flush(cur, run, wy, gap):
+    if cur is not None and len(run) >= 2:
+        buckets[cur].append({**{k: wy[k] for k in KEEP}, "z_gap": gap, "pts": run})
+
+
+def tile_of(e, n):
+    """Tile index, or None when the vertex is off the grid. The Overpass bbox is
+    deliberately generous; the grid is the model, and nothing is written for tiles
+    with negative indices."""
+    i, j = int((e - E0) // T), int((n - N0) // T)
+    return (i, j) if 0 <= i < NX and 0 <= j < NY else None
+
+
 for wy in ways:
     pts = chaikin(densify(wy["pts"], TUN["densify_step_m"]), TUN["chaikin_iters"])
-    run, cur, last_z, way_gap = [], None, None, False
+    # Sample first, then fill DTM gaps from BOTH directions along the way, so a way that
+    # starts inside a gap borrows its first real elevation instead of dropping to zero.
+    samp = []
     for (e, n) in pts:
+        tile = tile_of(e, n)
+        if tile is None:
+            n_outside += 1
+            samp.append((e, n, None, None))
+            continue
         z, ok = ground(e, n)
-        if not ok:
-            n_nodata += 1
-            way_gap = True
-            z = last_z if last_z is not None else 0.0    # carry the last real value
-        else:
-            last_z = z
-        i, j = int((e - E0) // T), int((n - N0) // T)
-        if cur is None: cur = (i, j)
+        samp.append((e, n, z if ok else None, tile))
+    zs = [s[2] for s in samp]
+    gap = any(z is None and t is not None for (_, _, z, t) in samp)
+    n_nodata += sum(1 for (_, _, z, t) in samp if z is None and t is not None)
+    last = None
+    for idx in range(len(zs)):
+        if zs[idx] is not None: last = zs[idx]
+        elif last is not None and samp[idx][3] is not None: zs[idx] = last
+    nxt = None
+    for idx in range(len(zs) - 1, -1, -1):
+        if zs[idx] is not None: nxt = zs[idx]
+        elif nxt is not None and samp[idx][3] is not None: zs[idx] = nxt
+
+    run, cur = [], None
+    for (e, n, _, tile), z in zip(samp, zs):
+        if tile is None:                                 # off the grid: close the run here
+            flush(cur, run, wy, gap)
+            run, cur = [], None
+            continue
+        if z is None: z = 0.0                            # the whole way sits in a DTM hole
+        if cur is None: cur = tile
         v = [round(e, 2), round(n, 2), round(z, 2)]
-        if (i, j) != cur:
+        if tile != cur:
             run.append(v)                                # duplicate at the seam
-            if len(run) >= 2:
-                buckets[cur].append({**{k: wy[k] for k in KEEP}, "z_gap": way_gap, "pts": run})
-            run = [run[-1]]; cur = (i, j)
+            flush(cur, run, wy, gap)
+            run = [run[-1]]; cur = tile
         run.append(v)
-    if len(run) >= 2:
-        buckets[cur].append({**{k: wy[k] for k in KEEP}, "z_gap": way_gap, "pts": run})
+    flush(cur, run, wy, gap)
     for a, b in zip(pts, pts[1:]): total_len += math.hypot(b[0] - a[0], b[1] - a[1])
 
 for (e, n), w in junc.items():
-    i, j = int((e - E0) // T), int((n - N0) // T)
+    tile = tile_of(e, n)
+    if tile is None: continue
     z, _ = ground(e, n)
-    buckets[(i, j)].append({"cls": "_junction", "r": round(w / 2.0 + TUN["junction_margin_m"], 2),
-                            "pts": [[round(e, 2), round(n, 2), round(z, 2)]]})
+    buckets[tile].append({"cls": "_junction", "r": round(w / 2.0 + TUN["junction_margin_m"], 2),
+                          "pts": [[round(e, 2), round(n, 2), round(z, 2)]]})
 
 n = 0
 for (i, j), items in sorted(buckets.items()):
@@ -181,7 +216,8 @@ json.dump({"site": CFG["site"], "crs": CFG["crs"],
            "smoothing": {"densify_step_m": TUN["densify_step_m"],
                          "chaikin_iters": TUN["chaikin_iters"]},
            "widths_m": {k: list(v) for k, v in SPEC.items()},
-           "vertices_without_dtm": n_nodata},
+           "vertices_without_dtm": n_nodata,
+           "vertices_outside_grid": n_outside},
           open(os.path.join(OUT, "networks_manifest.json"), "w"), indent=1)
 
 print(f"wrote {n} segments across {len(buckets)} tiles -> {OUT}")

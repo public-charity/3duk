@@ -1,0 +1,52 @@
+{
+  "crs": "EPSG:27700",
+  "crs_note": "British National Grid. Every raster and vector in the pipeline is held in this CRS; OSM arrives in WGS84 degrees and is reprojected by step 01.",
+
+  "origin": { "E": 488400, "N": 509600 },
+  "origin_note": "South-west corner of the tile grid, in CRS units. Whitby town centre is NZ893109 (E 489300, N 510900); the grid takes in the harbour, West Cliff, the East Cliff / abbey headland (E 490300, N 511200) and a row of sea to the north.",
+
+  "tile_m": 512,
+  "nx": 6,
+  "ny": 5,
+  "grid_res": 513,
+  "grid_res_note": "Samples per tile edge. 513 = 512 + 1 so adjacent tiles share an identical edge row and there is no seam.",
+
+  "bbox_wgs84": [54.473, -0.632, 54.500, -0.579],
+  "bbox_note": "S,W,N,E -- Overpass order. Generous on purpose; features outside the tile grid are counted and dropped by steps 06/07/10.",
+
+  "vertical_datum": "ODN",
+  "vertical_datum_note": "Ordnance Datum Newlyn -- the datum of the EA LIDAR. Every elevation the pipeline emits, including water_level, is metres above this.",
+
+  "water_level": 0.0,
+  "water_level_note": "PROVISIONAL. Whitby's tidal range is ~5 m and the survey's tide state is unknown until the DTM is on disk. After step 03, read the flat sea-surface value off dtm.vrt north of the piers and set this to it.",
+
+  "height_calib": {
+    "mode": "auto",
+    "min_buildings": 30,
+    "fallback": { "intercept": 3.16, "m_per_level": 1.84 },
+    "dispute_m": 4.0,
+    "note": "mode auto: step 07 regresses height = intercept + m_per_level * building:levels from this site's own buildings that carry both a levels tag and a trustworthy LIDAR p50, records the fit in massing_manifest.json, and uses it. The fallback is Margate's line and is NOT a measurement of Whitby -- if the manifest says it was used, Whitby has too few tagged buildings and the fit needs seeding by hand."
+  },
+
+  "coast": {
+    "foreshore_max_odn": 1.5,
+    "rock_slope_deg": [25.0, 45.0],
+    "water_margin_m": 0.75,
+    "note": "PROVISIONAL, to be checked against the first DTM. foreshore_max_odn: Whitby has sandy beaches under West Cliff and a rocky scar under East Cliff; set it just above the surveyed high-water sand so the beach reads as sand without painting the harbour quays. rock_slope_deg: the cliffs here are shale and boulder clay -- slumped and stepped, not a single chalk face -- so the ramp starts a little later than Margate's."
+  },
+
+  "wcs": {
+    "dtm": {
+      "url": "https://environment.data.gov.uk/spatialdata/lidar-composite-digital-terrain-model-dtm-1m/wcs",
+      "coverage": "13787b9a-26a4-4775-8523-806d13af58fc__Lidar_Composite_Elevation_DTM_1m"
+    },
+    "dsm": {
+      "url": "https://environment.data.gov.uk/spatialdata/lidar-composite-digital-surface-model-first-return-dsm-1m/wcs",
+      "coverage": "df4e3ec3-315e-48aa-aaaf-b5ae74d7b2bb__Lidar_Composite_Elevation_FZ_DSM_1m"
+    }
+  },
+
+  "landmarks": {
+    "_note": "None yet, deliberately. Hand overrides are for buildings the LIDAR p50 estimator provably gets wrong -- add them after reading qa_height_outliers.json from the first run, not before. Candidates: Whitby Abbey (roofless ruin -- p50 samples the floor between the walls) and St Mary's church tower."
+  }
+}

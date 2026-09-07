@@ -38,11 +38,31 @@ nearest-valid fill, and step 05 says so loudly rather than quietly degrading.
 Output lands in `data/<site>/`, which is not tracked. `SITE` is required once more than
 one site is configured — with exactly one, it resolves on its own.
 
+## Sites
+
+Two are configured: **margate** (the original — Thanet chalk coast, 13×7 tiles) and
+**whitby** (Yorkshire harbour town, shale cliffs both sides of the Esk, abbey headland,
+6×5 tiles). Whitby's `water_level` and `coast` thresholds are marked provisional in its
+config: they are properties of the survey, to be read off the first DTM, not guessed.
+
 ## Adding a site
 
 Add `sources/config/sites/<name>.json` and set `SITE=<name>`. No step should need
 editing. If one does, that is a bug in the step, not a missing feature — the constant it
-wants belongs in the site config or in `tuning.json`.
+wants belongs in the site config or in `tuning.json`. The dry run below builds two
+synthetic sites with different origins, pixel sizes, grid sizes and calibration modes for
+exactly this reason: if a constant leaks, one of them breaks.
+
+Storey height is regressed per site from its own buildings (`height_calib.mode: auto`),
+so a town of Victorian terraces and one of post-war flats each get their own line; the
+manifest records which line was used and how well it fit.
+
+## Cliffs
+
+The EA DTM holds cliff faces at 65–80° — measured at Cliftonville, 5 m wide for a 10 m
+drop. If a consumer shows them as ~45° ramps, the consumer did it: a resampled heightmap
+or terrain LOD decimation. Step 05 records the steepness that went in (`slope_qa` in the
+terrain manifest) so the faces can be proved to have come out the other side.
 
 Read the notes in the config before reusing another site's numbers. `height_calib`,
 `coast.foreshore_max_odn` and `coast.rock_slope_deg` are measurements of one town and one
@@ -82,11 +102,14 @@ field, its units, what `null` means, and which values are measurements versus op
 python3 sources/tests/dryrun.py
 ```
 
-Runs steps 05–10 and the Unity adapter against a synthetic two-tile site through a fake
-in-memory GDAL. Needs numpy only. It proves the wiring, the schemas in `OUTPUT.md`, and the
-fidelity guarantees (nodata by declared sentinel, honest bridge elevation, buildings without
-LIDAR emitted rather than dropped, calibration from config, north-up rasters, adapter refusing
-to clip terrain). It does not exercise GDAL itself or steps 01–04.
+Runs steps 05–10 and the Unity adapter against two synthetic sites through a fake in-memory
+GDAL — one coastal at 1 m with a cliff, a beach, a DTM hole and an auto-fitted height
+calibration; one inland at 2 m with a different origin, grid size and a pinned calibration.
+Needs numpy only. It proves the wiring, the schemas in `OUTPUT.md`, that no site constant
+leaks between sites, and the fidelity guarantees (nodata by declared sentinel, honest bridge
+elevation, buildings without LIDAR emitted rather than dropped, 87° synthetic cliff surviving
+into `slope_qa`, north-up rasters, adapter refusing to clip terrain). It does not exercise
+GDAL itself or steps 01–04.
 
 ### Consumers
 

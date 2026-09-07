@@ -32,17 +32,13 @@ E0, N0, T = CFG["origin"]["E"], CFG["origin"]["N"], CFG["tile_m"]
 OUT = os.path.join(P["out"], "massing")
 lib.mkdirs(OUT)
 
-# The site's own levels->height regression. This used to be hardcoded here while the
-# config declared different numbers that nothing read, so tuning the config did nothing.
-CAL     = CFG["height_calib"]
+CAL_CFG = CFG["height_calib"]
 LM      = CFG.get("landmarks", {})
 PRIOR   = {k: v for k, v in TUN["type_priors_m"].items() if not k.startswith("_")}
 PRIOR_D = TUN["type_prior_default_m"]
 FLAT    = set(TUN["flat_roof_types"])
 MINPX   = TUN["min_pixels"]
-
-def h_from_levels(levels):
-    return CAL["intercept"] + CAL["m_per_level"] * levels
+NX, NY  = CFG["nx"], CFG["ny"]
 
 feats = pickle.load(open(os.path.join(P["interim"], "_feats.pkl"), "rb"))
 keys  = np.load(os.path.join(P["interim"], "_stats_keys.npy"))
@@ -54,6 +50,57 @@ def tv(rec, key):
     tok = f'"{key}"=>"'; i = ot.find(tok)
     if i < 0: return None
     j = ot.find('"', i+len(tok)); return ot[i+len(tok):j]
+
+def levels_of(rec):
+    lv = rec.get("levels") or tv(rec, "building:levels")
+    try: return int(float(lv)) if lv else None
+    except (TypeError, ValueError): return None
+
+# ---- levels -> height calibration -----------------------------------------
+# Storey height is a property of a town's building stock, not a constant. In "auto" mode
+# the line is regressed here from this site's own buildings that carry both an OSM
+# building:levels tag and a trustworthy LIDAR p50; the fitted line is what the ladder
+# uses and what the manifest records. "fixed" mode uses the config's numbers. Either way
+# the values in force are written out, so the config can never again claim one regression
+# while the code applies another -- which is how the previous pipeline was found.
+def fit_calibration():
+    pairs = []
+    for k, rec in enumerate(feats):
+        if k not in S: continue
+        p25, p50, p90, npx, d15, dmin = S[k]
+        lv = levels_of(rec)
+        if lv and 1 <= lv <= 30 and npx >= MINPX and tv(rec, "height") is None:
+            pairs.append((lv, float(p50)))
+    n_min = int(CAL_CFG.get("min_buildings", 30))
+    if len(pairs) < n_min:
+        return None, {"n": len(pairs), "reason": f"fewer than {n_min} buildings with both levels and LIDAR"}
+    L = np.array([p[0] for p in pairs], float); Hv = np.array([p[1] for p in pairs], float)
+    b, a = np.polyfit(L, Hv, 1)
+    resid = Hv - (a + b * L)
+    keep = np.abs(resid) <= max(2.0 * float(resid.std()), 2.0)     # one pass of outlier rejection
+    if keep.sum() >= max(3, n_min // 2):
+        b, a = np.polyfit(L[keep], Hv[keep], 1)
+        resid = Hv[keep] - (a + b * L[keep])
+    return ({"intercept": round(float(a), 3), "m_per_level": round(float(b), 3)},
+            {"n": int(keep.sum()), "rejected": int((~keep).sum()),
+             "rmse_m": round(float(np.sqrt((resid ** 2).mean())), 2)})
+
+mode = CAL_CFG.get("mode", "fixed" if "intercept" in CAL_CFG else "auto")
+fit, fit_info = fit_calibration() if mode == "auto" else (None, {"n": 0, "reason": "mode fixed"})
+if fit:
+    CAL = {**fit, "source": "fitted"}
+elif "intercept" in CAL_CFG:
+    CAL = {"intercept": CAL_CFG["intercept"], "m_per_level": CAL_CFG["m_per_level"], "source": "config"}
+else:
+    CAL = {**CAL_CFG["fallback"], "source": "fallback"}
+    print(f"07: WARNING -- height_calib auto-fit not possible ({fit_info.get('reason')}); using the "
+          f"fallback {CAL['intercept']} + {CAL['m_per_level']}*levels, which was NOT measured at "
+          f"{CFG['site']}.", flush=True)
+CAL["dispute_m"] = float(CAL_CFG.get("dispute_m", 4.0))
+print(f"height calibration ({CAL['source']}): h = {CAL['intercept']} + {CAL['m_per_level']} * levels   {fit_info}")
+
+def h_from_levels(levels):
+    return CAL["intercept"] + CAL["m_per_level"] * levels
 
 def rings(geom):
     """Exterior + hole rings as CRS coordinates, metres."""
@@ -69,8 +116,14 @@ def rings(geom):
 def r2(v):
     return None if v is None else round(float(v), 2)
 
-buckets, qa, nlm, no_lidar = {}, [], 0, 0
+buckets, qa, nlm, no_lidar, outside = {}, [], 0, 0, 0
 for k, rec in enumerate(feats):
+    g = ogr.CreateGeometryFromWkb(rec["wkb"])
+    x0,x1,y0,y1 = g.GetEnvelope(); cx, cy = (x0+x1)/2, (y0+y1)/2
+    i, j = int((cx-E0)//T), int((cy-N0)//T)
+    if not (0 <= i < NX and 0 <= j < NY):
+        outside += 1                  # the Overpass bbox is generous; the grid is the model
+        continue
     if k in S:
         p25, p50, p90, npx, d15, dmin = S[k]
     else:
@@ -81,14 +134,9 @@ for k, rec in enumerate(feats):
         p25 = p50 = p90 = d15 = dmin = None
         npx = 0
         no_lidar += 1
-    g = ogr.CreateGeometryFromWkb(rec["wkb"])
-    x0,x1,y0,y1 = g.GetEnvelope(); cx, cy = (x0+x1)/2, (y0+y1)/2
-    i, j = int((cx-E0)//T), int((cy-N0)//T)
-    btype = rec.get("building") or "yes"
-    name  = rec.get("name")
-    lv    = rec.get("levels") or tv(rec, "building:levels")
-    try: levels = int(float(lv)) if lv else None
-    except: levels = None
+    btype  = rec.get("building") or "yes"
+    name   = rec.get("name")
+    levels = levels_of(rec)
 
     # --- height fallback ladder; record which rung fired -------------------
     ht = tv(rec, "height")
@@ -134,7 +182,8 @@ from collections import Counter
 by_src = Counter(b["src"] for v in buckets.values() for b in v)
 json.dump({"site": CFG["site"], "crs": CFG["crs"], "coordinates": "CRS eastings/northings, metres",
            "origin": CFG["origin"], "tile_m": CFG["tile_m"],
-           "height_calib": CAL, "buildings": n, "tiles": len(buckets),
+           "height_calib": CAL, "height_calib_fit": fit_info,
+           "buildings": n, "tiles": len(buckets), "outside_grid": outside,
            "by_height_source": dict(by_src), "landmark_overrides": nlm,
            "buildings_without_lidar": no_lidar,
            "qa_flagged": len(qa)},

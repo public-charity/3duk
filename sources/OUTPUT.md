@@ -30,6 +30,14 @@ encoding into a fixed window must compare against it; the pipeline will not clip
 `fill` per tile is `none`, `nearest` (scipy present) or `median (degraded)` — treat the
 last as provisional.
 
+`slope_qa` — `max_deg` and `pct_cells_over_45deg` site-wide, plus `slope_max_deg`,
+`slope_p99_deg` and `cells_over_45deg` per tile, all at native resolution. **This is how you
+prove cliffs survived.** The EA DTM holds cliff faces at 65–80° (measured at Cliftonville:
+5 m wide for a 10 m drop; 8.6 m in a single cell at the steepest). If your engine shows
+nothing steeper than ~45° where this says 70+, your import resampled or your terrain LOD
+decimated it — the data did not. Keep heightmap resolution equal to `grid_res` and turn
+pixel-error/LOD decimation down.
+
 ## `networks/` — step 06
 
 `roads_x{i}_y{j}.jsonl`, one record per line.
@@ -50,6 +58,10 @@ last as provisional.
 
 Records with `"cls":"_junction"` are different: `{"cls":"_junction","r":3.4,"pts":[[E,N,z]]}`
 — one point and a radius, where three or more ways meet.
+
+Ways are clipped to the tile grid: a way that leaves the grid ends at its last inside
+vertex, and nothing is written for tiles with negative indices. `networks_manifest.json`
+counts `vertices_outside_grid` and `vertices_without_dtm`.
 
 ## `massing/` — step 07
 
@@ -76,8 +88,13 @@ footprints with no LIDAR coverage** (they carry `lidar_px: 0` and null ground).
 | `rings` | Exterior first, then holes. `[E, N]` pairs, closed. |
 
 `massing_manifest.json` — `by_height_source` is the histogram of `src`;
-`buildings_without_lidar` and `height_calib` are recorded. If `type_prior` is a large share,
-the model is describing this town with another town's building stock.
+`buildings_without_lidar` and `outside_grid` are counted. `height_calib` is the line the
+`osm_levels` rung actually used, with `source` = `fitted` (regressed from this site's own
+buildings that carry both `building:levels` and a trustworthy LIDAR p50 — the default),
+`config` (pinned in the site config) or `fallback` (too few buildings to fit; another
+site's line was used — treat `osm_levels` heights as provisional). `height_calib_fit`
+gives `n`, `rejected` and `rmse_m` for a fit. If `type_prior` is a large share, the model
+is describing this town with another town's building stock.
 
 ## `coast/` — step 09
 

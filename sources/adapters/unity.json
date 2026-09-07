@@ -2,9 +2,11 @@
   "_note": "Unity-specific consumer settings. Nothing in sources/derive/ reads this file. These are the conventions and fudges that used to be baked into the data layer; they live here because they are properties of one consumer, not of the survey.",
 
   "terrain": {
-    "y_base": -5.0,
-    "y_size": 60.0,
-    "note": "TerrainData encodes height as unsigned 16-bit normalised over [y_base, y_base + y_size] metres. Ground outside this window CANNOT be represented -- the adapter refuses to clip silently and tells you to widen it."
+    "y_base": "auto",
+    "y_size": "auto",
+    "auto_margin_m": 5.0,
+    "note": "TerrainData encodes height as unsigned 16-bit normalised over [y_base, y_base + y_size] metres. auto derives ONE window for the whole site from terrain_manifest.range_m plus auto_margin_m, so every tile shares it (seamless neighbours) and nothing can be clipped; 16-bit over even a 150 m window is ~2 mm. Set numbers to pin a window -- the adapter still refuses to encode ground that falls outside it.",
+    "cliffs_note": "The data holds cliff faces at 65-80 degrees (measured on the EA DTM at Cliftonville: 5 m wide for a 10 m drop, 8.6 m in one cell at the steepest). If cliffs render as ~45 degree ramps, the engine did it, not the data. Keep heightmapResolution equal to grid_res (513 for a 512 m tile = 1 m), never let an importer resample, and set Terrain Pixel Error to 1-2: the default 5 decimates steep geometry at distance. terrain_manifest.slope_qa tells you what steepness went in."
   },
 
   "roads": {

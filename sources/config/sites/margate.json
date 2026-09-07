@@ -20,10 +20,11 @@
   "water_level": -0.6,
 
   "height_calib": {
-    "intercept": 3.16,
-    "m_per_level": 1.84,
+    "mode": "auto",
+    "min_buildings": 30,
+    "fallback": { "intercept": 3.16, "m_per_level": 1.84 },
     "dispute_m": 4.0,
-    "note": "height = intercept + m_per_level * building:levels, regressed against this site's own LIDAR. A LIDAR p50 disagreeing with this by more than dispute_m is tagged lidar_p50_disputed rather than silently trusted. Re-measure per site: a town of Victorian terraces and one of post-war flats do not share a storey height."
+    "note": "height = intercept + m_per_level * building:levels. mode auto: step 07 regresses the line from this site's own buildings that carry both a building:levels tag and a trustworthy LIDAR p50, records the fit in massing_manifest.json, and uses it -- a town of Victorian terraces and one of post-war flats do not share a storey height, so this is measured, not assumed. fallback is used only if fewer than min_buildings qualify; these numbers are what the previous pipeline hardcoded for Margate and are of uncertain provenance (an earlier config claimed 1.83/2.58). Set mode fixed with intercept and m_per_level to pin values. A LIDAR p50 disagreeing with the line by more than dispute_m is tagged lidar_p50_disputed."
   },
 
   "coast": {
