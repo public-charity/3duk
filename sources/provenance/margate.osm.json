@@ -1,13 +1,17 @@
 {
+  "site": "margate",
   "source": "OpenStreetMap via Overpass API",
-  "extract_mtime_utc": "2026-09-04T18:02:23+00:00",
-  "recorded_utc": "2026-09-04T21:51:57+00:00",
+  "licence": "ODbL",
+  "crs": "EPSG:27700",
+  "datum_transformation": "unknown id, Inverse of OSGB36 to WGS 84 (9) + British National Grid, 1 m, United Kingdom (UK) - offshore to boundary of UKCS within 49\u00b045'N to 61\u00b0N and 9\u00b0W to 2\u00b0E; onshore Great Britain (England, Wales and Scotland). Isle of Man onshore.",
+  "extract_mtime_utc": "2026-09-07T21:30:56+00:00",
+  "recorded_utc": "2026-09-07T21:37:47+00:00",
   "bbox_wgs84_swne": "51.365,1.345,51.402,1.432",
-  "bytes": 8978140,
-  "sha256": "24aeb2c6eb944f0d6b3a7a0efd889e34a577972b1d17a0361e79e6478d07a789",
+  "bytes": 8978896,
+  "sha256": "0a11d37c5edea2a7f29a71740fe08ef62b36eaa48d7b75ad8d0aa48c3944ff3f",
   "counts": {
     "buildings": 7669,
-    "highways": 3715
+    "highways": 3717
   },
-  "note": "ODbL. Re-fetching later will differ; archive data/raw/margate.osm to reproduce."
+  "note": "Re-fetching later will differ; archive C:/Users/Shadow/code/3duk/data/margate/raw/margate.osm to reproduce."
 }

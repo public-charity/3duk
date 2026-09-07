@@ -8,6 +8,7 @@ Verified by `sources/tests/dryrun.py`. Change this document and the test togethe
 | | |
 |---|---|
 | **CRS** | The site config's `crs` (Margate: EPSG:27700, British National Grid). Every coordinate below is an easting/northing in this CRS, in **metres**. No local origin is subtracted. |
+| **Georeferencing accuracy** | OSM arrives in WGS84 and is reprojected once, in step 01, with PROJ's best available operation — step 01 **refuses to run** if that operation is worse than the site's `crs_max_transform_accuracy_m` (for OSGB36: the OSTN15 grid, not the 2 m Helmert fallback). The operation used is recorded in `sources/provenance/<site>.osm.json` as `datum_transformation`. LIDAR is native to the CRS. With the grid, footprints and roads reproduce a reference run to the centimetre; without it, everything OSM-derived sits ~1.8 m off the LIDAR. |
 | **Elevation** | Metres above the site's `vertical_datum` (Margate: ODN). Always the **third** component of a vertex, or a field named `z`/`base_z`. Never Y-up. |
 | **Orientation** | `bearing`: degrees clockwise from grid north, `[0, 360)`. |
 | **Rasters** | GeoTIFF, **north-up** (row 0 is the northern edge), georeferenced, CRS-tagged. |

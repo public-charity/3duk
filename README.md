@@ -81,6 +81,24 @@ A GDAL environment for this: `micromamba create -p <dir> -c conda-forge python=3
 numpy scipy`, then `PATH=<dir>/Library/bin:$PATH PY=<dir>/python.exe` — `run.sh` finds
 `GDAL_DATA` and `PROJ_DATA` beside the binaries itself.
 
+## Regression against the original model
+
+The refactored pipeline was run on Margate and diffed, building by building and vertex by
+vertex, against the model committed at `1fdb6dc`. **It reproduces it to the centimetre**:
+7,486 LIDAR-height buildings identical in every height field, 100% of footprint coordinates
+exact, 196k road vertices exact in plan (99.9% in height, max 0.04 m), terrain min/max
+identical on all 91 tiles, the same 23 water tiles, the same 83 QA outliers. Every remaining
+difference is a deliberate change and is listed in that commit.
+
+It did not reproduce on the first attempt. Everything OSM-derived came out **1.79 m east
+and 0.81 m north** of the original, and the LIDAR proved the original right: 92.0% of roof
+under the old footprints, 87.0% under the new, and shifting the new ones back restored
+92.0% exactly. The cause was PROJ lacking the OSTN15 grid and silently falling back to a
+2 m-class Helmert transformation. Step 01 now checks the operation PROJ will use, enables
+`PROJ_NETWORK` to fetch the grid, refuses to build on a degraded transformation, and records
+the operation in provenance. That bug depended on which machine you ran on, and nothing in
+the output would ever have told you.
+
 ## Cliffs
 
 The EA DTM holds cliff faces at 65–80° — measured at Cliftonville, 5 m wide for a 10 m

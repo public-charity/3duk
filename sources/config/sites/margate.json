@@ -1,6 +1,8 @@
 {
   "crs": "EPSG:27700",
   "crs_note": "British National Grid. Every raster and vector in the pipeline is held in this CRS; OSM arrives in WGS84 degrees and is reprojected by step 01.",
+  "crs_max_transform_accuracy_m": 1.0,
+  "crs_max_transform_accuracy_note": "Step 01 refuses to reproject OSM unless PROJ's best available WGS84 -> CRS operation is at least this accurate. For OSGB36 that means the OSTN15 grid (1 m class, ~10 cm real); the Helmert fallback PROJ uses when the grid is missing is 2 m class and puts the whole model ~1.8 m off the LIDAR. Found by regression: the original Margate model reproduced to the centimetre only once the grid was in play.",
 
   "origin": { "E": 632800, "N": 168200 },
   "origin_note": "South-west corner of the tile grid, in CRS units.",

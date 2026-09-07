@@ -44,6 +44,41 @@ if [ "$NEED_FETCH" = 1 ]; then
   BBOX="$BBOX" OUT="$OSM" ./sources/fetch/fetch_osm.sh
 fi
 
+# ---- datum transformation guard ------------------------------------------------------
+# OSM is WGS84; the LIDAR is natively in the site CRS. For British National Grid the
+# accurate WGS84 -> OSGB36 transformation is the OSTN15 grid (1 m class, ~10 cm in
+# practice). Without the grid file PROJ silently falls back to a 7-parameter Helmert
+# (2 m class) and the whole model lands ~1.8 m off the LIDAR: footprints on the street,
+# eaves 0.6 m low, roof coverage under footprints down from 92% to 87% -- and nothing
+# anywhere says so. Found by regressing against the original Margate model. PROJ can fetch
+# grids from cdn.proj.org when PROJ_NETWORK=ON; try that, and otherwise refuse to build.
+MAX_ACC=$("$PY" -c 'import json,sys;print(json.load(open(sys.argv[1])).get("crs_max_transform_accuracy_m", 1.0))' "sources/config/sites/${SITE}.json")
+best_op() {
+  projinfo -s EPSG:4326 -t "$CRS" --bbox "$BW,$BS,$BE,$BN" --spatial-test intersects -o PROJ 2>/dev/null \
+    | grep -m1 -E "^(unknown id|[A-Za-z_]+:[0-9]+), "
+}
+acc_of() { echo "$1" | grep -oE ", [0-9.]+ m, " | grep -oE "[0-9.]+" | head -1; }
+if command -v projinfo >/dev/null; then
+  IFS=, read -r BS BW BN BE <<< "$BBOX"                  # our bbox is S,W,N,E; projinfo wants W,S,E,N
+  OP=$(best_op); ACC=$(acc_of "$OP")
+  if [ -z "$ACC" ] || awk "BEGIN{exit !($ACC > $MAX_ACC)}"; then
+    echo "01: best available WGS84 -> $CRS transformation is ${ACC:-unknown} m class; need <= $MAX_ACC m"
+    echo "01: enabling PROJ_NETWORK=ON so PROJ can fetch the transformation grid from cdn.proj.org ..."
+    export PROJ_NETWORK=ON
+    OP=$(best_op); ACC=$(acc_of "$OP")
+    if [ -z "$ACC" ] || awk "BEGIN{exit !($ACC > $MAX_ACC)}"; then
+      echo "01: FATAL -- still ${ACC:-unknown} m class: $OP" >&2
+      echo "    The model would sit metres off the LIDAR. Install the grid (conda: proj-data; or download the" >&2
+      echo "    grid projinfo names from https://cdn.proj.org into \$PROJ_DATA), or allow network access." >&2
+      exit 1
+    fi
+  fi
+  echo "01: datum transformation (${ACC} m class): $(echo "$OP" | cut -c1-110)"
+else
+  OP="unverified: projinfo not available"
+  echo "01: WARNING -- projinfo not found; cannot verify the WGS84 -> $CRS transformation. The model may be metres off the LIDAR."
+fi
+
 # -t_srs IS LOAD-BEARING. Overpass returns WGS84 degrees; every downstream step
 # rasterises these footprints against the projected LIDAR grid. Omit it and steps
 # 04/07/09 run to completion, report zero errors, and silently sample nothing --
@@ -89,9 +124,9 @@ done
 BUILDINGS=$(ogrinfo -q -sql "SELECT COUNT(*) FROM multipolygons WHERE building IS NOT NULL AND building != 'no'" "$GPKG" | grep -oE '[0-9]+' | tail -1)
 HIGHWAYS=$(ogrinfo -q -sql "SELECT COUNT(*) FROM lines WHERE highway IS NOT NULL" "$GPKG" | grep -oE '[0-9]+' | tail -1)
 
-"$PY" - "$OSM" "$BBOX" "${BUILDINGS:-0}" "${HIGHWAYS:-0}" "$PROV" "$SITE" "$CRS" <<'PYEOF'
+"$PY" - "$OSM" "$BBOX" "${BUILDINGS:-0}" "${HIGHWAYS:-0}" "$PROV" "$SITE" "$CRS" "$OP" <<'PYEOF'
 import hashlib, json, os, sys, datetime
-osm, bbox, buildings, highways, prov, site, crs = sys.argv[1:8]
+osm, bbox, buildings, highways, prov, site, crs, op = sys.argv[1:9]
 h = hashlib.sha256()
 with open(osm, "rb") as f:
     for chunk in iter(lambda: f.read(1 << 20), b""):
@@ -104,6 +139,7 @@ json.dump({
     "source": "OpenStreetMap via Overpass API",
     "licence": "ODbL",
     "crs": crs,
+    "datum_transformation": op,
     "extract_mtime_utc": mtime.isoformat(timespec="seconds"),
     "recorded_utc": datetime.datetime.now(datetime.UTC).isoformat(timespec="seconds"),
     "bbox_wgs84_swne": bbox,
