@@ -14,3 +14,22 @@ __pycache__/
 
 # Throwaway site configs written by sources/tests/dryrun.py
 sources/config/sites/_*.json
+
+# Unreal Engine build products under projects/ (the source of truth is text: .uproject, Source/, Config/,
+# Plugins/*/Source, and the scripts under Tools/ that regenerate Content). Never commit these.
+projects/*/Binaries/
+projects/*/Intermediate/
+projects/*/Saved/
+projects/*/DerivedDataCache/
+projects/*/Build/
+projects/*/.vs/
+projects/*/.vsconfig
+projects/*/*.sln
+projects/*/*.suo
+projects/*/*.xcworkspace
+projects/*/*.code-workspace
+projects/*/Plugins/*/Binaries/
+projects/*/Plugins/*/Intermediate/
+# Blender prototype outputs (renders are committed deliberately via LFS from Tools/blender/renders only)
+projects/*/Tools/blender/out/
+*.blend1

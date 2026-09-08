@@ -1,0 +1,47 @@
+{
+ "kind": "edge",
+ "id": "edge_railing",
+ "_note": "Barrier-only profile: 1.1 m pedestrian guardrail (BS 7818 class), 50 mm square posts every 2.0 m, rails at 1.08 / 0.55 / 0.10 m.",
+ "profile": {
+  "kerb_width_m": 0.0,
+  "kerb_height_m": 0.0,
+  "lip": {
+   "kind": "none"
+  },
+  "pavement_width_m": 0.0,
+  "pavement_crossfall_pct": 2.5,
+  "pavement_max_crossfall_pct": 8.0,
+  "tuck_depth_m": 0.03,
+  "tuck_in_m": 0.02,
+  "skirt_m": 0.3,
+  "materials": {
+   "kerb": "concrete_kerb",
+   "pavement": "grass"
+  },
+  "split_material": {
+   "enabled": false
+  },
+  "drop_kerbs": [],
+  "barriers": [
+   {
+    "s0_m": 0.0,
+    "s1_m": null,
+    "type": "railing",
+    "height_m": 1.1,
+    "thickness_m": 0.05,
+    "material": "steel_painted_black",
+    "post_pitch_m": 2.0,
+    "post_size_m": 0.05,
+    "post_material": "steel_painted_black",
+    "rails_m": [
+     1.08,
+     0.55,
+     0.1
+    ],
+    "rail_size_m": 0.04,
+    "offset_m": 0.0
+   }
+  ],
+  "embankments": []
+ }
+}

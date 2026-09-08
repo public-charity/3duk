@@ -1,0 +1,36 @@
+{
+ "kind": "road",
+ "id": "road_primary",
+ "profile": {
+  "kind": "road",
+  "lanes": 2,
+  "lane_widths_m": [
+   3.65,
+   3.65
+  ],
+  "width_m": 10.0,
+  "surface_material": "tarmac",
+  "camber": {
+   "kind": "parabolic",
+   "crossfall_pct": 2.5
+  },
+  "overlap_m": 0.04,
+  "skirt_drop_m": 0.02,
+  "lateral_station_spacing_m": 1.0,
+  "markings": [
+   {
+    "id": "centre_1004",
+    "anchor": "centre",
+    "offset_m": 0.0,
+    "width_m": 0.1,
+    "pattern": "dashed",
+    "dash_m": 4.0,
+    "gap_m": 2.0,
+    "phase_m": 0.0,
+    "material": "white_paint",
+    "lift_m": 0.004
+   }
+  ]
+ },
+ "_note": "Width from sources/config/tuning.json roads.widths_m (carriageway of the class); lane widths are informational. Materials are names mapped by the engine (UStreetMaterialTable / bpy)."
+}

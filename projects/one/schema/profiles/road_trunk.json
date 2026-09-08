@@ -1,0 +1,54 @@
+{
+ "kind": "road",
+ "id": "road_trunk",
+ "profile": {
+  "kind": "road",
+  "lanes": 2,
+  "lane_widths_m": [
+   3.65,
+   3.65
+  ],
+  "width_m": 12.0,
+  "surface_material": "tarmac",
+  "camber": {
+   "kind": "parabolic",
+   "crossfall_pct": 2.5
+  },
+  "overlap_m": 0.04,
+  "skirt_drop_m": 0.02,
+  "lateral_station_spacing_m": 1.0,
+  "markings": [
+   {
+    "id": "warning_1004_1",
+    "anchor": "centre",
+    "offset_m": 0.0,
+    "width_m": 0.1,
+    "pattern": "dashed",
+    "dash_m": 6.0,
+    "gap_m": 3.0,
+    "phase_m": 0.0,
+    "material": "white_paint",
+    "lift_m": 0.004
+   },
+   {
+    "id": "edge_left_1012_1",
+    "anchor": "edge_left",
+    "offset_m": 0.2,
+    "width_m": 0.15,
+    "pattern": "solid",
+    "material": "white_paint",
+    "lift_m": 0.004
+   },
+   {
+    "id": "edge_right_1012_1",
+    "anchor": "edge_right",
+    "offset_m": 0.2,
+    "width_m": 0.15,
+    "pattern": "solid",
+    "material": "white_paint",
+    "lift_m": 0.004
+   }
+  ]
+ },
+ "_note": "Width from sources/config/tuning.json roads.widths_m (carriageway of the class); lane widths are informational. Materials are names mapped by the engine (UStreetMaterialTable / bpy). Trunk: TSRGD 1004.1 warning line + 1012.1 edge lines."
+}

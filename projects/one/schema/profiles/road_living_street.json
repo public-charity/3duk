@@ -1,0 +1,22 @@
+{
+ "kind": "road",
+ "id": "road_living_street",
+ "profile": {
+  "kind": "road",
+  "lanes": 1,
+  "lane_widths_m": [
+   5.0
+  ],
+  "width_m": 5.0,
+  "surface_material": "tarmac",
+  "camber": {
+   "kind": "parabolic",
+   "crossfall_pct": 2.5
+  },
+  "overlap_m": 0.04,
+  "skirt_drop_m": 0.02,
+  "lateral_station_spacing_m": 1.0,
+  "markings": []
+ },
+ "_note": "Width from sources/config/tuning.json roads.widths_m (carriageway of the class); lane widths are informational. Materials are names mapped by the engine (UStreetMaterialTable / bpy)."
+}

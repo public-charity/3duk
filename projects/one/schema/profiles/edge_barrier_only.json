@@ -1,0 +1,28 @@
+{
+ "kind": "edge",
+ "id": "edge_barrier_only",
+ "_note": "No kerb, no pavement, no baseline barrier: the spline supplies the barrier as a Segment.edge.barrier (the adapter's choice for OSM barrier=* ways, with offset_m = -thickness_m/2 so the barrier is centred on the way).",
+ "profile": {
+  "kerb_width_m": 0.0,
+  "kerb_height_m": 0.0,
+  "lip": {
+   "kind": "none"
+  },
+  "pavement_width_m": 0.0,
+  "pavement_crossfall_pct": 2.5,
+  "pavement_max_crossfall_pct": 8.0,
+  "tuck_depth_m": 0.03,
+  "tuck_in_m": 0.02,
+  "skirt_m": 0.3,
+  "materials": {
+   "kerb": "concrete_kerb",
+   "pavement": "grass"
+  },
+  "split_material": {
+   "enabled": false
+  },
+  "drop_kerbs": [],
+  "barriers": [],
+  "embankments": []
+ }
+}

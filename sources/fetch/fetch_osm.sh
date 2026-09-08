@@ -24,6 +24,7 @@ read -r -d '' Q <<QUERY || true
   way["building"]($BBOX);
   relation["building"]($BBOX);
   way["highway"]($BBOX);
+  way["railway"]($BBOX);
   way["natural"]($BBOX);
   way["landuse"]($BBOX);
   way["leisure"]($BBOX);

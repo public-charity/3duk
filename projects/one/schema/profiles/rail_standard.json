@@ -1,0 +1,59 @@
+{
+ "kind": "road",
+ "id": "rail_standard",
+ "_note": "Standard-gauge track as a Renderer-A profile of kind rail: the ribbon is the ballast bed (top width = width_m 3.4 = 2.5 m sleeper + 2 x 0.45 m shoulder), rails (BS113A / 56E1, inner faces 1.435 m apart) and sleepers (2.5 x 0.25 x 0.15 m at 0.65 m, embedded 0.10 m) are sub-meshes/instances of the same build. sampling_defaults force the tighter rail tessellation.",
+ "profile": {
+  "kind": "rail",
+  "lanes": 1,
+  "lane_widths_m": [
+   3.4
+  ],
+  "width_m": 3.4,
+  "surface_material": "ballast",
+  "camber": {
+   "kind": "none"
+  },
+  "overlap_m": 0.04,
+  "skirt_drop_m": 0.0,
+  "lateral_station_spacing_m": 1.0,
+  "markings": [],
+  "rail": {
+   "gauge_m": 1.435,
+   "pad_m": 0.005,
+   "rail": {
+    "profile_id": "BS113A",
+    "height_m": 0.15875,
+    "head_width_m": 0.06985,
+    "foot_width_m": 0.1397,
+    "web_thickness_m": 0.02,
+    "head_depth_m": 0.045,
+    "foot_thickness_m": 0.011,
+    "material": "rail_steel"
+   },
+   "sleeper": {
+    "length_m": 2.5,
+    "width_m": 0.25,
+    "height_m": 0.15,
+    "pitch_m": 0.65,
+    "phase_m": 0.0,
+    "embed_m": 0.1,
+    "mode": "instances",
+    "material": "sleeper_concrete"
+   },
+   "ballast": {
+    "shoulder_slope": 1.5,
+    "depth_m": 0.45,
+    "material": "ballast"
+   }
+  },
+  "sampling_defaults": {
+   "step_m": 1.0,
+   "min_step_m": 0.25,
+   "curvature_gain": 60.0,
+   "smoothing_window_m": 40.0,
+   "smoothing_passes": 2,
+   "bank_max_deg": 6.0,
+   "bank_rate_max_deg_per_m": 0.25
+  }
+ }
+}

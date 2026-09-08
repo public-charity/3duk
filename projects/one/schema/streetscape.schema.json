@@ -1,0 +1,591 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/public-charity/3duk/projects/one/schema/streetscape.schema.json",
+  "title": "Streetscape interchange format 1.0.0",
+  "description": "One document = one site, one pipeline tile of a site, or one hand-authored test stretch. Frame: local metres from origin {E,N}, right-handed, X east, Y north, Z up = ODN metres (not re-based). Every distance is metres, every angle degrees. Every 's' is arc length in metres from the spline's first point along the RESAMPLED centreline (centripetal Catmull-Rom through points[], see SCHEMA.md 3). Left/right are relative to the direction of travel (increasing s); the signed lateral offset d is POSITIVE TO THE LEFT. Keys beginning with '_' are free-form notes and are allowed in every object. Written by sources/adapters/unreal.py and by hand; read by Tools/blender/streetscape (numpy) and by Plugins/Streetscape (C++). Normative prose: projects/one/docs/SCHEMA.md.",
+  "type": "object",
+  "required": ["schema_version", "site", "crs", "origin", "vertical_datum", "frame", "generator", "profiles", "splines"],
+  "additionalProperties": false,
+  "patternProperties": { "^_": {} },
+  "properties": {
+    "schema_version": { "type": "string", "pattern": "^1\\.[0-9]+\\.[0-9]+$", "description": "Semver of this schema. Readers accept any 1.x. Additive optional fields bump the minor version; a rename or re-meaning is 2.0." },
+    "site": { "type": "string", "minLength": 1, "description": "Site name as in sources/config/sites/<site>.json ('thanet', 'margate') or a fixture name for synthetic documents." },
+    "crs": { "type": "string", "pattern": "^EPSG:[0-9]+$", "description": "CRS of origin.E / origin.N. EPSG:27700 for every real site of this project." },
+    "origin": {
+      "type": "object", "required": ["E", "N"], "additionalProperties": false, "patternProperties": { "^_": {} },
+      "properties": {
+        "E": { "type": "number", "description": "Easting of the local origin in CRS metres. local x = E_survey - origin.E." },
+        "N": { "type": "number", "description": "Northing of the local origin in CRS metres. local y = N_survey - origin.N." }
+      },
+      "description": "Site grid origin (the SW corner of the tile grid). Thanet: E 627680, N 163080. A reader must refuse a document whose origin differs from the one it is assembling a world for."
+    },
+    "vertical_datum": { "type": "string", "minLength": 1, "description": "Datum of every z. 'ODN' for EA LIDAR. z is never re-based." },
+    "frame": { "const": "local-metres, X east, Y north, Z up", "description": "Fixed string. A reader must refuse any other value; the Unreal conversion (100x, -100y, 100z cm) happens only inside the Unreal loader, never in this file." },
+    "generator": { "type": "string", "minLength": 1, "description": "Who wrote the file: 'sources/adapters/unreal.py@<git sha>', 'hand-authored (...)', 'Plugins/Streetscape SaveSite@<version>'." },
+    "materials": {
+      "type": "object", "additionalProperties": { "$ref": "#/$defs/MaterialHint" }, "patternProperties": { "^_": {} },
+      "description": "Optional preview hints per material NAME. Geometry refers to materials by name only; engines map names to real materials (UE: UStreetMaterialTable; Blender: flat-colour bpy materials from base_color)."
+    },
+    "profiles": {
+      "type": "object", "required": ["road", "edge", "hedge"], "additionalProperties": false, "patternProperties": { "^_": {} },
+      "description": "Inline profile definitions keyed by id. A document must contain every profile any of its splines references (the adapter inlines only the referenced ids; the library copies live in projects/one/schema/profiles/*.json).",
+      "properties": {
+        "road":  { "type": "object", "additionalProperties": { "$ref": "#/$defs/RoadProfile" },  "patternProperties": { "^_": {} }, "description": "Road and rail profiles (kind road|rail)." },
+        "edge":  { "type": "object", "additionalProperties": { "$ref": "#/$defs/EdgeProfile" },  "patternProperties": { "^_": {} }, "description": "Kerb / pavement / barrier profiles, side-agnostic." },
+        "hedge": { "type": "object", "additionalProperties": { "$ref": "#/$defs/HedgeProfile" }, "patternProperties": { "^_": {} }, "description": "Volumetric hedge profiles." }
+      }
+    },
+    "splines": { "type": "array", "items": { "$ref": "#/$defs/Spline" }, "description": "The shared splines. Each is built once and read by all three renderers." },
+    "junctions": { "type": "array", "items": { "$ref": "#/$defs/Junction" }, "default": [], "description": "Junction placeholders (BRIEF 6 Q7). No renderer reads them in this round." }
+  },
+
+  "$defs": {
+    "Id": { "type": "string", "pattern": "^[A-Za-z0-9_.:-]+$", "minLength": 1, "description": "Identifier: letters, digits, '_', '.', ':' and '-'. Adapter spline ids are '<layer>:<osm_id>:<segment_index>'." },
+    "NonNeg": { "type": "number", "minimum": 0 },
+    "Pos": { "type": "number", "exclusiveMinimum": 0 },
+    "SideOrBoth": { "type": "string", "enum": ["left", "right", "both"], "description": "Side relative to the direction of travel (increasing s)." },
+    "SEnd": { "description": "Arc length in metres; null means 'to the end of the spline' (clamped to L).", "oneOf": [ { "type": "number", "minimum": 0 }, { "type": "null" } ] },
+    "MaterialName": { "type": "string", "minLength": 1, "pattern": "^[a-z][a-z0-9_]*$", "description": "Material name (lower snake case). Geometry carries names; engines map them. The default set: tarmac, white_paint, yellow_paint, concrete_kerb, paving_slab, grass, gravel, brick_red, coping_concrete, chain_link, post_steel, steel_painted_black, wood_fence, privet_leaf, ballast, sleeper_concrete, rail_steel, stone_flint, concrete_wall, massing_grey." },
+    "XYZ": { "type": "array", "minItems": 3, "maxItems": 3, "items": { "type": "number" }, "description": "[x, y, z] in the file frame, metres." },
+
+    "MaterialHint": {
+      "type": "object", "additionalProperties": false, "patternProperties": { "^_": {} },
+      "properties": {
+        "base_color": { "type": "array", "minItems": 3, "maxItems": 3, "items": { "type": "number", "minimum": 0, "maximum": 1 }, "description": "Linear RGB preview colour." },
+        "roughness": { "type": "number", "minimum": 0, "maximum": 1, "description": "Preview roughness." },
+        "two_sided": { "type": "boolean", "default": false, "description": "Render both faces (chain-link panels)." },
+        "texture_repeat_m": { "$ref": "#/$defs/Pos", "description": "World size of one texture tile in metres. UVs are in metres everywhere, so the engine divides by this." }
+      }
+    },
+
+    "Sampling": {
+      "type": "object", "additionalProperties": false, "patternProperties": { "^_": {} },
+      "description": "Resampling, smoothing and banking parameters. All optional. Precedence: spline.sampling > road profile sampling_defaults > built-in defaults. Built-in road defaults: step_m 2.0, min_step_m 0.25, curvature_gain 20, smoothing_window_m 20, smoothing_passes 1, width_ramp_m 5.0, bank_max_deg 4.0, bank_probe_min_half_width_m 1.5, pin_blend_m 10.0, bank_rate_max_deg_per_m 0.25. Built-in rail defaults: step_m 1.0, min_step_m 0.25, curvature_gain 60, smoothing_window_m 40, smoothing_passes 2, bank_max_deg 6.0 (the rest as road). A rail profile normally carries these in sampling_defaults.",
+      "properties": {
+        "step_m": { "$ref": "#/$defs/Pos", "description": "Station spacing on straights, metres. step(k) = clamp(step_m / (1 + curvature_gain * |k|), min_step_m, step_m)." },
+        "min_step_m": { "$ref": "#/$defs/Pos", "description": "Floor of the adaptive step, metres. Also the merge tolerance: an adaptive station within min_step_m/2 of a mandatory station is dropped." },
+        "curvature_gain": { "$ref": "#/$defs/NonNeg", "description": "Metres. Multiplies curvature k (1/m) in the step formula: road 20 gives 1.0 m at R = 20 m; rail 60 gives 0.83 m at R = 300 m." },
+        "smoothing_window_m": { "$ref": "#/$defs/NonNeg", "description": "Full width W of the centred arc-length moving average applied to terrain heights (and to the raw terrain bank). The window shrinks symmetrically to zero at both ends, so the end heights are the raw terrain heights." },
+        "smoothing_passes": { "type": "integer", "minimum": 0, "maximum": 4, "description": "Number of moving-average passes (2 = triangular kernel)." },
+        "width_ramp_m": { "$ref": "#/$defs/Pos", "description": "Default ramp length, metres, for segment scalar overrides that do not set ramp_m." },
+        "bank_max_deg": { "type": "number", "minimum": 0, "maximum": 30, "description": "Clamp on the terrain-derived bank angle, degrees. Roll overrides on points are NOT clamped by it." },
+        "bank_probe_min_half_width_m": { "$ref": "#/$defs/Pos", "description": "The cross slope is probed at +-max(width/2, this) metres from the centreline." },
+        "bank_rate_max_deg_per_m": { "$ref": "#/$defs/NonNeg", "description": "Limit on |d(bank)/ds| in degrees per metre applied AFTER the terrain/roll blend (forward pass then backward pass). Bounds the twist of every road quad so lifted markings clear the carriageway (SCHEMA.md 3.7). Default 0.25." },
+        "pin_blend_m": { "$ref": "#/$defs/Pos", "description": "Linear blend distance, metres, either side of a pinned point z." },
+        "extra_stations_m": { "type": "array", "items": { "$ref": "#/$defs/NonNeg" }, "description": "Additional mandatory sample stations (tests, authoring)." }
+      }
+    },
+
+    "Camber": {
+      "type": "object", "additionalProperties": false, "patternProperties": { "^_": {} },
+      "required": ["kind"],
+      "properties": {
+        "kind": { "type": "string", "enum": ["parabolic", "planar", "none"], "description": "parabolic: h(d) = -c (2d/w)^2 with crown c; planar: two planes h(d) = -(crossfall_pct/100) |d|; none: flat." },
+        "crossfall_pct": { "type": "number", "minimum": 0, "maximum": 10, "description": "Edge slope in percent. parabolic: crown c = crossfall_pct/100 * w/4 (so the edge slope equals the crossfall); planar: the plane slope." },
+        "camber_m": { "$ref": "#/$defs/NonNeg", "description": "Explicit crown height c in metres; overrides crossfall_pct for parabolic when present." }
+      }
+    },
+
+    "Marking": {
+      "type": "object", "additionalProperties": false, "patternProperties": { "^_": {} },
+      "required": ["offset_m", "width_m", "pattern", "material"],
+      "description": "One line marking. Markings are lifted strips built in the SAME mesh pass as the road from the SAME frames (no second spline). Dash ends are interpolated frames, not extra spline stations.",
+      "properties": {
+        "id": { "$ref": "#/$defs/Id", "description": "Name used for mesh groups ('marking:<id>') and tests." },
+        "anchor": { "type": "string", "enum": ["centre", "edge_left", "edge_right"], "default": "centre", "description": "centre: offset_m is SIGNED, + = left of travel. edge_left / edge_right: offset_m >= 0 measured INWARD from that road edge (edge_offset of that side), so the line follows width changes." },
+        "offset_m": { "type": "number", "description": "Lateral position of the strip centre (for double: of the pair centre), metres, per anchor." },
+        "width_m": { "$ref": "#/$defs/Pos", "description": "Width of ONE line, metres (each line of a double)." },
+        "pattern": { "type": "string", "enum": ["solid", "dashed", "double", "none"] },
+        "dash_m": { "$ref": "#/$defs/Pos", "description": "Mark length for dashed, metres." },
+        "gap_m": { "$ref": "#/$defs/Pos", "description": "Gap length for dashed, metres." },
+        "phase_m": { "type": "number", "default": 0, "description": "Dash k covers s in [phase_m + k (dash_m + gap_m), phase_m + k (dash_m + gap_m) + dash_m]. Global along the spline, so dashes are continuous across segment boundaries." },
+        "double_gap_m": { "$ref": "#/$defs/Pos", "description": "Clear gap between the two lines of a double, metres." },
+        "material": { "$ref": "#/$defs/MaterialName" },
+        "lift_m": { "type": "number", "minimum": 0, "maximum": 0.02, "default": 0.004, "description": "Strip sits this far above the carriageway surface, metres. 4 mm: within the 1.5-6 mm range of screed/extruded thermoplastic and clears the worst-case quad twist allowed by bank_rate_max_deg_per_m (SCHEMA.md 3.7)." },
+        "s0_m": { "$ref": "#/$defs/NonNeg", "description": "Optional s-range start; omitted = whole spline." },
+        "s1_m": { "$ref": "#/$defs/SEnd", "description": "Optional s-range end; omitted or null = to the end." }
+      },
+      "allOf": [
+        { "if": { "properties": { "pattern": { "const": "dashed" } }, "required": ["pattern"] }, "then": { "required": ["dash_m", "gap_m"] } },
+        { "if": { "properties": { "pattern": { "const": "double" } }, "required": ["pattern"] }, "then": { "required": ["double_gap_m"] } }
+      ]
+    },
+
+    "RailSection": {
+      "type": "object", "additionalProperties": false, "patternProperties": { "^_": {} },
+      "required": ["height_m", "head_width_m", "foot_width_m", "web_thickness_m", "head_depth_m", "foot_thickness_m", "material"],
+      "properties": {
+        "profile_id": { "type": "string", "description": "Informational name of the section, e.g. 'BS113A'." },
+        "height_m": { "$ref": "#/$defs/Pos", "description": "Foot to head top, metres (BS113A 0.15875)." },
+        "head_width_m": { "$ref": "#/$defs/Pos", "description": "Head width, metres (0.06985)." },
+        "foot_width_m": { "$ref": "#/$defs/Pos", "description": "Foot width, metres (0.1397)." },
+        "web_thickness_m": { "$ref": "#/$defs/Pos", "description": "Web thickness, metres (0.020)." },
+        "head_depth_m": { "$ref": "#/$defs/Pos", "description": "Head depth, metres (0.045)." },
+        "foot_thickness_m": { "$ref": "#/$defs/Pos", "description": "Foot thickness at the edge, metres (0.011)." },
+        "material": { "$ref": "#/$defs/MaterialName" }
+      }
+    },
+    "Sleeper": {
+      "type": "object", "additionalProperties": false, "patternProperties": { "^_": {} },
+      "required": ["length_m", "width_m", "height_m", "pitch_m", "material"],
+      "properties": {
+        "length_m": { "$ref": "#/$defs/Pos", "description": "Across the track, metres (2.5)." },
+        "width_m": { "$ref": "#/$defs/Pos", "description": "Along the track, metres (0.25)." },
+        "height_m": { "$ref": "#/$defs/Pos", "description": "Metres (0.15)." },
+        "pitch_m": { "$ref": "#/$defs/Pos", "description": "Centre spacing along s, metres (0.65)." },
+        "phase_m": { "type": "number", "default": 0, "description": "s of the first sleeper centre." },
+        "embed_m": { "$ref": "#/$defs/NonNeg", "default": 0.10, "description": "How far the sleeper sits below the ballast top surface, metres." },
+        "mode": { "type": "string", "enum": ["instances", "merged"], "default": "instances", "description": "instances: emitted as an instance list; merged: 12-triangle boxes appended to the road buffer." },
+        "material": { "$ref": "#/$defs/MaterialName" }
+      }
+    },
+    "Ballast": {
+      "type": "object", "additionalProperties": false, "patternProperties": { "^_": {} },
+      "required": ["shoulder_slope", "depth_m", "material"],
+      "description": "Ballast bed. Its flat top width IS RoadProfile.width_m (3.4 for standard gauge), so the kerb line (edge_offset) sits at the ballast shoulder.",
+      "properties": {
+        "shoulder_slope": { "$ref": "#/$defs/Pos", "description": "Horizontal run per 1 m of fall (1.5 = 1 in 1.5)." },
+        "depth_m": { "$ref": "#/$defs/Pos", "description": "Ballast top to formation (toe of the shoulder), metres (0.45)." },
+        "material": { "$ref": "#/$defs/MaterialName" }
+      }
+    },
+    "RailSpec": {
+      "type": "object", "additionalProperties": false, "patternProperties": { "^_": {} },
+      "required": ["gauge_m", "rail", "sleeper", "ballast"],
+      "properties": {
+        "gauge_m": { "$ref": "#/$defs/Pos", "description": "Distance between the INNER faces of the rail heads, metres (1.435 standard). Rail centrelines sit at d = +-(gauge_m/2 + head_width_m/2) = +-0.75243 for BS113A." },
+        "pad_m": { "$ref": "#/$defs/NonNeg", "default": 0.005, "description": "Rail foot sits this far above the sleeper top, metres." },
+        "rail": { "$ref": "#/$defs/RailSection" },
+        "sleeper": { "$ref": "#/$defs/Sleeper" },
+        "ballast": { "$ref": "#/$defs/Ballast" }
+      }
+    },
+
+    "RoadProfile": {
+      "type": "object", "additionalProperties": false, "patternProperties": { "^_": {} },
+      "required": ["kind", "width_m", "surface_material", "camber", "markings"],
+      "description": "Renderer A profile. kind rail makes the ribbon the ballast bed and adds rails and sleepers in the same build pass.",
+      "properties": {
+        "kind": { "type": "string", "enum": ["road", "rail"], "description": "rail: 'rail' block required; sampling_defaults should carry the tighter rail values." },
+        "lanes": { "type": "integer", "minimum": 0, "description": "Informational." },
+        "lane_widths_m": { "type": "array", "items": { "$ref": "#/$defs/Pos" }, "description": "Informational; width_m is authoritative for geometry. Validation warns if the sum exceeds width_m." },
+        "width_m": { "$ref": "#/$defs/NonNeg", "description": "Total carriageway width (rail: ballast top width), metres. Base of the width function w(s); points[].width_m and segments override it." },
+        "surface_material": { "$ref": "#/$defs/MaterialName" },
+        "camber": { "$ref": "#/$defs/Camber" },
+        "overlap_m": { "type": "number", "minimum": 0.03, "maximum": 0.10, "default": 0.04, "description": "How far the road skirt extends past the kerb line (edge_offset), metres. Seam rule: the road owns the seam. Hard floor 0.03." },
+        "skirt_drop_m": { "type": "number", "minimum": 0, "maximum": 0.03, "default": 0.02, "description": "The skirt row drops this much below the road edge over overlap_m so it hides inside the kerb block. Must be < EdgeProfile.tuck_depth_m." },
+        "lateral_station_spacing_m": { "$ref": "#/$defs/Pos", "default": 1.0, "description": "Maximum spacing of the ribbon's interior lateral rows, metres. n_int = max(7, 2 ceil(w_max / (2 this)) + 1) with w_max the maximum of edge_offset_left + edge_offset_right over the stations." },
+        "markings": { "type": "array", "items": { "$ref": "#/$defs/Marking" }, "description": "Baseline marking list (may be empty). Segments may replace or append." },
+        "rail": { "$ref": "#/$defs/RailSpec" },
+        "sampling_defaults": { "$ref": "#/$defs/Sampling", "description": "Profile-level sampling defaults; spline.sampling wins over them." }
+      },
+      "allOf": [ { "if": { "properties": { "kind": { "const": "rail" } }, "required": ["kind"] }, "then": { "required": ["rail"] } } ]
+    },
+
+    "Lip": {
+      "type": "object", "additionalProperties": false, "patternProperties": { "^_": {} },
+      "required": ["kind"],
+      "properties": {
+        "kind": { "type": "string", "enum": ["radius", "chamfer", "none"] },
+        "size_m": { "$ref": "#/$defs/NonNeg", "default": 0.02, "description": "Radius, or chamfer leg, metres. Scales with the drop-kerb height factor." },
+        "arc_points": { "type": "integer", "minimum": 1, "maximum": 8, "default": 3, "description": "Interior points on the radius arc." }
+      }
+    },
+
+    "SplitMaterial": {
+      "type": "object", "additionalProperties": false, "patternProperties": { "^_": {} },
+      "required": ["enabled"],
+      "description": "Half-grass / half-tarmac kerb. The boundary is a vertex row on the kerb top at the same height as its neighbours: both materials stay flush, no step. Drop-kerb ramps carry both materials down because the whole section scales together.",
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "inner": { "$ref": "#/$defs/MaterialName", "description": "Carriageway side: kerb face + top up to the boundary." },
+        "outer": { "$ref": "#/$defs/MaterialName", "description": "Pavement side: top beyond the boundary, pavement top, back face." },
+        "boundary_frac": { "type": "number", "minimum": 0, "maximum": 1, "default": 0.5, "description": "Position of the boundary across the kerb top: 0 = lip end, 1 = back edge." }
+      },
+      "allOf": [ { "if": { "properties": { "enabled": { "const": true } }, "required": ["enabled"] }, "then": { "required": ["inner", "outer"] } } ]
+    },
+
+    "DropKerb": {
+      "type": "object", "additionalProperties": false, "patternProperties": { "^_": {} },
+      "required": ["s_m"],
+      "description": "Profile-level drop kerb (applies to every side the profile is used on). s_m is the START of the flat run.",
+      "properties": {
+        "s_m": { "$ref": "#/$defs/NonNeg", "description": "Start of the FLAT run, metres. The down-ramp occupies [s_m - ramp_m, s_m], the up-ramp [s_m + length_m, s_m + length_m + ramp_m]." },
+        "length_m": { "$ref": "#/$defs/NonNeg", "default": 1.83, "description": "Flat run, metres (two 915 mm dropper units)." },
+        "ramp_m": { "$ref": "#/$defs/Pos", "default": 0.915, "description": "Each ramp, metres (one dropper kerb unit). Height follows smoothstep(t) = t^2 (3 - 2t)." },
+        "target_height_m": { "type": "number", "minimum": 0, "maximum": 0.2, "default": 0.006, "description": "Kerb upstand in the flat run, metres. 0.006 = flush pedestrian dropped kerb; 0.025 typical vehicle crossing; 0 = fully flush." }
+      }
+    },
+
+    "SplineDropKerb": {
+      "type": "object", "additionalProperties": false, "patternProperties": { "^_": {} },
+      "required": ["side", "s_m"],
+      "description": "Spline-level drop kerb: DropKerb plus the side it applies to. Missing length_m / ramp_m / target_height_m take the DropKerb defaults.",
+      "properties": {
+        "side": { "$ref": "#/$defs/SideOrBoth" },
+        "s_m": { "$ref": "#/$defs/NonNeg", "description": "Start of the flat run, metres." },
+        "length_m": { "$ref": "#/$defs/NonNeg", "description": "Default 1.83." },
+        "ramp_m": { "$ref": "#/$defs/Pos", "description": "Default 0.915." },
+        "target_height_m": { "type": "number", "minimum": 0, "maximum": 0.2, "description": "Default 0.006." }
+      }
+    },
+
+    "BarrierType": {
+      "type": "string",
+      "enum": ["brick_wall", "stone_wall", "concrete_wall", "retaining_wall", "chain_link", "wood_fence", "railing", "guard_rail", "none"],
+      "description": "brick_wall / stone_wall / concrete_wall / retaining_wall: closed box with coping. chain_link: posts + two-sided mesh panel. wood_fence: posts + opaque panel (same geometry as chain_link, material wood_fence). railing: posts + horizontal rails at rails_m. guard_rail: posts + two rails at [0.75, 0.55] m by default (railing geometry). none: explicitly no barrier."
+    },
+
+    "BarrierSegment": {
+      "type": "object", "additionalProperties": false, "patternProperties": { "^_": {} },
+      "required": ["s0_m", "s1_m", "type"],
+      "description": "Profile-level barrier over an s-range. Base line: pavement back edge (kerb_width_m + pavement_width_m outward from the kerb line); base height: pavement back-edge height.",
+      "properties": {
+        "s0_m": { "$ref": "#/$defs/NonNeg" },
+        "s1_m": { "$ref": "#/$defs/SEnd" },
+        "type": { "$ref": "#/$defs/BarrierType" },
+        "height_m": { "$ref": "#/$defs/Pos", "description": "Top of the barrier above its base, metres." },
+        "thickness_m": { "$ref": "#/$defs/Pos", "description": "Wall thickness, or panel/post plane offset for fences (panel at thickness_m/2), metres." },
+        "material": { "$ref": "#/$defs/MaterialName", "description": "Wall faces / panel / rails material name (never a raw OSM value)." },
+        "coping_material": { "$ref": "#/$defs/MaterialName", "default": "coping_concrete" },
+        "coping_overhang_m": { "$ref": "#/$defs/NonNeg", "default": 0.025, "description": "Coping overhang each face, metres (walls)." },
+        "coping_height_m": { "$ref": "#/$defs/NonNeg", "default": 0.05, "description": "Coping thickness, metres (walls)." },
+        "post_pitch_m": { "$ref": "#/$defs/Pos", "description": "Fence/railing post spacing along s, metres. Posts at s0 + j pitch for j = 0..n-2 and one at s1; n = floor((s1-s0)/pitch) + 1 + (1 if frac((s1-s0)/pitch) > 0.5 else 0)." },
+        "post_size_m": { "$ref": "#/$defs/Pos", "default": 0.06, "description": "Post diameter (chain_link, wood_fence) or square side (railing, guard_rail), metres." },
+        "post_material": { "$ref": "#/$defs/MaterialName", "default": "post_steel" },
+        "rails_m": { "type": "array", "items": { "$ref": "#/$defs/NonNeg" }, "description": "railing / guard_rail: heights of the horizontal rails above the base, metres. Default railing [height_m - 0.02, 0.5 height_m, 0.10]; default guard_rail [0.75, 0.55]." },
+        "rail_size_m": { "$ref": "#/$defs/Pos", "default": 0.04, "description": "Square side of a horizontal rail, metres." },
+        "offset_m": { "type": "number", "default": 0, "description": "Inner face of the barrier from the base line, outward positive, metres. Barrier-only splines from OSM use -thickness_m/2 so the barrier is centred on the way." },
+        "skirt_m": { "$ref": "#/$defs/NonNeg", "default": 0.30, "description": "Walls extend this far below their base so they meet the ground, metres." }
+      },
+      "allOf": [
+        { "if": { "properties": { "type": { "enum": ["brick_wall", "stone_wall", "concrete_wall", "retaining_wall", "chain_link", "wood_fence", "railing", "guard_rail"] } }, "required": ["type"] }, "then": { "required": ["height_m", "thickness_m", "material"] } },
+        { "if": { "properties": { "type": { "enum": ["chain_link", "wood_fence", "railing", "guard_rail"] } }, "required": ["type"] }, "then": { "required": ["post_pitch_m"] } }
+      ]
+    },
+
+    "BarrierInline": {
+      "type": "object", "additionalProperties": false, "patternProperties": { "^_": {} },
+      "required": ["type"],
+      "description": "A BarrierSegment without s0_m/s1_m (they come from the enclosing Segment). Same fields, same defaults, same requirements per type.",
+      "properties": {
+        "type": { "$ref": "#/$defs/BarrierType" },
+        "height_m": { "$ref": "#/$defs/Pos" }, "thickness_m": { "$ref": "#/$defs/Pos" }, "material": { "$ref": "#/$defs/MaterialName" },
+        "coping_material": { "$ref": "#/$defs/MaterialName" }, "coping_overhang_m": { "$ref": "#/$defs/NonNeg" }, "coping_height_m": { "$ref": "#/$defs/NonNeg" },
+        "post_pitch_m": { "$ref": "#/$defs/Pos" }, "post_size_m": { "$ref": "#/$defs/Pos" }, "post_material": { "$ref": "#/$defs/MaterialName" },
+        "rails_m": { "type": "array", "items": { "$ref": "#/$defs/NonNeg" } }, "rail_size_m": { "$ref": "#/$defs/Pos" },
+        "offset_m": { "type": "number" }, "skirt_m": { "$ref": "#/$defs/NonNeg" }
+      },
+      "allOf": [
+        { "if": { "properties": { "type": { "enum": ["brick_wall", "stone_wall", "concrete_wall", "retaining_wall", "chain_link", "wood_fence", "railing", "guard_rail"] } }, "required": ["type"] }, "then": { "required": ["height_m", "thickness_m", "material"] } },
+        { "if": { "properties": { "type": { "enum": ["chain_link", "wood_fence", "railing", "guard_rail"] } }, "required": ["type"] }, "then": { "required": ["post_pitch_m"] } }
+      ]
+    },
+
+    "Embankment": {
+      "type": "object", "additionalProperties": false, "patternProperties": { "^_": {} },
+      "required": ["s0_m", "s1_m", "side", "kind", "material"],
+      "description": "Extra Renderer B extrusion where the smoothed road sits above (fill: batter) or below (cut: retaining wall) the terrain at the pavement back edge.",
+      "properties": {
+        "s0_m": { "$ref": "#/$defs/NonNeg" },
+        "s1_m": { "$ref": "#/$defs/SEnd" },
+        "side": { "type": "string", "enum": ["left", "right", "both", "downhill", "uphill", "auto"], "description": "downhill = where the ground is below the road (fill), uphill = above (cut), auto/both = either, gated by threshold_m." },
+        "kind": { "type": "string", "enum": ["batter", "retaining_wall", "auto"], "description": "auto: batter where the road is above ground, retaining_wall where below." },
+        "slope_ratio": { "$ref": "#/$defs/Pos", "default": 1.5, "description": "Batter: horizontal run per 1 m of fall." },
+        "wall_thickness_m": { "$ref": "#/$defs/Pos", "default": 0.30 },
+        "wall_coping_m": { "$ref": "#/$defs/NonNeg", "default": 0.10, "description": "Retaining wall top above the ground it retains, metres." },
+        "threshold_m": { "$ref": "#/$defs/NonNeg", "default": 0.35, "description": "|z_back_edge - z_terrain| must exceed this for geometry to be emitted at a station." },
+        "toe_extra_m": { "$ref": "#/$defs/NonNeg", "default": 0.30, "description": "Batter is extended this far below the terrain intersection, metres." },
+        "material": { "$ref": "#/$defs/MaterialName" }
+      }
+    },
+
+    "EmbankmentInline": {
+      "type": "object", "additionalProperties": false, "patternProperties": { "^_": {} },
+      "required": ["side", "kind", "material"],
+      "description": "An Embankment without s0_m/s1_m (from the enclosing Segment).",
+      "properties": {
+        "side": { "type": "string", "enum": ["left", "right", "both", "downhill", "uphill", "auto"] },
+        "kind": { "type": "string", "enum": ["batter", "retaining_wall", "auto"] },
+        "slope_ratio": { "$ref": "#/$defs/Pos" }, "wall_thickness_m": { "$ref": "#/$defs/Pos" }, "wall_coping_m": { "$ref": "#/$defs/NonNeg" },
+        "threshold_m": { "$ref": "#/$defs/NonNeg" }, "toe_extra_m": { "$ref": "#/$defs/NonNeg" },
+        "material": { "$ref": "#/$defs/MaterialName" }
+      }
+    },
+
+    "EdgeProfile": {
+      "type": "object", "additionalProperties": false, "patternProperties": { "^_": {} },
+      "required": ["kerb_width_m", "kerb_height_m", "pavement_width_m", "materials"],
+      "description": "Renderer B profile, side-agnostic: the spline says which side uses it. Heights are relative to the road-edge level z_edge(s, side) = z_ref + camber(edge). The three lists are the baseline; spline segments layer on top.",
+      "properties": {
+        "kerb_width_m": { "$ref": "#/$defs/NonNeg", "description": "Kerb block width, metres. 0 = no kerb block (barrier-only or pavement-only edge)." },
+        "kerb_height_m": { "$ref": "#/$defs/NonNeg", "description": "Upstand above the road edge, metres." },
+        "lip": { "$ref": "#/$defs/Lip", "default": { "kind": "radius", "size_m": 0.02, "arc_points": 3 } },
+        "pavement_width_m": { "$ref": "#/$defs/NonNeg", "description": "Pavement width behind the kerb, metres. 0 = no pavement." },
+        "pavement_crossfall_pct": { "type": "number", "minimum": 0, "maximum": 10, "default": 2.5, "description": "Pavement rises away from the kerb at this slope (drains to the channel)." },
+        "pavement_max_crossfall_pct": { "type": "number", "minimum": 0, "maximum": 20, "default": 8.0, "description": "At drop kerbs the back edge is lowered only as far as needed to keep the crossfall under this." },
+        "tuck_depth_m": { "$ref": "#/$defs/NonNeg", "default": 0.03, "description": "Kerb block starts this far below the road edge (under the road skirt), metres. Must exceed RoadProfile.skirt_drop_m." },
+        "tuck_in_m": { "$ref": "#/$defs/NonNeg", "default": 0.02, "description": "Kerb block underside extends this far toward the carriageway under the road, metres." },
+        "skirt_m": { "$ref": "#/$defs/NonNeg", "default": 0.30, "description": "Back face extends this far below the road edge to meet the ground, metres." },
+        "materials": {
+          "type": "object", "additionalProperties": false, "patternProperties": { "^_": {} }, "required": ["kerb", "pavement"],
+          "properties": { "kerb": { "$ref": "#/$defs/MaterialName" }, "pavement": { "$ref": "#/$defs/MaterialName" } }
+        },
+        "split_material": { "$ref": "#/$defs/SplitMaterial", "default": { "enabled": false } },
+        "drop_kerbs": { "type": "array", "items": { "$ref": "#/$defs/DropKerb" }, "default": [] },
+        "barriers": { "type": "array", "items": { "$ref": "#/$defs/BarrierSegment" }, "default": [] },
+        "embankments": { "type": "array", "items": { "$ref": "#/$defs/Embankment" }, "default": [] }
+      }
+    },
+
+    "Foliage": {
+      "type": "object", "additionalProperties": false, "patternProperties": { "^_": {} },
+      "required": ["mode"],
+      "properties": {
+        "mode": { "type": "string", "enum": ["none", "cards", "instances"] },
+        "density_per_m2": { "$ref": "#/$defs/NonNeg", "default": 12, "description": "Cards (or instances) per square metre of hedge surface above 0.05 m." },
+        "card_size_m": { "$ref": "#/$defs/Pos", "default": 0.25 },
+        "material": { "$ref": "#/$defs/MaterialName" },
+        "mesh_id": { "type": "string", "description": "instances mode: engine-side mesh key." },
+        "seed": { "type": "integer", "minimum": 0, "default": 1, "description": "Seed of the hash sequence that places cards." }
+      }
+    },
+
+    "HedgeSegment": {
+      "type": "object", "additionalProperties": false, "patternProperties": { "^_": {} },
+      "required": ["s0_m", "s1_m"],
+      "description": "Profile-level hedge presence over an s-range. A hedge exists only where a HedgeSegment (profile) or a Segment.hedge with present true (spline) covers s.",
+      "properties": {
+        "s0_m": { "$ref": "#/$defs/NonNeg" },
+        "s1_m": { "$ref": "#/$defs/SEnd" },
+        "offset_m": { "type": "number", "default": 0.1, "description": "Gap between the barrier line (outer face of the barrier in force in this s-range, else the pavement back edge) and the hedge's inner face, metres." },
+        "height_override_m": { "$ref": "#/$defs/Pos", "description": "Overrides HedgeProfile.height_m in this range." },
+        "width_override_m": { "$ref": "#/$defs/Pos", "description": "Overrides HedgeProfile.width_m in this range." }
+      }
+    },
+
+    "HedgeProfile": {
+      "type": "object", "additionalProperties": false, "patternProperties": { "^_": {} },
+      "required": ["width_m", "height_m", "top_profile", "material", "foliage", "segments"],
+      "description": "Renderer C profile: a closed rounded volume with hash-noise displacement and optional leaf cards.",
+      "properties": {
+        "width_m": { "$ref": "#/$defs/Pos" },
+        "height_m": { "$ref": "#/$defs/Pos", "description": "Above the pavement back-edge level (the volume also sinks base_sink_m below it)." },
+        "top_profile": { "type": "string", "enum": ["flat", "rounded", "domed"] },
+        "corner_radius_m": { "$ref": "#/$defs/NonNeg", "default": 0.15 },
+        "corner_points": { "type": "integer", "minimum": 1, "maximum": 8, "default": 4 },
+        "noise_amplitude_m": { "$ref": "#/$defs/NonNeg", "default": 0.06, "description": "Peak surface displacement along the section-space outward normal, metres." },
+        "noise_scale_m": { "$ref": "#/$defs/Pos", "default": 0.6, "description": "Lattice spacing of the value noise, metres." },
+        "noise_seed": { "type": "integer", "minimum": 0, "default": 1 },
+        "base_sink_m": { "$ref": "#/$defs/NonNeg", "default": 0.10, "description": "Volume extends this far below the pavement back-edge level." },
+        "material": { "$ref": "#/$defs/MaterialName" },
+        "foliage": { "$ref": "#/$defs/Foliage" },
+        "segments": { "type": "array", "items": { "$ref": "#/$defs/HedgeSegment" }, "description": "Baseline presence list. Library profiles keep it empty; the spline's Segment.hedge entries say where the hedge is." }
+      }
+    },
+
+    "Point": {
+      "type": "object", "additionalProperties": false, "patternProperties": { "^_": {} },
+      "required": ["x", "y"],
+      "description": "A waypoint. The centripetal Catmull-Rom passes through every point. Consecutive points closer than 1e-6 m are merged by the reader (later attributes win) and counted as a warning.",
+      "properties": {
+        "x": { "type": "number", "description": "Local metres east of origin." },
+        "y": { "type": "number", "description": "Local metres north of origin." },
+        "z": { "oneOf": [ { "type": "number" }, { "type": "null" } ], "description": "PIN: forces the smoothed height here (blended linearly over pin_blend_m). Omit or null = height from terrain. The adapter omits it for every ordinary road/rail/barrier point (the step-06 drape value is kept only as the note key _z_06 and in overlay.pts)." },
+        "roll_deg": { "oneOf": [ { "type": "number", "minimum": -30, "maximum": 30 }, { "type": "null" } ], "description": "Bank override at this point, + = left side up. Interpolated between points that set it and blended with the terrain bank via a mask; not clamped by bank_max_deg; subject to bank_rate_max_deg_per_m. null = not set." },
+        "width_m": { "$ref": "#/$defs/NonNeg", "description": "Width knot. Every point is a knot: value = width_m if given else the road profile's width_m; w(s) is piecewise linear in s between knots and constant beyond the ends." },
+        "tags": { "type": "array", "items": { "type": "string" }, "default": [], "description": "Free strings. 'junction:<id>' is the only convention this round." }
+      }
+    },
+
+    "SegmentRoad": {
+      "type": "object", "additionalProperties": false, "patternProperties": { "^_": {} },
+      "description": "Road-side overrides of a Segment (side-less; read for every Segment.side).",
+      "properties": {
+        "width_m": { "$ref": "#/$defs/NonNeg", "description": "Ramped scalar override of w(s) inside [s0_m, s1_m]." },
+        "profile_id": { "$ref": "#/$defs/Id", "description": "Road profile switch inside [s0_m, s1_m]; kind must equal the spline's base road kind." },
+        "edge_extra_left_m": { "type": "number", "default": 0, "description": "Added to edge_offset on the left (parking bay, verge strip), metres; ramped. The carriageway surface extends to the new edge." },
+        "edge_extra_right_m": { "type": "number", "default": 0 },
+        "markings": { "type": "array", "items": { "$ref": "#/$defs/Marking" }, "description": "REPLACES the marking list in force inside [s0_m, s1_m]." },
+        "markings_add": { "type": "array", "items": { "$ref": "#/$defs/Marking" }, "description": "APPENDS to the marking list in force inside [s0_m, s1_m]." }
+      }
+    },
+
+    "SegmentEdge": {
+      "type": "object", "additionalProperties": false, "patternProperties": { "^_": {} },
+      "description": "Edge-side overrides of a Segment, applied to the side(s) named by Segment.side.",
+      "properties": {
+        "profile_id": { "$ref": "#/$defs/Id", "description": "Edge profile switch inside [s0_m, s1_m] (materials and lists switch exactly at s0/s1; scalar dimensions ramp)." },
+        "kerb_width_m": { "$ref": "#/$defs/NonNeg" },
+        "kerb_height_m": { "$ref": "#/$defs/NonNeg" },
+        "pavement_width_m": { "$ref": "#/$defs/NonNeg" },
+        "pavement_crossfall_pct": { "type": "number", "minimum": 0, "maximum": 10 },
+        "split_material": { "$ref": "#/$defs/SplitMaterial" },
+        "barrier": { "oneOf": [ { "$ref": "#/$defs/BarrierInline" }, { "type": "null" } ], "description": "Barrier for exactly this s-range (null = explicitly none, overriding the profile's list here)." },
+        "embankment": { "oneOf": [ { "$ref": "#/$defs/EmbankmentInline" }, { "type": "null" } ] }
+      }
+    },
+
+    "SegmentHedge": {
+      "type": "object", "additionalProperties": false, "patternProperties": { "^_": {} },
+      "required": ["present"],
+      "description": "Hedge presence/overrides for this s-range on the side(s) named by Segment.side. Uses profile_ids.hedge_<side> unless profile_id is given.",
+      "properties": {
+        "present": { "type": "boolean", "description": "false = no hedge in this range even if the profile's segments cover it." },
+        "profile_id": { "$ref": "#/$defs/Id" },
+        "offset_m": { "type": "number", "description": "As HedgeSegment.offset_m." },
+        "height_m": { "$ref": "#/$defs/Pos" },
+        "width_m": { "$ref": "#/$defs/Pos" }
+      }
+    },
+
+    "Segment": {
+      "description": "Per-spline override over an s-range. Later entries win where ranges overlap. Scalars ramp linearly over ramp_m either side of the range (clamped to [0, L]); lists (barrier, embankment, hedge, markings) and materials switch exactly at s0_m/s1_m, which are mandatory sample stations.",
+      "type": "object", "additionalProperties": false, "patternProperties": { "^_": {} },
+      "required": ["s0_m", "s1_m", "side"],
+      "properties": {
+        "id": { "$ref": "#/$defs/Id" },
+        "s0_m": { "$ref": "#/$defs/NonNeg" },
+        "s1_m": { "$ref": "#/$defs/SEnd" },
+        "side": { "type": "string", "enum": ["left", "right", "both", "centre"], "description": "centre: only the 'road' block is read. left/right/both: 'edge' and 'hedge' apply to those sides; 'road' is also read." },
+        "ramp_m": { "$ref": "#/$defs/NonNeg", "description": "Ramp length for scalar overrides; default sampling.width_ramp_m (5.0)." },
+        "road": { "$ref": "#/$defs/SegmentRoad" },
+        "edge": { "$ref": "#/$defs/SegmentEdge" },
+        "hedge": { "$ref": "#/$defs/SegmentHedge" }
+      }
+    },
+
+    "Source": {
+      "type": "object", "additionalProperties": false, "patternProperties": { "^_": {} },
+      "required": ["layer"],
+      "properties": {
+        "layer": { "type": "string", "enum": ["roads", "rail", "barriers", "authored"], "description": "Pipeline layer the spline came from (step 06 roads, step 11 rail / barriers) or 'authored' for hand-made files." },
+        "osm_id": { "oneOf": [ { "type": "string" }, { "type": "null" } ], "description": "OSM way id as a string." },
+        "osm_ids": { "type": "array", "items": { "type": "string" }, "description": "All OSM way ids merged into a hand-authored spline (osm_id is the first of them)." },
+        "name": { "oneOf": [ { "type": "string" }, { "type": "null" } ] },
+        "cls": { "oneOf": [ { "type": "string" }, { "type": "null" } ], "description": "OSM highway / railway / barrier value." },
+        "tags": { "type": "object", "additionalProperties": { "type": "string" }, "patternProperties": { "^_": {} }, "description": "Selected OSM tags passed through as STRINGS; absent tags are omitted, never null." },
+        "tile": { "type": "array", "minItems": 2, "maxItems": 2, "items": { "type": "integer" }, "description": "[i, j] of the pipeline tile the record was read from." },
+        "segment_index": { "type": "integer", "minimum": 0, "description": "Index of this tile run along the OSM way (0 = the run containing the way's first vertex)." },
+        "segment_count": { "type": "integer", "minimum": 1, "description": "Number of tile runs of this way that were emitted." }
+      }
+    },
+
+    "Overlay": {
+      "type": "object", "additionalProperties": false, "patternProperties": { "^_": {} },
+      "required": ["kind", "pts"],
+      "description": "Debug overlay polyline (the raw OSM way, clipped to the grid and the clip half-plane). Renderers never build geometry from it; both engines re-drape it on their terrain source and lift it by 0.3 m.",
+      "properties": {
+        "kind": { "type": "string", "enum": ["osm_way", "step06_smoothed", "other"] },
+        "pts": { "type": "array", "minItems": 2, "items": { "type": "array", "minItems": 2, "maxItems": 3, "items": { "type": "number" } }, "description": "[x, y] or [x, y, z] in the file frame. z, when present, is informative (adapter: the nearest step-06 vertex's drape)." },
+        "osm_id": { "oneOf": [ { "type": "string" }, { "type": "null" } ] }
+      }
+    },
+
+    "ProfileIds": {
+      "type": "object", "additionalProperties": false, "patternProperties": { "^_": {} },
+      "required": ["road", "edge_left", "edge_right", "hedge_left", "hedge_right"],
+      "description": "Which profile applies where. All five keys are required; null means 'nothing on that slot'.",
+      "properties": {
+        "road": { "oneOf": [ { "$ref": "#/$defs/Id" }, { "type": "null" } ], "description": "null = no carriageway (barrier-only / hedge-only spline; w(s) = 0, camber none)." },
+        "edge_left": { "oneOf": [ { "$ref": "#/$defs/Id" }, { "type": "null" } ], "description": "null = no kerb/pavement/barrier on the left." },
+        "edge_right": { "oneOf": [ { "$ref": "#/$defs/Id" }, { "type": "null" } ] },
+        "hedge_left": { "oneOf": [ { "$ref": "#/$defs/Id" }, { "type": "null" } ] },
+        "hedge_right": { "oneOf": [ { "$ref": "#/$defs/Id" }, { "type": "null" } ] }
+      }
+    },
+
+    "Continuation": {
+      "type": "object", "additionalProperties": false, "patternProperties": { "^_": {} },
+      "required": ["from", "to"],
+      "description": "How this spline's ends relate to neighbours. seam: the same OSM way continues in the adjacent tile (shared seam vertex). way: another OSM way starts/ends at this exact node and no junction disc is there. gap: the same way continues after an off-grid / off-clip excursion. null: dead end or junction.",
+      "properties": {
+        "from": { "oneOf": [ { "type": "string", "enum": ["seam", "way", "gap"] }, { "type": "null" } ] },
+        "to": { "oneOf": [ { "type": "string", "enum": ["seam", "way", "gap"] }, { "type": "null" } ] }
+      }
+    },
+
+    "OverrunPoints": {
+      "type": "object", "additionalProperties": false, "patternProperties": { "^_": {} },
+      "required": ["before", "after"],
+      "description": "One vertex beyond each join, taken from the neighbouring spline (its second point), so end tangents can be matched without loading the neighbour's document. null at dead ends and junctions.",
+      "properties": {
+        "before": { "oneOf": [ { "$ref": "#/$defs/XYZ" }, { "type": "null" } ] },
+        "after": { "oneOf": [ { "$ref": "#/$defs/XYZ" }, { "type": "null" } ] }
+      }
+    },
+
+    "Flags": {
+      "type": "object", "additionalProperties": false, "patternProperties": { "^_": {} },
+      "description": "Pipeline flags passed through. Renderers do not change geometry for them in this round.",
+      "properties": {
+        "bridge": { "type": "boolean", "default": false },
+        "tunnel": { "type": "boolean", "default": false },
+        "z_gap": { "type": "boolean", "default": false, "description": "A step-06/11 vertex of this run fell on a DTM gap." },
+        "steps": { "type": "boolean", "default": false, "description": "OSM highway=steps." },
+        "disused": { "type": "boolean", "default": false, "description": "OSM railway=disused." },
+        "gauge_unmapped": { "type": "boolean", "default": false, "description": "Rail gauge had no profile mapping; rail_standard was used." },
+        "closed_loop": { "type": "boolean", "default": false, "description": "The OSM way is a closed ring (first vertex == last vertex)." },
+        "tracks": { "oneOf": [ { "type": "integer", "minimum": 1 }, { "type": "null" } ], "description": "OSM tracks tag (parallel tracks on this way), null when absent." }
+      }
+    },
+
+    "Spline": {
+      "type": "object", "additionalProperties": false, "patternProperties": { "^_": {} },
+      "required": ["id", "source", "profile_ids", "points"],
+      "properties": {
+        "id": { "$ref": "#/$defs/Id", "description": "Unique within the site. Adapter: '<layer>:<osm_id>:<segment_index>'." },
+        "source": { "$ref": "#/$defs/Source" },
+        "profile_ids": { "$ref": "#/$defs/ProfileIds" },
+        "points": { "type": "array", "minItems": 2, "items": { "$ref": "#/$defs/Point" }, "description": "Waypoints in travel order (increasing s). At least 2 distinct points after duplicate merging." },
+        "sampling": { "$ref": "#/$defs/Sampling" },
+        "segments": { "type": "array", "items": { "$ref": "#/$defs/Segment" }, "default": [] },
+        "drop_kerbs": { "type": "array", "items": { "$ref": "#/$defs/SplineDropKerb" }, "default": [] },
+        "overlay": { "$ref": "#/$defs/Overlay", "description": "Required in practice for every spline with source.layer != authored (semantic warning when absent)." },
+        "junction_start": { "oneOf": [ { "$ref": "#/$defs/Id" }, { "type": "null" } ], "description": "Junction id at points[0], or null." },
+        "junction_end": { "oneOf": [ { "$ref": "#/$defs/Id" }, { "type": "null" } ], "description": "Junction id at points[-1], or null." },
+        "continues_from": { "oneOf": [ { "$ref": "#/$defs/Id" }, { "type": "null" } ], "description": "Spline id that ends where this one starts (seam / way / gap continuation), else null." },
+        "continues_to": { "oneOf": [ { "$ref": "#/$defs/Id" }, { "type": "null" } ], "description": "Spline id that starts where this one ends, else null." },
+        "continuation_kind": { "$ref": "#/$defs/Continuation" },
+        "overrun_points": { "$ref": "#/$defs/OverrunPoints" },
+        "flags": { "$ref": "#/$defs/Flags" }
+      }
+    },
+
+    "Junction": {
+      "description": "Placeholder for a later round (BRIEF 6 Q7). Renderers ignore it now; spline ends are not trimmed. Step 06 '_junction' discs map onto kind 'disc' with radius_m = r.",
+      "type": "object", "additionalProperties": false, "patternProperties": { "^_": {} },
+      "required": ["id", "x", "y", "ends"],
+      "properties": {
+        "id": { "$ref": "#/$defs/Id", "description": "Adapter: 'junction:<i>_<j>:<k>'." },
+        "x": { "type": "number" }, "y": { "type": "number" },
+        "z": { "oneOf": [ { "type": "number" }, { "type": "null" } ], "description": "Informative (step-06 drape), null if unknown." },
+        "radius_m": { "$ref": "#/$defs/NonNeg", "description": "Disc radius (half the widest incident carriageway plus margin), metres." },
+        "kind": { "type": "string", "enum": ["disc", "none"], "default": "disc" },
+        "ends": {
+          "type": "array", "items": {
+            "type": "object", "additionalProperties": false, "patternProperties": { "^_": {} }, "required": ["spline_id", "end"],
+            "properties": { "spline_id": { "$ref": "#/$defs/Id" }, "end": { "type": "string", "enum": ["start", "end"] } }
+          },
+          "description": "Every spline in the same document whose first or last point lies within junction_snap_m (0.3) of (x, y)."
+        }
+      }
+    },
+
+    "ProfileFile": {
+      "description": "Shape of one library file projects/one/schema/profiles/<id>.json: the profile object wrapped with its kind and id so tooling can create assets from the file alone.",
+      "type": "object", "additionalProperties": false, "patternProperties": { "^_": {} },
+      "required": ["kind", "id", "profile"],
+      "properties": {
+        "kind": { "type": "string", "enum": ["road", "edge", "hedge"], "description": "Which profiles.<kind> map the profile belongs to (rail profiles are kind 'road' with profile.kind 'rail')." },
+        "id": { "$ref": "#/$defs/Id", "description": "Must equal the file name without .json." },
+        "profile": { "type": "object", "description": "RoadProfile, EdgeProfile or HedgeProfile per kind." }
+      },
+      "allOf": [
+        { "if": { "properties": { "kind": { "const": "road" } }, "required": ["kind"] }, "then": { "properties": { "profile": { "$ref": "#/$defs/RoadProfile" } } } },
+        { "if": { "properties": { "kind": { "const": "edge" } }, "required": ["kind"] }, "then": { "properties": { "profile": { "$ref": "#/$defs/EdgeProfile" } } } },
+        { "if": { "properties": { "kind": { "const": "hedge" } }, "required": ["kind"] }, "then": { "properties": { "profile": { "$ref": "#/$defs/HedgeProfile" } } } }
+      ]
+    }
+  }
+}

@@ -1,0 +1,30 @@
+{
+ "kind": "edge",
+ "id": "edge_uk_kerb",
+ "_note": "Standard UK precast kerb: 125 mm wide (HB2/BN units), 125 mm upstand, 20 mm bull-nose radius, 1.8 m paved footway falling 2.5 % to the channel. Pavement width per road class is overridden by the spline (Segment.edge.pavement_width_m = tuning pav).",
+ "profile": {
+  "kerb_width_m": 0.125,
+  "kerb_height_m": 0.125,
+  "lip": {
+   "kind": "radius",
+   "size_m": 0.02,
+   "arc_points": 3
+  },
+  "pavement_width_m": 1.8,
+  "pavement_crossfall_pct": 2.5,
+  "pavement_max_crossfall_pct": 8.0,
+  "tuck_depth_m": 0.03,
+  "tuck_in_m": 0.02,
+  "skirt_m": 0.3,
+  "materials": {
+   "kerb": "concrete_kerb",
+   "pavement": "paving_slab"
+  },
+  "split_material": {
+   "enabled": false
+  },
+  "drop_kerbs": [],
+  "barriers": [],
+  "embankments": []
+ }
+}

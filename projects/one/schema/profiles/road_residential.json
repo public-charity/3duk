@@ -1,0 +1,23 @@
+{
+ "kind": "road",
+ "id": "road_residential",
+ "profile": {
+  "kind": "road",
+  "lanes": 2,
+  "lane_widths_m": [
+   3.0,
+   3.0
+  ],
+  "width_m": 6.0,
+  "surface_material": "tarmac",
+  "camber": {
+   "kind": "parabolic",
+   "crossfall_pct": 2.5
+  },
+  "overlap_m": 0.04,
+  "skirt_drop_m": 0.02,
+  "lateral_station_spacing_m": 1.0,
+  "markings": []
+ },
+ "_note": "Width from sources/config/tuning.json roads.widths_m (carriageway of the class); lane widths are informational. Materials are names mapped by the engine (UStreetMaterialTable / bpy). No markings by default (most Margate residential ways carry lane_markings=no)."
+}

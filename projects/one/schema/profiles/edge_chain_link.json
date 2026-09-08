@@ -1,0 +1,41 @@
+{
+ "kind": "edge",
+ "id": "edge_chain_link",
+ "_note": "Barrier-only profile: 1.8 m chain-link fence, 60 mm round posts every 3.0 m, two-sided mesh panel at thickness_m/2.",
+ "profile": {
+  "kerb_width_m": 0.0,
+  "kerb_height_m": 0.0,
+  "lip": {
+   "kind": "none"
+  },
+  "pavement_width_m": 0.0,
+  "pavement_crossfall_pct": 2.5,
+  "pavement_max_crossfall_pct": 8.0,
+  "tuck_depth_m": 0.03,
+  "tuck_in_m": 0.02,
+  "skirt_m": 0.3,
+  "materials": {
+   "kerb": "concrete_kerb",
+   "pavement": "grass"
+  },
+  "split_material": {
+   "enabled": false
+  },
+  "drop_kerbs": [],
+  "barriers": [
+   {
+    "s0_m": 0.0,
+    "s1_m": null,
+    "type": "chain_link",
+    "height_m": 1.8,
+    "thickness_m": 0.05,
+    "material": "chain_link",
+    "post_pitch_m": 3.0,
+    "post_size_m": 0.06,
+    "post_material": "post_steel",
+    "offset_m": 0.0
+   }
+  ],
+  "embankments": []
+ }
+}

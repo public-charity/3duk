@@ -1,0 +1,19 @@
+{
+ "kind": "road",
+ "id": "road_pedestrian",
+ "profile": {
+  "kind": "road",
+  "lanes": 0,
+  "lane_widths_m": [],
+  "width_m": 6.0,
+  "surface_material": "paving_slab",
+  "camber": {
+   "kind": "none"
+  },
+  "overlap_m": 0.04,
+  "skirt_drop_m": 0.02,
+  "lateral_station_spacing_m": 1.0,
+  "markings": []
+ },
+ "_note": "Width from sources/config/tuning.json roads.widths_m (carriageway of the class); lane widths are informational. Materials are names mapped by the engine (UStreetMaterialTable / bpy). Pedestrianised street: flat paved ribbon, no edge renderer (the adapter sets edge_left/right null)."
+}

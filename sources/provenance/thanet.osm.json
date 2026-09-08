@@ -1,0 +1,17 @@
+{
+  "site": "thanet",
+  "source": "OpenStreetMap via Overpass API",
+  "licence": "ODbL",
+  "crs": "EPSG:27700",
+  "datum_transformation": "unknown id, Inverse of OSGB36 to WGS 84 (9) + British National Grid, 1 m, United Kingdom (UK) - offshore to boundary of UKCS within 49\u00b045'N to 61\u00b0N and 9\u00b0W to 2\u00b0E; onshore Great Britain (England, Wales and Scotland). Isle of Man onshore.",
+  "extract_mtime_utc": "2026-09-08T07:48:22+00:00",
+  "recorded_utc": "2026-09-08T07:48:27+00:00",
+  "bbox_wgs84_swne": "51.305,1.275,51.405,1.465",
+  "bytes": 30559064,
+  "sha256": "a612a90627558a9420d53f9fe0f8126332e5a5ab441d1b752475107bdae4f453",
+  "counts": {
+    "buildings": 23459,
+    "highways": 12036
+  },
+  "note": "Re-fetching later will differ; archive C:/Users/Shadow/code/3duk/data/thanet/raw/thanet.osm to reproduce."
+}
