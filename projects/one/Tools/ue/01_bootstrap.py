@@ -6,7 +6,8 @@ Phase 2 (this file): M_Thanet_Landscape (Masked; LandscapeLayerBlend grass/sand/
 LandscapeVisibilityMask -> OpacityMask), M_Street_Base (BaseColor / Roughness parameters, magenta by default) + one
 MaterialInstanceConstant per SCHEMA.md 7 name (20), DT_StreetMaterials (UStreetMaterialTable keyed by those names,
 fallback = the magenta base), and the 20 profile DataAssets from schema/profiles through
-unreal.StreetscapeEditorLibrary.import_profiles. The StreetscapeSiteActor arrives with the actors (phase 3).
+unreal.StreetscapeEditorLibrary.import_profiles.
+Phase 3: the AStreetscapeSiteActor (site header, terrain source, profile library, material table).
 
 Usage (through Tools/ue/run_ue_python.ps1):
     run_ue_python.ps1 -Script 01_bootstrap.py [-Args "--recreate | --template <asset path or none> | --skip-materials | --skip-profiles"]
@@ -20,6 +21,7 @@ and HLOD packages are removed here (the terrain comes from 02_import_landscape),
 Materials and profiles are re-applied on every run (existing assets are updated in place, never duplicated).
 """
 import glob
+import json
 import os
 import shutil
 import sys
@@ -35,6 +37,9 @@ MAP_PATH = "/Game/Thanet/Maps/Thanet"
 MATERIALS_PATH = "/Game/Thanet/Materials"
 PROFILES_PATH = "/Game/Thanet/Profiles"
 DEFAULT_TEMPLATE = "none"  # or "/Engine/Maps/Templates/OpenWorld"; see the module docstring
+# BRIEF 4.1: the thanet grid origin, which every Streetscape document of this site must carry.
+SITE_ORIGIN_E = 627680.0
+SITE_ORIGIN_N = 163080.0
 FOLDERS = ["/Game/Thanet/Maps", MATERIALS_PATH, PROFILES_PATH, "/Game/Thanet/Landscape/Layers"]
 # Classes whose actors the template may carry but this project must not: the landscape is imported later, and the
 # template's minimap is a 741 KB texture of that landscape (rebuilt by WorldPartitionMiniMapBuilder when wanted).
@@ -292,7 +297,8 @@ def uasset_files(subdir):
 
 
 def main(argv):
-    opts = uc.parse_args(argv, flags=("recreate", "skip_materials", "skip_profiles"), options={"template": DEFAULT_TEMPLATE})
+    opts = uc.parse_args(argv, flags=("recreate", "skip_materials", "skip_profiles", "skip_site_actor"),
+                         options={"template": DEFAULT_TEMPLATE, "origin_e": "", "origin_n": ""})
     template = opts["template"]
     les = unreal.get_editor_subsystem(unreal.LevelEditorSubsystem)
     eas = unreal.get_editor_subsystem(unreal.EditorActorSubsystem)
@@ -368,6 +374,28 @@ def main(argv):
     uc.log("actors before: %s" % before)
     removed = remove_template_landscape(eas)
     spawned = ensure_atmosphere(eas)
+
+    # -- the StreetscapeSiteActor (UE_PLAN.md 2.10): site header, terrain source, profile library, material table
+    site_actor = None
+    if not opts["skip_site_actor"]:
+        oe = float(opts["origin_e"]) if opts["origin_e"] else SITE_ORIGIN_E
+        on = float(opts["origin_n"]) if opts["origin_n"] else SITE_ORIGIN_N
+        sa = unreal.StreetscapeEditorLibrary.ensure_site_actor(uc.site_name(), oe, on)
+        if sa is None:
+            uc.fail(NAME, "ensure_site_actor failed")
+        terrain = sa.get_editor_property("terrain_source")
+        table = sa.get_editor_property("materials")
+        site_actor = {
+            "label": str(sa.get_actor_label()),
+            "site": str(sa.get_editor_property("site_name")),
+            "origin": [oe, on],
+            "profiles": len(sa.get_editor_property("profiles")),
+            "material_table": table.get_path_name() if table else None,
+            "terrain": terrain.describe_source() if terrain else None,
+            "terrain_tiles": terrain.num_tiles() if terrain else 0,
+        }
+        uc.log("site actor: %s" % json.dumps(site_actor, sort_keys=True))
+
     after = actor_classes(eas)
     listing = actor_list(eas)
     uc.log("actors after: %s" % after)
@@ -410,8 +438,8 @@ def main(argv):
         "profiles": profiles["count"],
         "profiles_detail": profiles,
         "profile_uassets": len(profiles["files"]),
-        # phase 3 adds the StreetscapeSiteActor
-        "site_actor": None,
+        # phase 3: the StreetscapeSiteActor (UE_PLAN.md 2.10)
+        "site_actor": site_actor,
     })
 
 

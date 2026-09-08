@@ -30,6 +30,7 @@ public class StreetscapeEditor : ModuleRules
 			"SlateCore",
 			"Landscape",
 			"LandscapeEditor",
+			"Foliage",   // LandscapeEdit.h includes InstancedFoliageActor.h
 			"AssetRegistry",
 			"AssetTools",
 			"Json",

@@ -1,6 +1,6 @@
 // Game mode referenced by Config/DefaultEngine.ini GlobalDefaultGameMode (UE_PLAN.md 1.3, 7).
-// Phase 1: an empty AGameModeBase so the config reference resolves; the explorer phase sets
-// DefaultPawnClass = AThanetExplorerPawn (DESIGN.md 11).
+// Phase 4: DefaultPawnClass = AThanetExplorerPawn (DESIGN.md 11); the config reference is
+// Config/DefaultEngine.ini GlobalDefaultGameMode=/Script/Thanet.ThanetGameMode.
 
 #pragma once
 

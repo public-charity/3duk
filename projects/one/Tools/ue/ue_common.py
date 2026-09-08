@@ -117,3 +117,37 @@ if __name__ == "__main__":
         "sys_path_has_tools_ue": SCRIPT_DIR.replace("\\", "/") in [p.replace("\\", "/") for p in sys.path],
         "python_stub": os.path.isfile(stub),
     })
+
+
+def site_actor():
+    """The level's AStreetscapeSiteActor (World Partition: it is never spatially loaded), or None."""
+    eas = unreal.get_editor_subsystem(unreal.EditorActorSubsystem)
+    for a in eas.get_all_level_actors():
+        if a.get_class().get_name() == "StreetscapeSiteActor":
+            return a
+    return None
+
+
+def heightfield(landscape_dir=None):
+    """The site actor's UStreetHeightfieldTerrain, loaded and optionally repointed at `landscape_dir`.
+
+    Probe with `hf.probe_m(x, y)` (NaN off coverage). This is the reference terrain of every numeric comparison
+    (DESIGN.md 8) and, unlike StreetscapeEditorLibrary.probe_heightfield_m, it follows the manifest the caller
+    actually imported instead of the project-wide StreetscapeSettings.DataDir.
+    """
+    sa = site_actor()
+    if sa is None:
+        return None
+    t = sa.get_editor_property("terrain_source")
+    if t is None:
+        return None
+    if landscape_dir:
+        want = _norm(landscape_dir)
+        have = _norm(str(t.get_editor_property("landscape_dir"))) if str(t.get_editor_property("landscape_dir")) else ""
+        default = _norm(data_dir() + "/landscape")
+        if want != default and want != have:
+            t.set_editor_property("landscape_dir", want)
+            t.load()
+    if not t.is_loaded():
+        t.load()
+    return t

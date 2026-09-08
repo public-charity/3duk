@@ -81,6 +81,9 @@ class STREETSCAPE_API UStreetTerrainSourceBase : public UObject, public IStreetT
 {
 	GENERATED_BODY()
 public:
+	/** Python-facing name for the virtual Describe() (a plain virtual is invisible to unreal.py). */
+	UFUNCTION(BlueprintCallable, Category = "Streetscape") FString DescribeSource() const { return Describe(); }
+
 	virtual bool SampleHeight(double XM, double YM, double& OutZM) const override { return false; }
 	virtual FString Describe() const override { return GetClass()->GetName(); }
 };

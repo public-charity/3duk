@@ -792,19 +792,35 @@ FStreetGeometry::FOverlap FStreetGeometry::MeasureLateralOverlap(const FStreetMe
 	const TArray<int32> Rv = Road.VerticesOfGroups(TEXT(""), nullptr, &Marking);
 	Out.Stations = StationValues(Road, Marking);
 	const FName Kerb(TEXT("kerb"));
-	TArray<int32> Kv0 = Edge.VerticesOfGroups(TEXT(""), &Kerb, nullptr);
-	TArray<int32> Kv;
-	for (int32 I : Kv0) { if (Edge.VH[I] > -TuckDepth + 1e-9) Kv.Add(I); }
+	const TArray<int32> Kv = Edge.VerticesOfGroups(TEXT(""), &Kerb, nullptr);
 	Out.PerStation.Init(NAN, Out.Stations.Num());
 	bool bAny = false;
 	for (int32 Si = 0; Si < Out.Stations.Num(); ++Si)
 	{
 		const double S = Out.Stations[Si];
+		// road rows at this station: the outermost is the skirt, the one below it is the road-edge row at h0.
+		// h0 is the CAMBER height at the kerb line, so the visible kerb block starts at h0 - tuck_depth, not at
+		// -tuck_depth: with a 2.5 % camber on an 8 m carriageway h0 is -0.05, and a 6 mm drop kerb top would fall
+		// below a fixed -0.03 threshold and be missed entirely (mesh.measure_lateral_overlap).
 		double RoadExtent = -TNumericLimits<double>::Max(), KerbFace = TNumericLimits<double>::Max();
 		int32 Nr = 0, Nk = 0;
-		for (int32 I : Rv) { if (FMath::Abs(Road.VS[I] - S) <= 1e-9) { RoadExtent = FMath::Max(RoadExtent, Side * Road.VD[I]); ++Nr; } }
-		for (int32 I : Kv) { if (FMath::Abs(Edge.VS[I] - S) <= 1e-9) { KerbFace = FMath::Min(KerbFace, Side * Edge.VD[I]); ++Nk; } }
-		if (Nr == 0 || Nk == 0) continue;
+		TArray<int32> RSel;
+		for (int32 I : Rv) { if (FMath::Abs(Road.VS[I] - S) <= 1e-9) { RSel.Add(I); RoadExtent = FMath::Max(RoadExtent, Side * Road.VD[I]); ++Nr; } }
+		if (Nr == 0) continue;
+		TArray<double> Levels;
+		for (int32 I : RSel) Levels.AddUnique(FMath::RoundToDouble(Side * Road.VD[I] * 1e9) / 1e9);
+		Levels.Sort();
+		const double EdgeD = Levels.Num() >= 2 ? Levels[Levels.Num() - 2] : Levels.Last();
+		double H0 = TNumericLimits<double>::Max();
+		for (int32 I : RSel) { if (FMath::Abs(Side * Road.VD[I] - EdgeD) <= 1e-9) H0 = FMath::Min(H0, Road.VH[I]); }
+		for (int32 I : Kv)
+		{
+			if (FMath::Abs(Edge.VS[I] - S) > 1e-9) continue;
+			if (Edge.VH[I] <= H0 - TuckDepth + 1e-9) continue;
+			KerbFace = FMath::Min(KerbFace, Side * Edge.VD[I]);
+			++Nk;
+		}
+		if (Nk == 0) continue;
 		Out.PerStation[Si] = RoadExtent - KerbFace;
 		Out.MinM = bAny ? FMath::Min(Out.MinM, Out.PerStation[Si]) : Out.PerStation[Si];
 		Out.MaxM = bAny ? FMath::Max(Out.MaxM, Out.PerStation[Si]) : Out.PerStation[Si];
