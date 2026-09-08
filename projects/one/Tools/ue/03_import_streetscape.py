@@ -53,7 +53,7 @@ def main(argv):
         argv,
         flags=("player_start", "save", "verify"),
         options={"json": "", "map": DEFAULT_MAP, "stats_out": "", "site": "", "origin_e": "", "origin_n": "",
-                 "region_radius_m": "1000"},
+                 "region_radius_m": "1000", "set_game_mode": ""},
     )
     src = ""
     if not opts["verify"]:
@@ -121,6 +121,20 @@ def main(argv):
 
     player_starts = [str(a.get_actor_label()) for a in eas.get_all_level_actors() if isinstance(a, unreal.PlayerStart)]
 
+    # UE_PLAN.md 7: the map itself names the game mode, so opening /Game/Thanet/Maps/Thanet and pressing Play
+    # spawns the explorer regardless of the project's GlobalDefaultGameMode.
+    game_mode_set = None
+    if opts["set_game_mode"]:
+        gm = unreal.load_class(None, opts["set_game_mode"])
+        if gm is None:
+            uc.fail(NAME, "--set-game-mode %r did not resolve to a class" % opts["set_game_mode"])
+        world = unreal.get_editor_subsystem(unreal.UnrealEditorSubsystem).get_editor_world()
+        ws = world.get_world_settings()
+        ws.set_editor_property("default_game_mode", gm)
+        ws.modify()
+        game_mode_set = str(gm.get_path_name())
+        uc.log("world settings default_game_mode = %s" % game_mode_set)
+
     saved = False
     after_save = {}
     if opts["save"]:
@@ -149,6 +163,7 @@ def main(argv):
         "ids": ids,
         "per_actor": per_actor,
         "player_starts": player_starts,
+        "game_mode_set": game_mode_set,
         "stats_out": stats_written,
         "saved": saved,
         "buffers_after_save": after_save,

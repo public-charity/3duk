@@ -56,7 +56,12 @@ first run); regenerate it after every build that adds or renames reflected types
 | `05_screenshot.py` | `--camera cam1\|cam2\|cam3\|all --actor <spline id> --out <dir or .png>`: the eye / target / FOV come from `StreetscapeEditorLibrary.actor_camera_json`, the C++ mirror of `Tools/blender/streetscape/render.py camera_defs`, so Unreal and Blender frame the same thing. Transient `SceneCapture2D` → `TextureRenderTarget2D` → `RenderingLibrary.export_render_target`, then the PNG is rewritten opaque. `--source final_ldr\|scene_hdr\|base_color`, `--ev <bias>` (manual exposure), `--warm-s <s>` (wait between captures for the project material shaders). **Needs `-Render`** | `THANET_OK 05_screenshot {"cameras": {"cam1": {"bytes": ..., "distinct_rgb": ...}}}` |
 | `compare_stats.py` | (any python, stdlib only) `--ue <ActorStatsJson> --numpy <Tools/blender/.../stats.json>`: length ±0.05 m, `n_samples`, overlap min/max, per-buffer AND per-material AND per-group verts/tris, marking strips, instance counts, `stations_identical` | one line per row then `PARITY OK` (exit 0) or `PARITY FAIL` (exit 1) |
 
-Later phases add `02_import_landscape.py`, `04_probe.py` and `06_import_massing.py` (UE_PLAN.md 5.3).
+| script | does | prints |
+|---|---|---|
+| `02_import_landscape.py` | reads `landscape_manifest.json` and drives `StreetscapeLandscapeImporter.ImportSite`: one World Partition `ALandscape` (2067 components / 140 streaming proxies for Thanet), the four ground-cover weightmaps and the `__LANDSCAPE_VISIBILITY__` mask that cuts the clip line, then the three gate probes (`grid`, `cliff`, `clip`). `--probes-only` re-runs the probes on a saved map; `--recreate-map`; `--no-grid` / `--no-cliff` / `--no-clip`; `--report <json>`. **Needs `-Render`** | `THANET_OK 02_import_landscape {"import": {...}, "grid": {...}, "cliff": {...}, "clip": {...}}` |
+| `04_probe.py` | five read-only modes on a saved map. `--points <csv> --landscape` → CSV `x,y,z_heightfield,z_landscape,z_landscape_collision,clipped,z_trace,blocked`; `--actor <id> --trace-from-above`; `--explorer` → game mode, default pawn, the pawn's tuning numbers and Enhanced Input bindings, every `PlayerStart`; `--landscape-info [--load-all] [--weights-at "x,y;..."]` → component / proxy counts, extent, scale, material, target layers and the painted weight of each cover at a point; `--massing [--massing-at "x,y;..."] [--refresh-collision]` → actor and building totals plus a per-footprint roof height. `--load-radius-m` streams a box around each point (World Partition loads nothing on its own in a commandlet); `--load-all` pulls the whole world in (~5 GB). **Needs `-Render`** | `THANET_OK 04_probe {"mode": ..., ...}` |
+| `06_import_massing.py` | one `AStreetscapeMassingActor` per `massing/buildings_x{i}_y{j}.jsonl`, each extruding that tile's footprints from `skirt` to `base_z + h` into one `UDynamicMeshComponent`, material `MI_massing_grey` (created here, not in `01`, so the SCHEMA.md 7 material count stays 21). Checks the actor and building counts against `massing_manifest.json`. `--dir`, `--material`, `--no-save` | `THANET_OK 06_import_massing {"actors": 216, "buildings": 20121, "matches_manifest": true, ...}` |
+| `make_cutout_manifest.py` | (pipeline python) writes a reduced `landscape_manifest.json` over a rectangle of tiles, for a fast partial import while debugging | `wrote ... n tiles` |
 
 `Tools/ue/shots/` holds the committed PNG captures; `*.png` is routed through LFS by the root `.gitattributes`
 (`git check-attr filter -- projects/one/Tools/ue/shots/x.png` → `filter: lfs`).
@@ -122,6 +127,11 @@ np.sum's pairwise summation and float32 heightfield tiles on purpose; see Street
 | `03_import_streetscape.py` on `schema/examples/test_stretch.json` (`--player-start --save`, one actor, 6362 verts / 9246 tris, 1691 instances) | 17 s (script part 3.0 s) |
 | `03_import_streetscape.py --verify` (fresh commandlet, `load_region`, rebuild-on-load of the saved actor) | 14 s (script part 0.9 s) |
 | `Streetscape.Perf.Tile` (build one actor from JSON: spline + all three renderers, mean of 5) | straight_100 0.75 ms (2320 v / 3500 t), curve_R20_200 1.32 ms (5439 / 7972), rail_R300_600 5.54 ms (35262 / 35248) |
+| `02_import_landscape.py` on the whole of Thanet (391 tiles → 2067 components / 140 proxies, 12 region blocks, then the three gate probes) | 337 s script time, peak RSS 14.4 GB (regions 279 s, save 14 s) |
+| `06_import_massing.py` on `data/thanet/out/unreal/massing` (216 actors, 20,121 buildings, 222,440 verts / 364,007 tris) | 21 s (`ImportMassing` itself 2.8-3.2 s), + the save of 216 external-actor packages |
+| `04_probe.py --points` on 45 points with 29 400 m regions loaded | 10 s script time |
+| `04_probe.py --landscape-info --load-all` (whole world streamed in to count components) | 12.5 s script time, RSS 5.1 GB |
+| `04_probe.py --explorer` (spawn the pawn, build the input objects, read the bindings) | 3 s script time |
 
 Commandlets run with the null RHI (no `-AllowCommandletRendering`), so no shader compilation happened; expect the
 first `-Render` run of the landscape phase to be the slow one.
@@ -181,6 +191,45 @@ Facts found on this machine that the scripts account for:
     `h0 - tuck_depth` (`h0` = the camber height at the kerb line). On an 8 m carriageway at 2.5 % camber `h0` is
     −0.05, so a 6 mm drop-kerb top fell below the fixed threshold and the overlap came back NaN at those stations.
     Fixed to the numpy rule; `min`/`max` had hidden it because they skip NaN.
+- Phase 4 facts:
+  - **`UDynamicMeshComponent`'s constructor sets `UCollisionProfile::NoCollision_ProfileName`**
+    (`GeometryFramework/Private/Components/DynamicMeshComponent.cpp:92`). `SetComplexAsSimpleCollisionEnabled(true,
+    true)` only chooses *which* geometry the body uses, so on its own it cooks a triangle mesh that no trace and no
+    capsule can ever reach: a downward line trace over a finished road or a 57 m tower block hit the landscape
+    underneath. `UStreetRendererBase::ApplyCollision` and `AStreetscapeMassingActor::RefreshCollision` now also set
+    `BlockAll` + `QueryAndPhysics`. The profile is serialised, so actors saved before the fix stay uncollidable
+    until they are re-imported.
+  - **`ALandscapeProxy::GetHeightAtLocation(..., EHeightfieldSource::Complex)` still returns a height inside a
+    visibility hole.** The collision heightfield keeps the sample and only marks its material as a hole, so
+    `ProbeHeightM(..., bUseCollision=true)` is *not* a hole test. The honest test is a line trace: over the cut
+    side of the clip line it passes straight through (measured: 37 of 37 kept points block, 0 of 8 cut points do).
+  - **Two ways a re-import silently doubles a World Partition level, both fixed.** (a) `TActorIterator` in a
+    commandlet sees only what is streamed in, so "replace the actor with this id" replaced nothing and left the old
+    one behind - `ImportStreetscapeJson` and `ImportMassing` now `LoadRegion(origin, 20 km)` before they look.
+    (b) `UWorld::EditorDestroyActor` removes the actor from the world but leaves its external-actor `.uasset` on
+    disk, so it is back the next time the map opens: `UStreetscapeEditorLibrary::DeleteActorsAndPackages` collects
+    `AActor::GetExternalPackage()` and calls `ObjectTools::CleanupAfterSuccessfulDelete` (`ObjectTools.h:313`).
+    Measured before the fix: three `AStreetscapeActor`s for one `authored:trinity_square`
+    (`--explorer` reported `overlay_components_toggled: 3`), 50 massing actors over 25 tiles, and 624
+    `__ExternalActors__` packages. `ImportMassing` now also re-uses one actor per tile instead of respawning.
+  - **`ULandscapeInfo::XYtoComponentMap` only holds components of proxies that are streamed in.** A fresh
+    commandlet that loads a few 400 m regions reports 536 components / 34 proxies for the same landscape that
+    reports 2067 / 140 after `load_region(origin, 20 km)` (~5 GB RSS). Always say which you measured.
+  - **Slope is an operator, not a number.** `sources/derive/05_*.py:79-80` computes `np.gradient` (interior central
+    differences, `(a[k+1] - a[k-1]) / 2`) so a one-cell cliff face is averaged over 2 m; walking adjacent post
+    pairs measures the same face over 1 m and reads steeper. On tile (17, 16) the pipeline's own float32 DTM gives
+    81.722° central / 84.654° pairwise, and the imported `.r16` gives 81.722° / 84.655° - the landscape is not
+    losing the cliff, the two numbers are two different derivatives. `02_import_landscape.py` reports both and
+    compares like with like.
+  - `unreal.SoftClassPath` has no exported fields, so `str()` on `GameMapsSettings.global_default_game_mode` prints
+    `<Struct 'SoftClassPath' ... {}>`. Resolve it with `unreal.SystemLibrary.get_class_from_soft_path(scp)`.
+    `03_import_streetscape.py --set-game-mode /Script/Thanet.ThanetGameMode` writes the class onto the map's
+    `WorldSettings.default_game_mode` so the map does not depend on the project default.
+  - `UCameraComponent` exposes `relative_location` but not `use_pawn_control_rotation` to Python; and
+    `USceneComponent.get_relative_location()` is not a Python method - use `get_editor_property("relative_location")`.
+  - PIE cannot be driven from a commandlet. `04_probe.py --explorer` spawns an `AThanetExplorerPawn`, calls the
+    now-`UFUNCTION` `BuildInputObjects()` and reads `DescribeBindings()` back, which proves the mapping context,
+    the actions and their keys exist - it does not prove the pawn walks.
 - Phase 2 engine facts the plugin relies on: `FJsonObject::Values` keys are `UE::TSharedString<TCHAR>` in 5.8
   (`Dom/JsonObject.h:237`, case-insensitive; `FString(*Key)` to read); `FJsonSerializer::Deserialize` only accepts a
   top-level object or array (scalar notes are parsed as `[value]`); GeometryCore's front-face normal is

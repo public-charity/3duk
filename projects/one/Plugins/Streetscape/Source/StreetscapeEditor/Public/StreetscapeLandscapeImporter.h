@@ -69,4 +69,21 @@ public:
 	/** {"extent": [minX, minY, maxX, maxY], "components": n, "proxies": n, "location_cm": [...], "scale": [...]}. */
 	UFUNCTION(BlueprintCallable, Category = "Streetscape")
 	static FString LandscapeStateJson(ALandscapeProxy* Proxy);
+
+	/**
+	 * The target layers actually on the landscape after an import: every name in ALandscapeProxy::GetTargetLayers()
+	 * with its ULandscapeLayerInfoObject path, plus the names ULandscapeInfo knows and which one is
+	 * ALandscapeProxy::VisibilityLayer. Read-back proof for UE_PLAN.md 3.5 / DESIGN.md 9.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Streetscape")
+	static FString LandscapeLayersJson(ALandscapeProxy* Proxy);
+
+	/**
+	 * Painted weight of a named target layer at document metres (x east, y north), 0..1 by
+	 * ULandscapeComponent::GetLayerWeightAtLocation (LandscapeEdit.cpp:2816, bilinear over the weightmap).
+	 * -1 when the layer info, the landscape info or the component covering that point is missing (component
+	 * not streamed in), so a caller can tell "no data here" from "weight 0 here".
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Streetscape")
+	static double ProbeLayerWeight(ALandscapeProxy* Proxy, double XM, double YM, FName LayerName);
 };

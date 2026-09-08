@@ -52,25 +52,55 @@ int32 UStreetscapeEditorLibrary::ImportMassing(const FString& Dir, const FString
 	}
 	Report->SetStringField(TEXT("material"), Mat ? Mat->GetPathName() : TEXT(""));
 
-	// replace any massing actors of a previous run so the import is idempotent
-	int32 Removed = 0;
+	// World Partition: nothing is loaded after load_level in a commandlet, so an actor from a previous run is
+	// invisible here unless the region is pulled in first - and an invisible actor is not replaced, it is doubled.
+	UStreetscapeEditorLibrary::LoadRegion(FVector::ZeroVector, 2000000.f);
+
+	// Re-use one actor per tile (keeps its external package, so the level does not grow) and delete every surplus.
+	TMap<FIntPoint, AStreetscapeMassingActor*> ByTile;
+	TArray<AActor*> Surplus;
 	for (TActorIterator<AStreetscapeMassingActor> It(World); It; ++It)
 	{
 		AStreetscapeMassingActor* A = *It;
-		World->EditorDestroyActor(A, false);
-		++Removed;
+		const FIntPoint Key(A->TileX, A->TileY);
+		if (ByTile.Contains(Key)) { Surplus.Add(A); continue; }
+		ByTile.Add(Key, A);
 	}
+	const int32 Removed = UStreetscapeEditorLibrary::DeleteActorsAndPackages(Surplus);
+	Report->SetNumberField(TEXT("actors_reused"), ByTile.Num());
 	Report->SetNumberField(TEXT("actors_removed"), Removed);
 
 	int32 Actors = 0, Buildings = 0, Rings = 0, HoleRings = 0, Verts = 0, Tris = 0, Clamped = 0, Skipped = 0, Failed = 0;
 	double MinZ = TNumericLimits<double>::Max(), MaxZ = -TNumericLimits<double>::Max();
+	int32 Reused = 0;
+	TSet<FIntPoint> Covered;
 	for (const FString& Name : Files)
 	{
 		const FString Path = Dir / Name;
-		FActorSpawnParameters Params;
-		Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-		AStreetscapeMassingActor* A = World->SpawnActor<AStreetscapeMassingActor>(AStreetscapeMassingActor::StaticClass(), FTransform::Identity, Params);
+		// buildings_x{i}_y{j}.jsonl -> the tile this file is for, so an existing actor can be re-used in place
+		FIntPoint Key(-1, -1);
+		{
+			FString Base = FPaths::GetBaseFilename(Path);
+			FString Rest, Xs, Ys;
+			if (Base.Split(TEXT("_x"), nullptr, &Rest) && Rest.Split(TEXT("_y"), &Xs, &Ys))
+			{
+				Key = FIntPoint(FCString::Atoi(*Xs), FCString::Atoi(*Ys));
+			}
+		}
+		AStreetscapeMassingActor* A = ByTile.FindRef(Key);
+		if (A)
+		{
+			++Reused;
+			A->Modify();
+		}
+		else
+		{
+			FActorSpawnParameters Params;
+			Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+			A = World->SpawnActor<AStreetscapeMassingActor>(AStreetscapeMassingActor::StaticClass(), FTransform::Identity, Params);
+		}
 		if (!A) { ++Failed; continue; }
+		Covered.Add(Key);
 		A->MassingMaterial = Mat;
 		if (!A->BuildFromFile(Path))
 		{
@@ -96,6 +126,14 @@ int32 UStreetscapeEditorLibrary::ImportMassing(const FString& Dir, const FString
 		}
 	}
 
+	// a tile that used to have buildings and no longer does leaves an actor behind: delete those too
+	TArray<AActor*> Orphans;
+	for (const TPair<FIntPoint, AStreetscapeMassingActor*>& Kv : ByTile)
+	{
+		if (!Covered.Contains(Kv.Key) && Kv.Value) Orphans.Add(Kv.Value);
+	}
+	Report->SetNumberField(TEXT("actors_orphaned_removed"), UStreetscapeEditorLibrary::DeleteActorsAndPackages(Orphans));
+	Report->SetNumberField(TEXT("actors_reused_in_place"), Reused);
 	Report->SetNumberField(TEXT("actors"), Actors);
 	Report->SetNumberField(TEXT("failed"), Failed);
 	Report->SetNumberField(TEXT("buildings"), Buildings);

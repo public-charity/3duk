@@ -6,9 +6,12 @@
 #include "Algo/Reverse.h"
 #include "Components/DynamicMeshComponent.h"
 #include "DynamicMesh/DynamicMesh3.h"
+#include "DynamicMesh/DynamicMeshAABBTree3.h"
+#include "UDynamicMesh.h"
 #include "Dom/JsonObject.h"
 #include "Materials/MaterialInterface.h"
 #include "Misc/FileHelper.h"
+#include "Engine/CollisionProfile.h"
 #include "Misc/Paths.h"
 #include "Serialization/JsonReader.h"
 #include "Serialization/JsonSerializer.h"
@@ -186,9 +189,45 @@ bool AStreetscapeMassingActor::BuildFromFile(const FString& Path)
 	Mesh->ConfigureMaterialSet(Mats);
 	Mesh->SetTangentsType(EDynamicMeshComponentTangentsMode::AutoCalculated);
 	Mesh->SetMeshDrawPath(EDynamicMeshDrawPath::StaticDraw);
-	Mesh->SetComplexAsSimpleCollisionEnabled(true, true);
+	RefreshCollision();
 	Stats.BuildMs = (FPlatformTime::Seconds() - T0) * 1000.0;
 	UE_LOG(LogStreetscape, Verbose, TEXT("MassingActor %s: %d buildings, %d rings (%d holes), %d verts / %d tris in %.0f ms"),
 		*FPaths::GetCleanFilename(Path), Stats.Buildings, Stats.Rings, Stats.HoleRings, Stats.Verts, Stats.Tris, Stats.BuildMs);
 	return true;
+}
+
+double AStreetscapeMassingActor::SampleTopZM(double XM, double YM) const
+{
+	if (!Mesh || !Mesh->GetDynamicMesh()) return (double)NAN;
+	double Best = (double)NAN;
+	// The mesh is already in UE centimetres (FStreetGeometry::ToDynamicMesh does the (100, -100, 100)), and the
+	// component sits at the origin, so a world ray is a mesh-space ray.
+	const FVector3d Origin(100.0 * XM, -100.0 * YM, 100000.0);
+	const FVector3d Dir(0, 0, -1);
+	Mesh->GetDynamicMesh()->ProcessMesh([&Best, &Origin, &Dir](const FDynamicMesh3& M)
+	{
+		if (M.TriangleCount() == 0) return;
+		UE::Geometry::FDynamicMeshAABBTree3 Tree(&M, true);
+		double NearestT = TNumericLimits<double>::Max();
+		int32 Tid = -1;
+		// MeshAABBTree3.h:446 - the ray parameter of the first hit, along a unit -Z direction, is the drop in cm.
+		// FRay3d is UE::Math::TRay<double> (Core/Public/Math/MathFwd.h:71), not a UE::Geometry type.
+		if (!Tree.FindNearestHitTriangle(FRay3d(Origin, Dir, true), NearestT, Tid)) return;
+		if (Tid < 0) return;
+		Best = (Origin.Z - NearestT) / 100.0;
+	});
+	return Best;
+}
+
+int32 AStreetscapeMassingActor::RefreshCollision()
+{
+	if (!Mesh) return -1;
+	// UDynamicMeshComponent's constructor sets the NoCollision profile
+	// (GeometryFramework/Private/Components/DynamicMeshComponent.cpp:92), so complex-as-simple alone cooks a
+	// triangle mesh nothing can query: the explorer would walk straight through every building.
+	Mesh->SetComplexAsSimpleCollisionEnabled(true, true);   // GeometryFramework/DynamicMeshComponent.h:722
+	Mesh->SetCollisionProfileName(UCollisionProfile::BlockAll_ProfileName);
+	Mesh->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+	Mesh->UpdateCollision(false);                           // :747, bOnlyIfPending = false -> always rebuild
+	return Mesh->GetDynamicMesh() ? Mesh->GetDynamicMesh()->GetTriangleCount() : 0;
 }

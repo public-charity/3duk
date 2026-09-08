@@ -6,6 +6,7 @@
 #include "StreetTerrainSource.h"
 #include "StreetscapeActor.h"
 #include "StreetscapeModule.h"
+#include "Engine/CollisionProfile.h"
 #include "UDynamicMesh.h"
 #include "UObject/ObjectSaveContext.h"
 #include <cmath>
@@ -1043,7 +1044,7 @@ void UStreetRendererBase::Commit(const FStreetRenderResult& In, const UStreetMat
 	ConfigureMaterialSet(Mats);
 	SetTangentsType(EDynamicMeshComponentTangentsMode::AutoCalculated);
 	SetMeshDrawPath(EDynamicMeshDrawPath::StaticDraw);
-	SetComplexAsSimpleCollisionEnabled(bCollision, true);
+	ApplyCollision();
 	Stats = In.Buffer.Stats();
 	LastVertexCount = Stats.Verts;
 	LastTriangleCount = Stats.Tris;
@@ -1101,8 +1102,19 @@ void UStreetRendererBase::RestoreAfterSave()
 	{
 		SetMesh(MoveTemp(*Stash));
 		Stash.Reset();
-		SetComplexAsSimpleCollisionEnabled(bCollision, true);
+		ApplyCollision();
 	}
+}
+
+void UStreetRendererBase::ApplyCollision()
+{
+	// UDynamicMeshComponent's constructor sets UCollisionProfile::NoCollision_ProfileName
+	// (GeometryFramework/Private/Components/DynamicMeshComponent.cpp:92). SetComplexAsSimpleCollisionEnabled only
+	// says WHICH geometry the body uses; without a profile that queries, the cooked triangle mesh is unreachable
+	// and a downward line trace over a finished road hits the landscape underneath it.
+	SetComplexAsSimpleCollisionEnabled(bCollision, true);          // GeometryFramework/DynamicMeshComponent.h:722
+	SetCollisionProfileName(bCollision ? UCollisionProfile::BlockAll_ProfileName : UCollisionProfile::NoCollision_ProfileName);
+	SetCollisionEnabled(bCollision ? ECollisionEnabled::QueryAndPhysics : ECollisionEnabled::NoCollision);
 }
 
 void UStreetRoadRenderer::BuildFrom(const FStreetSamples& Samples, const IStreetTerrainSource* Terrain, FStreetRenderResult& Out) const

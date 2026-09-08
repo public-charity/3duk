@@ -102,6 +102,14 @@ public:
 	/** Restore the mesh stashed by PreSave (called from AStreetscapeActor::PostSaveRoot). */
 	void RestoreAfterSave();
 
+	/**
+	 * Turn bCollision into collision the physics scene can actually answer. UDynamicMeshComponent's constructor
+	 * sets the NoCollision profile (GeometryFramework/Private/Components/DynamicMeshComponent.cpp:92), so
+	 * SetComplexAsSimpleCollisionEnabled on its own cooks a triangle mesh that no trace or capsule will ever
+	 * touch - the explorer would walk through the road (BRIEF 4.4 asks for the opposite).
+	 */
+	void ApplyCollision();
+
 	const TArray<FStreetInstance>& GetInstances() const { return Instances; }
 	/** The mesh buffer of the last build (empty before it): what ActorStatsJson and the seam tests measure. */
 	const FStreetMeshBuilder& GetLastBuffer() const { return LastBuffer; }

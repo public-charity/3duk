@@ -183,10 +183,47 @@ def probe_cliff(land, man, plan_json, hf):
                 if d > best[0]:
                     best = (d, (tx0 + c, ty0 + r, tx0 + c, ty0 + r + 1))
     scan_slope = math.degrees(math.atan(best[0]))
+
+    # ... and the CENTRAL-difference slope over the same grid, which is what the manifest's
+    # tiles[].slope_max_deg actually is: sources/derive/05_*.py:79-80 does
+    #     gy, gx = np.gradient(a); slope = degrees(atan(hypot(gx/pw, gy/ph)))
+    # and np.gradient's interior term is (a[k+1] - a[k-1]) / 2 (one-sided at the edges, edge_order=1).
+    # A step between two adjacent posts is therefore spread over 2 m and reads shallower by construction:
+    # comparing the adjacent-pair maximum above against the manifest compares two different operators, so
+    # the "does the landscape keep the cliffs" test is central-vs-central, and the pair maximum is reported
+    # beside it as the steepest single-cell face.
+    def _d(lo, hi, span):
+        if lo is None or hi is None or math.isnan(lo) or math.isnan(hi):
+            return None
+        return (hi - lo) / span
+
+    central_max = 0.0
+    for r in range(tile_m + 1):
+        for c in range(tile_m + 1):
+            if math.isnan(rowsz[r][c]):
+                continue
+            if c == 0:
+                gx = _d(rowsz[r][0], rowsz[r][1], 1.0)
+            elif c == tile_m:
+                gx = _d(rowsz[r][tile_m - 1], rowsz[r][tile_m], 1.0)
+            else:
+                gx = _d(rowsz[r][c - 1], rowsz[r][c + 1], 2.0)
+            if r == 0:
+                gy = _d(rowsz[0][c], rowsz[1][c], 1.0)
+            elif r == tile_m:
+                gy = _d(rowsz[tile_m - 1][c], rowsz[tile_m][c], 1.0)
+            else:
+                gy = _d(rowsz[r - 1][c], rowsz[r + 1][c], 2.0)
+            if gx is None or gy is None:
+                continue
+            central_max = max(central_max, math.hypot(gx, gy))
+    central_slope = math.degrees(math.atan(central_max))
+
     out["tile_scan"] = {
         "tile_local_origin": [tx0, ty0],
         "samples": (tile_m + 1) ** 2,
         "slope_max_deg": round(scan_slope, 2),
+        "central_diff_max_deg": round(central_slope, 2),
         "steepest_pair": list(best[1]) if best[1] else None,
     }
     if best[1]:
@@ -199,10 +236,15 @@ def probe_cliff(land, man, plan_json, hf):
         out["tile_scan"]["max_abs_dz_m"] = round(max(abs(za_h - za_l), abs(zb_h - zb_l)), 6)
         out["tile_scan"]["agree"] = out["tile_scan"]["max_abs_dz_m"] <= 0.01
     out["slope_max_deg"] = round(scan_slope, 2)
+    out["slope_central_diff_max_deg"] = round(central_slope, 2)
+    out["slope_operators"] = ("slope_max_deg = steepest adjacent post pair (atan(|dz| / 1 m)); "
+                              "slope_central_diff_max_deg = np.gradient central differences, the operator "
+                              "sources/derive/05 used for tiles[].slope_max_deg. Compare like with like.")
     out["slope_ok"] = scan_slope >= 65.0
     if tile and tile.get("slope_max_deg") is not None:
-        out["slope_vs_tile_deg"] = round(scan_slope - float(tile["slope_max_deg"]), 2)
-        out["slope_within_2deg_of_tile"] = abs(scan_slope - float(tile["slope_max_deg"])) <= 2.0
+        out["slope_vs_tile_deg"] = round(central_slope - float(tile["slope_max_deg"]), 2)
+        out["slope_within_2deg_of_tile"] = abs(central_slope - float(tile["slope_max_deg"])) <= 2.0
+        out["pair_slope_vs_tile_deg"] = round(scan_slope - float(tile["slope_max_deg"]), 2)
     return out
 
 

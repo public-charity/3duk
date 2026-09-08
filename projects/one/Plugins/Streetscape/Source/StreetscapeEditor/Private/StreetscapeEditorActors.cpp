@@ -14,6 +14,7 @@
 #include "HAL/FileManager.h"
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
+#include "ObjectTools.h"
 #include "StreetGeometry.h"
 #include "StreetMaterialTable.h"
 #include "StreetProfiles.h"
@@ -44,6 +45,16 @@ AStreetscapeActor* FindActorById(const FString& Id)
 		if (It->StreetId == Id) return *It;
 	}
 	return nullptr;
+}
+
+void CollectActorsById(const FString& Id, TArray<AActor*>& Out)
+{
+	UWorld* World = EditorWorld();
+	if (!World) return;
+	for (TActorIterator<AStreetscapeActor> It(World); It; ++It)
+	{
+		if (It->StreetId == Id) Out.Add(*It);
+	}
 }
 
 TSharedRef<FJsonValue> NumV(double V) { return MakeShared<FJsonValueNumber>(V); }
@@ -121,6 +132,28 @@ AStreetscapeSiteActor* UStreetscapeEditorLibrary::EnsureSiteActor(const FString&
 	return Site;
 }
 
+int32 UStreetscapeEditorLibrary::DeleteActorsAndPackages(const TArray<AActor*>& Actors)
+{
+	UWorld* World = EditorWorld();
+	if (!World || Actors.Num() == 0) return 0;
+	TArray<UPackage*> Packages;
+	for (AActor* A : Actors)
+	{
+		if (!A) continue;
+		// A World Partition actor lives in its own package under Content/__ExternalActors__/...
+		if (UPackage* P = A->GetExternalPackage())
+		{
+			Packages.AddUnique(P);
+		}
+		World->EditorDestroyActor(A, false);
+	}
+	if (Packages.Num() == 0) return 0;
+	// ObjectTools.h:313 - unloads the packages and deletes their files; without it EditorDestroyActor leaves the
+	// .uasset on disk and the actor comes back the next time the map is loaded.
+	ObjectTools::CleanupAfterSuccessfulDelete(Packages, /*bPerformReferenceCheck=*/false);
+	return Packages.Num();
+}
+
 int32 UStreetscapeEditorLibrary::ImportStreetscapeJson(const FString& FileOrDir, bool bPlacePlayerStart)
 {
 	UWorld* World = EditorWorld();
@@ -140,8 +173,29 @@ int32 UStreetscapeEditorLibrary::ImportStreetscapeJson(const FString& FileOrDir,
 	}
 	if (Files.Num() == 0) { UE_LOG(LogStreetscapeEditor, Error, TEXT("ImportStreetscapeJson: nothing to load at %s"), *FileOrDir); return -1; }
 
+	// World Partition: a commandlet has nothing loaded after load_level (WorldPartition.cpp:880-886), so
+	// FindActorById below would see an empty world and every re-import would leave the previous actor behind as a
+	// second copy of the same street. Pull the whole site in first, then the replace-by-id is real.
+	LoadRegion(FVector::ZeroVector, 2000000.f);
+
 	int32 Spawned = 0;
 	bool bPlacedStart = false;
+	if (bPlacePlayerStart)
+	{
+		// the import is idempotent for streetscape actors (they are replaced by id); make it idempotent for the
+		// spawn point too, or every re-import leaves another PlayerStart_Streetscape behind and the game picks
+		// one of them at random (GameModeBase::ChoosePlayerStart_Implementation).
+		TArray<AActor*> Stale;
+		for (TActorIterator<APlayerStart> It(World); It; ++It)
+		{
+			if (It->GetActorLabel() == TEXT("PlayerStart_Streetscape")) Stale.Add(*It);
+		}
+		const int32 Gone = DeleteActorsAndPackages(Stale);
+		if (Stale.Num())
+		{
+			UE_LOG(LogStreetscapeEditor, Log, TEXT("ImportStreetscapeJson: removed %d stale PlayerStart_Streetscape (%d packages deleted)"), Stale.Num(), Gone);
+		}
+	}
 	for (const FString& File : Files)
 	{
 		TSharedPtr<FJsonObject> Obj;
@@ -176,9 +230,10 @@ int32 UStreetscapeEditorLibrary::ImportStreetscapeJson(const FString& FileOrDir,
 
 		for (const FStreetSplineDef& Def : Doc.Splines)
 		{
-			if (AStreetscapeActor* Existing = FindActorById(Def.Id))
 			{
-				World->DestroyActor(Existing);
+				TArray<AActor*> Existing;
+				CollectActorsById(Def.Id, Existing);
+				DeleteActorsAndPackages(Existing);
 			}
 			FActorSpawnParameters Params;
 			Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;

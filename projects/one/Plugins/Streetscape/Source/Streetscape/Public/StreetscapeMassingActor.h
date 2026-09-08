@@ -52,4 +52,16 @@ public:
 	/** Parse the JSONL, build the mesh, set the material and complex-as-simple collision. False on a read error. */
 	UFUNCTION(BlueprintCallable, Category = "Streetscape")
 	bool BuildFromFile(const FString& Path);
+
+	/**
+	 * Vertical ray-cast straight down against THIS tile's mesh at document metres (x east, y north): the ODN
+	 * metres of the highest surface, or NaN when the ray misses. Geometry, not physics - it answers "is the
+	 * extrusion there and how tall is it" without depending on whether the complex collision has been cooked.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Streetscape")
+	double SampleTopZM(double XM, double YM) const;
+
+	/** Re-cook the complex collision of an already-loaded mesh (UDynamicMeshComponent::UpdateCollision). Returns the triangle count. */
+	UFUNCTION(BlueprintCallable, Category = "Streetscape")
+	int32 RefreshCollision();
 };

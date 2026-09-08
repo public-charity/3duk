@@ -96,10 +96,18 @@ public:
 	// -- phase 4: massing (DESIGN.md 15) --------------------------------------------------------------------------
 
 	/**
-	 * One AStreetscapeMassingActor per <Dir>/buildings_x{i}_y{j}.jsonl (grey extruded footprints). Existing massing
-	 * actors are destroyed first, so the import is idempotent. Returns the actor count (-1 on error) and fills
-	 * OutReportJson with the per-run totals.
+	 * One AStreetscapeMassingActor per <Dir>/buildings_x{i}_y{j}.jsonl (grey extruded footprints). An actor that
+	 * already covers a tile is rebuilt in place and any surplus one is deleted, so re-importing keeps the level at
+	 * exactly one actor per tile. Returns the actor count (-1 on error) and fills OutReportJson with the totals.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Streetscape")
 	static int32 ImportMassing(const FString& Dir, const FString& MaterialPath, FString& OutReportJson);
+
+	/**
+	 * Destroy actors AND delete the World Partition external-actor packages that hold them
+	 * (ObjectTools::CleanupAfterSuccessfulDelete, ObjectTools.h:313). UWorld::EditorDestroyActor on its own leaves
+	 * the .uasset on disk, so the "deleted" actor is back the next time the map is opened - which is how a repeated
+	 * import silently doubles the level. Not a UFUNCTION: C++ callers only. Returns the number of packages deleted.
+	 */
+	static int32 DeleteActorsAndPackages(const TArray<AActor*>& Actors);
 };

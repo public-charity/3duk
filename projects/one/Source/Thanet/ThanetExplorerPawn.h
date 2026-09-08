@@ -59,6 +59,13 @@ public:
 	/** The mapping context's "action -> keys" as text, so a headless run can prove the bindings exist. */
 	UFUNCTION(BlueprintCallable, Category = "Thanet") FString DescribeBindings() const;
 
+	/**
+	 * Create the Enhanced Input mapping context, actions and modifiers (idempotent). SetupPlayerInputComponent
+	 * calls it when a controller possesses the pawn; it is exposed so a commandlet, which cannot run Play In
+	 * Editor, can still build the objects on a spawned pawn and read DescribeBindings() back.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Thanet|Input") void BuildInputObjects();
+
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 	virtual void BeginPlay() override;
 
@@ -73,5 +80,4 @@ protected:
 	void OnToggleFly(const FInputActionValue& Value);
 	void OnToggleOverlay(const FInputActionValue& Value);
 	void ApplySpeeds();
-	void BuildInputObjects();
 };

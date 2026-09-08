@@ -739,6 +739,81 @@ FString UStreetscapeLandscapeImporter::LandscapeStateJson(ALandscapeProxy* Proxy
 	return JsonToString(J);
 }
 
+FString UStreetscapeLandscapeImporter::LandscapeLayersJson(ALandscapeProxy* Proxy)
+{
+	TSharedRef<FJsonObject> J = MakeShared<FJsonObject>();
+	if (!Proxy)
+	{
+		J->SetStringField(TEXT("error"), TEXT("no landscape"));
+		return JsonToString(J);
+	}
+	const FName VisName = ALandscapeProxy::VisibilityLayer ? ALandscapeProxy::VisibilityLayer->GetLayerName() : NAME_None;
+	J->SetStringField(TEXT("visibility_layer_name"), VisName.ToString());
+
+	TArray<TSharedPtr<FJsonValue>> Target;
+	bool bHasVisibility = false;
+	int32 GroundFound = 0;
+	for (const TPair<FName, FLandscapeTargetLayerSettings>& Pair : Proxy->GetTargetLayers())   // LandscapeProxy.h:1627
+	{
+		TSharedRef<FJsonObject> L = MakeShared<FJsonObject>();
+		L->SetStringField(TEXT("name"), Pair.Key.ToString());
+		L->SetStringField(TEXT("layer_info"), Pair.Value.LayerInfoObj ? Pair.Value.LayerInfoObj->GetPathName() : TEXT(""));
+		const bool bVis = (Pair.Key == VisName);
+		L->SetBoolField(TEXT("is_visibility"), bVis);
+		bHasVisibility |= bVis;
+		for (int32 B = 0; B < 4; ++B)
+		{
+			if (Pair.Key == FName(GGroundLayers[B])) ++GroundFound;
+		}
+		Target.Add(MakeShared<FJsonValueObject>(L));
+	}
+	J->SetArrayField(TEXT("target_layers"), Target);
+	J->SetNumberField(TEXT("target_layer_count"), Target.Num());
+	J->SetBoolField(TEXT("has_visibility_layer"), bHasVisibility);
+	J->SetNumberField(TEXT("ground_layers_found"), GroundFound);
+
+	TArray<TSharedPtr<FJsonValue>> Missing;
+	for (int32 B = 0; B < 4; ++B)
+	{
+		if (!Proxy->HasTargetLayer(FName(GGroundLayers[B]))) Missing.Add(MakeShared<FJsonValueString>(GGroundLayers[B]));
+	}
+	J->SetArrayField(TEXT("ground_layers_missing"), Missing);
+
+	if (ULandscapeInfo* Info = Proxy->GetLandscapeInfo())
+	{
+		TArray<TSharedPtr<FJsonValue>> Known;
+		for (const FLandscapeInfoLayerSettings& S : Info->Layers)
+		{
+			Known.Add(MakeShared<FJsonValueString>(S.GetLayerName().ToString()));
+		}
+		J->SetArrayField(TEXT("info_layers"), Known);
+	}
+	return JsonToString(J);
+}
+
+double UStreetscapeLandscapeImporter::ProbeLayerWeight(ALandscapeProxy* Proxy, double XM, double YM, FName LayerName)
+{
+	if (!Proxy) return -1.0;
+	ULandscapeInfo* Info = Proxy->GetLandscapeInfo();
+	if (!Info || Info->ComponentSizeQuads <= 0) return -1.0;
+	ULandscapeLayerInfoObject* LayerInfo = Info->GetLayerInfoByName(LayerName);          // LandscapeInfo.h:283
+	if (!LayerInfo && LayerName == (ALandscapeProxy::VisibilityLayer ? ALandscapeProxy::VisibilityLayer->GetLayerName() : NAME_None))
+	{
+		LayerInfo = ALandscapeProxy::VisibilityLayer;
+	}
+	if (!LayerInfo) return -1.0;
+
+	const FVector Loc(100.0 * XM, -100.0 * YM, 0.0);
+	ALandscape* Land = Info->LandscapeActor.Get();
+	if (!Land) return -1.0;
+	const FVector Local = Land->LandscapeActorToWorld().InverseTransformPosition(Loc);
+	const FIntPoint Key(FMath::FloorToInt(Local.X / (double)Info->ComponentSizeQuads),
+		FMath::FloorToInt(Local.Y / (double)Info->ComponentSizeQuads));
+	ULandscapeComponent* const* Found = Info->XYtoComponentMap.Find(Key);                // LandscapeInfo.h:189
+	if (!Found || !*Found) return -1.0;
+	return (double)(*Found)->GetLayerWeightAtLocation(Loc, LayerInfo);                    // LandscapeEdit.cpp:2816
+}
+
 ALandscape* UStreetscapeLandscapeImporter::ImportSite(const FString& ManifestPath, int32 QuadsPerSection, int32 SectionsPerComponent, int32 WorldPartitionGridSize,
 	const FString& MaterialPath, const FString& LayerInfoPackagePath, int32 MaxComponentsPerImport, FString& OutReportJson)
 {
