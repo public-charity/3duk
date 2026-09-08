@@ -118,14 +118,252 @@ def nodata_mask(a, nd):
     return bad
 
 
+# ---- clip region ------------------------------------------------------------
+# An optional `clip` block in the site config restricts the model to a region inside the tile grid
+# (Thanet: the half-plane north-east of the Minnis Bay -> Pegwell Bay line). Steps ask three questions
+# -- is this point kept, what is this tile's state, which cells of this raster are kept -- through the
+# module-level functions below and never look inside the clip object. With no clip block every
+# function answers "kept", and no step writes a different byte.
+
+class HalfPlaneClip:
+    """Keep one side of the infinite line through A and B. keep 'left': keep P iff cross(B-A, P-A) >= 0.
+    'right' negates the test. Points exactly on the line are kept."""
+    type = "halfplane"
+
+    def __init__(self, block):
+        (ax, ay), (bx, by) = block["line"]
+        self.a, self.b = (float(ax), float(ay)), (float(bx), float(by))
+        self.line = [[ax, ay], [bx, by]]    # the config's own numbers, echoed verbatim by stamp()
+        self.keep = block.get("keep", "left")
+        if self.keep not in ("left", "right"):
+            sys.exit(f"clip.keep must be 'left' or 'right', got {self.keep!r}")
+        dx, dy = self.b[0] - self.a[0], self.b[1] - self.a[1]
+        if dx == 0.0 and dy == 0.0:
+            sys.exit("clip.line: the two endpoints coincide")
+        s = 1.0 if self.keep == "left" else -1.0
+        self.n = (-dy * s, dx * s)          # cross(B-A, P-A) == (P-A) . (-dy, dx)
+
+    def stamp(self):
+        """The block as every manifest records it. `line` carries the config's numbers unchanged (ints
+        stay ints), so a consumer may compare its config against a manifest textually as well as
+        numerically when deciding whether a product is stale."""
+        return {"type": self.type, "line": [list(p) for p in self.line], "keep": self.keep}
+
+    def keep_points(self, E, N):
+        import numpy as np
+        E = np.asarray(E, dtype=np.float64); N = np.asarray(N, dtype=np.float64)
+        return (E - self.a[0]) * self.n[0] + (N - self.a[1]) * self.n[1] >= 0.0
+
+    def signed_distance_out(self, E, N):
+        """Metres INTO the clipped half-plane (positive = cut, negative = kept); used by the Unreal
+        adapter for the landscape visibility weight."""
+        import numpy as np, math
+        E = np.asarray(E, dtype=np.float64); N = np.asarray(N, dtype=np.float64)
+        return -((E - self.a[0]) * self.n[0] + (N - self.a[1]) * self.n[1]) / math.hypot(*self.n)
+
+    def rect_state(self, e0, n0, e1, n1):
+        k = self.keep_points([e0, e1, e0, e1], [n0, n0, n1, n1])
+        return "inside" if k.all() else ("outside" if not k.any() else "straddle")
+
+    def rect_polygon(self, e0, n0, e1, n1):
+        poly = [(e0, n0), (e1, n0), (e1, n1), (e0, n1)]
+        f = lambda p: (p[0] - self.a[0]) * self.n[0] + (p[1] - self.a[1]) * self.n[1]
+        out = []
+        for i in range(4):
+            p, q = poly[i], poly[(i + 1) % 4]
+            fp, fq = f(p), f(q)
+            if fp >= 0.0: out.append(p)
+            if (fp >= 0.0) != (fq >= 0.0):
+                t = fp / (fp - fq)
+                out.append((p[0] + (q[0] - p[0]) * t, p[1] + (q[1] - p[1]) * t))
+        return out + [out[0]] if len(out) >= 3 else []
+
+
+_CLIP_TYPES = {"halfplane": HalfPlaneClip}
+
+
+def parse_clip(cfg):
+    blk = cfg.get("clip")
+    if not blk: return None
+    t = blk.get("type")
+    if t not in _CLIP_TYPES:
+        sys.exit(f"clip.type {t!r} not supported (known: {', '.join(sorted(_CLIP_TYPES))})")
+    return _CLIP_TYPES[t](blk)
+
+
+def keep_points(clip, E, N):
+    import numpy as np
+    if clip is None:
+        return np.ones(np.broadcast(np.asarray(E), np.asarray(N)).shape, dtype=bool)
+    return clip.keep_points(E, N)
+
+
+def tile_state(clip, cfg, i, j):
+    if clip is None: return "inside"
+    E0, N0, T = cfg["origin"]["E"], cfg["origin"]["N"], cfg["tile_m"]
+    return clip.rect_state(E0 + i * T, N0 + j * T, E0 + (i + 1) * T, N0 + (j + 1) * T)
+
+
+def cell_mask(clip, gt, height, width, row0=0, col0=0):
+    """(height, width) bool of KEPT cells for a north-up raster, evaluated at pixel CENTRES:
+    E = gt[0] + (col + 0.5) * gt[1], N = gt[3] + (row + 0.5) * gt[5]."""
+    import numpy as np
+    if clip is None: return np.ones((height, width), dtype=bool)
+    if gt[2] != 0.0 or gt[4] != 0.0:
+        sys.exit("cell_mask: rotated geotransforms are not supported; rasters here are north-up")
+    E = gt[0] + (col0 + np.arange(width) + 0.5) * gt[1]
+    N = gt[3] + (row0 + np.arange(height) + 0.5) * gt[5]
+    return clip.keep_points(E[None, :], N[:, None])
+
+
+def clip_wkt(clip, bbox):
+    e0, n0, e1, n1 = bbox
+    ring = ([(e0, n0), (e1, n0), (e1, n1), (e0, n1), (e0, n0)] if clip is None
+            else clip.rect_polygon(e0, n0, e1, n1))
+    if not ring: return None
+    return "POLYGON((" + ",".join(f"{x:.3f} {y:.3f}" for x, y in ring) + "))"
+
+
+def clip_manifest(clip):
+    if clip is None: return None
+    return {**clip.stamp(),
+            "semantics": "keep P iff cross(B-A, P-A) >= 0 for keep 'left' (<= 0 for 'right'); line = [A, B] in CRS "
+                         "metres; points on the line are kept. Raster cells are tested at their centres; features at "
+                         "their vertices (06, 11), footprint envelope centre (07) or node (10)."}
+
+
+def grid_stamp(cfg, clip=None):
+    """The _grid.json stamp step 02 and reuse_tiles.py agree on: the four raster-defining keys. The clip
+    does not change a tile's bytes, so it is NOT part of the stamp (02 records it in _fetch_clip.json)."""
+    return {"crs": cfg["crs"], "origin": cfg["origin"], "tile_m": cfg["tile_m"], "grid_res": cfg["grid_res"]}
+
+
+# ---- line geometry -------------------------------------------------------------
+# Densify + Chaikin + bilinear drape + per-tile split, exactly as step 06 does it. Step 06 keeps its own
+# copies (BRIEF 4.4 "06 stays untouched"); the dry run proves equivalence (check C11 'rail on a road's
+# polyline gives identical pts'); the follow-up commit "refactor-06-onto-lib.drape_runs" is gated by
+# sources/tests/regress_outputs.sh compare margate before == 0 changed.
+
+def tagval(ot, key):                        # == 06_build_networks.py:72-78
+    if not ot: return None
+    tok = '"' + key + '"=>"'
+    i = ot.find(tok)
+    if i < 0: return None
+    j = ot.find('"', i + len(tok))
+    return ot[i + len(tok):j]
+
+
+def densify(pts, step):                     # == 06_build_networks.py:81-92
+    import math
+    out = [pts[0]]
+    for i in range(1, len(pts)):
+        ax, ay = out[-1]; bx, by = pts[i]
+        d = math.hypot(bx - ax, by - ay)
+        if d > step:
+            n = int(d // step)
+            for k in range(1, n + 1):
+                t = k * step / d
+                if t < 1.0: out.append((ax + (bx - ax) * t, ay + (by - ay) * t))
+        out.append(pts[i])
+    return out
+
+
+def chaikin(pts, iters):                    # == 06_build_networks.py:95-106
+    for _ in range(iters):
+        if len(pts) < 3: break
+        new = [pts[0]]
+        for i in range(len(pts) - 1):
+            ax, ay = pts[i]; bx, by = pts[i + 1]
+            new.append((ax * 0.75 + bx * 0.25, ay * 0.75 + by * 0.25))
+            new.append((ax * 0.25 + bx * 0.75, ay * 0.25 + by * 0.75))
+        new.append(pts[-1])
+        pts = new
+    return pts
+
+
+class DtmSampler:
+    """06_build_networks.py:54-69 as an object: bilinear sample of a north-up array whose gaps are NaN."""
+    def __init__(self, arr, gt):
+        self.a, self.gt = arr, gt
+        self.H, self.W = arr.shape
+
+    def __call__(self, e, n):
+        import math, numpy as np
+        gt, W, H, DTM = self.gt, self.W, self.H, self.a
+        fx = (e - gt[0]) / gt[1] - 0.5
+        fy = (n - gt[3]) / gt[5] - 0.5
+        if not (0.0 <= fx <= W - 1 and 0.0 <= fy <= H - 1): return (0.0, False)
+        x0, y0 = int(math.floor(fx)), int(math.floor(fy))
+        x0 = min(x0, W - 2); y0 = min(y0, H - 2)
+        tx, ty = fx - x0, fy - y0
+        a = DTM[y0, x0]; b = DTM[y0, x0+1]; c = DTM[y0+1, x0]; d = DTM[y0+1, x0+1]
+        v = (a*(1-tx) + b*tx)*(1-ty) + (c*(1-tx) + d*tx)*ty
+        return (float(v), True) if np.isfinite(v) else (0.0, False)
+
+
+def tile_of(cfg, e, n):                     # == 06_build_networks.py:152-157, cfg passed in
+    E0, N0, T = cfg["origin"]["E"], cfg["origin"]["N"], cfg["tile_m"]
+    i, j = int((e - E0) // T), int((n - N0) // T)
+    return (i, j) if 0 <= i < cfg["nx"] and 0 <= j < cfg["ny"] else None
+
+
+def drape_runs(pts, cfg, sample, clip, counters):
+    """06_build_networks.py:163-201 as a function. Returns [(tile, [[E, N, z], ...], z_gap)] per tile run,
+    seam vertex duplicated on both sides. An off-grid vertex and an off-clip vertex both close the run.
+    counters: 'outside_grid', 'outside_clip', 'without_dtm' (kept vertices only)."""
+    keep = keep_points(clip, [p[0] for p in pts], [p[1] for p in pts]) if clip is not None else None
+    samp = []
+    for k, (e, n) in enumerate(pts):
+        tile = tile_of(cfg, e, n)
+        if tile is None:
+            counters["outside_grid"] = counters.get("outside_grid", 0) + 1
+            samp.append((e, n, None, None)); continue
+        if keep is not None and not keep[k]:
+            counters["outside_clip"] = counters.get("outside_clip", 0) + 1
+            samp.append((e, n, None, None)); continue
+        z, ok = sample(e, n)
+        samp.append((e, n, z if ok else None, tile))
+    zs = [s[2] for s in samp]
+    counters["without_dtm"] = counters.get("without_dtm", 0) + sum(1 for (_, _, z, t) in samp if z is None and t is not None)
+    last = None
+    for idx in range(len(zs)):
+        if zs[idx] is not None: last = zs[idx]
+        elif last is not None and samp[idx][3] is not None: zs[idx] = last
+    nxt = None
+    for idx in range(len(zs) - 1, -1, -1):
+        if zs[idx] is not None: nxt = zs[idx]
+        elif nxt is not None and samp[idx][3] is not None: zs[idx] = nxt
+    runs, run, cur, run_gap = [], [], None, False
+    def flush():
+        if cur is not None and len(run) >= 2: runs.append((cur, run, run_gap))
+    for (e, n, z_raw, tile), z in zip(samp, zs):
+        filled = z_raw is None
+        if tile is None:
+            flush(); run, cur, run_gap = [], None, False
+            continue
+        if z is None: z = 0.0
+        if cur is None: cur = tile
+        v = [round(e, 2), round(n, 2), round(z, 2)]
+        if tile != cur:
+            run.append(v); run_gap |= filled
+            flush()
+            run = [run[-1]]; cur = tile; run_gap = filled
+        run.append(v); run_gap |= filled
+    flush()
+    return runs
+
+
 # ---- TIFF header, without GDAL -------------------------------------------
 # Step 02 runs before any GDAL step and must be able to tell a real tile from a truncated
 # download, an HTML error page or a server-side resample. A size heuristic cannot; the
 # header can. Reads only the first IFD.
 
 def tiff_info(path):
-    """{'width','height','dtype','nodata'} of a classic TIFF's first image, or None if the
-    file is not a TIFF. dtype is e.g. 'float32'."""
+    """{'width','height','dtype','nodata','georef_origin'} of a classic TIFF's first image, or None
+    if the file is not a TIFF. dtype is e.g. 'float32'. georef_origin is the (E, N) of the raster's
+    top-left corner from ModelTransformationTag 34264 (raw EA WCS tiles) or, failing that, the
+    ModelTiepointTag 33922 tiepoint at raster (0, 0) (GDAL-written tiles); None when neither is
+    present. reuse_tiles.py uses it to prove a renamed tile lands where its new name says."""
     import struct
     try:
         with open(path, "rb") as f:
@@ -160,9 +398,22 @@ def tiff_info(path):
                         vals["nodata"] = float(data.decode("latin1").rstrip("\x00"))
                     except ValueError:
                         pass
+                elif tag == 34264 and typ == 12 and cnt >= 16:
+                    # ModelTransformationTag: 4x4 row-major matrix; the origin (corner of pixel 0,0)
+                    # is the translation column of rows 0 and 1. Raw EA WCS tiles carry this tag.
+                    m = struct.unpack(bo + "16d", data[:128])
+                    vals["_mt_origin"] = (m[3], m[7])
+                elif tag == 33922 and typ == 12 and cnt >= 6:
+                    # ModelTiepointTag: (I, J, K, X, Y, Z) tuples; the one at raster (0, 0) is the
+                    # origin. GDAL-written tiles carry this together with 33550 (pixel scale).
+                    tp = struct.unpack(bo + f"{cnt}d", data[:8 * cnt])
+                    for k in range(0, cnt - 5, 6):
+                        if tp[k] == 0.0 and tp[k + 1] == 0.0:
+                            vals["_tp_origin"] = (tp[k + 3], tp[k + 4]); break
         fmt = {1: "uint", 2: "int", 3: "float"}.get(vals.get(339, 1), "uint")
         return {"width": vals.get(256), "height": vals.get(257),
-                "dtype": f"{fmt}{vals.get(258)}", "nodata": vals.get("nodata")}
+                "dtype": f"{fmt}{vals.get(258)}", "nodata": vals.get("nodata"),
+                "georef_origin": vals.get("_mt_origin", vals.get("_tp_origin"))}
     except (OSError, struct.error):
         return None
 

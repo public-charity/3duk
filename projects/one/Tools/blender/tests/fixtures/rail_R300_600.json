@@ -1,0 +1,374 @@
+{
+ "schema_version": "1.0.0",
+ "site": "synthetic_rail",
+ "crs": "EPSG:27700",
+ "origin": {
+  "E": 0,
+  "N": 0
+ },
+ "vertical_datum": "ODN",
+ "frame": "local-metres, X east, Y north, Z up",
+ "generator": "hand-authored (Tools/blender/tests/synthetic.py)",
+ "materials": {
+  "tarmac": {
+   "base_color": [
+    0.16,
+    0.16,
+    0.17
+   ],
+   "roughness": 0.9,
+   "texture_repeat_m": 4.0
+  },
+  "white_paint": {
+   "base_color": [
+    0.92,
+    0.92,
+    0.9
+   ],
+   "roughness": 0.6
+  },
+  "yellow_paint": {
+   "base_color": [
+    0.95,
+    0.8,
+    0.1
+   ],
+   "roughness": 0.6
+  },
+  "concrete_kerb": {
+   "base_color": [
+    0.62,
+    0.61,
+    0.58
+   ],
+   "roughness": 0.8,
+   "texture_repeat_m": 0.915
+  },
+  "paving_slab": {
+   "base_color": [
+    0.55,
+    0.54,
+    0.52
+   ],
+   "roughness": 0.85,
+   "texture_repeat_m": 0.6
+  },
+  "grass": {
+   "base_color": [
+    0.25,
+    0.42,
+    0.14
+   ],
+   "roughness": 1.0,
+   "texture_repeat_m": 2.0
+  },
+  "brick_red": {
+   "base_color": [
+    0.55,
+    0.27,
+    0.2
+   ],
+   "roughness": 0.85,
+   "texture_repeat_m": 1.0
+  },
+  "coping_concrete": {
+   "base_color": [
+    0.66,
+    0.65,
+    0.62
+   ],
+   "roughness": 0.8
+  },
+  "chain_link": {
+   "base_color": [
+    0.55,
+    0.57,
+    0.58
+   ],
+   "roughness": 0.5,
+   "two_sided": true,
+   "texture_repeat_m": 1.0
+  },
+  "post_steel": {
+   "base_color": [
+    0.35,
+    0.37,
+    0.38
+   ],
+   "roughness": 0.5
+  },
+  "steel_painted_black": {
+   "base_color": [
+    0.05,
+    0.05,
+    0.06
+   ],
+   "roughness": 0.45
+  },
+  "privet_leaf": {
+   "base_color": [
+    0.16,
+    0.33,
+    0.1
+   ],
+   "roughness": 0.9
+  }
+ },
+ "profiles": {
+  "road": {
+   "rail_standard": {
+    "kind": "rail",
+    "lanes": 1,
+    "lane_widths_m": [
+     3.4
+    ],
+    "width_m": 3.4,
+    "surface_material": "ballast",
+    "camber": {
+     "kind": "none"
+    },
+    "overlap_m": 0.04,
+    "skirt_drop_m": 0.0,
+    "lateral_station_spacing_m": 1.0,
+    "markings": [],
+    "rail": {
+     "gauge_m": 1.435,
+     "pad_m": 0.005,
+     "rail": {
+      "profile_id": "BS113A",
+      "height_m": 0.15875,
+      "head_width_m": 0.06985,
+      "foot_width_m": 0.1397,
+      "web_thickness_m": 0.02,
+      "head_depth_m": 0.045,
+      "foot_thickness_m": 0.011,
+      "material": "rail_steel"
+     },
+     "sleeper": {
+      "length_m": 2.5,
+      "width_m": 0.25,
+      "height_m": 0.15,
+      "pitch_m": 0.65,
+      "phase_m": 0.0,
+      "embed_m": 0.1,
+      "mode": "instances",
+      "material": "sleeper_concrete"
+     },
+     "ballast": {
+      "shoulder_slope": 1.5,
+      "depth_m": 0.45,
+      "material": "ballast"
+     }
+    },
+    "sampling_defaults": {
+     "step_m": 1.0,
+     "min_step_m": 0.25,
+     "curvature_gain": 60.0,
+     "smoothing_window_m": 40.0,
+     "smoothing_passes": 2,
+     "bank_max_deg": 6.0,
+     "bank_rate_max_deg_per_m": 0.25
+    }
+   }
+  },
+  "edge": {},
+  "hedge": {}
+ },
+ "splines": [
+  {
+   "id": "authored:rail_R300_600",
+   "source": {
+    "layer": "rail",
+    "osm_id": "0",
+    "name": "rail_R300_600",
+    "cls": "rail",
+    "tags": {
+     "gauge": "1435",
+     "electrified": "rail"
+    }
+   },
+   "profile_ids": {
+    "road": "rail_standard",
+    "edge_left": null,
+    "edge_right": null,
+    "hedge_left": null,
+    "hedge_right": null
+   },
+   "points": [
+    {
+     "x": 100.0,
+     "y": 100.0
+    },
+    {
+     "x": 150.0,
+     "y": 100.0
+    },
+    {
+     "x": 200.0,
+     "y": 100.0
+    },
+    {
+     "x": 250.0,
+     "y": 100.0
+    },
+    {
+     "x": 300.0,
+     "y": 100.0
+    },
+    {
+     "x": 319.985188,
+     "y": 100.66642
+    },
+    {
+     "x": 339.881587,
+     "y": 102.662718
+    },
+    {
+     "x": 359.600799,
+     "y": 105.980027
+    },
+    {
+     "x": 379.055217,
+     "y": 110.603606
+    },
+    {
+     "x": 398.158409,
+     "y": 116.512916
+    },
+    {
+     "x": 416.825503,
+     "y": 123.681702
+    },
+    {
+     "x": 434.973564,
+     "y": 132.078114
+    },
+    {
+     "x": 452.521965,
+     "y": 141.664849
+    },
+    {
+     "x": 469.392742,
+     "y": 152.399316
+    },
+    {
+     "x": 485.510941,
+     "y": 164.233822
+    },
+    {
+     "x": 524.805304,
+     "y": 195.152312
+    },
+    {
+     "x": 564.099667,
+     "y": 226.070802
+    },
+    {
+     "x": 603.39403,
+     "y": 256.989292
+    },
+    {
+     "x": 642.688393,
+     "y": 287.907782
+    }
+   ],
+   "segments": [],
+   "drop_kerbs": [],
+   "junction_start": null,
+   "junction_end": null,
+   "overlay": {
+    "kind": "other",
+    "pts": [
+     [
+      100.0,
+      100.0
+     ],
+     [
+      150.0,
+      100.0
+     ],
+     [
+      200.0,
+      100.0
+     ],
+     [
+      250.0,
+      100.0
+     ],
+     [
+      300.0,
+      100.0
+     ],
+     [
+      319.985188,
+      100.66642
+     ],
+     [
+      339.881587,
+      102.662718
+     ],
+     [
+      359.600799,
+      105.980027
+     ],
+     [
+      379.055217,
+      110.603606
+     ],
+     [
+      398.158409,
+      116.512916
+     ],
+     [
+      416.825503,
+      123.681702
+     ],
+     [
+      434.973564,
+      132.078114
+     ],
+     [
+      452.521965,
+      141.664849
+     ],
+     [
+      469.392742,
+      152.399316
+     ],
+     [
+      485.510941,
+      164.233822
+     ],
+     [
+      524.805304,
+      195.152312
+     ],
+     [
+      564.099667,
+      226.070802
+     ],
+     [
+      603.39403,
+      256.989292
+     ],
+     [
+      642.688393,
+      287.907782
+     ]
+    ],
+    "osm_id": "0"
+   }
+  }
+ ],
+ "junctions": [],
+ "_terrain": {
+  "kind": "flat",
+  "z_m": 10.0,
+  "px_m": 1.0,
+  "tile_m": 512.0,
+  "extent_m": [
+   1024.0,
+   1024.0
+  ]
+ }
+}

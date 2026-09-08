@@ -33,6 +33,7 @@ E0, N0, T = CFG["origin"]["E"], CFG["origin"]["N"], CFG["tile_m"]
 NX, NY = CFG["nx"], CFG["ny"]
 NET = os.path.join(P["out"], "networks")
 OUT = os.path.join(P["out"], "furniture")
+CLIP = lib.parse_clip(CFG)
 
 PROPS = {k: v for k, v in TUN["props"].items() if not k.startswith("_")}
 KERB  = TUN["kerb_m"]
@@ -126,6 +127,7 @@ def main():
     lyr = src.GetLayer("points")
     has_field = lyr.GetLayerDefn().GetFieldIndex("amenity") >= 0   # default osmconf hides it in other_tags
     buckets, n_amenity, outside, kinds = defaultdict(list), 0, 0, Counter()
+    outside_clip = 0
     for f in lyr:
         ot = f.GetField("other_tags")
         am = f.GetField("amenity") if has_field else tagval(ot, "amenity")
@@ -138,6 +140,9 @@ def main():
         e, n = g.GetX(), g.GetY()
         if not (E0 <= e < E0 + NX * T and N0 <= n < N0 + NY * T):
             outside += 1
+            continue
+        if CLIP is not None and not lib.keep_points(CLIP, e, n):
+            outside_clip += 1             # judged at the OSM position, before any nudge
             continue
         rec = {"id": f.GetField("osm_id"), "prop": PROPS[am], "name": f.GetField("name") or None}
         rec.update(place(rec["id"], e, n, segs))
@@ -162,10 +167,12 @@ def main():
                "by_height_source": dict(srcs),
                "nudged_out_of_carriageway": sum(r["nudged"] for v in buckets.values() for r in v),
                "amenity_kinds_seen": dict(kinds.most_common(12)), "props": PROPS,
-               "kerb_m": KERB, "snap_m": SNAP},
+               "kerb_m": KERB, "snap_m": SNAP,
+               **({} if CLIP is None else {"clip": lib.clip_manifest(CLIP), "outside_clip": outside_clip})},
               open(os.path.join(P["out"], "qa_furniture.json"), "w"), indent=1)
     print(f"wrote {n} placements across {len(buckets)} tiles -> {OUT}   ({nseg} segments consulted)")
-    print(f"elevation from: {dict(srcs)}   outside grid: {outside}   amenity nodes total: {n_amenity}")
+    print(f"elevation from: {dict(srcs)}   outside grid: {outside}   amenity nodes total: {n_amenity}"
+          + (f"   outside clip: {outside_clip}" if CLIP is not None else ""))
     if n == 0:
         print(f"10: WARNING -- amenity nodes exist but none matched {sorted(PROPS)}; nothing to place")
 

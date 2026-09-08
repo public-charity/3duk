@@ -27,6 +27,26 @@
     "junction_margin_m": 0.4
   },
 
+  "rail": {
+    "classes": ["rail", "light_rail", "tram", "narrow_gauge", "miniature", "disused"],
+    "classes_note": "OSM railway values emitted by step 11 as cls. disused = track still in place; abandoned/razed/dismantled have no track and are skipped, as are platform/station/signal and other non-track ways. Skipped values are counted in linear_manifest.ways_skipped_by_class.",
+    "default_gauge_m": 1.435,
+    "default_gauge_note": "Standard gauge (1435 mm), the whole Kent network. OSM gauge is in millimetres and is converted; a way without the tag gets this and gauge_src=default.",
+    "densify_step_m": 8.0,
+    "chaikin_iters": 2,
+    "chaikin_note": "Same presentation choice as roads. The Streetscape rail profile resamples with curvature-adaptive spacing anyway. Set 0 for OSM-faithful vertices."
+  },
+
+  "barriers": {
+    "classes": ["wall", "fence", "hedge", "retaining_wall", "kerb", "guard_rail", "handrail", "city_wall"],
+    "classes_note": "OSM barrier values emitted by step 11 as cls -- the linear ones. gate and bollard ways (two-node, point-like) and barrier=yes are skipped and counted; barrier nodes live in the points layer.",
+    "default_height_m": {"wall": 1.8, "fence": 1.5, "hedge": 1.5, "retaining_wall": 1.5, "kerb": 0.12, "guard_rail": 0.75, "handrail": 1.0, "city_wall": 6.0},
+    "default_height_note": "OPINIONS, used only when OSM has no height tag (Margate: 15 of 467 barrier ways carry one) and tagged h_src=default. wall 1.8 (below the 2 m permitted-development limit); fence 1.5 (garden panel); hedge 1.5 (trimmed privet); retaining_wall 1.5 (the DTM step is the truth); kerb 0.12 (= furniture.kerb_m); guard_rail 0.75 (beam height); handrail 1.0 (Approved Document K); city_wall 6.0 (placeholder).",
+    "densify_step_m": 8.0,
+    "chaikin_iters": 0,
+    "chaikin_note": "Zero on purpose: walls and fences are angular; Chaikin would move every corner a quarter-span inward. Densification still adds drape points every 8 m."
+  },
+
   "buildings": {
     "min_pixels": 6,
     "min_pixels_note": "Fewer LIDAR samples than this inside a footprint and p50 is noise; the height is still emitted but tagged lidar_lowconf.",

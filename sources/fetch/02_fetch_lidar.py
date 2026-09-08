@@ -25,11 +25,14 @@ import lib
 
 CFG = lib.load()
 P = lib.paths(CFG)
+CLIP = lib.parse_clip(CFG)
 lib.mkdirs(P["lidar"])
 E0, N0, T, RES = CFG["origin"]["E"], CFG["origin"]["N"], CFG["tile_m"], CFG["grid_res"]
 UA = f"3duk-pipeline/2.0 (site={CFG['site']})"
 
-GRID = {"crs": CFG["crs"], "origin": CFG["origin"], "tile_m": T, "grid_res": RES}
+# The stamp is the four raster-defining keys only. A clip never changes a tile's bytes, so adding
+# or moving one must not invalidate a fetched directory; the clip is recorded in _fetch_clip.json.
+GRID = lib.grid_stamp(CFG)
 stamp = os.path.join(P["lidar"], "_grid.json")
 if os.path.exists(stamp):
     old = json.load(open(stamp))
@@ -75,8 +78,27 @@ def fetch(args):
         return (kind, i, j, f"ERR {type(ex).__name__}", 0)
 
 
-jobs = [(k, i, j) for k in ("dtm", "dsm") for i in range(CFG["nx"]) for j in range(CFG["ny"])]
-print(f"fetching {len(jobs)} rasters for {CFG['site']} ({CFG['nx']}x{CFG['ny']} tiles x2, {RES}x{RES} each)...", flush=True)
+positions = [(i, j) for i in range(CFG["nx"]) for j in range(CFG["ny"])]
+# A tile position whose 512 m square lies wholly outside the site's clip is not fetched at all.
+# One already on disk there (fetched before the clip existed) is left alone: steps 05 and 09
+# skip it from the config, so it is harmless, and it is listed below so nobody wonders.
+skipped = [(i, j) for (i, j) in positions if lib.tile_state(CLIP, CFG, i, j) == "outside"]
+jobs = [(k, i, j) for k in ("dtm", "dsm") for (i, j) in positions if (i, j) not in set(skipped)]
+print(f"fetching {len(jobs)} rasters for {CFG['site']} ({len(positions) - len(skipped)} of {CFG['nx'] * CFG['ny']} "
+      f"tile positions x2, {RES}x{RES} each)...", flush=True)
+if skipped:
+    print(f"clip: skipping {len(skipped)} tile positions ({2 * len(skipped)} rasters) wholly outside the clip line", flush=True)
+if CLIP is not None:
+    on_disk = [[i, j] for (i, j) in skipped
+               if any(os.path.exists(os.path.join(P["lidar"], f"{k}_x{i}_y{j}.tif")) for k in ("dtm", "dsm"))]
+    json.dump({"clip": lib.clip_manifest(CLIP),
+               "skipped_positions": [[i, j] for (i, j) in skipped],
+               "skipped_positions_on_disk": on_disk,
+               "note": "skipped_positions are wholly outside the clip and were not requested this run; "
+                       "skipped_clip in the run summary counts them x2 (dtm + dsm) whether or not a raster "
+                       "exists on disk for them. skipped_positions_on_disk lists those that do (fetched "
+                       "before the clip was configured); they are neither read nor deleted."},
+              open(os.path.join(P["lidar"], "_fetch_clip.json"), "w"), indent=1)
 stats, problems = {}, []
 with ThreadPoolExecutor(max_workers=8) as ex:
     for k, i, j, st, sz in ex.map(fetch, jobs):
@@ -85,6 +107,8 @@ with ThreadPoolExecutor(max_workers=8) as ex:
         if key not in ("ok", "cached"):
             problems.append((k, i, j, st))
             print(f"  {k} x{i}_y{j}: {st}", flush=True)
+if CLIP is not None:
+    stats["skipped_clip"] = 2 * len(skipped)
 print("summary:", stats)
 
 # EMPTY is legal -- open sea or ground beyond the source's coverage -- and steps 05 and 09

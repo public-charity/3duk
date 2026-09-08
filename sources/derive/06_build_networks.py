@@ -37,6 +37,7 @@ E0, N0, T = CFG["origin"]["E"], CFG["origin"]["N"], CFG["tile_m"]
 NX, NY = CFG["nx"], CFG["ny"]
 OUT = os.path.join(P["out"], "networks")
 lib.mkdirs(OUT)
+CLIP = lib.parse_clip(CFG)
 
 SPEC = {k: tuple(v) for k, v in TUN["widths_m"].items() if not k.startswith("_")}
 SKIP = set(TUN["skip"])
@@ -142,6 +143,7 @@ for wy in ways:
 KEEP = ("id", "cls", "w", "pav", "name", "bridge", "tunnel")
 buckets = defaultdict(list)
 total_len, n_nodata, n_outside = 0.0, 0, 0
+n_outside_clip, n_junc_clip = 0, 0
 
 
 def flush(cur, run, wy, gap):
@@ -159,13 +161,21 @@ def tile_of(e, n):
 
 for wy in ways:
     pts = chaikin(densify(wy["pts"], TUN["densify_step_m"]), TUN["chaikin_iters"])
+    # The clip is tested on the SMOOTHED vertices, before the DTM is sampled: an off-clip vertex
+    # closes the run like an off-grid one, and is never counted as a DTM gap. A way crossing the
+    # line therefore ends at its last kept smoothed vertex; nothing extends it to the line.
+    keep = lib.keep_points(CLIP, [p[0] for p in pts], [p[1] for p in pts]) if CLIP is not None else None
     # Sample first, then fill DTM gaps from BOTH directions along the way, so a way that
     # starts inside a gap borrows its first real elevation instead of dropping to zero.
     samp = []
-    for (e, n) in pts:
+    for k, (e, n) in enumerate(pts):
         tile = tile_of(e, n)
         if tile is None:
             n_outside += 1
+            samp.append((e, n, None, None))
+            continue
+        if keep is not None and not keep[k]:
+            n_outside_clip += 1
             samp.append((e, n, None, None))
             continue
         z, ok = ground(e, n)
@@ -204,6 +214,9 @@ for wy in ways:
 for (e, n), w in junc.items():
     tile = tile_of(e, n)
     if tile is None: continue
+    if CLIP is not None and not lib.keep_points(CLIP, e, n):
+        n_junc_clip += 1
+        continue
     z, _ = ground(e, n)
     buckets[tile].append({"cls": "_junction", "r": round(w / 2.0 + TUN["junction_margin_m"], 2),
                           "pts": [[round(e, 2), round(n, 2), round(z, 2)]]})
@@ -227,11 +240,16 @@ json.dump({"site": CFG["site"], "crs": CFG["crs"],
                          "chaikin_iters": TUN["chaikin_iters"]},
            "widths_m": {k: list(v) for k, v in SPEC.items()},
            "vertices_without_dtm": n_nodata,
-           "vertices_outside_grid": n_outside},
+           "vertices_outside_grid": n_outside,
+           **({} if CLIP is None else {"clip": lib.clip_manifest(CLIP),
+                                       "vertices_outside_clip": n_outside_clip,
+                                       "junctions_outside_clip": n_junc_clip})},
           open(os.path.join(OUT, "networks_manifest.json"), "w"), indent=1)
 
 print(f"wrote {n} segments across {len(buckets)} tiles -> {OUT}")
 print(f"road length: {total_len/1000:.1f} km   junction discs: {len(junc)}")
+if CLIP is not None:
+    print(f"clip: {n_outside_clip:,} smoothed vertices and {n_junc_clip} junctions outside the clip line, dropped")
 print("classes:", dict(Counter(w["cls"] for w in ways).most_common(8)))
 if n_nodata:
     print(f"06: WARNING -- {n_nodata:,} vertices had no DTM value; elevation carried from the "

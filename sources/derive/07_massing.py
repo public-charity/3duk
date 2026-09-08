@@ -29,6 +29,7 @@ CFG = lib.load()
 TUN = CFG["tuning"]["buildings"]
 P   = lib.paths(CFG)
 E0, N0, T = CFG["origin"]["E"], CFG["origin"]["N"], CFG["tile_m"]
+CLIP = lib.parse_clip(CFG)
 OUT = os.path.join(P["out"], "massing")
 lib.mkdirs(OUT)
 
@@ -117,12 +118,16 @@ def r2(v):
     return None if v is None else round(float(v), 2)
 
 buckets, qa, nlm, no_lidar, no_dsm, outside = {}, [], 0, 0, 0, 0
+outside_clip = 0
 for k, rec in enumerate(feats):
     g = ogr.CreateGeometryFromWkb(rec["wkb"])
     x0,x1,y0,y1 = g.GetEnvelope(); cx, cy = (x0+x1)/2, (y0+y1)/2
     i, j = int((cx-E0)//T), int((cy-N0)//T)
     if not (0 <= i < NX and 0 <= j < NY):
         outside += 1                  # the Overpass bbox is generous; the grid is the model
+        continue
+    if CLIP is not None and not lib.keep_points(CLIP, cx, cy):
+        outside_clip += 1             # judged at the same envelope centre as the tile; not emitted
         continue
     if k in S:
         p25, p50, p90, npx, d15, dmin = S[k]
@@ -195,13 +200,14 @@ json.dump({"site": CFG["site"], "crs": CFG["crs"], "coordinates": "CRS eastings/
            "by_height_source": dict(by_src), "landmark_overrides": nlm,
            "buildings_without_lidar": no_lidar,
            "buildings_without_dsm": no_dsm,
-           "qa_flagged": len(qa)},
+           "qa_flagged": len(qa),
+           **({} if CLIP is None else {"clip": lib.clip_manifest(CLIP), "outside_clip": outside_clip})},
           open(os.path.join(OUT, "massing_manifest.json"), "w"), indent=1)
 json.dump(qa, open(os.path.join(P["out"], "qa_height_outliers.json"), "w"), indent=1)
 
 print(f"wrote {n} buildings across {len(buckets)} tiles -> {OUT}")
 print(f"landmark overrides applied: {nlm}   QA flagged: {len(qa)}   ground-only (DSM gap): {no_dsm}   "
-      f"no LIDAR at all: {no_lidar}   off-grid: {outside}")
+      f"no LIDAR at all: {no_lidar}   off-grid: {outside}" + (f"   off-clip: {outside_clip}" if CLIP is not None else ""))
 print("height source:", dict(by_src))
 print("roof form   :", dict(Counter(b["roof"] for v in buckets.values() for b in v).most_common(6)))
 

@@ -1,0 +1,61 @@
+"""numpy_parity_dump - write the numpy prototype's spline arrays for Streetscape.Spline.NumpyParity (UE_PLAN.md 2.14).
+
+Runs with the PIPELINE python (not UE's):
+    PATH=/c/Users/Shadow/code/3duk-env/env/Library/bin:$PATH C:/Users/Shadow/code/3duk-env/env/python.exe \
+        projects/one/Tools/ue/numpy_parity_dump.py [--out projects/one/Saved/Tests/numpy_parity.json]
+then
+    powershell.exe -NoProfile -ExecutionPolicy Bypass -File projects/one/Tools/ue/run_ue_tests.ps1 -Filter Streetscape.Spline.NumpyParity \
+        -ParityJson projects/one/Saved/Tests/numpy_parity.json
+
+The C++ test builds the same fixtures (Tools/blender/tests/fixtures/*.json, flat terrain z = 10 with xy0 (0, -256);
+'bank_cross' = straight_100 on the 0.1 cross-slope terrain) and reports, per array, how many values are bit-identical
+and the max |diff| (asserted < 1e-9). Measured 2026-09-08: 8 arrays, every value bit-identical.
+"""
+import argparse
+import json
+import os
+import sys
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+PROJECT_ONE = os.path.dirname(os.path.dirname(HERE))
+TOOLS_BLENDER = os.path.join(PROJECT_ONE, "Tools", "blender")
+sys.path.insert(0, TOOLS_BLENDER)
+sys.path.insert(0, os.path.join(TOOLS_BLENDER, "tests"))
+
+import synthetic as SY  # noqa: E402
+from streetscape import io_json as IO  # noqa: E402
+from streetscape import schema as S  # noqa: E402
+from streetscape import spline as SP  # noqa: E402
+
+
+def build(name, terrain=None):
+    doc = SY.load_fixture(name)
+    site = IO.site_from_dict(doc)
+    t = terrain if terrain is not None else SY.terrain_for(doc)
+    return SP.Spline(site.splines[0], site, t)
+
+
+def arrays(sp):
+    return {
+        "s": [float(v) for v in sp.s],
+        "width": [float(v) for v in sp.width],
+        "z_ref": [float(v) for v in sp.z_ref],
+        "bank": [float(v) for v in sp.bank_deg],
+        "edge_left": [float(v) for v in sp.edge_offset(S.LEFT)],
+    }
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--out", default=os.path.join(PROJECT_ONE, "Saved", "Tests", "numpy_parity.json"))
+    args = ap.parse_args()
+    out = {name: arrays(build(name)) for name in ("straight_100", "sine_5_50", "curve_R20_200", "rail_R300_600")}
+    out["bank_cross"] = arrays(build("straight_100", SY.cross_slope_terrain(0.1)))
+    os.makedirs(os.path.dirname(args.out), exist_ok=True)
+    with open(args.out, "w", encoding="utf-8", newline="\n") as fh:
+        json.dump(out, fh, indent=1)
+    print("wrote %s: %s" % (args.out, {k: len(v["s"]) for k, v in out.items()}))
+
+
+if __name__ == "__main__":
+    main()

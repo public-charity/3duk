@@ -15,11 +15,16 @@ sources/
     sites/<site>.json   one file per place: CRS, tile grid, bbox, source coverages,
                         water level, height calibration, landmark overrides
     tuning.json         cross-site opinions: road widths, building priors, percentiles
-  fetch/            01 Overpass extract, 02 1 m LIDAR DTM/DSM over WCS
-  derive/           03-10 mosaics, heights, terrain, roads, massing, ground cover,
-                    street furniture
-  adapters/         consumer-specific conversion; unity.py is the reference
-  provenance/       what was actually fetched -- bbox, sha256, feature counts
+  fetch/            01 Overpass extract, 02 1 m LIDAR DTM/DSM over WCS, reuse_tiles.py
+                    (copy another site's tiles where the grids line up)
+  derive/           03-11 mosaics, heights, terrain, roads, massing, ground cover,
+                    street furniture, railway + barrier polylines
+  adapters/         consumer-specific conversion; unity.py is the reference, unreal.py the
+                    Streetscape-frame adapter for Unreal and Blender
+  provenance/       what was actually fetched -- bbox, sha256, feature counts, the query
+  tests/            dryrun.py fake-GDAL run of 05-11 + adapters on three synthetic sites;
+                    regress_outputs.sh byte-identity of a site's products;
+                    test_unreal_adapter.py
   run.sh            the driver
 ```
 
@@ -27,31 +32,99 @@ sources/
 
 ```bash
 ./sources/run.sh --list           # the steps
-SITE=margate ./sources/run.sh     # 01 -> 10, each step resumable
+SITE=margate ./sources/run.sh     # 01 -> 11, each step resumable
 ./sources/run.sh --from 04        # resume
+PATH=/c/<env>/Library/bin:$PATH PY=C:/<env>/python.exe SITE=thanet ./sources/run.sh --only 05
 ```
 
-Needs `python3.14` (override with `PY=`) and the GDAL CLI. `scipy` is optional but
-wanted: without it, terrain nodata is filled with a median instead of a true
-nearest-valid fill, and step 05 says so loudly rather than quietly degrading.
+Needs a python that imports both `numpy` and `osgeo.gdal` — `run.sh` probes
+`python3.14`, `python3.13`, `python3`, `python` on `PATH` for one and refuses to start
+without it (a bare `python3` is often the Microsoft Store stub); `PY=` names one explicitly
+and is checked the same way — plus the GDAL CLI on `PATH`. `scipy` is optional but wanted:
+without it, terrain nodata is filled with a median instead of a true nearest-valid fill,
+and step 05 says so loudly rather than quietly degrading. Step 01 must go through `run.sh`
+so the datum guard applies (see Regression below).
+
+Environment note: numpy's LAPACK calls (`polyfit`, `lstsq`, `svd` — step 07's height
+regression uses one) exit **silently, with no output** in a conda environment unless its
+`Library/bin` is on `PATH` — the OpenBLAS DLL is not found, and the process simply stops. On
+this machine that means `PATH=/c/Users/Shadow/code/3duk-env/env/Library/bin:$PATH` in Git
+Bash (the `/c/` form; a `C:/` entry is invisible to bash's `command -v` and to the DLL
+search) with `PY=C:/Users/Shadow/code/3duk-env/env/python.exe`.
 
 Output lands in `data/<site>/`, which is not tracked. `SITE` is required once more than
 one site is configured — with exactly one, it resolves on its own.
 
 ## Sites
 
-Two are configured: **margate** (the original — Thanet chalk coast, 13×7 tiles) and
+Three are configured: **margate** (the original — Thanet chalk coast, 13×7 tiles),
 **whitby** (Yorkshire harbour town, shale cliffs both sides of the Esk, abbey headland,
-6×5 tiles). Whitby's `water_level` and `coast` thresholds are marked provisional in its
-config: they are properties of the survey, to be read off the first DTM, not guessed.
+6×5 tiles) and **thanet** (the whole isle, 26×19 tiles). Whitby's `water_level` and `coast`
+thresholds are marked provisional in its config: they are properties of the survey, to be
+read off the first DTM, not guessed.
+
+**thanet** is Margate's grid grown to the isle: origin E 627680 N 163080, so Margate tile
+`(i, j)` is Thanet tile `(i+10, j+10)` and `sources/fetch/reuse_tiles.py --from margate --to
+thanet` copies the 182 already-fetched rasters into place (after checking each file's own
+georeferencing tag lands where the new name says) instead of re-downloading them. It is the
+first site with a **clip**: a straight line from Minnis Bay to Pegwell Bay along the old
+Wantsum Channel cuts the isle from the mainland — step 02 does not fetch tiles wholly beyond
+it, step 05 writes NoData there, steps 06–11 drop and count. Its `water_level`, `coast`,
+`height_calib` fallback and `landmarks` are inherited from Margate (same chalk, same EA
+survey) with a note saying so; the storey-height line is re-fitted by step 07 from Thanet's
+own buildings.
+
+The first full Thanet run (2026-09-08; 05–11 in 96 s on the fetched data): step 02 reports
+`cached: 782, skipped_clip: 206` (the 103 positions beyond the line had been fetched before
+the clip existed and stay on disk, unread); step 05 writes **391** terrain tiles — 103
+positions beyond the line not exported, 31 straddling it with **3,861,822** cells written as
+NoData after the fill — elevation −3.08..59.62 m, steepest cell **86.3°** with 0.201 % of
+cells over 45°, and 14.6 M offshore source gaps filled nearest and counted as such (a
+coverage gap, distinct from a clipped cell). Step 06: 14,468 road segments across 246 tiles,
+1,841 junctions, 119,825 smoothed vertices and 162 junctions dropped beyond the line, none
+without DTM. Step 07: 20,121 buildings (3,278 beyond the line, 60 off the grid), the storey
+line **re-fitted as 1.375 + 2.648 × levels** (n = 3,013, 189 rejected, rmse 1.22 m) against
+Margate's 1.337 + 2.807 (n = 1,457, rmse 1.4): the intercept holds to 4 cm and the per-storey
+figure drops 16 cm, which is what adding Ramsgate's, Broadstairs' and Birchington's inter-war
+semis and bungalows to Margate's high-ceilinged Victorian seafront terraces should do — a 2 ½
+storey house moves by under 30 cm, inside the fit's own rmse; both Margate landmark overrides
+still apply. Step 09: 103 positions beyond the line get no raster and 961,665 class cells are
+zeroed on the straddling tiles. Step 10: 52 placements, 3 nodes beyond the line.
+
+**Step 11's first real output**: 282 rail segments across 45 tiles, 49.6 km of centreline on
+the grid — 171 `rail` ways and 2 `miniature` (Chatham Main Line (Ramsgate Branch), Ashford
+to Ramsgate Line, depot roads at Ramsgate), the Birchington–Margate–Broadstairs–Ramsgate
+line continuous from tile x 2 to x 22; 275 runs carry `gauge=1435` from OSM and 7 took the
+default (`gauge_defaulted` 7); `abandoned` 20, `razed` 16, `platform` 7 skipped and counted;
+46 of the 219 track ways read lie wholly beyond the grid or the line (the Ashford line south
+of Pegwell Bay). Barriers: 2,354 segments across 145 tiles, 134 km of ways read — fence 1,253,
+wall 837, hedge 180, retaining_wall 56, kerb 26, guard_rail 2 segments; 2,111 of the 2,191
+ways read carry no `height` tag and took the tuning default (`h_src: default`); gate 40,
+bollard 30, `yes` 5, block 3, rope 3 skipped; 21 barrier areas in `multipolygons` not read.
+On Margate the same step emits 504 barrier segments and no rail, and says why (the extract
+predates `way["railway"]`).
+
+One thing the first run found that Margate and Whitby could not show: the EA composite runs
+out far offshore. 35 sea-edge positions (the northern row and the eastern edge off Ramsgate)
+have under 1 % DTM coverage — 28 have no valid cell at all and step 05 exports them flat at
+0 m with `fill: "all-nodata -> 0"` — and their neighbours bottom out at −3.0..−1.6 m ODN,
+the surveyed sea surface. `coast.missing_tiles_are_water` is therefore set true **from
+measurement** (the config note records the evidence), and step 09 lists 192 tiles needing a
+water surface. The inherited `water_level` −0.6 holds as the upper bound of the water band;
+the deep-water surface at −3..−2.7 m is caught by the below-water-level rule.
 
 ## Adding a site
 
 Add `sources/config/sites/<name>.json` and set `SITE=<name>`. No step should need
 editing. If one does, that is a bug in the step, not a missing feature — the constant it
-wants belongs in the site config or in `tuning.json`. The dry run below builds two
+wants belongs in the site config or in `tuning.json`. The dry run below builds three
 synthetic sites with different origins, pixel sizes, grid sizes and calibration modes for
 exactly this reason: if a constant leaks, one of them breaks.
+
+A clip is the one feature that is legitimately a step-wide change — opt-in via the site
+config's `clip` block, implemented once in `lib.py` (`parse_clip`, `keep_points`,
+`tile_state`, `cell_mask`), recorded in every manifest it touches, byte-identical output
+without it (proved by `sources/tests/regress_outputs.sh`, below).
 
 Storey height is regressed per site from its own buildings (`height_calib.mode: auto`),
 so a town of Victorian terraces and one of post-war flats each get their own line; the
@@ -99,6 +172,15 @@ under the old footprints, 87.0% under the new, and shifting the new ones back re
 the operation in provenance. That bug depended on which machine you ran on, and nothing in
 the output would ever have told you.
 
+That standard is now a script. `sources/tests/regress_outputs.sh snapshot margate before`
+hashes every file under `data/margate/out/` (795 files on 2026-09-08, also kept by hand as
+`data/margate/regress/baseline_2026-09-08.sha256`); after an edit, `SITE=margate
+./sources/run.sh --from 05` re-runs 05–11 on the existing interim data and
+`regress_outputs.sh compare margate before` must print `0 problems` — nothing changed,
+nothing removed; the only files a later step may add are step 11's `networks/barriers_*`,
+`rail_*`, `linear_manifest.json` and the Unreal adapter's `unreal/**`. The clip work landed
+this way: 795 identical, 46 added, 0 changed, and no clipless manifest gained a clip key.
+
 ## Cliffs
 
 The EA DTM holds cliff faces at 65–80° — measured at Cliftonville, 5 m wide for a 10 m
@@ -122,17 +204,22 @@ priors, because that means the model is being described by another place's verna
 OSM is live data: re-running `01` later will not reproduce the earlier model, because
 footprints get added, retagged and split. `sources/provenance/<site>.osm.json` records the
 bbox, byte count and sha256 of the extract actually used, so a later build can tell whether
-it is comparing like with like.
+it is comparing like with like. It also records the Overpass **query** — `query_sha256` and
+the sorted selectors (`way["railway"]`, `way["barrier"]`, …) — because what an extract
+contains depends on what was asked for: Margate's and Whitby's extracts were fetched before
+`way["railway"]` was in the query (`query_sha256: null`, and step 11 says so when it finds
+no railway ways), Thanet's after.
 
 ## Output
 
 | Step | Product |
 |---|---|
-| 05 | `terrain/dtm_x*_y*.tif` — Float32 GeoTIFF, real metres, north-up, CRS-tagged |
+| 05 | `terrain/dtm_x*_y*.tif` — Float32 GeoTIFF, real metres, north-up, CRS-tagged; NoData beyond a site's clip |
 | 06 | `networks/roads_x*_y*.jsonl` — centrelines as `[easting, northing, elevation]`, width, class, bridge/tunnel flags |
 | 07 | `massing/buildings_x*_y*.jsonl` — per-building height, ridge, eaves, roof form, rings in CRS metres, and `src` naming which evidence produced the height |
-| 09 | `coast/ground_x*_y*.tif` — 3-band grass/sand/rock fractions, north-up, plus water tile list |
+| 09 | `coast/ground_x*_y*.tif` — 4-band grass/sand/rock/water fractions, north-up, plus water tile list |
 | 10 | `furniture/furniture_x*_y*.jsonl` — prop key, position, `bearing` degrees clockwise from grid north |
+| 11 | `networks/rail_x*_y*.jsonl`, `networks/barriers_x*_y*.jsonl` — railway ways with gauge/tracks/electrification, barrier ways with a height, draped like roads; `linear_manifest.json` |
 
 Every step writes a manifest beside its output recording the CRS, the origin and the
 parameters it ran under. **[sources/OUTPUT.md](sources/OUTPUT.md) is the contract** — every
@@ -141,17 +228,21 @@ field, its units, what `null` means, and which values are measurements versus op
 ## Checking it without GDAL
 
 ```bash
-python3 sources/tests/dryrun.py
+C:/Users/Shadow/code/3duk-env/env/python.exe sources/tests/dryrun.py
 ```
 
-Runs steps 05–10 and the Unity adapter against two synthetic sites through a fake in-memory
+Runs steps 05–11 and the adapters against three synthetic sites through a fake in-memory
 GDAL — one coastal at 1 m with a cliff, a beach, a DTM hole and an auto-fitted height
-calibration; one inland at 2 m with a different origin, grid size and a pinned calibration.
-Needs numpy only. It proves the wiring, the schemas in `OUTPUT.md`, that no site constant
-leaks between sites, and the fidelity guarantees (nodata by declared sentinel, honest bridge
-elevation, buildings without LIDAR emitted rather than dropped, 87° synthetic cliff surviving
-into `slope_qa`, north-up rasters, adapter refusing to clip terrain). It does not exercise
-GDAL itself or steps 01–04.
+calibration; one inland at 2 m with a different origin, grid size and a pinned calibration;
+the third has a clip line crossing the grid diagonally and rail/barrier ways, and runs step
+11 and the Unreal adapter (its checks are counted as skipped, never passed, while that
+adapter is absent). Needs numpy only. It proves the wiring, the schemas in `OUTPUT.md`, that
+no site constant leaks between sites, and the fidelity guarantees (nodata by declared
+sentinel, honest bridge elevation, buildings without LIDAR emitted rather than dropped, 87°
+synthetic cliff surviving into `slope_qa`, north-up rasters, adapter refusing to clip
+terrain, NoData beyond the clip written after the fill and never on a clipless site, a rail
+on a road's polyline draped to the same centimetre). It does not exercise GDAL itself or
+steps 01–04.
 
 ### Consumers
 

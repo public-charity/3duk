@@ -21,6 +21,8 @@ import lib
 
 CFG = lib.load()
 P = lib.paths(CFG)
+CLIP = lib.parse_clip(CFG)
+ND = -9999.0          # declared NoData on a CLIPPED site only; a clipless site's tiles carry no NoData tag
 OUT = os.path.join(P["out"], "terrain")
 lib.mkdirs(OUT)
 RES = CFG["grid_res"]
@@ -33,9 +35,19 @@ drv = gdal.GetDriverByName("GTiff")
 
 manifest, lo, hi, methods, missing = [], 1e9, -1e9, {}, []
 slope_max, over45, cells = 0.0, 0, 0
+clipped, n_clipped_total = [], 0
 for i in range(CFG["nx"]):
     for j in range(CFG["ny"]):
         src = os.path.join(P["lidar"], f"dtm_x{i}_y{j}.tif")
+        # A position wholly outside the clip is not exported, whether or not a raw tile exists
+        # (step 02 may have fetched it before the clip was configured). It goes to tiles_clipped,
+        # so tiles_missing keeps meaning exactly "coverage gap".
+        state = lib.tile_state(CLIP, CFG, i, j)
+        if state == "outside":
+            clipped.append([i, j])
+            if os.path.exists(src):
+                print(f"  dtm_x{i}_y{j}: wholly outside the clip; raw tile on disk, not exported", flush=True)
+            continue
         if not os.path.exists(src):
             missing.append([i, j])       # step 02 got EMPTY here: beyond the source's coverage
             continue
@@ -47,34 +59,63 @@ for i in range(CFG["nx"]):
         if a.shape != (RES, RES):
             sys.exit(f"05: FATAL -- {src} is {a.shape}, expected {(RES, RES)}; "
                      f"grid_res and the WCS request window disagree")
-        lo, hi = min(lo, float(a.min())), max(hi, float(a.max()))
+        # Cells outside the clip, judged at their centres. Statistics below describe KEPT cells
+        # only; on a clipless site every cell is kept and nothing here changes a number.
+        keep = lib.cell_mask(CLIP, d.GetGeoTransform(), RES, RES)
+        n_clip = int((~keep).sum())
+        if n_clip == RES * RES:          # defensive: cannot happen with EA tile geometry
+            clipped.append([i, j])
+            continue
+        kept_a = a[keep]
+        lo, hi = min(lo, float(kept_a.min())), max(hi, float(kept_a.max()))
 
         # Slope QA. Cliffs are where terrain fidelity dies quietly: a resample or a
         # smoothing pass downstream turns an 80 degree face into a 45 degree ramp with no
         # error anywhere. Recording the steepness that went IN lets a consumer prove the
         # faces came out. Measured on the EA DTM at Cliftonville: faces of 65-80 degrees.
+        # The gradient is taken on the filled, unclipped array: real ground beyond the line
+        # gives the true edge gradient; only the statistics are restricted to kept cells.
         pw, ph = lib.pixel_size(d.GetGeoTransform())
         gy, gx = np.gradient(a.astype(np.float64))
         slope = np.degrees(np.arctan(np.hypot(gx / pw, gy / ph)))
-        t_max, t_p99, t_over = float(slope.max()), float(np.percentile(slope, 99)), int((slope > 45).sum())
-        slope_max, over45, cells = max(slope_max, t_max), over45 + t_over, cells + slope.size
+        kept_slope = slope[keep]
+        t_max, t_p99, t_over = float(kept_slope.max()), float(np.percentile(kept_slope, 99)), int((kept_slope > 45).sum())
+        slope_max, over45, cells = max(slope_max, t_max), over45 + t_over, cells + int(keep.sum())
+
+        # The clip is applied AFTER the fill: a NoData cell in the output is a deliberate
+        # absence (the model ends here), never a coverage gap -- those were filled above.
+        if CLIP is not None:
+            a[~keep] = ND
+            n_clipped_total += n_clip
 
         dst = drv.Create(os.path.join(OUT, f"dtm_x{i}_y{j}.tif"), RES, RES, 1,
                          gdal.GDT_Float32, options=["COMPRESS=DEFLATE", "PREDICTOR=3", "TILED=YES"])
         dst.SetGeoTransform(d.GetGeoTransform())
         dst.SetProjection(wkt)
+        if CLIP is not None:             # every tile of a clipped site declares it; a clipless one never
+            dst.GetRasterBand(1).SetNoDataValue(ND)
         dst.GetRasterBand(1).WriteArray(a)
         dst.FlushCache()
         manifest.append({"x": i, "y": j,
                          "file": f"dtm_x{i}_y{j}.tif",
-                         "min_m": round(float(a.min()), 2),
-                         "max_m": round(float(a.max()), 2),
+                         "min_m": round(float(kept_a.min()), 2),
+                         "max_m": round(float(kept_a.max()), 2),
                          "nodata_cells": int(bad.sum()),
                          "fill": m,
                          "slope_max_deg": round(t_max, 1),
                          "slope_p99_deg": round(t_p99, 1),
-                         "cells_over_45deg": t_over})
+                         "cells_over_45deg": t_over,
+                         **({} if CLIP is None else {"clip_state": state, "clipped_cells": n_clip})})
 
+extra = {} if CLIP is None else {
+    "nodata": ND,
+    "clip": lib.clip_manifest(CLIP),
+    "tiles_clipped": clipped,
+    "clipped_cells_total": n_clipped_total,
+    "clip_note": "Cells outside the clip are written as the declared NoData AFTER source gaps were filled: "
+                 "a NoData cell is a deliberate absence (the model ends here), never a coverage gap. Coverage "
+                 "gaps were filled and are counted in nodata_cells; grid positions with no source tile are "
+                 "tiles_missing; positions wholly outside the clip are tiles_clipped and have no file."}
 json.dump({"site": CFG["site"], "crs": CFG["crs"],
            "origin": CFG["origin"], "tile_m": CFG["tile_m"], "res": RES,
            "vertical_datum": CFG.get("vertical_datum", "source datum (ODN for EA LIDAR)"),
@@ -86,10 +127,15 @@ json.dump({"site": CFG["site"], "crs": CFG["crs"],
                                 "terrain shows nothing steeper than ~45 degrees where this says 70+, the "
                                 "consumer resampled or decimated it -- the data did not."},
            "tiles": manifest,
-           "tiles_missing": missing},
+           "tiles_missing": missing,
+           **extra},
           open(os.path.join(OUT, "terrain_manifest.json"), "w"), indent=1)
 
-print(f"wrote {len(manifest)} terrain tiles -> {OUT}" + (f"   ({len(missing)} grid positions have no source tile: {missing})" if missing else ""))
+print(f"wrote {len(manifest)} terrain tiles -> {OUT}" + (f"   ({len(missing)} grid positions have no source tile: {missing})" if missing else "")
+      + (f"   ({len(clipped)} positions outside the clip: not exported)" if clipped else ""))
+if CLIP is not None:
+    print(f"clip: {n_clipped_total:,} cells outside the clip written as NoData {ND} across "
+          f"{sum(1 for t in manifest if t['clip_state'] == 'straddle')} straddling tiles")
 print(f"elevation range across site: {lo:.2f} .. {hi:.2f} m")
 print(f"slope QA: steepest cell {slope_max:.1f} deg, {100.0 * over45 / max(cells, 1):.3f}% of cells over 45 deg")
 print(f"nodata fill: {methods}")

@@ -13,6 +13,11 @@
 #     later run cannot mistake an HTML 504 for an extract;
 #   * Overpass reports "runtime error" INSIDE a well-formed XML body with HTTP 200, so the
 #     body is checked for real data before it is accepted.
+#
+# The exact query is written to OUT.query before the download so the provenance record can say
+# which selectors the extract was fetched with (step 01 hashes it and lists them). QUERY_ONLY=1
+# writes that file and exits without fetching -- step 01 uses it to reconstruct the query for an
+# extract that predates query recording, and says in the provenance that it did.
 set -euo pipefail
 : "${BBOX:?set BBOX=S,W,N,E (step 01 passes this from the site config)}"
 : "${OUT:?set OUT=<path for the .osm extract>}"
@@ -39,6 +44,8 @@ read -r -d '' Q <<QUERY || true
 (._;>;);
 out body;
 QUERY
+printf '%s' "$Q" > "$OUT.query"
+if [ "${QUERY_ONLY:-0}" = 1 ]; then echo "query -> $OUT.query (QUERY_ONLY=1: not fetching)"; exit 0; fi
 echo "bbox: $BBOX"
 for EP in https://overpass-api.de/api/interpreter https://overpass.private.coffee/api/interpreter https://overpass.kumi.systems/api/interpreter; do
   for ((a = 1; a <= ATTEMPTS; a++)); do

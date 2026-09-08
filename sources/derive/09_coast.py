@@ -42,6 +42,7 @@ WTOL = float(COAST.get("water_tolerance_m", 0.3))
 SPLAT = CFG["tuning"]["coast"]["class_res"]
 OUT = os.path.join(P["out"], "coast")
 lib.mkdirs(OUT)
+CLIP = lib.parse_clip(CFG)
 for old in glob.glob(os.path.join(OUT, "ground_*.tif")):   # no stale tiles from a previous grid
     os.remove(old)
 
@@ -145,8 +146,14 @@ drv = gdal.GetDriverByName("GTiff")
 wkt = srs.ExportToWkt()
 cell = T / SPLAT
 water_tiles, missing, wrote = [], [], 0
+clipped, n_clipped_cells = [], 0
 for i in range(NX):
     for j in range(NY):
+        # A position wholly outside the clip gets no raster and is tiles_clipped -- tested before
+        # the mosaic bounds so it is never confused with a coverage gap (tiles_without_dtm).
+        state = lib.tile_state(CLIP, CFG, i, j)
+        if state == "outside":
+            clipped.append([i, j]); continue
         e0, n0 = E0 + i * T, N0 + j * T
         col0 = int(round((e0 - gt[0]) / gt[1]))
         row1 = int(round((n0 - gt[3]) / gt[5]))          # north-up raster: +N = smaller row
@@ -156,7 +163,13 @@ for i in range(NX):
         sub_h = A[row0:row1, col0:col0+TPX]
         if np.isfinite(sub_h).mean() < 0.01:
             missing.append([i, j]); continue             # inside the mosaic but empty: same thing
-        if np.nanmin(np.where(np.isfinite(sub_h), sub_h, 1e9)) < WATER_Y + COAST["water_margin_m"]:
+        # Does this tile need a water surface? For a tile straddling the clip line, judge the KEPT
+        # DTM cells only: the sea beyond the line is not part of the model.
+        sub_w = sub_h
+        if state == "straddle":
+            kd = lib.cell_mask(CLIP, gt, TPY, TPX, row0=row0, col0=col0)
+            sub_w = np.where(kd, sub_h, np.nan)
+        if np.isfinite(sub_w).any() and np.nanmin(np.where(np.isfinite(sub_w), sub_w, 1e9)) < WATER_Y + COAST["water_margin_m"]:
             water_tiles.append([i, j])
 
         # Pixel centres sit on integer metres, so a 512 m tile spans 513 centres and a 2:1
@@ -168,6 +181,12 @@ for i in range(NX):
         k = np.clip(k * (1.0 - s - w), 0, 1)              # sand and water win over rock
         g = np.clip(1.0 - s - k - w, 0, 1)
         img = (np.dstack([g, s, k, w]) * 255).astype(np.uint8)
+        # Class cells outside the clip are 0 in every band (sum 0), judged at the class-cell
+        # centres with the raster's own geotransform; every kept cell keeps its 252..255 sum.
+        if state == "straddle":
+            km = lib.cell_mask(CLIP, (e0, cell, 0.0, n0 + T, 0.0, -cell), SPLAT, SPLAT)
+            img[~km] = 0
+            n_clipped_cells += int((~km).sum())
 
         # Row 0 is NORTH, matching the source raster and every GIS convention.
         d = drv.Create(os.path.join(OUT, f"ground_x{i}_y{j}.tif"), SPLAT, SPLAT, 4,
@@ -192,8 +211,16 @@ json.dump({"site": CFG["site"], "crs": CFG["crs"],
            "water_tiles": water_tiles,
            "tiles_without_dtm": missing,
            "missing_tiles_are_water": assume_sea,
-           "coastline_km_in_area": round(clipped_len / 1000, 2)},
+           "coastline_km_in_area": round(clipped_len / 1000, 2),
+           **({} if CLIP is None else {
+               "clip": lib.clip_manifest(CLIP),
+               "tiles_clipped": clipped,
+               "clipped_cells": n_clipped_cells,
+               "bands_note": "grass+sand+rock+water sums to 252..255 for every cell inside the clip (each band "
+                             "is truncated to uint8 separately); a cell outside the clip is 0 in all four bands, "
+                             "and sum 0 occurs only outside."})},
           open(os.path.join(OUT, "coast_manifest.json"), "w"), indent=1)
 print(f"wrote {wrote} ground rasters; {len(water_tiles)} tiles need a water surface"
-      + (f"; {len(missing)} tiles have no DTM: {missing}" if missing else ""))
+      + (f"; {len(missing)} tiles have no DTM: {missing}" if missing else "")
+      + (f"; {len(clipped)} positions outside the clip (no raster); {n_clipped_cells:,} class cells zeroed on straddling tiles" if CLIP is not None else ""))
 print(f"water level: {WATER_Y} m")

@@ -33,3 +33,9 @@ projects/*/Plugins/*/Intermediate/
 # Blender prototype outputs (renders are committed deliberately via LFS from Tools/blender/renders only)
 projects/*/Tools/blender/out/
 *.blend1
+
+# Unreal Content/ is entirely generated: projects/one/Tools/ue/01_bootstrap.py builds the map,
+# materials and profile assets (~1 min), and 02/03/06 import the landscape, streetscape and massing
+# from data/<site>/out/unreal/ (gigabytes once the landscape lands). The scripts are the source of
+# truth -- a fresh clone runs them rather than checking out a derivative that goes stale silently.
+projects/one/Content/

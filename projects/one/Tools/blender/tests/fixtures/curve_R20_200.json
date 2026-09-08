@@ -1,0 +1,342 @@
+{
+ "schema_version": "1.0.0",
+ "site": "synthetic_curve",
+ "crs": "EPSG:27700",
+ "origin": {
+  "E": 0,
+  "N": 0
+ },
+ "vertical_datum": "ODN",
+ "frame": "local-metres, X east, Y north, Z up",
+ "generator": "hand-authored (Tools/blender/tests/synthetic.py)",
+ "materials": {
+  "tarmac": {
+   "base_color": [
+    0.16,
+    0.16,
+    0.17
+   ],
+   "roughness": 0.9,
+   "texture_repeat_m": 4.0
+  },
+  "white_paint": {
+   "base_color": [
+    0.92,
+    0.92,
+    0.9
+   ],
+   "roughness": 0.6
+  },
+  "yellow_paint": {
+   "base_color": [
+    0.95,
+    0.8,
+    0.1
+   ],
+   "roughness": 0.6
+  },
+  "concrete_kerb": {
+   "base_color": [
+    0.62,
+    0.61,
+    0.58
+   ],
+   "roughness": 0.8,
+   "texture_repeat_m": 0.915
+  },
+  "paving_slab": {
+   "base_color": [
+    0.55,
+    0.54,
+    0.52
+   ],
+   "roughness": 0.85,
+   "texture_repeat_m": 0.6
+  },
+  "grass": {
+   "base_color": [
+    0.25,
+    0.42,
+    0.14
+   ],
+   "roughness": 1.0,
+   "texture_repeat_m": 2.0
+  },
+  "brick_red": {
+   "base_color": [
+    0.55,
+    0.27,
+    0.2
+   ],
+   "roughness": 0.85,
+   "texture_repeat_m": 1.0
+  },
+  "coping_concrete": {
+   "base_color": [
+    0.66,
+    0.65,
+    0.62
+   ],
+   "roughness": 0.8
+  },
+  "chain_link": {
+   "base_color": [
+    0.55,
+    0.57,
+    0.58
+   ],
+   "roughness": 0.5,
+   "two_sided": true,
+   "texture_repeat_m": 1.0
+  },
+  "post_steel": {
+   "base_color": [
+    0.35,
+    0.37,
+    0.38
+   ],
+   "roughness": 0.5
+  },
+  "steel_painted_black": {
+   "base_color": [
+    0.05,
+    0.05,
+    0.06
+   ],
+   "roughness": 0.45
+  },
+  "privet_leaf": {
+   "base_color": [
+    0.16,
+    0.33,
+    0.1
+   ],
+   "roughness": 0.9
+  }
+ },
+ "profiles": {
+  "road": {
+   "road_test_marked": {
+    "kind": "road",
+    "lanes": 2,
+    "lane_widths_m": [
+     3.0,
+     3.0
+    ],
+    "width_m": 6.0,
+    "surface_material": "tarmac",
+    "camber": {
+     "kind": "parabolic",
+     "crossfall_pct": 2.5
+    },
+    "overlap_m": 0.04,
+    "skirt_drop_m": 0.02,
+    "lateral_station_spacing_m": 1.0,
+    "markings": [
+     {
+      "id": "centre_1004",
+      "anchor": "centre",
+      "offset_m": 0.0,
+      "width_m": 0.1,
+      "pattern": "dashed",
+      "dash_m": 4.0,
+      "gap_m": 2.0,
+      "phase_m": 0.0,
+      "material": "white_paint",
+      "lift_m": 0.004
+     },
+     {
+      "id": "dyl_left_1018_1",
+      "anchor": "edge_left",
+      "offset_m": 0.25,
+      "width_m": 0.1,
+      "pattern": "double",
+      "double_gap_m": 0.1,
+      "material": "yellow_paint",
+      "lift_m": 0.004
+     }
+    ]
+   }
+  },
+  "edge": {
+   "edge_uk_kerb": {
+    "kerb_width_m": 0.125,
+    "kerb_height_m": 0.125,
+    "lip": {
+     "kind": "radius",
+     "size_m": 0.02,
+     "arc_points": 3
+    },
+    "pavement_width_m": 1.8,
+    "pavement_crossfall_pct": 2.5,
+    "pavement_max_crossfall_pct": 8.0,
+    "tuck_depth_m": 0.03,
+    "tuck_in_m": 0.02,
+    "skirt_m": 0.3,
+    "materials": {
+     "kerb": "concrete_kerb",
+     "pavement": "paving_slab"
+    },
+    "split_material": {
+     "enabled": false
+    },
+    "drop_kerbs": [],
+    "barriers": [],
+    "embankments": []
+   }
+  },
+  "hedge": {}
+ },
+ "splines": [
+  {
+   "id": "authored:curve_R20_200",
+   "source": {
+    "layer": "authored",
+    "osm_id": null,
+    "name": "authored:curve_R20_200",
+    "cls": null
+   },
+   "profile_ids": {
+    "road": "road_test_marked",
+    "edge_left": "edge_uk_kerb",
+    "edge_right": "edge_uk_kerb",
+    "hedge_left": null,
+    "hedge_right": null
+   },
+   "points": [
+    {
+     "x": 0.0,
+     "y": 0.0,
+     "width_m": 6.0
+    },
+    {
+     "x": 60.0,
+     "y": 0.0,
+     "width_m": 6.0
+    },
+    {
+     "x": 63.901806,
+     "y": 0.384294,
+     "width_m": 6.0
+    },
+    {
+     "x": 67.653669,
+     "y": 1.522409,
+     "width_m": 6.0
+    },
+    {
+     "x": 71.111405,
+     "y": 3.370608,
+     "width_m": 6.0
+    },
+    {
+     "x": 74.142136,
+     "y": 5.857864,
+     "width_m": 6.0
+    },
+    {
+     "x": 76.629392,
+     "y": 8.888595,
+     "width_m": 6.0
+    },
+    {
+     "x": 78.477591,
+     "y": 12.346331,
+     "width_m": 6.0
+    },
+    {
+     "x": 79.615706,
+     "y": 16.098194,
+     "width_m": 6.0
+    },
+    {
+     "x": 80.0,
+     "y": 20.0,
+     "width_m": 6.0
+    },
+    {
+     "x": 80.0,
+     "y": 128.584073,
+     "width_m": 6.0
+    }
+   ],
+   "segments": [],
+   "drop_kerbs": [],
+   "junction_start": null,
+   "junction_end": null,
+   "sampling": {
+    "step_m": 2.0,
+    "min_step_m": 0.25,
+    "curvature_gain": 20.0,
+    "smoothing_window_m": 20.0,
+    "smoothing_passes": 1,
+    "width_ramp_m": 5.0,
+    "bank_max_deg": 4.0,
+    "bank_probe_min_half_width_m": 1.5,
+    "pin_blend_m": 10.0,
+    "bank_rate_max_deg_per_m": 0.25
+   },
+   "overlay": {
+    "kind": "other",
+    "pts": [
+     [
+      0.0,
+      0.0
+     ],
+     [
+      60.0,
+      0.0
+     ],
+     [
+      63.901806,
+      0.384294
+     ],
+     [
+      67.653669,
+      1.522409
+     ],
+     [
+      71.111405,
+      3.370608
+     ],
+     [
+      74.142136,
+      5.857864
+     ],
+     [
+      76.629392,
+      8.888595
+     ],
+     [
+      78.477591,
+      12.346331
+     ],
+     [
+      79.615706,
+      16.098194
+     ],
+     [
+      80.0,
+      20.0
+     ],
+     [
+      80.0,
+      128.584073
+     ]
+    ],
+    "osm_id": null
+   }
+  }
+ ],
+ "junctions": [],
+ "_terrain": {
+  "kind": "flat",
+  "z_m": 10.0,
+  "px_m": 1.0,
+  "tile_m": 512.0,
+  "extent_m": [
+   512.0,
+   512.0
+  ]
+ }
+}

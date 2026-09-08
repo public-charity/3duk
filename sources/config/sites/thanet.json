@@ -44,8 +44,9 @@
     "rock_slope_deg": [22.0, 40.0],
     "water_margin_m": 0.75,
     "water_tolerance_m": 0.3,
-    "missing_tiles_are_water": false,
-    "note": "INHERITED FROM MARGATE. foreshore_max_odn is a property of the survey's tide state: the EA flew this stretch at low tide, so the intertidal flat reads as land and anything below 1.2 m ODN is sand. rock_slope_deg is the ramp tuned to the Cliftonville chalk cliffs; Thanet is the same chalk from Birchington round North Foreland to Ramsgate. missing_tiles_are_water false: the composite carried 100% coverage over the sea at Margate and Whitby; if the first run lists missing tiles in the open sea set this true rather than assuming. Clipped tiles (outside the Wantsum line) are NOT missing tiles -- they are listed separately as tiles_clipped."
+    "missing_tiles_are_water": true,
+    "note": "INHERITED FROM MARGATE. foreshore_max_odn is a property of the survey's tide state: the EA flew this stretch at low tide, so the intertidal flat reads as land and anything below 1.2 m ODN is sand. rock_slope_deg is the ramp tuned to the Cliftonville chalk cliffs; Thanet is the same chalk from Birchington round North Foreland to Ramsgate. Clipped tiles (outside the Wantsum line) are NOT missing tiles -- they are listed separately as tiles_clipped.",
+    "missing_tiles_are_water_note": "MEASURED on the first Thanet run (2026-09-08), not inherited: unlike Margate and Whitby, the composite runs out far offshore here. Step 05 found 28 tile positions with no valid cell at all (filled flat at 0 m by lib.fill_nodata and marked fill 'all-nodata -> 0') and step 09 lists 35 positions with under 1% DTM coverage as tiles_without_dtm: the whole northern edge row j=18, j=17 for i=2..8, and the eastern edge i=24..25 for j=0..6 -- open sea north of the isle and south-east of Ramsgate, whose neighbouring tiles bottom out at -3.0..-1.6 m ODN (the surveyed sea surface). They are therefore added to water_tiles. The inherited water_level -0.6 is the UPPER bound of the water band; the deep-water surface at -3..-2.7 m is caught by the below-water-level rule (water tiles' minima: p5 -2.98, p50 -2.70, p95 -1.08 m)."
   },
 
   "wcs": {

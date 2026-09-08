@@ -1,7 +1,7 @@
 """Negative tests: mutate valid documents and assert the validator reports an error at the right path."""
 import copy, json, os, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from validate_streetscape import SchemaValidator, Report, semantic_document_checks
+from schema_check import SchemaValidator, Report, semantic_document_checks
 
 ROOT = "C:/Users/Shadow/code/3duk/projects/one"
 schema = json.load(open(os.path.join(ROOT, "schema/streetscape.schema.json"), encoding="utf-8"))

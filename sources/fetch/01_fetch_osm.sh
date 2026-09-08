@@ -39,9 +39,21 @@ elif [ -e "$OSM" ]; then
   echo "01: $OSM is not an XML extract (a failed download?) -- refetching"
   rm -f "$OSM"
 fi
+QUERY="$OSM.query"
 if [ "$NEED_FETCH" = 1 ]; then
   echo "01: fetching OSM for $SITE, bbox $BBOX ..."
-  BBOX="$BBOX" OUT="$OSM" ./sources/fetch/fetch_osm.sh
+  BBOX="$BBOX" OUT="$OSM" ./sources/fetch/fetch_osm.sh          # writes $QUERY just before the download
+  QUERY_SRC="fetch"
+elif [ -s "$QUERY" ] && [ ! "$QUERY" -nt "$OSM" ]; then
+  QUERY_SRC="recorded"                                          # older than the extract: written at fetch time
+else
+  # Skipped fetch and no query recorded with the extract (extracts from before query recording, or a
+  # query file newer than the extract, i.e. an earlier reconstruction). Write the query fetch_osm.sh
+  # would send TODAY so the provenance can list its selectors, and flag it as a reconstruction: the
+  # extract may have been fetched with different selectors (Margate's predates way["railway"]).
+  echo "01: no query recorded with $OSM -- reconstructing $QUERY from fetch_osm.sh's current selectors"
+  QUERY_ONLY=1 BBOX="$BBOX" OUT="$OSM" ./sources/fetch/fetch_osm.sh
+  QUERY_SRC="reconstructed"
 fi
 
 # ---- datum transformation guard ------------------------------------------------------
@@ -123,10 +135,13 @@ done
 
 BUILDINGS=$(ogrinfo -q -sql "SELECT COUNT(*) FROM multipolygons WHERE building IS NOT NULL AND building != 'no'" "$GPKG" | grep -oE '[0-9]+' | tail -1)
 HIGHWAYS=$(ogrinfo -q -sql "SELECT COUNT(*) FROM lines WHERE highway IS NOT NULL" "$GPKG" | grep -oE '[0-9]+' | tail -1)
+RAILWAY=$(ogrinfo -q -sql "SELECT COUNT(*) FROM lines WHERE railway IS NOT NULL" "$GPKG" | grep -oE '[0-9]+' | tail -1)
+BARRIERS=$(ogrinfo -q -sql "SELECT COUNT(*) FROM lines WHERE barrier IS NOT NULL" "$GPKG" | grep -oE '[0-9]+' | tail -1)
 
-"$PY" - "$OSM" "$BBOX" "${BUILDINGS:-0}" "${HIGHWAYS:-0}" "$PROV" "$SITE" "$CRS" "$OP" <<'PYEOF'
-import hashlib, json, os, sys, datetime
-osm, bbox, buildings, highways, prov, site, crs, op = sys.argv[1:9]
+"$PY" - "$OSM" "$BBOX" "${BUILDINGS:-0}" "${HIGHWAYS:-0}" "$PROV" "$SITE" "$CRS" "$OP" \
+        "${RAILWAY:-0}" "${BARRIERS:-0}" "$QUERY" "$QUERY_SRC" <<'PYEOF'
+import hashlib, json, os, re, sys, datetime
+osm, bbox, buildings, highways, prov, site, crs, op, railway, barriers, query, query_src = sys.argv[1:13]
 h = hashlib.sha256()
 with open(osm, "rb") as f:
     for chunk in iter(lambda: f.read(1 << 20), b""):
@@ -134,6 +149,22 @@ with open(osm, "rb") as f:
 # mtime of the extract, NOT "now" -- this script skips the fetch when the extract is
 # already on disk, so a wall-clock stamp here would claim a download that never happened.
 mtime = datetime.datetime.fromtimestamp(os.path.getmtime(osm), datetime.UTC)
+# The Overpass query: its sha256 and the sorted unique selectors (node/way/relation[...] with the
+# bbox stripped), so a later build can tell whether two extracts asked for the same things. A query
+# reconstructed after a skipped fetch is flagged, because the extract may predate a selector change.
+qsha, qsel, qnote = None, [], None
+if os.path.isfile(query) and os.path.getsize(query) > 0:
+    qbytes = open(query, "rb").read()
+    qsha = hashlib.sha256(qbytes).hexdigest()
+    qsel = sorted(set(re.findall(r"(?:node|way|relation)\[[^\]]*\]", qbytes.decode("utf-8", "replace"))))
+    if query_src == "reconstructed":
+        qnote = (f"query_* describe {os.path.basename(query)} as RECONSTRUCTED from fetch_osm.sh's selectors at "
+                 f"record time, because the fetch was skipped (extract already on disk) and no query had been "
+                 f"recorded with it; the extract may have been fetched with different selectors -- judge by "
+                 f"counts.railway / counts.barriers, not by the selector list.")
+else:
+    qnote = ('null query_* means the extract predates query recording; it was fetched by fetch_osm.sh as of '
+             'commit 0d31c0c, which had no way["railway"]')
 json.dump({
     "site": site,
     "source": "OpenStreetMap via Overpass API",
@@ -145,8 +176,13 @@ json.dump({
     "bbox_wgs84_swne": bbox,
     "bytes": os.path.getsize(osm),
     "sha256": h.hexdigest(),
-    "counts": {"buildings": int(buildings), "highways": int(highways)},
+    "query_sha256": qsha,
+    "query_selectors": qsel,
+    "query_note": qnote,
+    "counts": {"buildings": int(buildings), "highways": int(highways),
+               "railway": int(railway), "barriers": int(barriers)},
     "note": f"Re-fetching later will differ; archive {osm} to reproduce.",
-}, open(prov, "w"), indent=2)
-print(f"01: {buildings} buildings, {highways} highways -> {prov}")
+}, open(prov, "w", newline="\n"), indent=2)      # LF on every platform: the repo is LF-only
+print(f"01: {buildings} buildings, {highways} highways, {railway} railway ways, {barriers} barrier ways -> {prov}")
+print(f"01: query {'sha256 ' + qsha[:12] + '...' if qsha else 'not recorded'} ({query_src}), {len(qsel)} selectors")
 PYEOF

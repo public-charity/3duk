@@ -24,8 +24,9 @@ What it runs (see --help):
 Exit status 0 when there is no ERROR (warnings do not fail the run).
 
 Usage:
-  python validate_streetscape.py --root <repo>/projects/one            (defaults to the repo)
-  python validate_streetscape.py --schema X.json --profiles DIR --examples DIR --md SCHEMA.md
+  python schema_check.py <doc.json|profile.json>...                    (STAGES.md 0.9: VALID per file, exit 0 iff all valid)
+  python schema_check.py --root <repo>/projects/one                    (full report; defaults to the repo)
+  python schema_check.py --schema X.json --profiles DIR --examples DIR --md SCHEMA.md
 """
 from __future__ import annotations
 
@@ -938,7 +939,62 @@ def load_json(path, rep):
         return None
 
 
+def validate_files(paths, schema_path=None):
+    """STAGES.md 0.9 mode: `schema_check.py <file>...` prints VALID / INVALID per file; exit 0 iff all valid.
+    A file with top-level keys kind/id/profile is a library profile file (validated against
+    $defs/ProfileFile + the inner profile def); anything else is a site document (root schema)."""
+    here = os.path.abspath(os.path.dirname(__file__))
+    if schema_path is None:
+        cand = here
+        for _ in range(6):
+            sp = os.path.join(cand, "schema", "streetscape.schema.json")
+            if os.path.isfile(sp):
+                schema_path = sp
+                break
+            cand = os.path.dirname(cand)
+    with open(schema_path, "r", encoding="utf-8") as fh:
+        schema = json.load(fh)
+    V = SchemaValidator(schema)
+    kind_def = {"road": "RoadProfile", "edge": "EdgeProfile", "hedge": "HedgeProfile"}
+    n_bad = 0
+    for path in paths:
+        try:
+            with open(path, "r", encoding="utf-8") as fh:
+                data = json.load(fh)
+        except Exception as e:
+            print("INVALID %s: %s" % (path, e))
+            n_bad += 1
+            continue
+        if isinstance(data, dict) and {"kind", "id", "profile"} <= set(data):
+            errs = V.validate(data, schema["$defs"]["ProfileFile"], "$")
+            kind = data.get("kind")
+            if kind in kind_def and isinstance(data.get("profile"), dict):
+                errs += V.validate(data["profile"], schema["$defs"][kind_def[kind]], "$.profile")
+            if data.get("id") != os.path.splitext(os.path.basename(path))[0]:
+                errs.append(("$.id", "id %r != file name" % data.get("id")))
+        else:
+            errs = V.validate(data, schema, "$")
+            if not errs:
+                rep = Report()
+                semantic_document_checks(data, os.path.basename(path), rep, {"road": set(), "edge": set(), "hedge": set()})
+                errs += [(e.split(": ", 1)[0], e.split(": ", 1)[-1]) for e in rep.errors]
+        if V.unsupported:
+            errs.append(("$", "schema uses unsupported keywords %s" % sorted(V.unsupported)))
+        if errs:
+            n_bad += 1
+            print("INVALID %s: %d error(s)" % (path, len(errs)))
+            for p_, m in errs[:20]:
+                print("    %s: %s" % (p_, m))
+        else:
+            print("VALID %s" % path)
+    print("%d file(s), %d invalid" % (len(paths), n_bad))
+    return 0 if n_bad == 0 else 1
+
+
 def main(argv=None):
+    argv = list(sys.argv[1:] if argv is None else argv)
+    if argv and not argv[0].startswith("-"):
+        return validate_files(argv)
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     here = os.path.abspath(os.path.dirname(__file__))
     ap.add_argument("--root", default=None, help="projects/one directory (default: derived from the repo)")

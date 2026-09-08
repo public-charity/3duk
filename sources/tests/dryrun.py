@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Dry-run steps 05-10 and the Unity adapter against TWO synthetic sites.
+"""Dry-run steps 05-11 and the adapters against THREE synthetic sites.
 
     python3 sources/tests/dryrun.py            # needs numpy only -- no GDAL, no network
     python3 sources/tests/dryrun.py --keep     # leave the output directories for inspection
@@ -7,22 +7,33 @@
 A fake in-memory GDAL/OGR (sources/tests/fake_osgeo) stands in for the real one, so this
 runs on any machine with numpy. It proves the steps import, resolve config through lib,
 agree with each other on file and field names, emit the schemas OUTPUT.md promises, and
-that the fidelity fixes behave. Running two sites with different origins, pixel sizes,
-grid sizes, coastlines and calibration modes is the proof that nothing about one site
-leaked into the code.
+that the fidelity fixes behave. Running three sites with different origins, pixel sizes,
+grid sizes, coastlines, calibration modes and one clip line is the proof that nothing
+about one site leaked into the code.
 
   site A  coastal, 1 m pixels, 512 m tiles, 513 res, sea + cliff + beach, DTM hole,
           auto-fitted height calibration, landmark overrides, roads and buildings that
-          stray off the grid, stale files from a "previous run" that must be cleared
+          stray off the grid, stale files from a "previous run" that must be cleared,
+          no railway or barrier ways (step 11 must say so and write empty counts)
   site B  inland, 2 m pixels, 512 m tiles, 257 res, different origin, no water anywhere,
           fixed height calibration, no landmarks, and a DTM that covers only 2 of the 3
           tile columns (the third is "beyond coverage")
+  site C  1 m, 3 x 2 tiles, a diagonal clip line (kept iff local x + y >= 1100,
+          PIPELINE_CHANGES.md 8.2): one tile wholly outside (and without a raw tile), four
+          straddling it, one inside; roads, a rail drawn along a road, barriers, a building
+          and a node on each side of the line. The clip API is also exercised at lib level
+          ("C-lib" checks) against site A's step-06 output (drape_runs equivalence) and the
+          real sources/config/sites/thanet.json.
 
-It does NOT prove anything about GDAL itself -- rasterisation here is envelope-fill and
-line clipping is vertex-keep -- and does not cover steps 01-04. lib.tiff_info is checked
-against a real EA tile when one is present under data/.
+The Unreal adapter (sources/adapters/unreal.py) is run on all three sites when the file
+exists; when it does not, its checks are SKIPPED loudly and counted as skipped, never as
+passed. It does NOT prove anything about GDAL itself -- rasterisation here is envelope-fill
+and line clipping is vertex-keep -- and does not cover steps 01-04 (02's clip skipping is
+checked at lib level). lib.tiff_info is checked against real EA and GDAL-written tiles when
+they are present under data/.
 """
-import glob, json, os, pickle, runpy, shutil, sys, tempfile, traceback
+import glob, json, math, os, pickle, re, runpy, shutil, sys, tempfile, traceback
+from collections import Counter
 import numpy as np
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -39,25 +50,43 @@ ROOT = tempfile.mkdtemp(prefix="3duk-dryrun-")
 lib.ROOT = ROOT
 SITES_DIR = os.path.join(SRC, "config", "sites")
 
-results = []
+results, skipped = [], []
 def check(name, cond, detail=""):
     ok = bool(cond)
     results.append((name, ok))
     print(("  PASS  " if ok else "  FAIL  ") + name + ("" if ok or not detail else f"   <- {detail}"))
 
+def skip(name, why):
+    """A check that could not run. Counted as skipped -- never as passed."""
+    skipped.append(name)
+    print(f"  SKIP  {name}   <- {why}")
+
 def jl(pattern):
     return [json.loads(l) for p in sorted(glob.glob(pattern)) for l in open(p)]
 
+def jl_tiles(pattern):
+    """{(i, j): [records]} keyed by the tile in the file name."""
+    out = {}
+    for p in sorted(glob.glob(pattern)):
+        mt = re.search(r"_x(\d+)_y(\d+)\.jsonl$", p)
+        out[(int(mt.group(1)), int(mt.group(2)))] = [json.loads(l) for l in open(p)]
+    return out
+
 EA_WCS = {"dtm": {"url": "x", "coverage": "x"}, "dsm": {"url": "x", "coverage": "x"}}
+ADAPTER = "adapters/unreal.py"          # the adapter task's file; run when present, SKIPPED loudly when not
 STEPS = ["derive/05_export_terrain.py", "derive/06_build_networks.py", "derive/07_massing.py",
-         "derive/09_coast.py", "derive/10_furniture.py", "adapters/unity.py"]
+         "derive/09_coast.py", "derive/10_furniture.py", "derive/11_linear_features.py",
+         "adapters/unity.py", ADAPTER]
+adapter_ran = {}                        # site -> True (ran), False (crashed), None (file absent)
 
 
 def synth(site, cfg_extra, px, RES, NX, NY, zfun, nodata_patch=None, ways=(), beach=None,
-          buildings=(), nodes=(), vrt_nx=None, decoys=False):
+          buildings=(), nodes=(), vrt_nx=None, decoys=False, rails=(), barriers=(), skip_tiles=()):
     """Write a site config, build the DTM/VRT/tiles/GeoPackage/interim in the fake GDAL,
     run the steps, and return what the checks need. vrt_nx limits how many tile columns
-    the DTM covers (the rest are 'beyond coverage'); decoys plants stale output files."""
+    the DTM covers (the rest are 'beyond coverage'); skip_tiles are positions with no raw
+    tile whose VRT region is nodata; decoys plants stale output files; rails / barriers are
+    (id, value, pts, name, other_tags) ways with railway / barrier set instead of highway."""
     E0, N0, T = cfg_extra["origin"]["E"], cfg_extra["origin"]["N"], 512
     ND = -9999.0
     vrt_nx = NX if vrt_nx is None else vrt_nx
@@ -69,6 +98,7 @@ def synth(site, cfg_extra, px, RES, NX, NY, zfun, nodata_patch=None, ways=(), be
     lib.mkdirs(*[P[k] for k in ("raw", "interim", "derived", "out", "lidar")])
     if decoys:
         for sub, name in (("terrain", "dtm_x9_y9.tif"), ("networks", "roads_x9_y9.jsonl"),
+                          ("networks", "rail_x9_y9.jsonl"), ("networks", "barriers_x9_y9.jsonl"),
                           ("massing", "buildings_x9_y9.jsonl"), ("coast", "ground_x9_y9.tif")):
             lib.mkdirs(os.path.join(P["out"], sub))
             open(os.path.join(P["out"], sub, name), "w").write("stale\n")
@@ -81,11 +111,14 @@ def synth(site, cfg_extra, px, RES, NX, NY, zfun, nodata_patch=None, ways=(), be
     if nodata_patch:
         e0, e1, n0, n1 = nodata_patch
         Z[(EE >= e0) & (EE < e1) & (NN >= n0) & (NN < n1)] = ND
+    for (si, sj) in skip_tiles:         # the shared edge row/column belongs to the neighbours
+        Z[(EE >= E0 + si * T) & (EE < E0 + (si + 1) * T) & (NN >= N0 + sj * T) & (NN < N0 + (sj + 1) * T)] = ND
     vrt = gdal.GetDriverByName("MEM").Create(os.path.join(P["interim"], "dtm.vrt"), W, H, 1, gdal.GDT_Float32)
     vrt.SetGeoTransform(gt); vrt.SetProjection("FAKE"); vrt.GetRasterBand(1).SetNoDataValue(ND)
     vrt.GetRasterBand(1).WriteArray(Z)
     for i in range(vrt_nx):
         for j in range(NY):
+            if (i, j) in skip_tiles: continue
             c0, r0 = i * tpx, (NY - 1 - j) * tpx
             t = gdal.GetDriverByName("GTiff").Create(os.path.join(P["lidar"], f"dtm_x{i}_y{j}.tif"), RES, RES, 1, gdal.GDT_Float32)
             t.SetGeoTransform((E0 + i * T - px / 2, px, 0, N0 + (j + 1) * T + px / 2, 0, -px))
@@ -93,9 +126,13 @@ def synth(site, cfg_extra, px, RES, NX, NY, zfun, nodata_patch=None, ways=(), be
             t.GetRasterBand(1).WriteArray(Z[r0:r0 + RES, c0:c0 + RES])
 
     G = ogr.Geometry
-    lines = ogr.Layer("lines", ["osm_id", "highway", "name", "other_tags"])
+    lines = ogr.Layer("lines", ["osm_id", "highway", "railway", "barrier", "name", "other_tags"])
     for (id, cls, pts, name, ot) in ways:
         lines.CreateFeature(ogr.Feature(lines.defn, {"osm_id": id, "highway": cls, "name": name, "other_tags": ot}, G("LINESTRING", pts)))
+    for (id, cls, pts, name, ot) in rails:
+        lines.CreateFeature(ogr.Feature(lines.defn, {"osm_id": id, "railway": cls, "name": name, "other_tags": ot}, G("LINESTRING", pts)))
+    for (id, cls, pts, name, ot) in barriers:
+        lines.CreateFeature(ogr.Feature(lines.defn, {"osm_id": id, "barrier": cls, "name": name, "other_tags": ot}, G("LINESTRING", pts)))
     mp = ogr.Layer("multipolygons", ["osm_id", "building", "name", "natural", "other_tags"])
     if beach:
         mp.CreateFeature(ogr.Feature(mp.defn, {"osm_id": "beach", "natural": "beach"}, G("POLYGON", [beach])))
@@ -114,11 +151,98 @@ def synth(site, cfg_extra, px, RES, NX, NY, zfun, nodata_patch=None, ways=(), be
         pts.CreateFeature(ogr.Feature(pts.defn, {"osm_id": id, "other_tags": ot}, G("POINT", (x, y))))
     ds = ogr.DataSource(); ds.layers = {"lines": lines, "multipolygons": mp, "points": pts}
     osgeo.VECTORS[osgeo._norm(P["gpkg"])] = ds
+    open(P["gpkg"], "ab").close()        # zero-byte placeholder: a consumer may test os.path.exists before ogr.Open
 
     for rel in STEPS:
         print(f"\n=== [{site}] {rel}")
-        runpy.run_path(os.path.join(SRC, rel), run_name="__main__")
+        path = os.path.join(SRC, rel)
+        if rel == ADAPTER:
+            # PIPELINE_CHANGES.md 13.10 hook: the adapter is another task's file. Absent -> its
+            # checks are skipped and say so; a crash -> one FAIL, and the pipeline checks go on.
+            if not os.path.exists(path):
+                print(f"  SKIPPED  {rel} does not exist -- the Unreal adapter checks for [{site}] are counted as skipped")
+                adapter_ran[site] = None
+                continue
+            try:
+                runpy.run_path(path, run_name="__main__")
+                adapter_ran[site] = True
+            except SystemExit as ex:                           # sys.exit(0) is a normal end; anything else a refusal
+                if ex.code in (0, None):
+                    adapter_ran[site] = True
+                else:
+                    adapter_ran[site] = False
+                    check(f"adapter ran on [{site}] without refusing or crashing", False, f"refused: {ex.code}")
+            except Exception as ex:
+                traceback.print_exc()
+                adapter_ran[site] = False
+                check(f"adapter ran on [{site}] without refusing or crashing", False, f"{type(ex).__name__}: {ex}")
+            continue
+        runpy.run_path(path, run_name="__main__")
     return dict(P=P, out=P["out"], Z=Z, E0=E0, N0=N0, T=T, NX=NX, NY=NY, RES=RES, px=px)
+
+
+def no_clip_keys(site_out, label):
+    """A clipless site's manifests carry none of PIPELINE_CHANGES.md 9.3's keys and its terrain
+    tiles declare no NoData: the byte-identity guarantee, seen from the schema side."""
+    tm = json.load(open(os.path.join(site_out, "terrain", "terrain_manifest.json")))
+    nm = json.load(open(os.path.join(site_out, "networks", "networks_manifest.json")))
+    mm = json.load(open(os.path.join(site_out, "massing", "massing_manifest.json")))
+    cm = json.load(open(os.path.join(site_out, "coast", "coast_manifest.json")))
+    qf = json.load(open(os.path.join(site_out, "qa_furniture.json")))
+    lm = json.load(open(os.path.join(site_out, "networks", "linear_manifest.json")))
+    bad = [k for k in ("nodata", "clip", "tiles_clipped", "clipped_cells_total", "clip_note") if k in tm]
+    bad += [f"tile:{k}" for t in tm["tiles"] for k in ("clip_state", "clipped_cells") if k in t]
+    bad += [f"06:{k}" for k in ("clip", "vertices_outside_clip", "junctions_outside_clip") if k in nm]
+    bad += [f"07:{k}" for k in ("clip", "outside_clip") if k in mm]
+    bad += [f"09:{k}" for k in ("clip", "tiles_clipped", "clipped_cells", "bands_note") if k in cm]
+    bad += [f"10:{k}" for k in ("clip", "outside_clip") if k in qf]
+    bad += [f"11:{k}" for k in ("clip",) if k in lm]
+    bad += [f"11:{L}:vertices_outside_clip" for L in lm["layers"] if "vertices_outside_clip" in lm["layers"][L]]
+    nd = [gdal.Open(os.path.join(site_out, "terrain", t["file"])).GetRasterBand(1).GetNoDataValue() for t in tm["tiles"]]
+    check(f"{label} clipless: no clip keys in any manifest, no NoData tag on any terrain tile",
+          not bad and all(v is None for v in nd), f"{bad} nodata={nd}")
+
+
+def adapter_checks(site, label, S, clip_block=None, tm=None):
+    """PIPELINE_CHANGES.md 13.10's dryrun hook, per site. Skipped (not passed) when the adapter is absent."""
+    names = [f"{label}-unreal manifest round-trips origin/tile_m/nx/ny/res",
+             (f"{label}-unreal clipped_cells == clip-mask zeros per tile and in total; vis present for straddle tiles only; clip block copied"
+              if clip_block else f"{label}-unreal no clip, all-255 clip masks, no vis files")]
+    if adapter_ran.get(site) is None:
+        for nm_ in names: skip(nm_, f"{ADAPTER} absent")
+        return
+    if adapter_ran.get(site) is False:
+        for nm_ in names: check(nm_, False, "adapter did not complete")
+        return
+    U = os.path.join(S["out"], "unreal")
+    done = set()
+    try:
+        um = json.load(open(os.path.join(U, "unreal_manifest.json")))
+        check(names[0], um["origin"] == {"E": S["E0"], "N": S["N0"]} and um["tile_m"] == S["T"] and um["nx"] == S["NX"]
+              and um["ny"] == S["NY"] and um["res"] == S["RES"], str({k: um.get(k) for k in ("origin", "tile_m", "nx", "ny", "res")}))
+        done.add(names[0])
+        lmf = json.load(open(os.path.join(U, "landscape", "landscape_manifest.json")))
+        zeros = {}
+        for t in lmf["tiles"]:
+            m = np.fromfile(os.path.join(U, "landscape", f"clip_x{t['x']}_y{t['y']}.r8"), dtype=np.uint8)
+            zeros[(t["x"], t["y"])] = (int((m == 0).sum()), m.size, os.path.exists(os.path.join(U, "landscape", f"vis_x{t['x']}_y{t['y']}.r8")))
+        if clip_block:
+            per_tile = {(t["x"], t["y"]): t for t in tm["tiles"]}
+            ok = (all(zeros[k][0] == per_tile[k]["clipped_cells"] and zeros[k][1] == S["RES"] ** 2 for k in zeros)
+                  and sum(z[0] for z in zeros.values()) == lmf["clipped_cells_total"] == tm["clipped_cells_total"]
+                  and all(zeros[k][2] == (per_tile[k]["clip_state"] == "straddle") for k in zeros)
+                  and lmf["clip"]["line"] == clip_block["line"] and lmf["clip"]["keep"] == clip_block["keep"]
+                  and sorted(map(tuple, lmf["tiles_clipped"])) == sorted(map(tuple, tm["tiles_clipped"])))
+            check(names[1], ok, f"{zeros} total {lmf.get('clipped_cells_total')} vs {tm.get('clipped_cells_total')}")
+        else:
+            ok = (lmf.get("clip") is None and all(z[0] == 0 and z[1] == S["RES"] ** 2 and not z[2] for z in zeros.values())
+                  and not glob.glob(os.path.join(U, "landscape", "vis_*.r8")) and lmf.get("clipped_cells_total", 0) == 0)
+            check(names[1], ok, str(zeros))
+        done.add(names[1])
+    except Exception as ex:
+        traceback.print_exc()
+        for nm_ in names:
+            if nm_ not in done: check(nm_, False, f"{type(ex).__name__}: {ex}")
 
 
 rect = lambda x, y, w, h: [(x, y), (x + w, y), (x + w, y + h), (x, y + h), (x, y)]
@@ -310,6 +434,20 @@ try:
         refused = "does not fit" in str(e)
     check("adapter REFUSES a pinned window that would clip terrain", refused)
 
+    # ---- 11 linear features on a site with no railway/barrier ways, and the clipless guarantee
+    lmA = json.load(open(os.path.join(out, "networks", "linear_manifest.json")))
+    check("A11 zero counts: rail and barriers 0 segments / 0 tiles, no files, empty skip histograms, 0 barrier areas",
+          lmA["layers"]["rail"]["segments"] == 0 and lmA["layers"]["barriers"]["segments"] == 0
+          and lmA["layers"]["rail"]["tiles"] == 0 and lmA["layers"]["barriers"]["tiles"] == 0
+          and not glob.glob(os.path.join(out, "networks", "rail_x*_y*.jsonl")) and not glob.glob(os.path.join(out, "networks", "barriers_x*_y*.jsonl"))
+          and lmA["ways_skipped_by_class"] == {"railway": {}, "barrier": {}} and lmA["barrier_areas_skipped"] == 0
+          and lmA["layers"]["rail"]["gauge_defaulted"] == 0 and lmA["layers"]["barriers"]["height_defaulted"] == 0
+          and lmA["origin"] == {"E": E0, "N": N0} and lmA["tile_m"] == T, str(lmA["layers"]))
+    check("A11 decoys rail_x9_y9 / barriers_x9_y9 cleared by step 11; roads_x9_y9 by 06",
+          not glob.glob(os.path.join(out, "networks", "*x9_y9*")))
+    no_clip_keys(out, "A")
+    adapter_checks("_dryrun_a", "A", A)
+
     # ================================================================ site B: inland, 2 m, DTM covers 2 of 3 columns
     E0b, N0b, NXb, NYb, RESb = 300000, 700000, 3, 2, 257
     def zB(EE, NN):
@@ -365,6 +503,299 @@ try:
     rawb = np.fromfile(os.path.join(outb, "unity", "terrain", "hm_x0_y1.raw"), "<u2").reshape(257, 257)
     expb = (np.flipud(np.clip((tb.astype(np.float64) - ybb) / ysb, 0, 1)) * 65535).round()
     check("B-adapter heightmap correct at 257 res", np.abs(rawb.astype(float) - expb).max() <= 1)
+    lmB = json.load(open(os.path.join(outb, "networks", "linear_manifest.json")))
+    check("B11 zero counts at the 2 m site: no rail/barrier ways, no files, no clip key",
+          lmB["layers"]["rail"]["segments"] == 0 and lmB["layers"]["barriers"]["segments"] == 0 and "clip" not in lmB
+          and not glob.glob(os.path.join(outb, "networks", "rail_x*_y*.jsonl")) and not glob.glob(os.path.join(outb, "networks", "barriers_x*_y*.jsonl")))
+    adapter_checks("_dryrun_b", "B", B)
+
+    # ================================================================ site C: 1 m, 3 x 2 tiles, diagonal clip
+    # PIPELINE_CHANGES.md 8.2: a half-plane clip kept iff local x + y >= 1100. Tile (0, 0) is wholly
+    # outside and has no raw tile (its VRT region is nodata); (0,1) (1,0) (1,1) (2,0) straddle the
+    # line; (2,1) is inside. The plane z = 20 + 0.01 x + 0.02 y carries a 30 m single-cell spike at
+    # local (600, 100) -- OUTSIDE the clip, inside straddle tile (1,0) -- so that range_m and slope_qa
+    # are provably taken from kept cells only (the spike would give ~86 deg and z 58).
+    E0c, N0c = 700000, 300000
+    CLIP_C = {"type": "halfplane", "line": [[E0c, N0c + 1100], [E0c + 1100, N0c]], "keep": "left"}
+    cfgC = {"crs": "EPSG:27700", "origin": {"E": E0c, "N": N0c}, "tile_m": 512, "nx": 3, "ny": 2, "grid_res": 513, "clip": CLIP_C}
+    def zC(EE, NN):
+        Z = 20.0 + 0.01 * (EE - E0c) + 0.02 * (NN - N0c)
+        return np.where((EE == E0c + 600) & (NN == N0c + 100), Z + 30.0, Z)
+    def zc_at(e, n): return 20.0 + 0.01 * (e - E0c) + 0.02 * (n - N0c)
+    L = lambda x, y: (E0c + x, N0c + y)
+    rd1 = [L(700, 100), L(700, 900)]                       # crosses the line at y = 400 and the seam at y = 512
+    waysC = [("rd1", "residential", rd1, "Cut Road", None),
+             ("rd2", "residential", [L(100, 100), L(300, 100)], None, None),       # wholly outside
+             ("rd3", "footway", [L(100, 100), L(100, 300)], None, None),           # outside; third way at the outside junction
+             ("rd4", "service", [L(100, 100), L(300, 300)], None, None),           # outside junction (100, 100)
+             ("rd5", "tertiary", [L(1300, 800), L(1500, 800)], None, None),
+             ("rd6", "tertiary", [L(1100, 800), L(1300, 800)], None, None),
+             ("rd7", "footway", [L(1300, 800), L(1300, 1000)], None, None)]        # inside junction (1300, 800)
+    railsC = [("rl1", "rail", rd1, "Test Line", '"gauge"=>"1435","electrified"=>"rail","usage"=>"main","tracks"=>"2"'),
+              ("rl2", "disused", [L(1200, 600), L(1400, 700)], None, None),        # no gauge tag -> default
+              ("rl3", "platform", [L(1250, 650), L(1350, 650)], None, None),       # not a track: skipped
+              ("rl4", "rail", [L(100, 200), L(300, 200)], None, '"gauge"=>"1435"')]  # wholly outside the clip
+    barriersC = [("bw1", "wall", [L(1100, 600), L(1100, 700)], None, '"height"=>"0.5","wall"=>"brick"'),
+                 ("bf1", "fence", [L(1200, 900), L(1300, 900)], None, '"fence_type"=>"chain_link","material"=>"metal"'),
+                 ("bk1", "kerb", [L(1200, 700), L(1250, 700)], None, '"height"=>"15 cm"'),
+                 ("bh1", "hedge", [L(400, 400), L(800, 800)], None, None),         # crosses the line at (550, 550)
+                 ("bg1", "gate", [L(1200, 750), L(1202, 750)], None, None)]        # point-like: skipped, counted
+    bldC = [("cb1", {"building": "house", "other_tags": '"building:levels"=>"2"'}, rect(E0c + 1200, N0c + 600, 10, 10), (4.0, 6.0, 8.0, 40, 44.0, 43.8)),
+            ("cb2", {"building": "house", "other_tags": '"building:levels"=>"2"'}, rect(E0c + 200, N0c + 200, 10, 10), (4.0, 6.0, 8.0, 40, 26.0, 25.8))]   # centre outside
+    nodesC = [("cn1", E0c + 702, N0c + 700, '"amenity"=>"waste_basket"'),          # 2 m off rd1, inside
+              ("cn2", E0c + 100, N0c + 150, '"amenity"=>"waste_basket"')]          # outside
+    C = synth("_dryrun_c", {
+        "origin": {"E": E0c, "N": N0c}, "clip": CLIP_C, "water_level": -50.0,
+        "height_calib": {"mode": "fixed", "intercept": 2.5, "m_per_level": 3.0, "dispute_m": 4.0},
+        "coast": {"foreshore_max_odn": -50.0, "rock_slope_deg": [25.0, 45.0], "water_margin_m": 0.75},
+        "landmarks": {},
+    }, px=1, RES=513, NX=3, NY=2, zfun=zC, ways=waysC, buildings=bldC, nodes=nodesC,
+       rails=railsC, barriers=barriersC, skip_tiles=((0, 0),))
+    outc = C["out"]
+    print("\n=== checks: site C")
+    clipC = lib.parse_clip(cfgC)
+    onC = lambda e, n: (e - E0c) + (n - N0c) >= 1100 - 1e-6          # kept?
+    near = lambda e, n: (e - E0c) + (n - N0c) < 1100 + 12             # within 12 m of the line (8 m densify + Chaikin)
+
+    # ---- 02-equivalent: the positions step 02 would not request
+    sk = [(i, j) for i in range(3) for j in range(2) if lib.tile_state(clipC, cfgC, i, j) == "outside"]
+    check("C02-equivalent: only (0,0) is wholly outside -> skipped_clip 2, 5 positions x2 requested", sk == [(0, 0)] and 2 * len(sk) == 2 and (6 - len(sk)) * 2 == 10)
+
+    # ---- 05 terrain with the clip
+    tmc = json.load(open(os.path.join(outc, "terrain", "terrain_manifest.json")))
+    tc = {(t["x"], t["y"]): t for t in tmc["tiles"]}
+    check("C05 outside tile (0,0): no file, listed in tiles_clipped, NOT in tiles_missing; 5 tiles written",
+          not os.path.exists(os.path.join(outc, "terrain", "dtm_x0_y0.tif")) and tmc["tiles_clipped"] == [[0, 0]]
+          and tmc["tiles_missing"] == [] and sorted(tc) == [(0, 1), (1, 0), (1, 1), (2, 0), (2, 1)], f"{tmc['tiles_clipped']} {tmc['tiles_missing']} {sorted(tc)}")
+    a10 = gdal.Open(os.path.join(outc, "terrain", "dtm_x1_y0.tif")).GetRasterBand(1).ReadAsArray()
+    m10 = lib.cell_mask(clipC, (E0c + 512 - 0.5, 1.0, 0.0, N0c + 512 + 0.5, 0.0, -1.0), 513, 513)
+    raw10 = C["Z"][512:1025, 512:1025]
+    check("C05 straddle (1,0): NoData count 167466 == clipped_cells == manifest", int((a10 == -9999.0).sum()) == 167466 == tc[(1, 0)]["clipped_cells"]
+          and tc[(1, 0)]["clip_state"] == "straddle", f"{int((a10 == -9999.0).sum())} {tc[(1, 0)]}")
+    check("C05 straddle (1,0): SW corner NoData, NE corner real, kept cells untouched, nothing else NoData",
+          a10[512, 0] == -9999.0 and abs(a10[0, 512] - zc_at(E0c + 1024, N0c + 512)) < 0.01
+          and np.array_equal(a10[m10], raw10[m10]) and (a10[~m10] == -9999.0).all() and (a10[m10] != -9999.0).all())
+    check("C05 inside tile (2,1): clip_state inside, 0 clipped cells, no NoData in the array",
+          tc[(2, 1)]["clip_state"] == "inside" and tc[(2, 1)]["clipped_cells"] == 0
+          and (gdal.Open(os.path.join(outc, "terrain", "dtm_x2_y1.tif")).GetRasterBand(1).ReadAsArray() != -9999.0).all())
+    check("C05 NoData -9999 declared on EVERY tile of the clipped site (inside ones too)",
+          all(gdal.Open(os.path.join(outc, "terrain", t["file"])).GetRasterBand(1).GetNoDataValue() == -9999.0 for t in tmc["tiles"]) and tmc["nodata"] == -9999.0)
+    check("C05 range_m and slope_qa from KEPT cells only: [31.0, 55.84], no spike (86 deg / z 58 lies outside the line)",
+          tmc["range_m"] == [31.0, 55.84] and tmc["slope_qa"]["max_deg"] < 5 and tmc["slope_qa"]["pct_cells_over_45deg"] == 0
+          and tc[(1, 0)]["min_m"] > 30 and tc[(1, 0)]["max_m"] < 56 and tc[(1, 0)]["slope_max_deg"] < 5, f"{tmc['range_m']} {tmc['slope_qa']} {tc[(1, 0)]}")
+    check("C05 manifest clip block, clipped_cells_total = 2 x 167466 + 2 x 2926, clip_note, nodata_cells 0 (no coverage gap was filled)",
+          tmc["clip"]["line"] == CLIP_C["line"] and tmc["clip"]["keep"] == "left" and "semantics" in tmc["clip"]
+          and tmc["clipped_cells_total"] == 2 * 167466 + 2 * 2926 == sum(t["clipped_cells"] for t in tmc["tiles"])
+          and tc[(1, 1)]["clipped_cells"] == 2926 and tc[(0, 1)]["clipped_cells"] == 167466 and tc[(2, 0)]["clipped_cells"] == 2926
+          and "deliberate absence" in tmc["clip_note"] and all(t["nodata_cells"] == 0 for t in tmc["tiles"]),
+          f"{tmc.get('clipped_cells_total')} {[t['clipped_cells'] for t in tmc['tiles']]}")
+
+    # ---- 06 roads with the clip
+    rc = jl_tiles(os.path.join(outc, "networks", "roads_x*_y*.jsonl"))
+    segc = [(t, r) for t, rs in rc.items() for r in rs if r["cls"] != "_junction"]
+    byc = {}
+    for t, r in segc: byc.setdefault(r["id"], []).append((t, r))
+    rd1_runs = sorted(byc.get("rd1", []), key=lambda tr: tr[1]["pts"][0][1])
+    check("C06 rd1 cut at its last kept smoothed vertex: first vertex y in [400, 412), every vertex x + y >= 1100",
+          rd1_runs and 400 <= rd1_runs[0][1]["pts"][0][1] - N0c < 412 and all(onC(v[0], v[1]) for _, r in rd1_runs for v in r["pts"])
+          and abs(rd1_runs[-1][1]["pts"][-1][1] - (N0c + 900)) < 1e-6, str([r["pts"][0] for _, r in rd1_runs]))
+    nmc = json.load(open(os.path.join(outc, "networks", "networks_manifest.json")))
+    check("C06 wholly outside ways dropped (rd2, rd3, rd4), counted as vertices_outside_clip; rd5-7 kept",
+          all(w not in byc for w in ("rd2", "rd3", "rd4")) and all(w in byc for w in ("rd5", "rd6", "rd7")) and nmc["vertices_outside_clip"] > 0)
+    check("C06 off-clip vertices are NOT DTM gaps: vertices_without_dtm 0, every kept segment z_gap False, z on the plane",
+          nmc["vertices_without_dtm"] == 0 and all(r["z_gap"] is False for _, r in segc)
+          and all(abs(v[2] - zc_at(v[0], v[1])) < 0.05 for _, r in segc for v in r["pts"]))
+    check("C06 seam split kept: rd1 in tiles (1,0) and (1,1) with the seam vertex duplicated",
+          [t for t, _ in rd1_runs] == [(1, 0), (1, 1)] and rd1_runs[0][1]["pts"][-1] == rd1_runs[1][1]["pts"][0])
+    juncc = [(t, r) for t, rs in rc.items() for r in rs if r["cls"] == "_junction"]
+    check("C06 outside junction (100,100) dropped and counted; inside junction (1300,800) kept",
+          len(juncc) == 1 and abs(juncc[0][1]["pts"][0][0] - (E0c + 1300)) < 0.2 and nmc["junctions_outside_clip"] == 1 and nmc["junctions"] == 2, str(juncc))
+    check("C06 manifest clip block", nmc["clip"]["keep"] == "left" and nmc["clip"]["line"] == CLIP_C["line"])
+
+    # ---- 07 massing with the clip
+    blc = jl(os.path.join(outc, "massing", "buildings_*.jsonl"))
+    mmc = json.load(open(os.path.join(outc, "massing", "massing_manifest.json")))
+    check("C07 outside_clip 1 (cb2's envelope centre), one building kept (cb1), manifest clip block",
+          mmc["outside_clip"] == 1 and [b["id"] for b in blc] == ["cb1"] and mmc["buildings"] == 1 and mmc["outside_grid"] == 0
+          and mmc["clip"]["line"] == CLIP_C["line"], f"{mmc.get('outside_clip')} {[b['id'] for b in blc]}")
+
+    # ---- 09 ground cover with the clip
+    cmc = json.load(open(os.path.join(outc, "coast", "coast_manifest.json")))
+    check("C09 outside tile (0,0): no raster, tiles_clipped [[0,0]], NOT tiles_without_dtm; 5 rasters",
+          not os.path.exists(os.path.join(outc, "coast", "ground_x0_y0.tif")) and cmc["tiles_clipped"] == [[0, 0]] and cmc["tiles_without_dtm"] == []
+          and len(glob.glob(os.path.join(outc, "coast", "ground_x*_y*.tif"))) == 5, f"{cmc.get('tiles_clipped')} {cmc['tiles_without_dtm']}")
+    sums, zero_total = {}, 0
+    for pth in sorted(glob.glob(os.path.join(outc, "coast", "ground_x*_y*.tif"))):
+        gd = gdal.Open(pth)
+        s = sum(gd.GetRasterBand(b).ReadAsArray().astype(int) for b in (1, 2, 3, 4))
+        mt = re.search(r"ground_x(\d+)_y(\d+)", pth); sums[(int(mt.group(1)), int(mt.group(2)))] = s
+        zero_total += int((s == 0).sum())
+    check("C09 straddle (1,0): zero-sum class cells 41665; (1,1): 703; inside (2,1): none",
+          int((sums[(1, 0)] == 0).sum()) == 41665 and int((sums[(1, 1)] == 0).sum()) == 703 and int((sums[(2, 1)] == 0).sum()) == 0,
+          str({k: int((v == 0).sum()) for k, v in sums.items()}))
+    check("C09 (sum >= 252) | (sum == 0) everywhere; sum == 0 count == clipped_cells; zero cells are 0 in ALL bands",
+          all(((v >= 252) | (v == 0)).all() for v in sums.values()) and zero_total == cmc["clipped_cells"] == 2 * 41665 + 2 * 703
+          and all((gdal.Open(os.path.join(outc, "coast", "ground_x1_y0.tif")).GetRasterBand(b).ReadAsArray()[sums[(1, 0)] == 0] == 0).all() for b in (1, 2, 3, 4)),
+          f"{zero_total} vs {cmc.get('clipped_cells')}")
+    g10 = gdal.Open(os.path.join(outc, "coast", "ground_x1_y0.tif"))
+    km10 = lib.cell_mask(clipC, g10.GetGeoTransform(), 256, 256)
+    check("C09 zeroed cells are exactly the class cells whose centres lie outside the line; kept cells are all grass 255",
+          np.array_equal(sums[(1, 0)] == 0, ~km10) and (g10.GetRasterBand(1).ReadAsArray()[km10] == 255).all())
+    check("C09 manifest clip, tiles_clipped, clipped_cells, bands_note; no water tiles at -50",
+          cmc["clip"]["line"] == CLIP_C["line"] and "252..255" in cmc["bands_note"] and "only outside" in cmc["bands_note"] and cmc["water_tiles"] == [])
+
+    # ---- 10 furniture with the clip
+    fc = {r["id"]: r for r in jl(os.path.join(outc, "furniture", "furniture_*.jsonl"))}
+    qfc = json.load(open(os.path.join(outc, "qa_furniture.json")))
+    check("C10 outside node cn2 dropped and counted; cn1 placed on rd1 (residential, kerb)",
+          list(fc) == ["cn1"] and fc["cn1"]["cls"] == "residential" and fc["cn1"]["src"] == "kerb" and qfc["outside_clip"] == 1
+          and qfc["outside_grid"] == 0 and qfc["clip"]["line"] == CLIP_C["line"], f"{list(fc)} {qfc.get('outside_clip')}")
+
+    # ---- 11 linear features with the clip
+    railc = jl_tiles(os.path.join(outc, "networks", "rail_x*_y*.jsonl"))
+    barc = jl_tiles(os.path.join(outc, "networks", "barriers_x*_y*.jsonl"))
+    lmc = json.load(open(os.path.join(outc, "networks", "linear_manifest.json")))
+    rl1 = {t: [(r["pts"], r["z_gap"]) for r in rs if r["id"] == "rl1"] for t, rs in railc.items()}
+    rd1_by_tile = {t: [(r["pts"], r["z_gap"]) for r in rs if r.get("id") == "rd1"] for t, rs in rc.items()}
+    check("C11 rl1 (rail on rd1's polyline): per-tile pts and z_gap IDENTICAL to rd1's -- lib.drape_runs == 06",
+          {t: v for t, v in rl1.items() if v} == {t: v for t, v in rd1_by_tile.items() if v} and len([1 for v in rl1.values() if v]) == 2,
+          f"rail tiles {sorted(t for t, v in rl1.items() if v)} vs road tiles {sorted(t for t, v in rd1_by_tile.items() if v)}")
+    rr = {r["id"]: r for rs in railc.values() for r in rs}
+    check("C11 rail fields: gauge 1.435 osm, tracks 2, electrified rail, usage main, service null, bridge/tunnel False, name, cls rail",
+          rr["rl1"]["gauge"] == 1.435 and rr["rl1"]["gauge_src"] == "osm" and rr["rl1"]["tracks"] == 2 and rr["rl1"]["electrified"] == "rail"
+          and rr["rl1"]["usage"] == "main" and rr["rl1"]["service"] is None and rr["rl1"]["bridge"] is False and rr["rl1"]["tunnel"] is False
+          and rr["rl1"]["name"] == "Test Line" and rr["rl1"]["cls"] == "rail", str({k: v for k, v in rr["rl1"].items() if k != "pts"}))
+    check("C11 disused rl2 gets the default gauge (1.435, gauge_src default); platform rl3 skipped and counted",
+          rr["rl2"]["gauge"] == 1.435 and rr["rl2"]["gauge_src"] == "default" and rr["rl2"]["tracks"] is None and "rl3" not in rr
+          and lmc["ways_skipped_by_class"]["railway"] == {"platform": 1} and lmc["layers"]["rail"]["gauge_defaulted"] == 1, str(lmc["ways_skipped_by_class"]))
+    check("C11 outside rail rl4 dropped: not emitted, its vertices in vertices_outside_clip; by_class {rail 1, disused 1}",
+          "rl4" not in rr and lmc["layers"]["rail"]["vertices_outside_clip"] > 0 and lmc["layers"]["rail"]["by_class"] == {"rail": 1, "disused": 1}
+          and lmc["layers"]["rail"]["ways_dropped"] == 1, str(lmc["layers"]["rail"]))
+    br = {r["id"]: r for rs in barc.values() for r in rs}
+    check("C11 wall bw1 h 0.5 (osm, wall brick); fence bf1 h 1.5 (default, chain_link / metal)",
+          br["bw1"]["h"] == 0.5 and br["bw1"]["h_src"] == "osm" and br["bw1"]["wall"] == "brick" and br["bw1"]["cls"] == "wall"
+          and br["bf1"]["h"] == 1.5 and br["bf1"]["h_src"] == "default" and br["bf1"]["fence_type"] == "chain_link" and br["bf1"]["material"] == "metal"
+          and lmc["layers"]["barriers"]["height_defaulted"] == 2, f"{ {k: v for k, v in br['bw1'].items() if k != 'pts'} } {lmc['layers']['barriers'].get('height_defaulted')}")
+    check("C11 Chaikin 0 on barriers: bw1's E exact on every vertex, endpoints pinned, 14 densified vertices",
+          all(v[0] == E0c + 1100 for v in br["bw1"]["pts"]) and br["bw1"]["pts"][0][1] == N0c + 600 and br["bw1"]["pts"][-1][1] == N0c + 700
+          and len(br["bw1"]["pts"]) == 14 and lmc["layers"]["barriers"]["smoothing"]["chaikin_iters"] == 0 and lmc["layers"]["rail"]["smoothing"]["chaikin_iters"] == 2,
+          str(br["bw1"]["pts"][:3]))
+    check("C11 kerb height \"15 cm\" -> 0.15 m (osm)", br["bk1"]["h"] == 0.15 and br["bk1"]["h_src"] == "osm")
+    bh1_runs = [(t, r) for t, rs in barc.items() for r in rs if r["id"] == "bh1"]
+    check("C11 hedge bh1 cut at the line (first vertex within 12 m, all vertices kept); gate bg1 skipped and counted",
+          len(bh1_runs) == 1 and bh1_runs[0][0] == (1, 1) and near(*bh1_runs[0][1]["pts"][0][:2])
+          and all(onC(v[0], v[1]) for _, r in bh1_runs for v in r["pts"]) and "bg1" not in br
+          and lmc["ways_skipped_by_class"]["barrier"] == {"gate": 1} and lmc["layers"]["barriers"]["vertices_outside_clip"] > 0,
+          f"{[(t, r['pts'][0]) for t, r in bh1_runs]} {lmc['ways_skipped_by_class']}")
+    check("C11 manifest shape: PIPELINE_CHANGES.md 4.4 keys, tile counts == files, clip block",
+          set(lmc) >= {"site", "crs", "coordinates", "origin", "tile_m", "source_layer", "layers", "ways_skipped_by_class", "barrier_areas_skipped", "clip"}
+          and set(lmc["layers"]["rail"]) >= {"files", "column", "classes_emitted", "segments", "tiles", "length_km", "by_class", "smoothing", "default_gauge_m",
+                                            "gauge_defaulted", "vertices_without_dtm", "vertices_outside_grid", "vertices_outside_clip"}
+          and set(lmc["layers"]["barriers"]) >= {"files", "column", "classes_emitted", "segments", "tiles", "length_km", "by_class", "smoothing", "default_height_m",
+                                                "height_defaulted", "vertices_without_dtm", "vertices_outside_grid", "vertices_outside_clip"}
+          and lmc["layers"]["rail"]["tiles"] == len(railc) and lmc["layers"]["barriers"]["tiles"] == len(barc)
+          and lmc["layers"]["rail"]["segments"] == sum(len(v) for v in railc.values()) and lmc["layers"]["barriers"]["segments"] == sum(len(v) for v in barc.values())
+          and lmc["layers"]["rail"]["column"] == "railway" and lmc["layers"]["barriers"]["column"] == "barrier"
+          and lmc["layers"]["barriers"]["default_height_m"]["wall"] == 1.8 and lmc["layers"]["rail"]["default_gauge_m"] == 1.435
+          and lmc["layers"]["barriers"]["by_class"] == {"wall": 1, "fence": 1, "kerb": 1, "hedge": 1}
+          and lmc["clip"]["line"] == CLIP_C["line"] and lmc["origin"] == {"E": E0c, "N": N0c} and lmc["barrier_areas_skipped"] == 0
+          and lmc["layers"]["rail"]["vertices_without_dtm"] == 0 and lmc["layers"]["barriers"]["vertices_without_dtm"] == 0,
+          str({k: (v if k != "layers" else {kk: {x: y for x, y in vv.items() if x not in ("default_height_m", "classes_emitted")} for kk, vv in v.items()}) for k, v in lmc.items()}))
+    adapter_checks("_dryrun_c", "C", C, clip_block=CLIP_C, tm=tmc)
+
+    # ---- C-lib: the clip API and the shared line geometry (PIPELINE_CHANGES.md 2, 8.3)
+    print("\n=== checks: lib clip API (site C numbers, site A's 06 output, the real thanet.json)")
+    refused = 0
+    for bad in ({"clip": {"type": "circle", "line": [[0, 0], [1, 1]]}},
+                {"clip": {"type": "halfplane", "line": [[0, 0], [1, 1]], "keep": "up"}},
+                {"clip": {"type": "halfplane", "line": [[5, 5], [5, 5]]}}):
+        try:
+            lib.parse_clip(bad)
+        except SystemExit:
+            refused += 1
+    check("C-lib parse_clip: absent -> None; unknown type refuses", lib.parse_clip({}) is None and lib.parse_clip({"clip": None}) is None
+          and isinstance(clipC, lib.HalfPlaneClip) and refused == 3
+          and clipC.stamp() == {"type": "halfplane", "line": [[E0c, N0c + 1100], [E0c + 1100, N0c]], "keep": "left"}, f"refused {refused}")
+    states = {(i, j): lib.tile_state(clipC, cfgC, i, j) for i in range(3) for j in range(2)}
+    check("C-lib tile_state on the diagonal", states == {(0, 0): "outside", (0, 1): "straddle", (1, 0): "straddle", (1, 1): "straddle",
+          (2, 0): "straddle", (2, 1): "inside"} and lib.tile_state(None, cfgC, 0, 0) == "inside", str(states))
+    Ek = E0c + np.array([0, 1100, 600, 550, 2000]); Nk = N0c + np.array([0, 0, 500, 550, 2000])
+    kp = lib.keep_points(clipC, Ek, Nk)
+    kr = lib.keep_points(lib.parse_clip({"clip": {**CLIP_C, "keep": "right"}}), Ek, Nk)
+    k0 = lib.keep_points(clipC, E0c, N0c)
+    check("C-lib keep_points: vectorised; on-line kept; keep=right mirrors", kp.tolist() == [False, True, True, True, True]
+          and kr.tolist() == [True, True, True, True, False] and k0.shape == () and not k0
+          and lib.keep_points(None, Ek, Nk).tolist() == [True] * 5 and lib.keep_points(None, Ek[None, :], Nk[:, None]).shape == (5, 5),
+          f"{kp.tolist()} {kr.tolist()}")
+    gt10 = (E0c + 512 - 0.5, 1.0, 0.0, N0c + 512 + 0.5, 0.0, -1.0)
+    m10 = lib.cell_mask(clipC, gt10, 513, 513)
+    check("C-lib cell_mask at pixel centres: tile (1,0) clips 167466 of 263169; None -> all True",
+          m10.shape == (513, 513) and int((~m10).sum()) == 167466 and not m10[512, 0] and m10[0, 512]
+          and lib.cell_mask(None, gt10, 513, 513).shape == (513, 513) and lib.cell_mask(None, gt10, 513, 513).all(), str(int((~m10).sum())))
+    bb11, bb21, bb00 = (E0c + 512, N0c + 512, E0c + 1024, N0c + 1024), (E0c + 1024, N0c + 512, E0c + 1536, N0c + 1024), (E0c, N0c, E0c + 512, N0c + 512)
+    w11, wN, w21 = lib.clip_wkt(clipC, bb11), lib.clip_wkt(None, bb11), lib.clip_wkt(clipC, bb21)
+    rectN = (f"POLYGON(({E0c + 512}.000 {N0c + 512}.000,{E0c + 1024}.000 {N0c + 512}.000,{E0c + 1024}.000 {N0c + 1024}.000,"
+             f"{E0c + 512}.000 {N0c + 1024}.000,{E0c + 512}.000 {N0c + 512}.000))")
+    check("C-lib clip_wkt: 5-corner / rectangle / None", w11.startswith("POLYGON((") and w11.count(",") == 5
+          and f"{E0c + 588}.000 {N0c + 512}.000" in w11 and f"{E0c + 512}.000 {N0c + 588}.000" in w11
+          and wN == rectN and w21.count(",") == 4 and lib.clip_wkt(clipC, bb00) is None, f"{w11} | {wN}")
+    check("C-lib grid_stamp: four keys with or without a clip", lib.grid_stamp(cfgC) == lib.grid_stamp(cfgC, clipC)
+          == {"crs": "EPSG:27700", "origin": {"E": E0c, "N": N0c}, "tile_m": 512, "grid_res": 513})
+    cmC = lib.clip_manifest(clipC)
+    check("C-lib clip_manifest: None -> None; stamp keys + semantics", lib.clip_manifest(None) is None
+          and set(cmC) == {"type", "line", "keep", "semantics"} and cmC["line"] == CLIP_C["line"] and "centres" in cmC["semantics"])
+    sd = clipC.signed_distance_out(E0c + np.array([0, 0, 1100, 1100]), N0c + np.array([1100, 0, 0, 1100]))
+    check("C-lib signed_distance_out: 0 on the line, + into the cut", abs(sd[0]) < 1e-9 and abs(sd[2]) < 1e-9
+          and abs(sd[1] - 1100 / math.sqrt(2)) < 1e-6 and abs(sd[3] + 1100 / math.sqrt(2)) < 1e-6, str(sd))
+    check("C-lib tagval / densify / chaikin are 06's copies", lib.tagval('"lanes"=>"2","bridge"=>"yes"', "bridge") == "yes"
+          and lib.tagval(None, "x") is None and lib.tagval('"a"=>"b"', "x") is None
+          and lib.densify([(0.0, 0.0), (20.0, 0.0)], 8.0) == [(0.0, 0.0), (8.0, 0.0), (16.0, 0.0), (20.0, 0.0)]
+          and lib.chaikin([(0, 0), (10, 0), (10, 10)], 1) == [(0, 0), (2.5, 0.0), (7.5, 0.0), (10.0, 2.5), (10.0, 7.5), (10, 10)]
+          and lib.chaikin([(0, 0), (10, 0)], 3) == [(0, 0), (10, 0)])
+    # drape_runs must reproduce step 06's per-tile runs, z values and z_gap flags for site A exactly
+    # (the guard for the later refactor of 06 onto lib): same densify/Chaikin/bilinear/seam arithmetic.
+    cfgA = {"origin": {"E": A["E0"], "N": A["N0"]}, "tile_m": A["T"], "nx": A["NX"], "ny": A["NY"]}
+    six = {}
+    for pth in sorted(glob.glob(os.path.join(A["out"], "networks", "roads_x*_y*.jsonl"))):
+        mt = re.search(r"roads_x(\d+)_y(\d+)\.jsonl$", pth)
+        for l in open(pth):
+            r = json.loads(l)
+            if r["cls"] != "_junction":
+                six.setdefault(r["id"], []).append(((int(mt.group(1)), int(mt.group(2))), json.dumps(r["pts"]), r["z_gap"]))
+    TR = json.load(open(os.path.join(SRC, "config", "tuning.json"), encoding="utf-8"))["roads"]
+    SPECr, SKIPr = {k for k in TR["widths_m"] if not k.startswith("_")}, set(TR["skip"])
+    Zn = A["Z"].astype(np.float32); Zn[lib.nodata_mask(Zn, -9999.0)] = np.nan
+    sampA = lib.DtmSampler(Zn, (A["E0"] - 0.5, 1.0, 0.0, A["N0"] + A["NY"] * A["T"] + 0.5, 0.0, -1.0))
+    mine, ctr = {}, {}
+    for (wid, wcls, wpts, _, _) in waysA:
+        if wcls in SKIPr or wcls not in SPECr or len(wpts) < 2: continue
+        for tile, run, gap in lib.drape_runs(lib.chaikin(lib.densify(wpts, TR["densify_step_m"]), TR["chaikin_iters"]), cfgA, sampA, None, ctr):
+            mine.setdefault(wid, []).append((tile, json.dumps(run), gap))
+    check("C-lib drape_runs == 06 arithmetic", len(six) >= 6 and {k: sorted(v) for k, v in mine.items()} == {k: sorted(v) for k, v in six.items()}
+          and ctr.get("without_dtm") == nm["vertices_without_dtm"] and ctr.get("outside_grid") == nm["vertices_outside_grid"]
+          and "outside_clip" not in ctr and lib.tile_of(cfgA, A["E0"] - 1, A["N0"]) is None and lib.tile_of(cfgA, A["E0"] + 600, A["N0"] + 200) == (1, 0),
+          f"lib {sorted(mine)} vs 06 {sorted(six)}; counters {ctr} vs {nm['vertices_without_dtm']}/{nm['vertices_outside_grid']}")
+    # the real Thanet config: the OSTN15 endpoints of BRIEF 4.1 and the tile budget its notes quote
+    tcfg = json.load(open(os.path.join(SITES_DIR, "thanet.json"), encoding="utf-8"))
+    check("C-lib thanet.json clip.line == BRIEF 4.1 [[628512, 169680], [635496, 163609]]",
+          tcfg["clip"]["type"] == "halfplane" and tcfg["clip"]["line"] == [[628512, 169680], [635496, 163609]] and tcfg["clip"]["keep"] == "left",
+          str(tcfg["clip"].get("line")))
+    tclip = lib.parse_clip(tcfg)
+    Tt, E0t, N0t, RESt = tcfg["tile_m"], tcfg["origin"]["E"], tcfg["origin"]["N"], tcfg["grid_res"]
+    st, clipped = Counter(), 0
+    for i in range(tcfg["nx"]):
+        for j in range(tcfg["ny"]):
+            s = lib.tile_state(tclip, tcfg, i, j); st[s] += 1
+            if s == "straddle":
+                clipped += int((~lib.cell_mask(tclip, (E0t + i * Tt - 0.5, 1.0, 0.0, N0t + (j + 1) * Tt + 0.5, 0.0, -1.0), RESt, RESt)).sum())
+    check("C-lib tile_state / cell_mask on the Thanet grid: 360 inside, 31 straddle, 103 outside, 3861822 clipped cells",
+          dict(st) == {"inside": 360, "straddle": 31, "outside": 103} and clipped == 3861822, f"{dict(st)} {clipped}")
+    bn = tcfg["clip"].get("budget_note", "")
+    check("C-lib thanet.json budget_note quotes the recomputed budget (360/31/103, 3,861,822 of 8,158,239)",
+          "360 tiles inside, 31 straddle, 103 outside" in bn and "3,861,822" in bn and "8,158,239" in bn and 31 * RESt * RESt == 8158239)
+    mcfg = json.load(open(os.path.join(SITES_DIR, "margate.json"), encoding="utf-8"))
+    check("C-lib margate.json has no clip: every answer is 'kept'", "clip" not in mcfg and lib.parse_clip(mcfg) is None
+          and lib.tile_state(None, mcfg, 0, 0) == "inside" and lib.clip_manifest(None) is None)
 
     # ---- lib with real numpy
     a = np.array([[1, 2, 3], [4, -9999.0, 6], [7, 8, 9]], float)
@@ -390,16 +821,30 @@ try:
     real = sorted(glob.glob(os.path.join(REPO, "data", "*", "raw", "lidar", "dtm_x0_y0.tif")))
     if real:
         info = lib.tiff_info(real[0])
-        check(f"lib.tiff_info on a REAL EA tile ({os.path.relpath(real[0], REPO)}): 513x513 float32, nodata -3.4e38",
-              info == {"width": 513, "height": 513, "dtype": "float32", "nodata": info["nodata"]} and info["nodata"] is not None and info["nodata"] < -1e30, str(info))
+        check(f"lib.tiff_info on a REAL EA tile ({os.path.relpath(real[0], REPO)}): 513x513 float32, nodata -3.4e38, georef_origin read",
+              info is not None and set(info) == {"width", "height", "dtype", "nodata", "georef_origin"}
+              and info["width"] == 513 and info["height"] == 513 and info["dtype"] == "float32"
+              and info["nodata"] is not None and info["nodata"] < -1e30 and info["georef_origin"] is not None, str(info))
     else:
         print("  SKIP  lib.tiff_info on a real EA tile (none under data/)")
+    # georef_origin: the raw EA tiles carry ModelTransformationTag 34264, GDAL-written tiles the tiepoint
+    # 33922 -- both must give the corner of pixel (0, 0); and Margate's x0_y0 reused as Thanet's x10_y10
+    # must sit exactly where the Thanet grid says (627680 + 10*512 - 0.5, 163080 + 11*512 + 0.5).
+    for label, rel, want in (("ModelTransformationTag 34264 on raw EA margate dtm_x0_y0", ("margate", "raw", "lidar", "dtm_x0_y0.tif"), (632799.5, 168712.5)),
+                             ("ModelTiepointTag 33922 on GDAL-written margate out/terrain/dtm_x0_y0", ("margate", "out", "terrain", "dtm_x0_y0.tif"), (632799.5, 168712.5)),
+                             ("thanet dtm_x10_y10 (Margate's x0_y0 reused) == Thanet grid (10, 10)", ("thanet", "raw", "lidar", "dtm_x10_y10.tif"), (627680 + 10 * 512 - 0.5, 163080 + 11 * 512 + 0.5))):
+        pth = os.path.join(REPO, "data", *rel)
+        if os.path.exists(pth):
+            got = lib.tiff_info(pth)["georef_origin"]
+            check(f"lib.tiff_info georef_origin: {label} == {want}", got == want, str(got))
+        else:
+            print(f"  SKIP  lib.tiff_info georef_origin: {label} ({os.path.relpath(pth, REPO)} absent)")
 
 except Exception:
     traceback.print_exc()
     results.append(("HARNESS CRASHED", False))
 finally:
-    for s in ("_dryrun_a", "_dryrun_b"):
+    for s in ("_dryrun_a", "_dryrun_b", "_dryrun_c"):
         p = os.path.join(SITES_DIR, f"{s}.json")
         if os.path.exists(p): os.remove(p)
     for d in glob.glob(os.path.join(SRC, "**", "__pycache__"), recursive=True):
@@ -410,6 +855,7 @@ finally:
         shutil.rmtree(ROOT, ignore_errors=True)
 
 fails = [n for n, ok in results if not ok]
-print(f"\n{len(results) - len(fails)} passed, {len(fails)} failed")
+print(f"\n{len(results) - len(fails)} passed, {len(fails)} failed" + (f", {len(skipped)} SKIPPED (not passed)" if skipped else ""))
 for n in fails: print("  FAILED:", n)
+for n in skipped: print("  SKIPPED:", n)
 sys.exit(1 if fails else 0)

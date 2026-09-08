@@ -16,6 +16,7 @@ Verified by `sources/tests/dryrun.py`. Change this document and the test togethe
 | **Manifests** | Every product directory has one `*_manifest.json` recording `site`, `crs`, `origin`, `tile_m` and every parameter the step ran under. Read it before the data. |
 | **null** | Means *unknown*, never zero. A `null` elevation is "we have no measurement here" — drape it yourself. |
 | **`src`** | Where a value came from. Filter on it. Nothing is invented without saying so. |
+| **Clip** | A site config may carry an optional `clip` block (Thanet: the half-plane north-east of the Minnis Bay → Pegwell Bay line). Every manifest of a clipped site records it under `clip` (`type`, `line`, `keep`, `semantics`); no `clip` key = unclipped site, and an unclipped site's products are byte-identical to what they were before clips existed. Rasters are clipped at cell centres; vertices, footprint envelope centres and nodes at their positions; points exactly on the line are kept. |
 
 Nothing here knows about any engine. `sources/adapters/unity.py` is what a consumer
 that wants local Y-up coordinates and 16-bit heightmaps looks like — copy it.
@@ -24,13 +25,20 @@ that wants local Y-up coordinates and 16-bit heightmaps looks like — copy it.
 
 `dtm_x{i}_y{j}.tif` — Float32, one band, `grid_res × grid_res` (513: 512 m + a shared
 edge row, so adjacent tiles have identical borders). Nodata has been **filled**; the
-manifest says how many cells and by which method per tile.
+manifest says how many cells and by which method per tile. **Except** cells outside the
+site's clip: written as the band's declared NoData (`terrain_manifest.nodata`, −9999)
+**after** the fill — a deliberate absence, never a coverage gap. `clipped_cells` per tile
+counts them; `clip_state` is `inside` or `straddle`. Positions wholly outside have no file
+and are `tiles_clipped`, distinct from `tiles_missing`. Render NoData as a hole. On a
+clipless site no tile declares a NoData value and none of these keys exist.
 
 `terrain_manifest.json` — `range_m` is the true site-wide elevation range. A consumer
 encoding into a fixed window must compare against it; the pipeline will not clip for you.
 `fill` per tile is `none`, `nearest` (scipy present) or `median (degraded)` — treat the
 last as provisional. `tiles_missing` lists grid positions that have **no tile at all**
 (the source returned nothing there — beyond its coverage); do not assume they are sea.
+For a clipped site `range_m` and `slope_qa` describe kept cells only (the gradient itself
+is taken on the filled, unclipped array, so the edge cells carry their true slope).
 
 `slope_qa` — `max_deg` and `pct_cells_over_45deg` site-wide, plus `slope_max_deg`,
 `slope_p99_deg` and `cells_over_45deg` per tile, all at native resolution. **This is how you
@@ -63,7 +71,62 @@ Records with `"cls":"_junction"` are different: `{"cls":"_junction","r":3.4,"pts
 
 Ways are clipped to the tile grid: a way that leaves the grid ends at its last inside
 vertex, and nothing is written for tiles with negative indices. `networks_manifest.json`
-counts `vertices_outside_grid` and `vertices_without_dtm`.
+counts `vertices_outside_grid` and `vertices_without_dtm`. Likewise a way that crosses the
+clip line ends at its last kept smoothed vertex (within ~12 m of the line at the default
+smoothing); `vertices_outside_clip` and `junctions_outside_clip` are counted; off-clip
+vertices are not DTM gaps. `length_km` counts whole ways, beyond the grid and the clip.
+
+## `networks/` — step 11
+
+Railway and barrier ways from the same GeoPackage, densified, draped and tiled exactly as
+roads are (through `lib.drape_runs`; a rail drawn along a road's polyline gets the road's
+vertices to the centimetre). No width is emitted for either layer.
+
+`rail_x{i}_y{j}.jsonl`, one record per tile run:
+
+```json
+{"id":"w123","cls":"rail","gauge":1.435,"gauge_src":"osm","tracks":2,"electrified":"rail","service":null,"usage":"main",
+ "bridge":false,"tunnel":false,"name":"Chatham Main Line","z_gap":false,"pts":[[E,N,z],...]}
+```
+
+| field | type | meaning |
+|---|---|---|
+| `id` | string | OSM way id |
+| `cls` | string | the OSM `railway` value verbatim (`tuning.json → rail.classes`: `rail`, `light_rail`, `tram`, `narrow_gauge`, `miniature`, `disused` — track still in place) |
+| `gauge` | number, m | OSM `gauge` mm → m (`"1435"` → 1.435; `"1435;1000"` → first; `"standard"` → 1.435); absent/unparseable → `tuning.rail.default_gauge_m` |
+| `gauge_src` | `osm` \| `default` | |
+| `tracks` | int or null | OSM `tracks`, not defaulted |
+| `electrified`, `service`, `usage` | string or null | raw OSM values |
+| `bridge`, `tunnel` | bool | tag presence, elevation not adjusted |
+| `name` | string or null | |
+| `z_gap` | bool | as roads |
+| `pts` | `[[E, N, z], …]` | densified (`tuning.rail.densify_step_m` 8) + Chaikin (`chaikin_iters` 2), draped, tiled, cut at grid and clip |
+
+`barriers_x{i}_y{j}.jsonl`:
+
+```json
+{"id":"w456","cls":"wall","h":0.5,"h_src":"osm","material":null,"fence_type":null,"wall":"brick","name":null,"z_gap":false,"pts":[[E,N,z],...]}
+```
+
+| field | type | meaning |
+|---|---|---|
+| `cls` | string | OSM `barrier` value verbatim (`tuning.json → barriers.classes`: `wall`, `fence`, `hedge`, `retaining_wall`, `kerb`, `guard_rail`, `handrail`, `city_wall`) |
+| `h` | number, m | OSM `height`: first token, unit suffix `m` (default) / `cm` (÷100) / `mm` (÷1000) / `ft` or `'` (×0.3048); absent/unparseable → `tuning.barriers.default_height_m[cls]` |
+| `h_src` | `osm` \| `default` | |
+| `material`, `fence_type`, `wall`, `name` | string or null | raw OSM |
+| `z_gap` | bool | |
+| `pts` | `[[E, N, z], …]` | densified 8 m, **Chaikin 0** (walls turn corners), draped, tiled |
+
+`linear_manifest.json` is step 11's manifest (`networks_manifest.json` stays step 06's).
+`default_gauge_m` and `default_height_m` are opinions from `tuning.json`; records that used
+them say so in `gauge_src` / `h_src`, and `gauge_defaulted` / `height_defaulted` count them.
+`by_class` counts ways that produced at least one tile run; `ways_dropped` had no kept
+vertex on the grid. `ways_skipped_by_class` lists every `railway`/`barrier` value seen but
+not emitted (`abandoned`, `razed`, `platform`; `gate`, `bollard`, `yes`, …);
+`barrier_areas_skipped` counts closed barrier outlines in `multipolygons`, which are not
+read. A way tagged both `highway` and `railway` appears in both layers. Zero railway ways is
+not an error, but the step says whether the extract was fetched with `way["railway"]` in the
+query (`sources/provenance/<site>.osm.json → query_sha256`).
 
 ## `massing/` — step 07
 
@@ -91,7 +154,8 @@ footprints with no LIDAR coverage** (they carry `lidar_px: 0` and null ground).
 
 `massing_manifest.json` — `by_height_source` is the histogram of `src`;
 `buildings_without_lidar` (no ground, no height), `buildings_without_dsm` (ground yes,
-height no — a DSM coverage gap) and `outside_grid` are counted. `height_calib` is the line the
+height no — a DSM coverage gap) and `outside_grid` are counted. `outside_clip` counts
+footprints whose envelope centre lies outside the clip; not emitted. `height_calib` is the line the
 `osm_levels` rung actually used, with `source` = `fitted` (regressed from this site's own
 buildings that carry both `building:levels` and a trustworthy LIDAR p50 — the default),
 `config` (pinned in the site config) or `fallback` (too few buildings to fit; another
@@ -102,7 +166,9 @@ is describing this town with another town's building stock.
 ## `coast/` — step 09
 
 `ground_x{i}_y{j}.tif` — Byte, four bands **grass, sand, rock, water** as fractions 0–255
-that sum to 255, at `class_res × class_res` (256) per tile, georeferenced. Sand includes
+that **sum to 252–255 (each band is truncated to a byte separately) for every cell inside
+the site's clip; a cell outside the clip is 0 in all four bands (sum 0), and sum 0 occurs
+only outside**, at `class_res × class_res` (256) per tile, georeferenced. Sand includes
 OSM beach polygons **plus everything below `coast.foreshore_max_odn`** — a property of the
 survey's tide state, recorded in the manifest. Rock is a slope ramp between
 `coast.rock_slope_deg`.
@@ -121,8 +187,11 @@ to `water_tiles` only if the site config says `coast.missing_tiles_are_water` �
 no-data tile is open sea or just beyond coverage is a per-site fact, not an assumption.
 
 `coast_manifest.json` — `water_tiles` lists `[i, j]` pairs whose lowest ground is within
-`water_margin_m` of `water_level`, i.e. tiles that need a water surface; `bands`,
-`thresholds`, `water_tolerance_m` and `tiles_without_dtm` are recorded.
+`water_margin_m` of `water_level`, i.e. tiles that need a water surface (judged on kept
+cells only where a tile straddles the clip); `bands`, `thresholds`, `water_tolerance_m` and
+`tiles_without_dtm` are recorded. `tiles_clipped` lists positions wholly outside (no raster;
+distinct from `tiles_without_dtm`), `clipped_cells` counts zeroed cells, and `bands_note`
+restates the sum rule.
 
 ## `furniture/` — step 10
 
@@ -143,6 +212,9 @@ no-data tile is open sea or just beyond coverage is a per-site fact, not an assu
 | `d`, `cls` | Distance to, and class of, the road used. |
 | `nudged` | `true` if the node was mapped inside the carriageway and moved to the pavement edge. The original OSM position is not kept; the move is at most half a carriageway. |
 
+`qa_furniture.json` counts `outside_clip` nodes (judged at the OSM position, before any
+nudge); not placed.
+
 ## `qa_*.json`
 
 `qa_height_outliers.json` — buildings with too few LIDAR samples or a ridge far above the
@@ -155,3 +227,8 @@ Read the manifests, not the config. Subtract `origin` if you want local coordina
 axes if you want Y-up; `np.flipud` a raster if your engine's row 0 is south; convert
 `bearing` to your rotation convention; add your own draw-order lifts and bridge decks.
 Put all of it in one file under `sources/adapters/` and none of it anywhere else.
+Honour `clip`: treat terrain NoData as absence, not elevation; expect ground-cover cells
+that sum to 0; expect rail and barrier layers beside roads. `sources/adapters/unreal.py` is
+the Streetscape-frame adapter (local metres, Y north, Z ODN) for Unreal and Blender; it
+additionally reads `derived/<site>.gpkg` for the raw OSM way geometry and tags, the one
+product not in `out/`.
