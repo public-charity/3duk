@@ -324,9 +324,11 @@ def junction_surface(plan: JunctionPlan, junction_id: str, splines):
     The hook the CORRIDOR CONFORM needs.  ``conform.py`` burns the ground from the arms' corridors, and
     a corridor is a band along a spline: between two arms, close to the node, there are wedges that no
     band covers as CORE -- only as feathered blend -- and the patch lays new tarmac across exactly those
-    wedges.  Measured over the isle, 825 of 87,912 patch vertices (0.94 %) sit below the conformed
-    ground for that reason, worst 2.86 m.  Rasterising this polygon into the corridor as core, with
-    ``junction_target_z`` as its target surface, is what closes that; nothing in this module can do it,
+    wedges.  Measured over the isle, 814 of 87,969 patch vertices (0.93 %) sit below the conformed
+    ground for that reason, worst 2.890 m (2026-09-09,
+    ``Saved/Diag/junction_isle.json:worst.patch_clearance_min_m``).  Rasterising this polygon into the
+    corridor as core, with ``junction_target_z`` as its target surface, is what closes that; nothing
+    in this module can do it,
     because the conform product is not this track's to write."""
     res = junction_boundary(plan, junction_id, splines)
     if res is None:

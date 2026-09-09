@@ -1406,6 +1406,12 @@ def derived_products(out):
             entry["max_fill_m"] = c.get("max_fill_m")
             entry["max_cut_m"] = c.get("max_cut_m")
             entry["heightmap_semantics"] = (man.get("heightmap") or {}).get("semantics")
+            # The two modelling choices a consumer of this product has to know about, surfaced here
+            # rather than left three files down: how far the ground was put UNDER the built surface,
+            # and which ways were deliberately not burned at all.
+            entry["sink_note"] = (c.get("corridor") or {}).get("sink_note")
+            entry["structures_not_burned"] = c.get("splines_structure")
+            entry["structure_note"] = c.get("structure_note")
         out_block[name] = entry
     return out_block
 

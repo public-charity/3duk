@@ -466,8 +466,9 @@ same node 2° apart, and separating those would need `e / tan(1°)` ≈ 340 m of
 that exists along the whole length of both arms anyway — so it is dropped from the maximum and
 recorded rather than driving it. And no arm gives up more than `max_trim_frac_of_length` = 0.5 of its
 own spline to one junction. Because `e` is read at the trim station and the trim station depends on
-`d`, the solve is iterated three times from `d = radius_m`; it converges in one step wherever the
-width is constant near the end; the fixed point is run to convergence within eight passes.
+`d`, the solve is a fixed-point iteration from `d = radius_m`, run to convergence (a change below
+1e-9 m) within `JunctionPlan.ITERS` = 8 passes; it converges in one pass wherever the width is
+constant near the end.
 
 **The trim is a mask on `s`, never a re-basing.** `s` is the document's own coordinate — every
 `Segment.s0_m/s1_m`, marking interval, drop kerb, barrier run and hedge run is expressed in it — so
@@ -701,6 +702,44 @@ double-covered patch area **< 1e-11 m²**, road-over-kerb overlap **0.040 m** at
 skirt drop **0.020 m**, and the corner deviates from the true circular fillet by less than
 `2.7e-4 · r` (0.27 mm on the crossroads' 1.0 m corner) — the known error of the `(4/3)·tan(τ/4)` cubic
 handle, two orders of magnitude inside the 40 mm overlap it sits in.
+
+### 9.5 The whole isle — the acceptance command and what it last printed
+
+The six fixtures freeze the arithmetic; this is the run that proves it survives real OSM. It builds
+every one of the 246 adapter documents with its junctions and measures the finished buffers:
+
+```sh
+cd projects/one/Tools/blender
+export PATH="/c/Users/Shadow/code/3duk-env/env/Library/bin:$PATH"
+C:/Users/Shadow/code/3duk-env/env/python.exe -m streetscape.build \
+    --junction-audit  ../../../../data/thanet/out/unreal/streetscape \
+    --terrain         ../../../../data/thanet/out/unreal/landscape \
+    --clearance-landscape ../../../../data/thanet/out/unreal/landscape_conformed \
+    --out ../../Saved/Diag/junction_isle.json
+```
+
+`--terrain` is the **unconformed** landscape, because that is the ground the road drapes on
+(`Tools/conform_landscape.py` header); `--clearance-landscape` is the **conformed** one, because that
+is the ground the engine draws. Last run 2026-09-09 (`Saved/Diag/junction_isle.json`,
+`Saved/Logs/junction_isle.log`), **409.7 s** wall clock:
+
+| | |
+|---|---|
+| documents / junctions / patches built | 246 / 1,642 / **1,642** (none skipped: `junctions_skipped_kind` 0, `junctions_skipped_arms` 0, `arms_dropped` 0) |
+| arms | 5,185 (3.16 per junction) |
+| splines trimmed / ends trimmed | 4,087 / 5,168; **25,808.9 m** of carriageway removed, worst single end **20.484 m** |
+| degraded rather than vanished | 234 splines had both trims scaled by one common factor to keep `min_remaining_m`; 15 were shorter than 1 m and were not trimmed at all; **0 inverted, 0 vanished** |
+| **worst patch-to-ribbon gap** | **0.0 m** — exactly zero, over all 5,185 arm end rings |
+| **worst kerb-to-corner gap** | **6.1e-12 m** (float noise on a 10,869 m coordinate) |
+| kerb corners | 3,451 built, 1,734 skipped because neither arm carries a kerb (two paths meeting), **0 skipped as incompatible** |
+| patch mesh | 87,969 vertices, 86,327 triangles, 137,840.2 m² of new tarmac; corners add 498,830 triangles |
+| fan double cover | 3,377.3 m² of 137,840.2 (**2.45 %**), worst junction 46.2 m²; 322 of 1,642 boundaries non-monotone; 139 arms unseparable (two ways leaving one node inside `clearance_deg`) |
+| patch above the **conformed** ground | 814 of 87,969 vertices (0.93 %) below it, worst −2.890 m — the wedges `conform.py` does not yet burn (`road.junction_surface`) |
+
+Regressions to watch: `worst_patch_gap_m` must stay 0, `corners_skipped_incompatible` must stay 0,
+and `splines_untrimmable` + `splines_degenerate` must stay small — a jump in either means the trim
+radius has grown and is eating short links. The CLI itself is covered by
+`tests/test_junction.py:TestAuditCLI`, which runs the module as a script on a one-document directory.
 
 ---
 

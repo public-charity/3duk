@@ -448,6 +448,11 @@ def main():
                 "max_fill_m": conform_block["max_fill_m"],
                 "max_cut_m": conform_block["max_cut_m"],
                 "heightmap_semantics": hm["semantics"],
+                # the two modelling choices, surfaced in the index rather than left three files down;
+                # sources/adapters/unreal.py:derived_products writes the same keys on a full adapter run
+                "sink_note": conform_block["corridor"].get("sink_note"),
+                "structures_not_burned": conform_block["splines_structure"],
+                "structure_note": conform_block["structure_note"],
             })
             entry.setdefault("why", ("the road corridor burned into a copy of the landscape so the "
                                      "built street sits on the ground instead of in it"))

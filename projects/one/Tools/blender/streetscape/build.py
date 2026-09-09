@@ -362,10 +362,6 @@ def main(argv=None) -> int:
     return 0
 
 
-if __name__ == "__main__":
-    sys.exit(main())
-
-
 # --------------------------------------------------------------------------------------------
 # junction audit: the measurement that proves there is no crack (DESIGN.md 5, SCHEMA.md 4.18)
 # --------------------------------------------------------------------------------------------
@@ -407,6 +403,7 @@ def junction_audit(plan, results: Dict[str, BuildResult]) -> dict:
     w/2 for one of the ribbon's own row vertices."""
     from .spline import arm_station_index
     rep = {"junctions": 0, "patches": 0, "non_monotone": 0, "corners": 0,
+           "corners_skipped_no_kerb": 0, "corners_skipped_incompatible": 0,
            "worst_patch_gap_m": 0.0, "worst_corner_gap_m": 0.0, "worst_overlap_err_m": 0.0,
            "worst_patch_gap_at": None, "worst_corner_gap_at": None, "patch_tris": 0, "patch_verts": 0,
            "corner_tris": 0, "patch_area_m2": 0.0, "patch_overlap_area_m2": 0.0,
@@ -425,6 +422,11 @@ def junction_audit(plan, results: Dict[str, BuildResult]) -> dict:
         rep["patch_verts"] += int(info.get("verts", 0))
         rep["corners"] += int(info.get("corner", {}).get("corners", 0))
         rep["corner_tris"] += int(info.get("corner", {}).get("tris", 0))
+        # a pair with no kerb on either arm (two footways meeting) has nothing to turn and is not a
+        # defect; a pair whose two edge sections have different arc point counts is one, so they are
+        # counted apart rather than both disappearing into "corners built < adjacent pairs"
+        rep["corners_skipped_no_kerb"] += int(info.get("corner", {}).get("skipped_no_kerb", 0))
+        rep["corners_skipped_incompatible"] += int(info.get("corner", {}).get("skipped_incompatible", 0))
         if not info.get("monotone", True):
             rep["non_monotone"] += 1
         rep["patch_area_m2"] += float(info.get("area_m2", 0.0))
@@ -525,6 +527,7 @@ def _audit_main(args) -> int:
     clear = load_terrain(args.clearance_landscape) if args.clearance_landscape else None
     files = sorted(glob.glob(os.path.join(args.junction_audit, "site_*.json")))
     total = {"documents": 0, "junctions": 0, "patches": 0, "non_monotone": 0, "corners": 0,
+             "corners_skipped_no_kerb": 0, "corners_skipped_incompatible": 0,
              "patch_tris": 0, "patch_verts": 0, "corner_tris": 0, "patch_area_m2": 0.0,
              "patch_overlap_area_m2": 0.0, "splines_trimmed": 0, "splines_degenerate": 0,
              "splines_untrimmable": 0, "arms": 0, "arms_dropped": 0, "arms_unseparable": 0,
@@ -540,7 +543,8 @@ def _audit_main(args) -> int:
         name = os.path.splitext(os.path.basename(f))[0]
         per_doc[name] = rep
         total["documents"] += 1
-        for key in ("junctions", "patches", "non_monotone", "corners", "patch_tris", "patch_verts",
+        for key in ("junctions", "patches", "non_monotone", "corners", "corners_skipped_no_kerb",
+                    "corners_skipped_incompatible", "patch_tris", "patch_verts",
                     "corner_tris", "patch_area_m2", "patch_overlap_area_m2"):
             total[key] += rep[key]
         for key in ("splines_trimmed", "splines_degenerate", "splines_untrimmable", "arms",
@@ -569,3 +573,7 @@ def _audit_main(args) -> int:
     _json_dump(out, args.out)
     print("JUNCTION_AUDIT %s" % json.dumps({"totals": total, "worst": worst}, sort_keys=True))
     return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

@@ -105,6 +105,12 @@ def main():
                          "(Heightfield.lod_skeleton), not the one its height query returns.  0 is "
                          "the full triangulation.  This is the difference between a road that is "
                          "above the ground in the data and a road that is visible.")
+    ap.add_argument("--rules", action="store_true",
+                    help="also read the SAME landscape at the SAME corridor points with BOTH "
+                         "interpolation rules and report the difference (fusion.rule_delta).  This is "
+                         "the measurement that decides whether the conform having been burned against "
+                         "the bilinear contract, while the engine rasterises triangles, is what hides "
+                         "a carriageway.  Costs one extra pair of samples per station.")
     ap.add_argument("--worst", type=int, default=20, help="how many worst stations to list")
     ap.add_argument("--out", required=True)
     args = ap.parse_args()
@@ -151,6 +157,7 @@ def main():
     skipped = []
     structures = []
     worst = []
+    rule_delta, rule_clear_b, rule_clear_t = [], [], []
     for n, (path, i) in enumerate(chosen):
         if path not in cache:
             cache[path] = io_json.load_site(path)
@@ -177,6 +184,9 @@ def main():
         rec = F.audit_spline(sp, hf_test, args.k_road, args.k_edge)
         slope = F.terrain_slope_deg(hf_test, sp.xy[:, 0], sp.xy[:, 1]) if args.slope else None
         records.append((cls, slope, rec))
+        if args.rules:
+            d, cb, ct = F.rule_delta(sp, hf_test, args.k_road)
+            rule_delta.append(d); rule_clear_b.append(cb); rule_clear_t.append(ct)
         v = rec["valid"]
         if v.any():
             j = int(np.nanargmax(np.where(v, rec["penetration"], -np.inf)))
@@ -204,6 +214,15 @@ def main():
            "worst_stations": [{"penetration_m": w[0], "float_m": w[1], "spline_id": w[2], "cls": w[3],
                                "doc": w[4], "station": w[5], "s_m": w[6], "local_xy_m": [w[7], w[8]]}
                               for w in worst[:args.worst]]}
+    if args.rules and rule_delta:
+        out["sampling_rules"] = F.rule_summary(rule_delta, rule_clear_b, rule_clear_t)
+        r = out["sampling_rules"]
+        print("sampling rules over %d corridor points: |bilinear - triangulated| p50 %.4f m "
+              "p99 %.4f m max %.4f m; ground above the road at %d point(s) bilinear, %d triangulated"
+              % (r["points"], r["abs_bilinear_minus_triangulated_m"]["p50"],
+                 r["abs_bilinear_minus_triangulated_m"]["p99"], r["abs_bilinear_minus_triangulated_m"]["max"],
+                 r["points_with_ground_above_road_bilinear"], r["points_with_ground_above_road_triangulated"]),
+              flush=True)
     os.makedirs(os.path.dirname(os.path.abspath(args.out)), exist_ok=True)
     with open(args.out, "w", encoding="utf-8", newline="\n") as fh:
         json.dump(out, fh, indent=1)

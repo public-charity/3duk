@@ -35,10 +35,14 @@ SOURCES (all keyless unless noted; every one verified live on 2026-09-09)
              the UK, so set the token if you want volume.
   flickr     Needs a key in FLICKR_API_KEY. Only CC-licensed, geotagged results are taken.
 
-DEDUPLICATION. A large slice of Commons IS Geograph, re-uploaded with the Geograph id in the
-filename ("... - geograph.org.uk - 1622222.jpg"). Those are dropped from the Commons
-catalogue when the same id is already in the Geograph one, rather than downloading the same
-photograph twice under two licences. The count of drops is reported.
+DEDUPLICATION IS OPT-IN (`catalogue --dedupe`), and off by default. A large slice of Commons
+IS Geograph, re-uploaded with the Geograph id in the filename ("... - geograph.org.uk -
+1622222.jpg") -- on Thanet, about 9,500 of 12,200 Commons files. Dropping them sounds obviously
+right and mostly is not: the re-upload is a separate file, often at a different resolution and
+under its own licence, and a third of the Geograph corpus here is only available at ~640 px
+(see candidate_urls), so the Commons copy is sometimes the BETTER one. For a photogrammetry
+corpus another rendering of the same subject is usually worth keeping. Pass --dedupe when you
+want the smaller catalogue; the count of drops is reported either way.
 
 LICENSING. Every source here is share-alike or public domain, and CC-BY-SA REQUIRES
 attribution. Each town keeps a MANIFEST.jsonl carrying the author, licence and source page
@@ -473,6 +477,11 @@ CAT_SKIP = re.compile(r"\b(maps?|coats? of arms|flags?|books?|sheet music|videos
                       r"politicians|writers|artists|musicians|bands|albums|singles|"
                       r"films?|television|posters|stamps|coins|banknotes|"
                       r"mayors|councillors|residents|natives|alumni|"
+                      # Vehicles. Category:Ramsgate reaches the Dunkirk little ships, and from
+                      # there one category per vessel: the walk spent 170+ queued categories
+                      # collecting photographs of boats, most of them not taken in Thanet.
+                      r"ships?|vessels?|boats?|shipwrecks?|lifeboats?|ferries|"
+                      r"aircraft|aeroplanes?|locomotives?|trains?|buses|vehicles?|"
                       # Date partitions: "Ramsgate by year" -> "1890s in Ramsgate" -> ... Those
                       # re-file photographs already collected under the parent, so they add no
                       # files while queueing hundreds of rate-limited requests. Observed: one
@@ -515,13 +524,27 @@ def cat_commons_cat(cfg, log):
     # Stopping at another seed keeps each town's imagery in its own folder.
     seed_cats = {c for _, c in seeds}
 
+    # Hard ceiling per seed. CAT_SKIP is a blocklist and a blocklist is always one topic behind
+    # reality -- the walk found footballers, then date partitions, then Dunkirk little ships,
+    # each a branch nobody would have predicted. The cap bounds the damage of the next one:
+    # the walk stops and says so, instead of spending an hour at one request per second on
+    # photographs of boats.
+    per_seed_cap = 150
+
     for slug, seed in seeds:
-        queue = [(seed, 0)]
+        queue, walked = [(seed, 0)], 0
         while queue:
+            if walked >= per_seed_cap:
+                log(f"  commons_cat {slug}: hit the {per_seed_cap}-category cap under {seed} "
+                    f"with {len(queue)} still queued -- stopping this seed. If that seed is "
+                    f"genuinely that large, raise per_seed_cap; more likely CAT_SKIP needs a "
+                    f"pattern for whatever branch it wandered into.")
+                break
             cat, depth = queue.pop(0)
             if cat in seen_cat or (cat != seed and cat in seed_cats):
                 continue
             seen_cat.add(cat)
+            walked += 1
             cont = None
             while True:
                 url = ("https://commons.wikimedia.org/w/api.php?action=query&format=json"
@@ -890,6 +913,37 @@ def candidate_urls(r, size):
     return urls
 
 
+def commons_index():
+    """Map a Commons pageid to any file already on disk from either Commons pass.
+
+    `commons` (geosearch) and `commons_cat` (category walk) are two ways of reaching the SAME
+    Commons corpus, and they overlap heavily -- the same pageid, the same URL, the same bytes,
+    filed under two source folders and sometimes two towns. Fetching it twice would ask
+    Wikimedia for bytes we already hold.
+
+    This is NOT deduplication: nothing is dropped from either catalogue and both folders end
+    up with the file. It only decides whether the second copy comes off the network or off the
+    local disk.
+    """
+    idx = {}
+    for town in os.listdir(IMAGES) if os.path.isdir(IMAGES) else []:
+        for src in ("commons", "commons_cat"):
+            d = os.path.join(IMAGES, town, src)
+            if not os.path.isdir(d):
+                continue
+            for fn in os.listdir(d):
+                p = os.path.join(d, fn)
+                try:
+                    if os.path.getsize(p) > 1024:
+                        idx.setdefault(os.path.splitext(fn)[0], p)
+                except OSError:
+                    pass
+    return idx
+
+
+COMMONS_ON_DISK = {}
+
+
 def download_one(r, size):
     path = target_path(r)
     urls = candidate_urls(r, size)
@@ -898,6 +952,19 @@ def download_one(r, size):
     if os.path.exists(path) and os.path.getsize(path) > 1024:
         return ("cached", r, os.path.getsize(path), "")
     os.makedirs(os.path.dirname(path), exist_ok=True)
+    if r["source"].startswith("commons"):
+        twin = COMMONS_ON_DISK.get(r["id"].split(":", 1)[1])
+        if twin and os.path.exists(twin):
+            body = open(twin, "rb").read()
+            if len(body) > 1024:
+                with open(path, "wb") as f:
+                    f.write(body)
+                r["file"] = os.path.relpath(path, IMAGES).replace("\\", "/")
+                r["bytes"] = len(body)
+                r["sha256"] = hashlib.sha256(body).hexdigest()
+                r["fetched"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+                r["url_used"] = f"copied from {os.path.relpath(twin, IMAGES)}"
+                return ("copied", r, len(body), "")
     body, url, st, why = None, None, 0, ""
     for cand in urls:
         try:
@@ -964,6 +1031,8 @@ def do_download(args):
         print("nothing to download -- run `photos.py catalogue` first, or widen --town/--source")
         return
     rows = interleave_by_host(rows, args.size)
+    if any(r["source"].startswith("commons") for r in rows):
+        COMMONS_ON_DISK.update(commons_index())
     est = sum(MEAN_BYTES[r["source"]] for r in rows)
     print(f"{len(rows)} images, ~{est/1e9:.1f} GB at --size {args.size}")
     if args.dry_run:
@@ -973,7 +1042,7 @@ def do_download(args):
         for (t, s), n in sorted(by.items()):
             print(f"  {t:18s} {s:11s} {n:6d}")
         return
-    counts = {"ok": 0, "cached": 0, "fail": 0, "skip": 0}
+    counts = {"ok": 0, "cached": 0, "copied": 0, "fail": 0, "skip": 0}
     got = 0
     done_rows, t0 = [], time.time()
     with ThreadPoolExecutor(args.jobs) as ex:
@@ -987,9 +1056,11 @@ def do_download(args):
             if i % 100 == 0 or i == len(rows):
                 rate = got / max(time.time() - t0, 1e-9) / 1e6
                 print(f"  {i}/{len(rows)}  ok={counts['ok']} cached={counts['cached']} "
-                      f"fail={counts['fail']}  {got/1e9:.2f} GB  {rate:.1f} MB/s", flush=True)
+                      f"copied={counts['copied']} fail={counts['fail']}  "
+                      f"{got/1e9:.2f} GB  {rate:.1f} MB/s", flush=True)
     write_manifests(done_rows)
-    print(f"\ndownloaded {counts['ok']}, cached {counts['cached']}, failed {counts['fail']}, "
+    print(f"\ndownloaded {counts['ok']}, cached {counts['cached']}, "
+          f"copied-from-disk {counts['copied']}, failed {counts['fail']}, "
           f"{got/1e9:.2f} GB in {time.time()-t0:.0f}s")
     do_credits(args)
 
@@ -1407,6 +1478,13 @@ def main():
     c = sub.add_parser("catalogue", help="ask every source what it holds (no image bytes)")
     c.add_argument("--source", choices=SOURCES)
     c.add_argument("--town")
+    c.add_argument("--dedupe", action="store_true",
+                   help="drop Commons files that duplicate a Geograph photo or another "
+                        "Commons pass. OFF by default: the 'duplicate' is a separate upload, "
+                        "often at a different resolution and under a different licence, and "
+                        "for a photogrammetry corpus another rendering of the same subject is "
+                        "usually worth keeping. On Thanet this flag removes ~9,500 of 12,200 "
+                        "Commons files, so it is a large and irreversible-in-place edit")
     c.set_defaults(fn=do_catalogue)
 
     d = sub.add_parser("download", help="fetch image files listed in the catalogue")

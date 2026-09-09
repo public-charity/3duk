@@ -288,10 +288,13 @@ CC-BY-SA; **[geo/README.md](geo/README.md)** covers the geodata layers.
 Towns come from [sources/config/thanet_towns.json](sources/config/thanet_towns.json), which
 files each photo under the nearest OSM place anchor.
 
-Two things worth knowing before trusting a catalogue: most of these APIs cap a result set
-silently rather than paging, so Panoramax and Commons are enumerated with an adaptive
-quadtree that subdivides any cell coming back at the cap; and roughly half of Wikimedia
-Commons over Thanet is Geograph re-uploaded, deduplicated on the Geograph id in the filename.
+Two things worth knowing before trusting a catalogue. Most of these APIs cap a result set
+silently rather than paging, so Panoramax and Commons are enumerated with an adaptive quadtree
+that subdivides any cell coming back at the cap — a fixed tiling looked complete and was not.
+And about three quarters of Wikimedia Commons over Thanet is Geograph re-uploaded under a
+filename carrying the Geograph id; `catalogue --dedupe` drops those, but it is **off by
+default**, because the re-upload is a separate file at its own resolution and a third of the
+Geograph corpus is only available at ~640 px, so the Commons copy is sometimes the better one.
 
 ## Sources and licensing
 

@@ -125,6 +125,62 @@ def audit_spline(sp, hf, k_road: int = 9, k_edge: int = 5) -> dict:
             "pen_edge": pen_edge, "valid": np.isfinite(min_clear), "xy": sp.xy}
 
 
+def rule_delta(sp, hf, k_road: int = 9):
+    """The same landscape, the same corridor points, read with BOTH interpolation rules.
+
+    Between its 1 m posts a landscape is not one surface but two candidate ones: ``bilinear``, which
+    is the numpy/plugin contract (DESIGN.md 8) and the rule the corridor conform was burned against,
+    and ``landscape_triangulated``, which is what ALandscape's own triangle pair returns and what the
+    camera sees (docs/TERRAIN_ROADS.md 3.3).  They can differ by up to ``|twist| / 4`` of a quad --
+    6.12 m at the site maximum -- so "the road is above the ground" is not one claim but two, and the
+    only way to know whether the difference matters is to measure it INSIDE the corridors rather than
+    over the isle at large.  This is that measurement, per spline; ``road_fusion_audit.py --rules``
+    aggregates it.
+
+    Returns ``(delta, clear_bilinear, clear_triangulated)`` over the carriageway grid with the
+    off-coverage points dropped: ``delta = z_bilinear - z_triangulated`` and each clearance is
+    ``z_road - z_ground``, so a NEGATIVE clearance is ground standing in the carriageway.
+    ``hf.sampling`` is restored, so an audit that samples with one rule is unaffected by this call.
+    """
+    X, Y, Z = carriageway_points(sp, k_road)
+    x, y, z = X.ravel(), Y.ravel(), Z.ravel()
+    prev = hf.sampling
+    try:
+        hf.sampling = "bilinear"
+        zb = hf.sample(x, y)
+        hf.sampling = "landscape_triangulated"
+        zt = hf.sample(x, y)
+    finally:
+        hf.sampling = prev
+    ok = np.isfinite(zb) & np.isfinite(zt)
+    return (zb[ok] - zt[ok]).astype(np.float32), (z[ok] - zb[ok]).astype(np.float32), (z[ok] - zt[ok]).astype(np.float32)
+
+
+def rule_summary(delta, clear_b, clear_t) -> dict:
+    """Aggregate ``rule_delta`` output into the block ``road_fusion_audit.py --rules`` reports."""
+    def dist(v, name):
+        v = np.asarray(v, dtype=np.float64)
+        v = v[np.isfinite(v)]
+        if v.size == 0:
+            return {"n": 0, "name": name}
+        return {"n": int(v.size), "name": name, "min": float(v.min()), "max": float(v.max()),
+                "p50": _pct(v, 50), "p95": _pct(v, 95), "p99": _pct(v, 99), "p999": _pct(v, 99.9),
+                "mean": float(v.mean()),
+                "frac_gt_0.03": float((v > 0.03).mean()), "frac_gt_0.10": float((v > 0.10).mean())}
+    delta = np.concatenate(delta) if isinstance(delta, list) else np.asarray(delta)
+    clear_b = np.concatenate(clear_b) if isinstance(clear_b, list) else np.asarray(clear_b)
+    clear_t = np.concatenate(clear_t) if isinstance(clear_t, list) else np.asarray(clear_t)
+    return {"points": int(delta.size),
+            "abs_bilinear_minus_triangulated_m": dist(np.abs(delta), "|bilinear - triangulated|"),
+            "signed_bilinear_minus_triangulated_m": dist(delta, "bilinear - triangulated"),
+            "clearance_bilinear_m": dist(clear_b, "road - ground (bilinear)"),
+            "clearance_triangulated_m": dist(clear_t, "road - ground (triangulated)"),
+            "points_with_ground_above_road_bilinear": int((clear_b < 0).sum()),
+            "points_with_ground_above_road_triangulated": int((clear_t < 0).sum()),
+            "note": ("measured at the carriageway points of every audited spline.  If the two rules "
+                     "disagree by less than the sink, the sampling rule is not what hides a road.")}
+
+
 def terrain_slope_deg(hf, x, y, step=1.0):
     zx1 = hf.sample(x + step, y)
     zx0 = hf.sample(x - step, y)

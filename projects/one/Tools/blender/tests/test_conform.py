@@ -129,6 +129,38 @@ class TestSyntheticCorridor(unittest.TestCase):
                 self.assertLessEqual(bare, 0.03,
                                      "a ribbon with no kerb is sunk further than it can hide")
 
+    def test_rule_delta_measures_both_interpolation_rules_and_restores_the_sampling(self):
+        """``fusion.rule_delta`` is the committed form of the task-1 measurement: the same landscape,
+        the same corridor points, read bilinear and read as the landscape's own triangle pair.
+
+        Two things have to hold or the number means nothing.  First the two rules must AGREE at the
+        grid posts and differ only between them (docs/TERRAIN_ROADS.md 3.3), which is what bounds the
+        disagreement by |twist|/4 rather than leaving it open.  Second the call must not leave the
+        heightfield on a different rule than it found it, because the audit that calls it samples with
+        one rule on purpose and a leaked mutation would silently re-measure everything else."""
+        hf = C.burn_heightfield(self.hf, self.grid, self.acc)
+        hf.sampling = "landscape_triangulated"
+        d, cb, ct = F.rule_delta(self.sp, hf, k_road=9)
+        self.assertEqual(hf.sampling, "landscape_triangulated", "rule_delta leaked its sampling rule")
+        self.assertGreater(d.size, 0)
+        self.assertEqual(d.size, cb.size)
+        # the two clearances differ by exactly the rule delta, by construction
+        np.testing.assert_allclose(np.asarray(ct, dtype=np.float64) - np.asarray(cb, dtype=np.float64),
+                                   np.asarray(d, dtype=np.float64), atol=1e-5)
+        # at the posts themselves the rules are the same surface
+        x0, y0 = 0.5 * (self.hf.bounds()[0] + self.hf.bounds()[2]), 0.5 * (self.hf.bounds()[1] + self.hf.bounds()[3])
+        gx = np.floor(np.linspace(x0 - 40, x0 + 40, 41))
+        gy = np.floor(np.linspace(y0 - 40, y0 + 40, 41))
+        X, Y = np.meshgrid(gx, gy)
+        hf.sampling = "bilinear"
+        zb = hf.sample(X.ravel(), Y.ravel())
+        hf.sampling = "landscape_triangulated"
+        zt = hf.sample(X.ravel(), Y.ravel())
+        np.testing.assert_allclose(zb, zt, atol=1e-9)
+        s = F.rule_summary([d], [cb], [ct])
+        self.assertEqual(s["points"], int(d.size))
+        self.assertGreaterEqual(s["abs_bilinear_minus_triangulated_m"]["min"], 0.0)
+
     def test_lod_skeleton_is_the_surface_the_landscape_draws(self):
         """``Heightfield.lod_skeleton(k)`` must keep every 2^k-th post exactly and put the straight
         line between them everywhere else -- that is what the landscape's coarser meshes draw, and it

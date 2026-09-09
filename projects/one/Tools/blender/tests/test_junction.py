@@ -292,6 +292,40 @@ class TestFrozenCounts(unittest.TestCase):
                     self.assertEqual(got[k], v, "%s.%s: got %r want %r" % (name, k, got[k], v))
 
 
+class TestAuditCLI(unittest.TestCase):
+    """``python -m streetscape.build --junction-audit DIR --out JSON`` is the acceptance command of
+    SCHEMA.md 9.3 -- the isle-wide measurement is quoted from its output, so it has to run.
+
+    It did not: the ``if __name__ == "__main__"`` guard sat in the middle of build.py, above the audit
+    section, so ``main`` dispatched to a ``_audit_main`` that had not been defined yet and every
+    invocation died with ``NameError``.  Nothing in the suite called the module as a script, so nothing
+    noticed.  This runs it as a script, on a one-document directory, in a subprocess."""
+
+    def test_module_runs_as_a_script(self):
+        import json
+        import subprocess
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp:
+            docs = os.path.join(tmp, "docs")
+            os.makedirs(docs)
+            with open(os.path.join(docs, "site_x0_y0.json"), "w", encoding="utf-8") as fh:
+                json.dump(syn.junction_crossroads(), fh)
+            out = os.path.join(tmp, "audit.json")
+            env = dict(os.environ, PYTHONPATH=syn.TOOLS_BLENDER)
+            p = subprocess.run([sys.executable, "-m", "streetscape.build",
+                                "--junction-audit", docs, "--out", out],
+                               cwd=syn.TOOLS_BLENDER, env=env, capture_output=True, text=True)
+            self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+            self.assertIn("JUNCTION_AUDIT", p.stdout, p.stdout + p.stderr)
+            rep = syn.load_json(out)
+            self.assertEqual(rep["totals"]["documents"], 1)
+            self.assertEqual(rep["totals"]["junctions"], 1)
+            self.assertEqual(rep["totals"]["patches"], 1)
+            self.assertEqual(rep["totals"]["arms"], 4)
+            self.assertEqual(rep["worst"]["patch_gap_m"], 0.0)
+            self.assertEqual(rep["worst"]["corner_gap_m"], 0.0)
+
+
 class TestDegenerate(unittest.TestCase):
     """A spline too short to survive trimming at both ends must degrade, not vanish or invert."""
 

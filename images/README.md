@@ -58,6 +58,13 @@ rung each file came from, so you can filter on it:
 grep '"source": "geograph"' images/margate/MANIFEST.jsonl | grep '_original'   # the usable ones
 ```
 
+**Commons overlaps Geograph heavily, and that overlap is kept by default.** About three
+quarters of the Commons files over Thanet are Geograph photographs re-uploaded under a filename
+carrying the Geograph id. `photos.py catalogue --dedupe` drops them, but it is off by default:
+the re-upload is a separate file with its own resolution and licence, and given that a third of
+the Geograph corpus is capped at ~640 px, the Commons copy is sometimes the higher-resolution
+one. Turn it on only if disk matters more than coverage.
+
 Set the two keys and re-run `catalogue` to fold them in:
 
 ```bash
