@@ -43,6 +43,9 @@ SPLAT = CFG["tuning"]["coast"]["class_res"]
 OUT = os.path.join(P["out"], "coast")
 lib.mkdirs(OUT)
 CLIP = lib.parse_clip(CFG)
+# Clearing takes ~25 s and the previous run's manifest survives it; the marker is the one file that
+# says "this directory is mid-rebuild". See lib.begin_product.
+lib.begin_product(OUT, "09_coast")
 for old in glob.glob(os.path.join(OUT, "ground_*.tif")):   # no stale tiles from a previous grid
     os.remove(old)
 
@@ -213,13 +216,14 @@ json.dump({"site": CFG["site"], "crs": CFG["crs"],
            "missing_tiles_are_water": assume_sea,
            "coastline_km_in_area": round(clipped_len / 1000, 2),
            **({} if CLIP is None else {
-               "clip": lib.clip_manifest(CLIP),
+               "clip": lib.clip_manifest(CLIP, CFG),
                "tiles_clipped": clipped,
                "clipped_cells": n_clipped_cells,
                "bands_note": "grass+sand+rock+water sums to 252..255 for every cell inside the clip (each band "
                              "is truncated to uint8 separately); a cell outside the clip is 0 in all four bands, "
                              "and sum 0 occurs only outside."})},
           open(os.path.join(OUT, "coast_manifest.json"), "w"), indent=1)
+lib.end_product(OUT)
 print(f"wrote {wrote} ground rasters; {len(water_tiles)} tiles need a water surface"
       + (f"; {len(missing)} tiles have no DTM: {missing}" if missing else "")
       + (f"; {len(clipped)} positions outside the clip (no raster); {n_clipped_cells:,} class cells zeroed on straddling tiles" if CLIP is not None else ""))

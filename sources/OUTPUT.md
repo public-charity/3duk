@@ -16,7 +16,8 @@ Verified by `sources/tests/dryrun.py`. Change this document and the test togethe
 | **Manifests** | Every product directory has one `*_manifest.json` recording `site`, `crs`, `origin`, `tile_m` and every parameter the step ran under. Read it before the data. |
 | **null** | Means *unknown*, never zero. A `null` elevation is "we have no measurement here" — drape it yourself. |
 | **`src`** | Where a value came from. Filter on it. Nothing is invented without saying so. |
-| **Clip** | A site config may carry an optional `clip` block (Thanet: the half-plane north-east of the Minnis Bay → Pegwell Bay line). Every manifest of a clipped site records it under `clip` (`type`, `line`, `keep`, `semantics`); no `clip` key = unclipped site, and an unclipped site's products are byte-identical to what they were before clips existed. Rasters are clipped at cell centres; vertices, footprint envelope centres and nodes at their positions; points exactly on the line are kept. |
+| **Clip** | A site config may carry an optional `clip` block (Thanet: the half-plane north-east of the Minnis Bay → Pegwell Bay line). Every manifest of a clipped site records it under `clip` (`type`, `line`, `keep`, `semantics`, and — in every manifest written by `sources/derive/*` — `wkt`, the kept region as a polygon in CRS metres, so you never have to re-derive the cut outline yourself); no `clip` key = unclipped site, and an unclipped site's products are byte-identical to what they were before clips existed. Rasters are clipped at cell centres; vertices, footprint envelope centres and nodes at their positions; points exactly on the line are kept. |
+| **`_incomplete.json`** | Its presence in a product directory means the step that owns it is mid-rebuild or died mid-rebuild: **the directory is incomplete and its manifest describes an earlier run**. Steps 05 and 09 clear their whole directory before computing, so they write this marker before the first delete and remove it only after the manifest is written. Test for it before trusting a product. A successful run never leaves one. |
 
 Nothing here knows about any engine. `sources/adapters/unity.py` is what a consumer
 that wants local Y-up coordinates and 16-bit heightmaps looks like — copy it.
@@ -34,8 +35,13 @@ clipless site no tile declares a NoData value and none of these keys exist.
 
 `terrain_manifest.json` — `range_m` is the true site-wide elevation range. A consumer
 encoding into a fixed window must compare against it; the pipeline will not clip for you.
-`fill` per tile is `none`, `nearest` (scipy present) or `median (degraded)` — treat the
-last as provisional. `tiles_missing` lists grid positions that have **no tile at all**
+`fill` per tile is `none`, `nearest` (scipy present), `median (degraded)` — treat that as
+provisional — or `all-nodata -> <v>`, which means the source had **no valid cell anywhere in
+that tile** and the whole 513×513 plate is fabricated at `v`: the site's `water_level` where
+it has one, else 0 m. Those positions are listed as `tiles_fabricated` with `empty_fill_m`
+(keys present only when it happened) and the step prints a WARNING naming them. Nothing in
+such a tile was surveyed — a consumer that cares about real ground should treat them like
+`tiles_missing`. `tiles_missing` lists grid positions that have **no tile at all**
 (the source returned nothing there — beyond its coverage); do not assume they are sea.
 For a clipped site `range_m` and `slope_qa` describe kept cells only (the gradient itself
 is taken on the filled, unclipped array, so the edge cells carry their true slope).
@@ -148,7 +154,7 @@ footprints with no LIDAR coverage** (they carry `lidar_px: 0` and null ground).
 | `skirt` | Absolute elevation to extend walls down to, so a building on a slope does not float. null without LIDAR. |
 | `lidar_px` | How many first-return (DSM) cells fell inside the footprint — the evidence behind a LIDAR height. `0` with a real `base_z` means **the DSM has a gap here but the DTM does not**: the EA first-return composite has flight-strip holes over land (Whitby: 187 ha, 630 buildings). Ground is measured; height came down the ladder. `0` with `base_z: null` means no LIDAR at all. |
 | `roof` | OSM `roof:shape` if tagged, else `flat` for the types in tuning, else the tuning default. |
-| `src` | Which rung produced `h`, in order of trust: `osm_height`, `lidar_p50`, `lidar_p50_disputed` (LIDAR disagrees with `building:levels` by more than `height_calib.dispute_m`), `lidar_lowconf` (fewer than `min_pixels` samples), `osm_levels` (`height_calib` regression, **site-specific**), `type_prior` (**no evidence at all** — a per-type guess measured at another site; see `tuning.json`), `landmark_override` (hand-authored in the site config). |
+| `src` | Which rung produced `h`, in order of trust: `seamark_height` (a charted landmark's `seamark:landmark:height` — see below), `osm_height`, `lidar_p50`, `lidar_p50_disputed` (LIDAR disagrees with `building:levels` by more than `height_calib.dispute_m`), `lidar_lowconf` (fewer than `min_pixels` samples), `osm_levels` (`height_calib` regression, **site-specific**), `type_prior` (**no evidence at all** — a per-type guess measured at another site; see `tuning.json`), `landmark_override` (hand-authored in the site config). |
 | `seed` | Stable per-building hash for deterministic variation. |
 | `rings` | Exterior first, then holes. `[E, N]` pairs, closed. |
 
@@ -160,8 +166,22 @@ footprints whose envelope centre lies outside the clip; not emitted. `height_cal
 buildings that carry both `building:levels` and a trustworthy LIDAR p50 — the default),
 `config` (pinned in the site config) or `fallback` (too few buildings to fit; another
 site's line was used — treat `osm_levels` heights as provisional). `height_calib_fit`
-gives `n`, `rejected` and `rmse_m` for a fit. If `type_prior` is a large share, the model
-is describing this town with another town's building stock.
+gives `n`, `rejected` and `rmse_m` for a fit, plus `excluded_off_grid` / `excluded_off_clip`
+when footprints were held out. **The fit population is the model population**: only
+footprints this site actually emits can steer the line, so the same config over the same
+OSM extract gives the same line whether or not the raw LIDAR happens to cover ground the
+grid or the clip excludes. If `type_prior` is a large share, the model is describing this
+town with another town's building stock.
+
+**Seamarks.** On a lighthouse or beacon the plain OSM `height` tag is, by the seamark
+tagging scheme, the elevation of the *light* above MHWS — not the height of the structure.
+Step 07 therefore prefers `seamark:landmark:height` on any footprint carrying `seamark:*`
+tags or `man_made=lighthouse` and records `src: "seamark_height"`. (North Foreland, OSM way
+562020647: `height=57`, `seamark:landmark:height=26`; the LIDAR says 25.75 m — DSM max 63.64
+minus DTM p50 37.89 over 101 cells. The old ladder modelled it 31 m too tall.) Where a
+seamark carries **only** the ambiguous tag it is still used — there is nothing better — but
+step 07 prints a WARNING naming the way, its height and the LIDAR p90 beside it, so the
+mismatch is visible rather than silent.
 
 ## `coast/` — step 09
 

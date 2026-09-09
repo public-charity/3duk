@@ -16,6 +16,35 @@ from streetscape.mesh import surface_height_at  # noqa: E402
 EXP = syn.load_json(os.path.join(syn.FIXTURES_DIR, "expected.json"))["straight_100"]
 
 
+def vertical_clearance_over_road(buf, eps: float = 1e-9):
+    """Per marking vertex, the vertical drop onto the road-group triangle beneath it.
+
+    The section-space check (`surface_height_at`) proves the lift in (s, d); this proves it in WORLD z,
+    which is the quantity DESIGN.md 4.1's 4 mm z-fight budget is about.  It works at every marking vertex,
+    including the interpolated dash-end frames that share no station with the ribbon, and on banked,
+    cambered, curved geometry where the two are not the same number."""
+    mv = buf.vertices_of_groups(prefix="marking:")
+    road_ids = [i for i, n in enumerate(buf.group_names) if not n.startswith("marking:")]
+    F = buf.f[np.isin(buf.grp, road_ids)]
+    A, B, C = buf.v[F[:, 0]], buf.v[F[:, 1]], buf.v[F[:, 2]]
+    v0, v1 = B[:, :2] - A[:, :2], C[:, :2] - A[:, :2]
+    den = v0[:, 0] * v1[:, 1] - v1[:, 0] * v0[:, 1]
+    ok_tri = np.abs(den) > 1e-14
+    out = np.full(len(mv), np.nan)
+    for n, k in enumerate(mv):
+        p = buf.v[k]
+        w = p[:2] - A[:, :2]
+        with np.errstate(divide="ignore", invalid="ignore"):
+            b1 = (w[:, 0] * v1[:, 1] - v1[:, 0] * w[:, 1]) / den
+            b2 = (v0[:, 0] * w[:, 1] - w[:, 0] * v0[:, 1]) / den
+        inside = ok_tri & (b1 >= -eps) & (b2 >= -eps) & (b1 + b2 <= 1.0 + eps)
+        if not inside.any():
+            continue
+        z = A[inside, 2] + b1[inside] * (B[inside, 2] - A[inside, 2]) + b2[inside] * (C[inside, 2] - A[inside, 2])
+        out[n] = p[2] - float(z.max())        # the highest road surface under the vertex
+    return mv, out
+
+
 def dash_runs(buf, group):
     tri = buf.f[buf.group_mask_tris(exact=group)]
     spans = sorted(set((round(float(buf.vs[t].min()), 9), round(float(buf.vs[t].max()), 9)) for t in tri))
@@ -115,6 +144,29 @@ class TestRoad(unittest.TestCase):
             self.assertLess(float(np.linalg.norm(diff)), 1e-9)
             checked += 1
         self.assertGreater(checked, 50)
+
+    def test_lift_in_world_z_on_banked_curved_geometry(self):
+        """The section-space lift is exact by construction; what the 4 mm z-fight budget actually needs
+        is the WORLD vertical clearance, and on banked, cambered, curved geometry the two differ.  Nothing
+        measured it before: the old world-space branch skipped every marking vertex whose station is not
+        shared with the ribbon (all the interpolated dash ends) and only ever ran on flat, unbanked
+        straight_100."""
+        W = syn.load_json(os.path.join(syn.FIXTURES_DIR, "expected.json"))["marking_lift_world"]
+        for name, key, terrain in (("curve_R20_200", "curve_R20_200_flat", None),
+                                   ("curve_R20_200", "curve_R20_200_cross_slope_0.1", syn.cross_slope_terrain(0.1)),
+                                   ("sine_5_50", "sine_5_50_cross_slope_0.1", syn.cross_slope_terrain(0.1))):
+            doc = syn.load_fixture(name)
+            site = io_json.site_from_dict(doc)
+            res = build_spline(site, doc["splines"][0]["id"], terrain if terrain is not None else syn.terrain_for(doc))
+            mv, gap = vertical_clearance_over_road(res.road)
+            M = W["measured"][key]
+            self.assertEqual(len(mv), M["verts"], key)
+            self.assertFalse(np.isnan(gap).any(), "%s: a marking vertex sits over no road triangle" % key)
+            self.assertGreater(float(gap.min()), W["min_clearance_m"], key)
+            self.assertLessEqual(float(gap.max()), W["max_clearance_m"], key)
+            self.assertAlmostEqual(float(gap.min()), M["min"], delta=W["tol"], msg=key)
+            self.assertAlmostEqual(float(gap.max()), M["max"], delta=W["tol"], msg=key)
+            self.assertAlmostEqual(float(res.spline.bank_deg.max()), M["bank_deg"][1], delta=1e-3, msg=key)
 
     def test_camber(self):
         C = EXP["camber"]

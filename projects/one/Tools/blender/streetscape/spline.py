@@ -121,7 +121,23 @@ def dense_curvature(s_d: np.ndarray, xy_d: np.ndarray):
 # --------------------------------------------------------------------------------------------
 
 def adaptive_stations(s_d: np.ndarray, kappa_d: np.ndarray, sampling: S.Sampling, mandatory) -> np.ndarray:
-    """March step(k) = clip(step_m / (1 + gain k), min_step, step_m); merge with the mandatory set."""
+    """March step(k) = clip(step_m / (1 + gain k), min_step, step_m); merge with the mandatory set.
+
+    What this guarantees, exactly (``expected.json`` ``stationing``; asserted by
+    ``test_spline.TestStationingGuarantee`` on every fixture):
+
+      * every gap <= ``step_m + min_step_m``.  The march stops while ``s + step_at(s) < L - min_step``
+        and then appends ``L``, so the FINAL gap alone may exceed ``step_m`` by up to ``min_step``;
+        every adaptive-to-adaptive gap before it is <= ``step_m``.
+      * NO lower bound.  Mandatory stations (waypoints, segment/marking boundaries, drop kerbs and their
+        ramps -- SCHEMA.md 3.2) are deduped only within 1e-9, so two of them may land arbitrarily close;
+        ``min_step_m`` bounds the adaptive march, not the realised gaps.  Adaptive stations within
+        ``min_step/2`` of a mandatory one are dropped, which is why a mandatory station never *adds* a
+        short gap next to an adaptive one -- only next to another mandatory one.
+
+    Tightening either bound would change N for every spline, hence ``fixtures/expected.json``, the frozen
+    parity reference and the C++ ``FStreetSplineMath`` port that reproduces them bit for bit; do not
+    change the march without that whole chain."""
     L = float(s_d[-1])
     step_m = float(sampling.step_m)
     min_step = float(sampling.min_step_m)

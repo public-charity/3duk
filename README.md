@@ -83,16 +83,27 @@ cells over 45°, and 14.6 M offshore source gaps filled nearest and counted as s
 coverage gap, distinct from a clipped cell). Step 06: 14,468 road segments across 246 tiles,
 1,841 junctions, 119,825 smoothed vertices and 162 junctions dropped beyond the line, none
 without DTM. Step 07: 20,121 buildings (3,278 beyond the line, 60 off the grid), the storey
-line **re-fitted as 1.375 + 2.648 × levels** (n = 3,013, 189 rejected, rmse 1.22 m) against
-Margate's 1.337 + 2.807 (n = 1,457, rmse 1.4): the intercept holds to 4 cm and the per-storey
-figure drops 16 cm, which is what adding Ramsgate's, Broadstairs' and Birchington's inter-war
-semis and bungalows to Margate's high-ceilinged Victorian seafront terraces should do — a 2 ½
-storey house moves by under 30 cm, inside the fit's own rmse; both Margate landmark overrides
-still apply. Step 09: 103 positions beyond the line get no raster and 961,665 class cells are
+line **re-fitted as 1.385 + 2.646 × levels** (n = 2,948, 176 rejected, rmse 1.21 m,
+`excluded_off_clip` 78) against Margate's 1.337 + 2.807 (n = 1,457, rmse 1.4): the intercept
+holds to 5 cm and the per-storey figure drops 16 cm, which is what adding Ramsgate's,
+Broadstairs' and Birchington's inter-war semis and bungalows to Margate's high-ceilinged
+Victorian seafront terraces should do — a 2 ½ storey house moves by under 30 cm, inside the
+fit's own rmse. The fit regresses over the buildings the model **emits**, not over every
+footprint in the extract: 78 mainland buildings that only have LIDAR because this machine
+still holds all 494 raw tile positions are excluded and counted, so a clean re-fetch of the
+391 in-clip positions produces the same line. Both Margate landmark overrides still apply
+(Arlington House 57 m, checked against the DSM: 61.3 m max / 58.4 m p90 over 672 cells; the
+Jubilee Clock Tower's inherited 24 m was **wrong by 9 m** and is now 15.0 — DSM max 21.45 −
+DTM p50 6.49 = 14.96 m over its 22 cells, nDSM p90 14.49, and the way's own `height` tag 14).
+North Foreland lighthouse is the other height the first run got wrong: OSM `height=57` on a
+seamark is the *light's* elevation above MHWS, so step 07 now prefers
+`seamark:landmark:height` (26 m, and the LIDAR says 25.75) and reports `src: seamark_height`. Step 09: 103 positions beyond the line get no raster and 961,665 class cells are
 zeroed on the straddling tiles. Step 10: 52 placements, 3 nodes beyond the line.
 
-**Step 11's first real output**: 282 rail segments across 45 tiles, 49.6 km of centreline on
-the grid — 171 `rail` ways and 2 `miniature` (Chatham Main Line (Ramsgate Branch), Ashford
+**Step 11's first real output**: 282 rail segments across 45 tiles, **49.8 km of emitted
+centreline** (49.6 km of it `rail`, 0.15 km `miniature`; `linear_manifest.layers.rail.length_km`
+is 80.7, which counts whole ways including the parts beyond the grid and the line, as its
+`by_class_note` says) — 171 `rail` ways and 2 `miniature` (Chatham Main Line (Ramsgate Branch), Ashford
 to Ramsgate Line, depot roads at Ramsgate), the Birchington–Margate–Broadstairs–Ramsgate
 line continuous from tile x 2 to x 22; 275 runs carry `gauge=1435` from OSM and 7 took the
 default (`gauge_defaulted` 7); `abandoned` 20, `razed` 16, `platform` 7 skipped and counted;
@@ -105,13 +116,24 @@ On Margate the same step emits 504 barrier segments and no rail, and says why (t
 predates `way["railway"]`).
 
 One thing the first run found that Margate and Whitby could not show: the EA composite runs
-out far offshore. 35 sea-edge positions (the northern row and the eastern edge off Ramsgate)
-have under 1 % DTM coverage — 28 have no valid cell at all and step 05 exports them flat at
-0 m with `fill: "all-nodata -> 0"` — and their neighbours bottom out at −3.0..−1.6 m ODN,
-the surveyed sea surface. `coast.missing_tiles_are_water` is therefore set true **from
-measurement** (the config note records the evidence), and step 09 lists 192 tiles needing a
-water surface. The inherited `water_level` −0.6 holds as the upper bound of the water band;
-the deep-water surface at −3..−2.7 m is caught by the below-water-level rule.
+out far offshore. 35 sea-edge positions (`coast_manifest.tiles_without_dtm` — the north row
+`j=18` for `i=0..16`, `j=17` for `i=2..8`, and the eastern edge off Ramsgate) have under 1 %
+DTM coverage, and their neighbours bottom out at −3.0..−1.6 m ODN, the surveyed sea surface.
+`coast.missing_tiles_are_water` is therefore set true **from measurement** (the config note
+records the evidence), and step 09 lists 192 tiles needing a water surface — it writes no
+raster for a position with no DTM, so the count is 356 ground rasters, not 391. The
+inherited `water_level` −0.6 holds as the upper bound of the water band; the deep-water
+surface at −3..−2.7 m is caught by the below-water-level rule.
+
+28 of those 35 positions have **no valid cell at all**, so step 05 has nothing to
+interpolate from and exports 7,368,732 fabricated cells — 7.2 % of the model. They are
+filled at the site's `water_level` (`fill: "all-nodata -> -0.6"`, listed as
+`tiles_fabricated` with `empty_fill_m` in the terrain manifest) rather than at 0 m ODN,
+which stood 0.6 m proud of the water plane a consumer draws, and step 05 now prints a
+WARNING naming every one of them — nothing about a whole fabricated tile should be quiet.
+The plate still sits about 2 m above the deep water its neighbours carry; that residual is a
+property of the inherited `water_level`, and fixing it properly needs an offshore water
+surface measured for this site, not another fabricated constant.
 
 ## Adding a site
 
@@ -123,12 +145,25 @@ exactly this reason: if a constant leaks, one of them breaks.
 
 A clip is the one feature that is legitimately a step-wide change — opt-in via the site
 config's `clip` block, implemented once in `lib.py` (`parse_clip`, `keep_points`,
-`tile_state`, `cell_mask`), recorded in every manifest it touches, byte-identical output
-without it (proved by `sources/tests/regress_outputs.sh`, below).
+`tile_state`, `cell_mask`), recorded in every manifest it touches — with `wkt`, the kept
+region as a polygon in CRS metres, so no consumer has to re-derive the cut outline from the
+line and the grid bbox — and byte-identical output without it (proved by
+`sources/tests/regress_outputs.sh`, below).
+
+Steps 05 and 09 clear their whole product directory before they compute anything, which
+leaves the previous run's manifest describing a directory that no longer matches it for the
+20–25 s the work takes. They therefore write `_incomplete.json` before the first delete and
+remove it only after the manifest is written: **if that file is in a product directory, the
+product is not to be trusted** — `regress_outputs.sh` reports it as an unexpected addition,
+and a successful run never leaves one. This is not hypothetical; an aborted run on
+2026-09-08 left 26 of 356 ground rasters beside a manifest still claiming all 356.
 
 Storey height is regressed per site from its own buildings (`height_calib.mode: auto`),
 so a town of Victorian terraces and one of post-war flats each get their own line; the
-manifest records which line was used and how well it fit.
+manifest records which line was used and how well it fit. The regression population is the
+population the site **emits**: footprints the grid or the clip drops are held out and
+counted in `height_calib_fit.excluded_off_grid` / `excluded_off_clip`, so the fitted line
+does not depend on which raw tiles happen to be sitting on the machine.
 
 ## Checked against real data
 

@@ -16,6 +16,11 @@ Tools/blender/streetscape/render.py camera_defs, so the Unreal and Blender rende
 Capture path: a transient SceneCapture2D writing into a TextureRenderTarget2D, exported with
 KismetRenderingLibrary.export_render_target (ENG/Classes/Kismet/KismetRenderingLibrary.h:48, :144). Needs the
 runner's -Render (an RHI); with the null RHI the capture is black and the script says so instead of pretending.
+
+GUARDS: every capture is measured (distinct RGB values and mean luminance) and the run FAILS below
+--min-distinct / --min-lum or above --max-lum, so a black frame or a flat default-material frame can never be
+reported as a pass. The report also carries a material audit of the level, because a capture is only evidence of
+the renderers when no component slot has fallen back to the engine default material.
 """
 import json
 import os
@@ -37,7 +42,7 @@ def force_opaque(path):
     import zlib
     d = open(path, "rb").read()
     if d[:8] != b"\x89PNG\r\n\x1a\n":
-        return len(d), 0
+        return len(d), 0, 0.0
     i, idat, w, h, bd, ct = 8, b"", 0, 0, 0, 0
     while i < len(d):
         ln = struct.unpack(">I", d[i:i + 4])[0]
@@ -51,7 +56,7 @@ def force_opaque(path):
         elif typ == b"IEND":
             break
     if ct != 6 or bd != 8:                      # only RGBA8 needs the fix
-        return len(d), 0
+        return len(d), 0, 0.0
     raw = zlib.decompress(idat)
     stride = w * 4
     out = bytearray()
@@ -88,6 +93,8 @@ def force_opaque(path):
     for y in range(h):
         body += b"\x00" + out[y * stride:(y + 1) * stride]
     distinct = len(set(bytes(out[i:i + 3]) for i in range(0, len(out), 4)))
+    npx = w * h
+    lum = sum(0.2126 * out[i] + 0.7152 * out[i + 1] + 0.0722 * out[i + 2] for i in range(0, len(out), 4)) / npx
 
     def chunk(typ, data):
         return struct.pack(">I", len(data)) + typ + data + struct.pack(">I", zlib.crc32(typ + data) & 0xFFFFFFFF)
@@ -96,7 +103,7 @@ def force_opaque(path):
     png += chunk(b"IDAT", zlib.compress(bytes(body), 9)) + chunk(b"IEND", b"")
     with open(path, "wb") as fh:
         fh.write(png)
-    return len(png), distinct
+    return len(png), distinct, lum
 
 
 def make_render_target(world, w, h):
@@ -136,15 +143,18 @@ def capture(world, cam, rt, out_png, source, ev, warm_s):
         pp.set_editor_property("auto_exposure_apply_physical_camera_exposure", False)
         comp.set_editor_property("post_process_settings", pp)
         # The first capture is what queues the project materials for SM6 compilation; until those shader maps exist
-        # the renderer substitutes the engine default (the grey grid). Capture, wait for the async compiler, capture
-        # again - --warm-s 0 skips the wait when the DDC is already warm.
+        # the renderer substitutes UMaterial::GetDefaultMaterial - the engine's WorldGridMaterial checkerboard,
+        # which is exactly what the committed shots showed. SLEEPING does not help: the compiler's results are
+        # applied on the game thread, which the Python script is holding, so a 45 s --warm-s produced byte-identical
+        # PNGs. FinishShaderCompilation blocks *and* applies (FShaderCompilingManager::FinishAllCompilation,
+        # Runtime/Engine/Public/ShaderCompiler.h:1327).
         comp.capture_scene()
+        waited = unreal.StreetscapeEditorLibrary.finish_shader_compilation()
+        uc.log("shader compilation: waited on %d job(s) before the real capture" % waited)
         if warm_s > 0:
             import time
-            deadline = time.time() + warm_s
-            while time.time() < deadline:
-                unreal.SystemLibrary.execute_console_command(world, "r.ShaderCompiler.DumpCompileJobInputs 0")
-                time.sleep(1.0)
+            time.sleep(warm_s)
+            unreal.StreetscapeEditorLibrary.finish_shader_compilation()
         comp.capture_scene()
         comp.capture_scene()
         d = os.path.dirname(out_png)
@@ -156,12 +166,46 @@ def capture(world, cam, rt, out_png, source, ev, warm_s):
     return os.path.isfile(out_png)
 
 
+def guard(tag, distinct, lum, opts, audit=None):
+    """A capture that rendered nothing, or rendered a black frame, or drew the engine default material, is a
+    FAILURE - it must not be reported as a pass and then committed as evidence.
+
+    The material audit is the guard that matters: a slot resolving to UMaterial::GetDefaultMaterial is the
+    WorldGridMaterial checkerboard the first three committed shots turned out to be. --min-distinct / --min-lum /
+    --max-lum catch a black or empty frame; base_color captures of flat MaterialInstanceConstants legitimately
+    have very few distinct colours (measured: 17 for cam1), so --min-distinct defaults low and the luminance
+    thresholds do the work.
+    """
+    if audit and not audit.get("error") and int(audit.get("slots_using_engine_default", 0) or 0) > 0:
+        uc.fail(NAME, "%s: %d of %d component material slots resolve to the engine default material (%s) - the "
+                      "capture would show the grid checkerboard, not the street materials"
+                % (tag, audit["slots_using_engine_default"], audit.get("slots"), audit.get("engine_default_material")))
+    min_d, min_l, max_l = int(opts["min_distinct"]), float(opts["min_lum"]), float(opts["max_lum"])
+    if distinct < min_d:
+        uc.fail(NAME, "%s: %d distinct colours < --min-distinct %d - the capture rendered (almost) nothing"
+                % (tag, distinct, min_d))
+    if lum < min_l:
+        uc.fail(NAME, "%s: mean luminance %.2f < --min-lum %.2f - the frame is black" % (tag, lum, min_l))
+    if lum > max_l:
+        uc.fail(NAME, "%s: mean luminance %.2f > --max-lum %.2f - the frame is blown out" % (tag, lum, max_l))
+
+
+def material_audit():
+    """What the components in this level would actually draw with. A capture is only evidence of the renderers
+    when no slot has fallen back to the engine default material."""
+    try:
+        return json.loads(unreal.StreetscapeEditorLibrary.material_audit_json())
+    except Exception as exc:                      # noqa: BLE001 - never let the audit break a capture
+        return {"error": str(exc)}
+
+
 def main(argv):
     opts = uc.parse_args(
         argv,
         flags=("no_load_region",),
         options={"camera": "all", "actor": "", "out": "", "map": DEFAULT_MAP, "w": "1280", "h": "720", "radius_m": "400", "site_radius_m": "20000", "source": "final_ldr", "ev": "0", "warm_s": "0",
-                 "x": "", "y": "", "z": "", "yaw": "0", "pitch": "-30", "roll": "0", "fov": "60"},
+                 "x": "", "y": "", "z": "", "yaw": "0", "pitch": "-30", "roll": "0", "fov": "60",
+                 "min_distinct": "12", "min_lum": "6", "max_lum": "250", "near_x": "", "near_y": ""},
     )
     if not opts["out"]:
         uc.fail(NAME, "--out <dir or .png> is required")
@@ -183,7 +227,16 @@ def main(argv):
     # and streetscape_actor_ids() would be empty: pull the whole site in FIRST, then read the cameras off the actor.
     world = unreal.get_editor_subsystem(unreal.UnrealEditorSubsystem).get_editor_world()
     if not opts["no_load_region"]:
-        unreal.StreetscapeEditorLibrary.load_region(unreal.Vector(0.0, 0.0, 0.0), float(opts["site_radius_m"]) * 100.0)
+        # --near-x/--near-y (document metres) stream a small box around a KNOWN point instead of the whole isle.
+        # Since the site import the level holds 15,423 streetscape actors and a 20 km region is 384 s and 19.5 GB;
+        # a 400 m box around the actor is seconds. Without the hint the fallback is still the whole site, because
+        # the actor's position is not known until something is loaded.
+        if opts["near_x"] and opts["near_y"]:
+            cx, cy = float(opts["near_x"]), float(opts["near_y"])
+            unreal.StreetscapeEditorLibrary.load_region(unreal.Vector(100.0 * cx, -100.0 * cy, 0.0), float(opts["radius_m"]) * 100.0)
+            uc.log("streamed a %g m box around local (%g, %g)" % (float(opts["radius_m"]), cx, cy))
+        else:
+            unreal.StreetscapeEditorLibrary.load_region(unreal.Vector(0.0, 0.0, 0.0), float(opts["site_radius_m"]) * 100.0)
 
     ids = [str(i) for i in unreal.StreetscapeEditorLibrary.streetscape_actor_ids()]
     if opts["actor"] not in ids:
@@ -201,6 +254,9 @@ def main(argv):
     if single_png and len(cams) != 1:
         uc.fail(NAME, "--out is a .png but --camera asks for %d cameras" % len(cams))
 
+    audit = material_audit()
+    uc.log("material audit: %s" % json.dumps({k: v for k, v in audit.items() if k != "sample_components"}, sort_keys=True)[:900])
+
     rt = make_render_target(world, opts["w"], opts["h"])
     written = {}
     for cam in cams:
@@ -208,12 +264,12 @@ def main(argv):
         ok = capture(world, defs[cam], rt, png, opts["source"], float(opts["ev"]), float(opts["warm_s"]))
         if not ok:
             uc.fail(NAME, "no PNG at %s (needs the runner's -Render)" % png)
-        nbytes, distinct = force_opaque(png)
-        written[cam] = {"png": png, "bytes": nbytes, "distinct_rgb": distinct, "eye_ue": defs[cam]["eye_ue"],
+        nbytes, distinct, lum = force_opaque(png)
+        written[cam] = {"png": png, "bytes": nbytes, "distinct_rgb": distinct, "mean_luminance": round(lum, 2),
+                        "eye_ue": defs[cam]["eye_ue"],
                         "pitch": defs[cam]["pitch"], "yaw": defs[cam]["yaw"], "fov_deg": defs[cam]["fov_deg"]}
-        uc.log("%s -> %s (%d bytes, %d distinct RGB)" % (cam, png, nbytes, distinct))
-        if distinct < 4:
-            uc.fail(NAME, "%s: only %d distinct colours - the capture rendered nothing" % (cam, distinct))
+        uc.log("%s -> %s (%d bytes, %d distinct RGB, mean luminance %.2f)" % (cam, png, nbytes, distinct, lum))
+        guard(cam, distinct, lum, opts, audit)
 
     uc.report(NAME, {
         "actor": opts["actor"],
@@ -221,6 +277,7 @@ def main(argv):
         "size": [int(opts["w"]), int(opts["h"])],
         "source": opts["source"],
         "ev": float(opts["ev"]),
+        "materials": audit,
         "cameras": written,
     })
 
@@ -240,11 +297,11 @@ def main_free(opts, les):
     rt = make_render_target(world, opts["w"], opts["h"])
     if not capture(world, cam, rt, png, opts["source"], float(opts["ev"]), float(opts["warm_s"])):
         uc.fail(NAME, "no PNG at %s (needs the runner's -Render)" % png)
-    nbytes, distinct = force_opaque(png)
-    uc.log("free camera -> %s (%d bytes, %d distinct RGB)" % (png, nbytes, distinct))
-    if distinct < 4:
-        uc.fail(NAME, "only %d distinct colours - the capture rendered nothing" % distinct)
-    uc.report(NAME, {"png": png, "bytes": nbytes, "distinct_rgb": distinct, "eye_ue": eye,
+    nbytes, distinct, lum = force_opaque(png)
+    uc.log("free camera -> %s (%d bytes, %d distinct RGB, mean luminance %.2f)" % (png, nbytes, distinct, lum))
+    guard("free", distinct, lum, opts, material_audit())
+    uc.report(NAME, {"png": png, "bytes": nbytes, "distinct_rgb": distinct, "mean_luminance": round(lum, 2),
+                     "materials": material_audit(), "eye_ue": eye,
                      "local_m": [x, y, z], "yaw": cam["yaw"], "pitch": cam["pitch"], "fov_deg": cam["fov_deg"],
                      "size": [int(opts["w"]), int(opts["h"])], "source": opts["source"], "map": opts["map"]})
 

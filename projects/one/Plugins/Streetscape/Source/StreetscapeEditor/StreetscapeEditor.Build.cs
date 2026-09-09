@@ -34,6 +34,7 @@ public class StreetscapeEditor : ModuleRules
 			"AssetRegistry",
 			"AssetTools",
 			"Json",
+			"RenderCore",   // FlushRenderingCommands (RenderingThread.h) for FinishShaderCompilation
 			"Projects"
 		});
 	}

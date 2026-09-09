@@ -81,20 +81,29 @@ def tile_px(cfg, gt):
     return int(round(nx)), int(round(ny))
 
 
-def fill_nodata(a, bad, label=""):
+def fill_nodata(a, bad, label="", empty_fill=0.0):
     """Nearest-valid fill for masked cells, in place. Returns the method used.
 
     The honest version of what this used to claim: scipy's distance transform gives a
     true nearest-valid fill. Without scipy we fall back to the median and say so out
     loud, because a median fill flattens real terrain and you should know it happened.
+
+    `empty_fill` is the value used when the tile has NO valid cell at all and there is
+    therefore nothing to interpolate from -- every cell of the result is fabricated. The
+    caller passes the site's `water_level` where a tile beyond the survey's coverage is
+    open sea, so the plate coincides with the water surface a consumer will draw instead
+    of standing proud of it at 0 m ODN. It is shouted about for the same reason the median
+    fallback is: the whole tile is invention, and a silent 0 m plate reads as real ground.
     """
     import numpy as np
     if not bad.any():
         return "none"
     good = ~bad
     if not good.any():
-        a[bad] = 0.0
-        return "all-nodata -> 0"
+        a[bad] = empty_fill
+        print(f"  WARNING{' ' + label if label else ''}: no valid cell at all -- the whole tile is "
+              f"fabricated as a flat plate at {empty_fill:g} m. Nothing here was surveyed.", flush=True)
+        return f"all-nodata -> {empty_fill:g}"
     try:
         from scipy import ndimage
         idx = ndimage.distance_transform_edt(bad, return_distances=False, return_indices=True)
@@ -224,12 +233,54 @@ def clip_wkt(clip, bbox):
     return "POLYGON((" + ",".join(f"{x:.3f} {y:.3f}" for x, y in ring) + "))"
 
 
-def clip_manifest(clip):
+# ---- product completeness marker ------------------------------------------------
+# A step that clears its whole product directory before it starts computing leaves the PREVIOUS
+# run's manifest on disk for as long as the work takes. Abort in that window (a locked file, a
+# full disk, Ctrl-C) and you get a half-empty directory beside a manifest that still lists every
+# tile, with nothing in the product saying it is incomplete -- it happened during the 2026-09-08
+# audit and cost 330 deleted ground rasters. One marker file closes it: written before the first
+# delete, removed only after the manifest is written. Its presence means "do not trust this
+# directory", and regress_outputs.sh reports it as an unexpected ADDED file.
+INCOMPLETE = "_incomplete.json"
+
+
+def begin_product(out_dir, step):
+    import datetime
+    mkdirs(out_dir)
+    json.dump({"step": step, "started_utc": datetime.datetime.now(datetime.UTC).isoformat(timespec="seconds"),
+               "note": "This product directory is being rebuilt. While this file exists the directory is "
+                       "INCOMPLETE and its manifest describes a previous run. The step removes it once the "
+                       "manifest has been written; if it is still here, re-run the step."},
+              open(os.path.join(out_dir, INCOMPLETE), "w"), indent=1)
+
+
+def end_product(out_dir):
+    p = os.path.join(out_dir, INCOMPLETE)
+    if os.path.exists(p):
+        os.remove(p)
+
+
+def site_bbox(cfg):
+    """(e0, n0, e1, n1) of the whole tile grid in CRS metres."""
+    E0, N0, T = cfg["origin"]["E"], cfg["origin"]["N"], cfg["tile_m"]
+    return (E0, N0, E0 + cfg["nx"] * T, N0 + cfg["ny"] * T)
+
+
+def clip_manifest(clip, cfg=None):
+    """The clip block every manifest records. With `cfg`, it also carries `wkt`: the KEPT region as a
+    polygon in CRS metres, the grid rectangle cut by the half-plane. Without it a consumer that wants
+    the cut outline has to reconstruct it from `line` plus the grid bbox, which is how two consumers
+    end up with two slightly different outlines."""
     if clip is None: return None
-    return {**clip.stamp(),
-            "semantics": "keep P iff cross(B-A, P-A) >= 0 for keep 'left' (<= 0 for 'right'); line = [A, B] in CRS "
-                         "metres; points on the line are kept. Raster cells are tested at their centres; features at "
-                         "their vertices (06, 11), footprint envelope centre (07) or node (10)."}
+    m = {**clip.stamp(),
+         "semantics": "keep P iff cross(B-A, P-A) >= 0 for keep 'left' (<= 0 for 'right'); line = [A, B] in CRS "
+                      "metres; points on the line are kept. Raster cells are tested at their centres; features at "
+                      "their vertices (06, 11), footprint envelope centre (07) or node (10)."}
+    if cfg is not None:
+        m["wkt"] = clip_wkt(clip, site_bbox(cfg))
+        m["wkt_note"] = ("The KEPT region: the site's tile-grid rectangle cut by the half-plane, in CRS metres. "
+                         "Machine-readable form of `line` + `keep`; null if the grid keeps nothing.")
+    return m
 
 
 def grid_stamp(cfg, clip=None):

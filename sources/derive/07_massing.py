@@ -52,10 +52,37 @@ def tv(rec, key):
     if i < 0: return None
     j = ot.find('"', i+len(tok)); return ot[i+len(tok):j]
 
+def is_seamark(rec):
+    """A lighthouse, beacon or other charted landmark, whose `height` tag follows the seamark
+    scheme (elevation of the light above MHWS) rather than the building scheme (height of the
+    structure). Detected from any seamark:* tag or man_made=lighthouse."""
+    return '"seamark:' in (rec.get("other") or "") or tv(rec, "man_made") == "lighthouse"
+
+
 def levels_of(rec):
     lv = rec.get("levels") or tv(rec, "building:levels")
     try: return int(float(lv)) if lv else None
     except (TypeError, ValueError): return None
+
+# ---- where each footprint sits --------------------------------------------
+# The envelope centre decides a footprint's tile and whether it is in the model at all.
+# Computed ONCE here so the calibration fit below and the emit loop below that agree by
+# construction: before this existed the fit regressed over every footprint in the extract,
+# including 78 mainland buildings the clip drops, so the shipped storey-height line was
+# not reproducible from a clean fetch of the 391 in-clip positions (BRIEF 4.1: 07 drops
+# off-clip features). A fit population that is not the model population is a fit that
+# changes when someone re-fetches the raw data from the same config.
+def _place(rec):
+    g = ogr.CreateGeometryFromWkb(rec["wkb"])
+    x0, x1, y0, y1 = g.GetEnvelope(); cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
+    i, j = int((cx - E0) // T), int((cy - N0) // T)
+    if not (0 <= i < NX and 0 <= j < NY):
+        return None, "off_grid"       # the Overpass bbox is generous; the grid is the model
+    if CLIP is not None and not lib.keep_points(CLIP, cx, cy):
+        return None, "off_clip"       # judged at the same envelope centre as the tile; not emitted
+    return (i, j), None
+
+PLACE = [_place(rec) for rec in feats]
 
 # ---- levels -> height calibration -----------------------------------------
 # Storey height is a property of a town's building stock, not a constant. In "auto" mode
@@ -65,16 +92,24 @@ def levels_of(rec):
 # the values in force are written out, so the config can never again claim one regression
 # while the code applies another -- which is how the previous pipeline was found.
 def fit_calibration():
-    pairs = []
+    pairs, skipped = [], {"off_grid": 0, "off_clip": 0}
     for k, rec in enumerate(feats):
         if k not in S: continue
         p25, p50, p90, npx, d15, dmin = S[k]
         lv = levels_of(rec)
         if lv and 1 <= lv <= 30 and npx >= MINPX and tv(rec, "height") is None:
+            cell, why = PLACE[k]
+            if cell is None:              # not in the model -> not in the model's calibration
+                skipped[why] += 1
+                continue
             pairs.append((lv, float(p50)))
+    # Only reported when it happened, so a site whose extract is entirely inside its grid
+    # keeps the manifest it always had.
+    excl = {f"excluded_{w}": c for w, c in skipped.items() if c}
     n_min = int(CAL_CFG.get("min_buildings", 30))
     if len(pairs) < n_min:
-        return None, {"n": len(pairs), "reason": f"fewer than {n_min} buildings with both levels and LIDAR"}
+        return None, {"n": len(pairs), **excl,
+                      "reason": f"fewer than {n_min} buildings with both levels and LIDAR"}
     L = np.array([p[0] for p in pairs], float); Hv = np.array([p[1] for p in pairs], float)
     b, a = np.polyfit(L, Hv, 1)
     resid = Hv - (a + b * L)
@@ -84,7 +119,7 @@ def fit_calibration():
         resid = Hv[keep] - (a + b * L[keep])
     return ({"intercept": round(float(a), 3), "m_per_level": round(float(b), 3)},
             {"n": int(keep.sum()), "rejected": int((~keep).sum()),
-             "rmse_m": round(float(np.sqrt((resid ** 2).mean())), 2)})
+             "rmse_m": round(float(np.sqrt((resid ** 2).mean())), 2), **excl})
 
 mode = CAL_CFG.get("mode", "fixed" if "intercept" in CAL_CFG else "auto")
 fit, fit_info = fit_calibration() if mode == "auto" else (None, {"n": 0, "reason": "mode fixed"})
@@ -119,16 +154,15 @@ def r2(v):
 
 buckets, qa, nlm, no_lidar, no_dsm, outside = {}, [], 0, 0, 0, 0
 outside_clip = 0
+seamark_unresolved = []      # seamarks whose only height tag is the ambiguous one; warned about below
 for k, rec in enumerate(feats):
+    cell, why = PLACE[k]              # same test the calibration fit above uses
+    if cell is None:
+        if why == "off_grid": outside += 1
+        else:                 outside_clip += 1
+        continue
+    i, j = cell
     g = ogr.CreateGeometryFromWkb(rec["wkb"])
-    x0,x1,y0,y1 = g.GetEnvelope(); cx, cy = (x0+x1)/2, (y0+y1)/2
-    i, j = int((cx-E0)//T), int((cy-N0)//T)
-    if not (0 <= i < NX and 0 <= j < NY):
-        outside += 1                  # the Overpass bbox is generous; the grid is the model
-        continue
-    if CLIP is not None and not lib.keep_points(CLIP, cx, cy):
-        outside_clip += 1             # judged at the same envelope centre as the tile; not emitted
-        continue
     if k in S:
         p25, p50, p90, npx, d15, dmin = S[k]
         npx = int(npx)
@@ -150,11 +184,26 @@ for k, rec in enumerate(feats):
     levels = levels_of(rec)
 
     # --- height fallback ladder; record which rung fired -------------------
-    ht = tv(rec, "height")
+    # A seamark's plain `height` tag is NOT the structure. Under the OSM seamark scheme
+    # it is the elevation of the LIGHT above MHWS, which on a cliff-top lighthouse is
+    # tens of metres more than the tower: North Foreland (way 562020647) carries
+    # height=57 with seamark:landmark:height=26, and the LIDAR agrees with 26 -- nDSM
+    # p90 24.6 m over 56 cells, p50 18.5. Taken at face value the tag modelled that
+    # lighthouse 31 m too tall. Where the scheme states the structure height, use it.
+    ht  = tv(rec, "height")
+    smh = tv(rec, "seamark:landmark:height")
+    sea = is_seamark(rec)
     src, h = None, None
-    if ht:
-        try: h, src = float(str(ht).split()[0]), "osm_height"
-        except: pass
+    if sea and smh:
+        try: h, src = float(str(smh).split()[0]), "seamark_height"
+        except (TypeError, ValueError): pass
+    if h is None and ht:
+        # float() of a free-text OSM tag; catch what it raises, not KeyboardInterrupt too.
+        try:
+            h, src = float(str(ht).split()[0]), "osm_height"
+            if sea: seamark_unresolved.append((rec["osm_id"], name, h,
+                                               None if p90 is None else round(float(p90), 1), int(npx)))
+        except (TypeError, ValueError): pass
     if h is None and npx >= MINPX:
         h, src = p50, "lidar_p50"
         if levels and abs(h - h_from_levels(levels)) > CAL["dispute_m"]: src = "lidar_p50_disputed"
@@ -201,7 +250,7 @@ json.dump({"site": CFG["site"], "crs": CFG["crs"], "coordinates": "CRS eastings/
            "buildings_without_lidar": no_lidar,
            "buildings_without_dsm": no_dsm,
            "qa_flagged": len(qa),
-           **({} if CLIP is None else {"clip": lib.clip_manifest(CLIP), "outside_clip": outside_clip})},
+           **({} if CLIP is None else {"clip": lib.clip_manifest(CLIP, CFG), "outside_clip": outside_clip})},
           open(os.path.join(OUT, "massing_manifest.json"), "w"), indent=1)
 json.dump(qa, open(os.path.join(P["out"], "qa_height_outliers.json"), "w"), indent=1)
 
@@ -218,6 +267,12 @@ if n and by_src.get("type_prior", 0) / n > 0.05:
     print(f"07: WARNING -- {pct:.1f}% of buildings fell back to type_priors_m, which were "
           f"measured at '{CFG['tuning']['buildings']['type_priors_m'].get('_measured_at','?')}'. "
           f"Re-measure them for {CFG['site']} before trusting this massing.")
+if seamark_unresolved:
+    print(f"07: WARNING -- {len(seamark_unresolved)} seamark/lighthouse footprint(s) had no "
+          f"seamark:landmark:height and fell back to the plain OSM `height` tag, which on a seamark is "
+          f"usually the LIGHT's elevation above MHWS, not the structure. Each is probably modelled too "
+          f"tall. Add seamark:landmark:height upstream, or a landmark override in the site config. "
+          f"(osm_id, name, h_used_m, lidar_p90_m, px): {seamark_unresolved}", flush=True)
 if nlm < sum(1 for k in LM if not k.startswith("_")):
     print(f"07: NOTE -- {sum(1 for k in LM if not k.startswith('_')) - nlm} landmark override(s) "
           f"did not match any building name; an OSM rename silently drops them.")

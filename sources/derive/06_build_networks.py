@@ -122,8 +122,10 @@ for f in lyr:
     w, pav = SPEC[cls]
     lanes = tagval(ot, "lanes")
     if lanes:
+        # OSM `lanes` is free text ("2", "2;3", "two"). Catch only what float() raises --
+        # a bare except here would also swallow KeyboardInterrupt and SystemExit.
         try: w = max(w, float(lanes) * TUN["lane_width_m"] + TUN["lane_margin_m"])
-        except: pass
+        except (TypeError, ValueError): pass
     q = TUN["width_quantum_m"]
     w = round(w / q) * q
     ways.append({"id": f.GetField("osm_id"), "cls": cls, "w": w, "pav": pav,
@@ -241,7 +243,7 @@ json.dump({"site": CFG["site"], "crs": CFG["crs"],
            "widths_m": {k: list(v) for k, v in SPEC.items()},
            "vertices_without_dtm": n_nodata,
            "vertices_outside_grid": n_outside,
-           **({} if CLIP is None else {"clip": lib.clip_manifest(CLIP),
+           **({} if CLIP is None else {"clip": lib.clip_manifest(CLIP, CFG),
                                        "vertices_outside_clip": n_outside_clip,
                                        "junctions_outside_clip": n_junc_clip})},
           open(os.path.join(OUT, "networks_manifest.json"), "w"), indent=1)

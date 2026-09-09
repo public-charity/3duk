@@ -91,6 +91,9 @@ def build_hedge(spline: Spline, side: int, params=None) -> Tuple[MeshBuffer, Lis
         prof = hs.profile
         mask = (s >= a - 1e-9) & (s <= b + 1e-9)
         if mask.sum() < 2:
+            # a hedge run that lands between two stations sweeps nothing; say so instead of vanishing
+            spline.warnings.append("hedge %s [%g, %g] covers %d station(s): nothing swept"
+                                   % (S.SIDE_NAME[side], a, b, int(mask.sum())))
             continue
         W = float(hs.width_m)
         H = float(hs.height_m) + float(prof.base_sink_m)

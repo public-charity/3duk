@@ -27,6 +27,12 @@ struct STREETSCAPE_API FStreetMassingStats
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Streetscape") int32 Tris = 0;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Streetscape") int32 ClampedHeights = 0;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Streetscape") int32 SkippedRings = 0;
+	/** JSONL lines that did not parse. Non-zero means the file was only partly readable - never a silent pass. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Streetscape") int32 SkippedLines = 0;
+	/** Buildings with no "skirt" field, extruded from base_z - 1 m instead. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Streetscape") int32 SkirtDefaulted = 0;
+	/** Buildings with no usable "rings" array. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Streetscape") int32 SkippedBuildings = 0;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Streetscape") double MinZM = 0;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Streetscape") double MaxZM = 0;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Streetscape") double BuildMs = 0;

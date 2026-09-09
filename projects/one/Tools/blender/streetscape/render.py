@@ -81,7 +81,7 @@ def _look_at(cam_ob, eye, target):
     cam_ob.rotation_euler = rot.to_euler()
 
 
-def setup_render(resolution=(1280, 720), samples: int = 16):
+def setup_render(resolution=(1920, 1080), samples: int = 16):
     bpy = _bpy()
     scene = bpy.context.scene
     scene.render.engine = "BLENDER_EEVEE"
@@ -104,9 +104,17 @@ def setup_render(resolution=(1280, 720), samples: int = 16):
     if bg is not None:
         bg.inputs[0].default_value = (0.55, 0.65, 0.8, 1.0)
         bg.inputs[1].default_value = 0.6
+    # These are technical renders: the point is to READ the materials (yellow paint vs white paint,
+    # grass vs concrete kerb face, brick vs coping, ballast vs sleeper).  AgX plus a 6.0 sun drove every
+    # albedo above ~0.25 into clipped white -- the ballast, sleepers and rails of a rail spline came out
+    # as one white mass.  "Standard" with a 3.0 sun keeps a 0.6 albedo at ~0.57 and stays material-true.
+    try:
+        scene.view_settings.view_transform = "Standard"
+    except Exception:
+        pass
     if "sun" not in bpy.data.objects:
         light = bpy.data.lights.new("sun", type="SUN")
-        light.energy = 6.0
+        light.energy = 3.0
         light.angle = math.radians(2.0)
         sun = bpy.data.objects.new("sun", light)
         scene.collection.objects.link(sun)
@@ -114,7 +122,7 @@ def setup_render(resolution=(1280, 720), samples: int = 16):
     return scene
 
 
-def render_cameras(sp, out_dir: str, prefix: str, resolution=(1280, 720)) -> Dict[str, str]:
+def render_cameras(sp, out_dir: str, prefix: str, resolution=(1920, 1080)) -> Dict[str, str]:
     bpy = _bpy()
     scene = setup_render(resolution)
     os.makedirs(out_dir, exist_ok=True)

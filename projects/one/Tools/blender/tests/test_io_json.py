@@ -105,6 +105,18 @@ class TestIoJson(unittest.TestCase):
         self.assertTrue(any("cobbles" in x for x in w), w)
         self.assertEqual(io_json.validate_structure(d), [])
 
+    def test_warnings_on_an_invalid_document_are_not_silence(self):
+        """An empty warning list from a document that cannot even be parsed reads as "clean"; return the
+        structural errors instead, prefixed, so a caller checking only warnings cannot be fooled."""
+        d = syn.straight_100()
+        del d["splines"][0]["points"]
+        errs = io_json.validate_structure(d)
+        self.assertTrue(errs)
+        w = io_json.validate_warnings(d)
+        self.assertTrue(w)
+        self.assertTrue(all(x.startswith("invalid: ") for x in w), w)
+        self.assertEqual([x[len("invalid: "):] for x in w], errs)
+
 
 if __name__ == "__main__":
     unittest.main()

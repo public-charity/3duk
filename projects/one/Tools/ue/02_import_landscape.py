@@ -2,7 +2,13 @@
 
     run_ue_python.ps1 -Script 02_import_landscape.py -Render -Args "--manifest <DATA>/landscape/landscape_manifest.json
         [--wp-grid 4] [--qps 127] [--sections 2] [--max-components 0] [--map /Game/Thanet/Maps/Thanet]
-        [--recreate-map] [--probes-only] [--no-grid] [--no-cliff] [--no-clip] [--grid-per-tile 5] [--report <path.json>]"
+        [--recreate-map] [--probes-only] [--no-load-all] [--no-grid] [--no-cliff] [--no-clip] [--grid-per-tile 5]
+        [--max-shared-edge-h16 0] [--report <path.json>]"
+
+THE SCRIPT FAILS WHEN A GATE FAILS. grid.within_0_01_m, cliff.agree, cliff.slope_ok, clip.pass and the
+importer's shared_edge.ok all have to hold, or the last line is THANET_FAIL and the exit code is non-zero.
+--max-shared-edge-h16 is the tolerance for the row/column two neighbouring tiles both write (0 = they must be
+identical, which is what sound data gives; a negative value waives the gate and says so in the report).
 
 -Render is mandatory for a real import: the edit-layer merge needs FApp::CanEverRender()
 (LandscapeEditLayers.cpp:7051, DESIGN.md 13).
@@ -77,42 +83,53 @@ def manifest_tiles(path):
 
 
 def probe_grid(land, man, hf, per_tile=5):
-    """The 'heights match the heightfield' gate: a per_tile x per_tile lattice of integer-metre vertices inside
-    every tile of the manifest, landscape (EHeightfieldSource::Editor) against the adapter's own r16 bytes.
-    Points whose heightfield sample is NaN (clipped or off coverage) are counted, not compared."""
+    """The 'heights match the heightfield' gate: a lattice of integer-metre vertices over every tile of the
+    manifest, landscape (EHeightfieldSource::Editor) against the adapter's own r16 bytes.
+
+    The lattice includes the tile's OWN BOUNDARY rows and columns (local offsets 0 and tile_m) as well as the
+    interior. The original `step = tile_m // (per_tile + 1)` with a, b in 1..per_tile could only produce offsets
+    85..425 of a 512 m tile, so the one place the assembly can go wrong - the row/column two tiles both write -
+    was the one place the gate could never look. Points whose heightfield sample is NaN (clipped or off coverage)
+    are counted, not compared; a point the landscape has no height for fails the gate."""
     imp = unreal.StreetscapeLandscapeImporter
     tile_m = man["tile_m"]
-    ny = man["ny"]
-    n = 0
     n_nan = 0
     n_land_none = 0
     max_dz = 0.0
     worst = None
     step = tile_m // (per_tile + 1)
+    offsets = [0] + [a * step for a in range(1, per_tile + 1)] + [tile_m]
+    pts = set()
     for t in man["tiles"]:
         x0 = tile_m * t["x"]
-        y0 = tile_m * (ny - 1 - t["y"])
-        # local y of heightmap row r is ny*tile_m - (y0 + r); use the tile's own local square instead
-        ly0 = tile_m * t["y"]
-        for a in range(1, per_tile + 1):
-            for b in range(1, per_tile + 1):
-                x = float(x0 + a * step)
-                y = float(ly0 + b * step)
-                zh = hf.probe_m(x, y)
-                zl = imp.probe_height_m(land, x, y, False)
-                n += 1
-                if math.isnan(zh):
-                    n_nan += 1
-                    continue
-                if zl is None or math.isnan(zl):
-                    n_land_none += 1
-                    continue
-                dz = abs(zh - zl)
-                if dz > max_dz:
-                    max_dz = dz
-                    worst = [x, y, _f(zh), _f(zl)]
+        y0 = tile_m * t["y"]
+        for a in offsets:
+            for b in offsets:
+                pts.add((float(x0 + a), float(y0 + b)))
+    n_edge = sum(1 for x, y in pts if x % tile_m == 0 or y % tile_m == 0)
+    none_pts = []
+    x_max = man["nx"] * tile_m
+    y_max = man["ny"] * tile_m
+    for x, y in sorted(pts):
+        zh = hf.probe_m(x, y)
+        zl = imp.probe_height_m(land, x, y, False)
+        if math.isnan(zh):
+            n_nan += 1
+            continue
+        if zl is None or math.isnan(zl):
+            n_land_none += 1
+            if len(none_pts) < 20:
+                none_pts.append([x, y, _f(zh), "site_edge" if (x in (0.0, x_max) or y in (0.0, y_max)) else "interior"])
+            continue
+        dz = abs(zh - zl)
+        if dz > max_dz:
+            max_dz = dz
+            worst = [x, y, _f(zh), _f(zl)]
+    n = len(pts)
     return {"points": n, "compared": n - n_nan - n_land_none, "heightfield_nan": n_nan,
             "landscape_none": n_land_none, "max_abs_dz_m": round(max_dz, 6),
+            "tile_boundary_points": n_edge, "lattice_offsets_m": offsets,
+            "landscape_none_sample": none_pts,
             "worst": worst, "within_0_01_m": max_dz <= 0.01 and n_land_none == 0}
 
 
@@ -305,7 +322,7 @@ def probe_clip(land, man, plan_json, hf):
 
 
 def main(argv):
-    opts = uc.parse_args(argv, flags=("probes_only", "recreate_map", "no_cliff", "no_clip", "no_grid"), options={
+    opts = uc.parse_args(argv, flags=("probes_only", "recreate_map", "no_cliff", "no_clip", "no_grid", "no_load_all"), options={
         "manifest": "",
         "qps": "127",
         "sections": "2",
@@ -316,6 +333,7 @@ def main(argv):
         "layer_path": DEFAULT_LAYER_PATH,
         "report": "",
         "grid_per_tile": "5",
+        "max_shared_edge_h16": "0",
     })
     if not opts["manifest"]:
         uc.fail(NAME, "--manifest is required")
@@ -352,7 +370,8 @@ def main(argv):
     if not opts["probes_only"]:
         rss0 = imp.rss_mb()
         land, import_json = imp.import_site(manifest, int(opts["qps"]), int(opts["sections"]), int(opts["wp_grid"]),
-                                            opts["material"], opts["layer_path"], int(opts["max_components"]))
+                                            opts["material"], opts["layer_path"], int(opts["max_components"]),
+                                            int(opts["max_shared_edge_h16"]))
         result = json.loads(import_json)
         report["import"] = result
         report["rss_mb_before_call"] = round(rss0, 1)
@@ -367,26 +386,36 @@ def main(argv):
     if land is None:
         uc.fail(NAME, "no ALandscape in the level after the import")
 
+    grid_skipped = None
     if opts["probes_only"]:
         # A World Partition commandlet loads nothing (WorldPartition.cpp:880-886), so the landscape's components
-        # live in unloaded streaming proxies and GetHeightAtLocation returns nothing. Pull in JUST the cells the
-        # probes touch - loading all 140 proxies at once is the 15 GB the import itself needed.
-        tile_m = man["tile_m"]
-        ti, tj = int(CLIFF_XY[0] // tile_m), int(CLIFF_XY[1] // tile_m)
-        cxm, cym = tile_m * (ti + 0.5), tile_m * (tj + 0.5)
+        # live in unloaded streaming proxies and GetHeightAtLocation returns nothing.
         imp_lib = unreal.StreetscapeEditorLibrary
-        imp_lib.load_region(unreal.Vector(100.0 * cxm, -100.0 * cym, 0.0), 100.0 * tile_m)
-        clip = (plan_json or {}).get("clip")
-        loaded = 1
-        if clip:
-            (ax, ay), (bx, by) = clip["line_local_m"]
-            for k in range(CLIP_SAMPLES):
-                t = (k + 0.5) / CLIP_SAMPLES
-                px, py = ax + (bx - ax) * t, ay + (by - ay) * t
-                if 0 <= px <= man["nx"] * tile_m and 0 <= py <= man["ny"] * tile_m:
-                    imp_lib.load_region(unreal.Vector(100.0 * px, -100.0 * py, 0.0), 30000.0)
-                    loaded += 1
-        uc.log("probes-only: loaded %d World Partition regions (cliff tile + clip line)" % loaded)
+        tile_m = man["tile_m"]
+        if opts["no_load_all"]:
+            # the cheap path: JUST the cells the cliff and clip probes touch. probe_grid walks EVERY tile of the
+            # manifest, so most of its points would be unstreamed and it would report a verdict about nothing:
+            # say so instead of emitting one.
+            ti, tj = int(CLIFF_XY[0] // tile_m), int(CLIFF_XY[1] // tile_m)
+            cxm, cym = tile_m * (ti + 0.5), tile_m * (tj + 0.5)
+            imp_lib.load_region(unreal.Vector(100.0 * cxm, -100.0 * cym, 0.0), 100.0 * tile_m)
+            clip = (plan_json or {}).get("clip")
+            loaded = 1
+            if clip:
+                (ax, ay), (bx, by) = clip["line_local_m"]
+                for k in range(CLIP_SAMPLES):
+                    t = (k + 0.5) / CLIP_SAMPLES
+                    px, py = ax + (bx - ax) * t, ay + (by - ay) * t
+                    if 0 <= px <= man["nx"] * tile_m and 0 <= py <= man["ny"] * tile_m:
+                        imp_lib.load_region(unreal.Vector(100.0 * px, -100.0 * py, 0.0), 30000.0)
+                        loaded += 1
+            uc.log("probes-only --no-load-all: loaded %d World Partition regions (cliff tile + clip line only)" % loaded)
+            grid_skipped = "--no-load-all streams only the cliff tile and the clip line; probe_grid walks every tile"
+        else:
+            # the honest path: stream the whole world so the grid gate probes the landscape it claims to probe
+            # (~5 GB RSS, measured 12.5 s in 04_probe --landscape-info --load-all)
+            imp_lib.load_region(unreal.Vector(0.0, 0.0, 0.0), 2000000.0)
+            uc.log("probes-only: streamed the whole world (rss %.1f MB) so the grid probe sees every tile" % imp.rss_mb())
     report["landscape"] = json.loads(imp.landscape_state_json(land))
     uc.log("landscape: %s" % json.dumps(report["landscape"], sort_keys=True))
 
@@ -400,7 +429,10 @@ def main(argv):
     uc.log("heightfield: %s" % report["terrain_source"]["describe"])
 
     if not opts["no_grid"]:
-        report["grid"] = probe_grid(land, man, hf, int(opts["grid_per_tile"]))
+        if grid_skipped:
+            report["grid"] = {"skipped": grid_skipped}
+        else:
+            report["grid"] = probe_grid(land, man, hf, int(opts["grid_per_tile"]))
         uc.log("grid probe: %s" % json.dumps(report["grid"], sort_keys=True))
     if not opts["no_cliff"]:
         report["cliff"] = probe_cliff(land, man, plan_json, hf)
@@ -436,7 +468,41 @@ def main(argv):
         "grid": {k: report.get("grid", {}).get(k) for k in ("points", "compared", "heightfield_nan", "landscape_none", "max_abs_dz_m", "within_0_01_m")} if "grid" in report else None,
         "cliff": {k: report.get("cliff", {}).get(k) for k in ("max_abs_dz_m", "transect_slope_max_deg", "slope_max_deg", "tile_slope_max_deg", "slope_vs_tile_deg", "slope_within_2deg_of_tile", "agree", "slope_ok", "tile_scan", "skipped")} if "cliff" in report else None,
         "clip": {k: report.get("clip", {}).get(k) for k in ("samples", "kept_side_ok", "cut_side_ok", "pass")} if "clip" in report else None,
+        "shared_edge": (report.get("import") or {}).get("shared_edge"),
     }
+
+    # ---- the verdict. Before this the script printed THANET_OK whatever the probes concluded: grid.within_0_01_m,
+    # cliff.agree, cliff.slope_ok and clip.pass were carried as data and nothing branched on them (STAGES 1.13).
+    failures = []
+
+    def check(section, key, want=True):
+        sec = report.get(section)
+        if sec is None:
+            return                       # the probe was switched off with --no-<section>
+        if "skipped" in sec:
+            uc.log("gate %s.%s: SKIPPED (%s)" % (section, key, sec["skipped"]))
+            return
+        got = sec.get(key)
+        if got is None:
+            failures.append("%s.%s was not computed" % (section, key))
+        elif bool(got) != want:
+            failures.append("%s.%s is %s" % (section, key, got))
+
+    check("grid", "within_0_01_m")
+    check("cliff", "agree")
+    check("cliff", "slope_ok")
+    check("clip", "pass")
+    se = (report.get("import") or {}).get("shared_edge")
+    if se is not None and not se.get("ok", True):
+        failures.append("shared_edge.ok is False (max %s h16 over %s visible samples)"
+                        % (se.get("visible_max_h16_delta"), se.get("visible_samples_checked")))
+    if se is not None and se.get("waived"):
+        uc.log("WARNING: the shared-edge gate was WAIVED (--max-shared-edge-h16 %s); worst %s h16 = %s m at %s"
+               % (opts["max_shared_edge_h16"], se.get("visible_max_h16_delta"), se.get("visible_max_m"), se.get("worst_local_m")))
+    summary["gates_failed"] = failures
+    if failures:
+        uc.log("report written to %s" % out_path.replace("\\", "/"))
+        uc.fail(NAME, "gate(s) failed: %s | summary %s" % ("; ".join(failures), json.dumps(summary, sort_keys=True)))
     uc.report(NAME, summary)
 
 

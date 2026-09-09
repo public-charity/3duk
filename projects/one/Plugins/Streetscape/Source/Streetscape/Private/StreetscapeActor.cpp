@@ -4,6 +4,7 @@
 #include "Components/InstancedStaticMeshComponent.h"
 #include "Engine/StaticMesh.h"
 #include "Engine/World.h"
+#include "StreetGeometry.h"
 #include "StreetMaterialTable.h"
 #include "StreetOverlayComponent.h"
 #include "StreetSpline.h"
@@ -31,6 +32,11 @@ AStreetscapeActor::AStreetscapeActor()
 	PrimaryActorTick.bCanEverTick = false;
 	Spline = CreateDefaultSubobject<UStreetSplineComponent>(TEXT("Spline"));
 	SetRootComponent(Spline);
+	// Every child (the renderers, the overlay, the ISM components) is Static, and USceneComponent::AttachToComponent
+	// refuses to attach a Static child to a Movable parent (SceneComponent.cpp, "is not static , cannot attach").
+	// Left at the default Movable the root took none of them: the actor drew correctly only because every vertex
+	// and instance transform is absolute world space at the identity, and each street logged ~16 attach warnings.
+	Spline->SetMobility(EComponentMobility::Static);
 #if WITH_EDITOR
 	bIsSpatiallyLoaded = true;
 	bEnableAutoLODGeneration = false;
@@ -160,11 +166,47 @@ bool AStreetscapeActor::RebuildAllChecked(FString* Error)
 	}
 
 	UStreetRendererBase* Rs[5] = { Road, EdgeLeft, EdgeRight, HedgeLeft, HedgeRight };
-	for (UStreetRendererBase* R : Rs)
+	const TCHAR* RNames[5] = { TEXT("road"), TEXT("edge_left"), TEXT("edge_right"), TEXT("hedge_left"), TEXT("hedge_right") };
+	// STAGES 5.7 / BRIEF 1.1 "shares the same spline": the edge renderer must sample the road's stations, not its
+	// own. Checked here, on every build of every spline, instead of only for the actors whose stats are dumped.
+	TSet<double> StationSet;
+	StationSet.Reserve(Samples->S.Num());
+	for (double V : Samples->S) StationSet.Add(V);
+	for (int32 K = 0; K < 5; ++K)
 	{
+		UStreetRendererBase* R = Rs[K];
 		if (!R) continue;
 		FStreetRenderResult Res;
 		R->BuildFrom(*Samples, Terrain, Res);
+		const TArray<double> St = FStreetGeometry::StationValues(Res.Buffer);
+		if (K == 0)
+		{
+			if (St.Num() != Samples->S.Num())
+			{
+				if (Error) *Error = FString::Printf(TEXT("%s: road buffer has %d stations, the spline has %d"), *StreetId, St.Num(), Samples->S.Num());
+				return false;
+			}
+			for (int32 I = 0; I < St.Num(); ++I)
+			{
+				if (St[I] != Samples->S[I])
+				{
+					if (Error) *Error = FString::Printf(TEXT("%s: road station %d is %.17g, the spline's is %.17g"), *StreetId, I, St[I], Samples->S[I]);
+					return false;
+				}
+			}
+		}
+		else
+		{
+			for (double V : St)
+			{
+				if (!StationSet.Contains(V))
+				{
+					if (Error) *Error = FString::Printf(TEXT("%s: %s buffer has station %.17g, which is not one of the spline's %d stations"),
+						*StreetId, RNames[K], V, Samples->S.Num());
+					return false;
+				}
+			}
+		}
 		R->Commit(Res, Materials);
 	}
 	RebuildInstanceMeshComponents();

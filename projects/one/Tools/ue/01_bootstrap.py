@@ -50,7 +50,10 @@ STALE_PACKAGE_CLASSES = ("WorldPartitionHLOD",)
 EXTERNAL_ACTORS_PKG = "/Game/__ExternalActors__/Thanet/Maps/Thanet"
 # (python class name, label, spawn location, spawn rotation)
 ATMOSPHERE = [
-    ("DirectionalLight", "Sun", unreal.Vector(0, 0, 500), unreal.Rotator(-42.0, 0.0, 28.0)),
+    # unreal.Rotator takes (ROLL, PITCH, YAW). Written as (-42, 0, 28) this was roll -42 / pitch 0 / yaw 28:
+    # a sun pointing along the horizon, which is why a lit capture of the test stretch came back at mean
+    # luminance 2 out of 255 while its base colour came back at 71. The intent is a sun 42 degrees up.
+    ("DirectionalLight", "Sun", unreal.Vector(0, 0, 500), unreal.Rotator(0.0, -42.0, 28.0)),
     ("SkyLight", "SkyLight", unreal.Vector(0, 0, 500), unreal.Rotator(0, 0, 0)),
     ("SkyAtmosphere", "SkyAtmosphere", unreal.Vector(0, 0, 0), unreal.Rotator(0, 0, 0)),
     ("ExponentialHeightFog", "HeightFog", unreal.Vector(0, 0, 0), unreal.Rotator(0, 0, 0)),
@@ -156,7 +159,26 @@ def prune_stale_packages():
     return len(files)
 
 
-def remove_template_landscape(eas):
+def remove_template_landscape(eas, from_template):
+    """Remove the OpenWorld template's own landscape - ONLY on the run that created the map from that template.
+
+    This used to run on EVERY bootstrap, including the idempotent "map already exists, nothing to do" path, and
+    the class list contains "Landscape". So a second `01_bootstrap.py` on a level that already held the imported
+    Thanet landscape destroyed it: measured 2026-09-08,
+        [thanet] removing template actor Landscape_thanet (Landscape)
+    and the saved map came back with 140 LandscapeStreamingProxy actors and no ALandscape, which is what made
+    every landscape probe fail on a level that looked complete. (The proxies survived only because a World
+    Partition commandlet has not streamed them in, so get_all_level_actors never sees them - which would have made
+    the damage worse, not better, on a run that had.) Nothing else in the bootstrap is destructive; --recreate is
+    the switch that means "throw the map away".
+    """
+    if not from_template:
+        skipped = [a.get_actor_label() for a in eas.get_all_level_actors()
+                   if a.get_class().get_name() in TEMPLATE_ACTOR_CLASSES_TO_REMOVE]
+        if skipped:
+            uc.log("keeping %d existing %s actor(s) - this map was not created from a template on this run: %s"
+                   % (len(skipped), "/".join(TEMPLATE_ACTOR_CLASSES_TO_REMOVE), skipped))
+        return 0
     removed = 0
     for a in list(eas.get_all_level_actors()):
         if a.get_class().get_name() in TEMPLATE_ACTOR_CLASSES_TO_REMOVE:
@@ -169,8 +191,19 @@ def remove_template_landscape(eas):
 def ensure_atmosphere(eas):
     present = actor_classes(eas)
     spawned = []
+    fixed = []
     for cls_name, label, loc, rot in ATMOSPHERE:
         if present.get(cls_name, 0) > 0:
+            # idempotent means "make it what it should be", not "leave whatever is there": a level built before
+            # the sun's rotation was corrected keeps a sun on the horizon for ever otherwise
+            for a in eas.get_all_level_actors():
+                if a.get_class().get_name() != cls_name:
+                    continue
+                have = a.get_actor_rotation()
+                if abs(have.pitch - rot.pitch) > 1e-3 or abs(have.yaw - rot.yaw) > 1e-3 or abs(have.roll - rot.roll) > 1e-3:
+                    a.set_actor_rotation(rot, False)
+                    a.modify()
+                    fixed.append("%s %s -> pitch %g yaw %g roll %g" % (cls_name, label, rot.pitch, rot.yaw, rot.roll))
             continue
         cls = getattr(unreal, cls_name)
         actor = eas.spawn_actor_from_class(cls, loc, rot)
@@ -182,6 +215,8 @@ def ensure_atmosphere(eas):
         if cls_name == "DirectionalLight":
             actor.get_editor_property("light_component").set_editor_property("atmosphere_sun_light", True)
         spawned.append(cls_name)
+    if fixed:
+        uc.log("corrected atmosphere transforms: %s" % fixed)
     return spawned
 
 
@@ -372,7 +407,7 @@ def main(argv):
     world = unreal.get_editor_subsystem(unreal.UnrealEditorSubsystem).get_editor_world()
     before = actor_classes(eas)
     uc.log("actors before: %s" % before)
-    removed = remove_template_landscape(eas)
+    removed = remove_template_landscape(eas, mode == "created" and template != "none")
     spawned = ensure_atmosphere(eas)
 
     # -- the StreetscapeSiteActor (UE_PLAN.md 2.10): site header, terrain source, profile library, material table

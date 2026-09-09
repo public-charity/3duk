@@ -4,8 +4,9 @@ lazily so the package stays importable (and testable) without Blender.
 Materials are created once per NAME from the document's material hints (flat Principled colour,
 roughness, backface culling off for two-sided names).  Instances become linked duplicates of shared
 primitive meshes (unit box for posts/sleepers, unit quad for leaf cards) with ``matrix_world`` from the
-(4, 4) transform of instance.py scaled by ``size``.  The overlay is an edge-only mesh with an emissive
-magenta material.  The vs/vd/vh attributes are dropped here; the .npz stays the numeric reference.
+(4, 4) transform of instance.py scaled by ``size``.  The overlay is a "+"-section magenta emissive
+ribbon (``overlay_ribbon``) -- an edge-only mesh renders as nothing in EEVEE and is dropped from the glTF
+export.  The vs/vd/vh attributes are dropped here; the .npz stays the numeric reference.
 """
 from __future__ import annotations
 
@@ -66,7 +67,9 @@ def ensure_emissive(name: str, color=(1.0, 0.0, 1.0)):
         if "Emission Color" in bsdf.inputs:
             bsdf.inputs["Emission Color"].default_value = (color[0], color[1], color[2], 1.0)
         if "Emission Strength" in bsdf.inputs:
-            bsdf.inputs["Emission Strength"].default_value = 5.0
+            # 5.0 clipped to near-white through the view transform once the overlay had real faces to
+            # shade; 1.5 keeps it unmistakably magenta and still reads as a debug layer, not a surface.
+            bsdf.inputs["Emission Strength"].default_value = 1.5
     mat.diffuse_color = (color[0], color[1], color[2], 1.0)
     return mat
 
@@ -142,11 +145,48 @@ def instances_to_objects(instances: List[Instance], collection, hints: Optional[
     return n
 
 
+OVERLAY_RIBBON_W_M = 0.15   # the debug overlay's cross-section: a "+" of two 15 cm ribbons
+
+
+def overlay_ribbon(pts: np.ndarray, width_m: float = OVERLAY_RIBBON_W_M):
+    """(verts, faces) of the OSM debug overlay polyline as a "+"-section ribbon (pure numpy, no bpy).
+
+    An edge-only mesh has no primitives: EEVEE renders nothing and the glTF exporter drops it with a
+    warning ("has no primitives and will be omitted"), which is why the overlay -- a named BRIEF 1.1
+    first-deliverable item -- was invisible in every render.  Two crossed quad strips (one horizontal,
+    one vertical, both ``width_m`` wide, centred on the polyline) are visible from any camera angle and
+    survive the export.  Vertex order per point i: [+n, -n, +z, -z]; the polyline itself is not a vertex."""
+    P = np.asarray(pts, dtype=np.float64)[:, :3]
+    if len(P) < 2:
+        return [], []
+    d = np.diff(P[:, :2], axis=0)
+    seg = np.zeros((len(P), 2))
+    seg[:-1] += d
+    seg[1:] += d                                  # average of the adjacent segment directions
+    ln = np.hypot(seg[:, 0], seg[:, 1])
+    ln[ln < 1e-12] = 1.0
+    t = seg / ln[:, None]
+    n = np.column_stack([-t[:, 1], t[:, 0], np.zeros(len(P))])   # horizontal left normal
+    z = np.array([0.0, 0.0, 1.0])
+    h = 0.5 * float(width_m)
+    verts = np.empty((4 * len(P), 3))
+    verts[0::4] = P + h * n
+    verts[1::4] = P - h * n
+    verts[2::4] = P + h * z
+    verts[3::4] = P - h * z
+    faces = []
+    for i in range(len(P) - 1):
+        a, b = 4 * i, 4 * (i + 1)
+        faces.append((a + 0, a + 1, b + 1, b + 0))     # horizontal ribbon
+        faces.append((a + 2, a + 3, b + 3, b + 2))     # vertical ribbon
+    return [tuple(map(float, v)) for v in verts], faces
+
+
 def overlay_to_object(pts: np.ndarray, name: str, collection):
     bpy = _bpy()
     me = bpy.data.meshes.new(name)
-    edges = [(i, i + 1) for i in range(len(pts) - 1)]
-    me.from_pydata([tuple(map(float, p)) for p in pts], edges, [])
+    verts, faces = overlay_ribbon(pts)
+    me.from_pydata(verts, [], faces)
     me.materials.append(ensure_emissive("overlay_magenta"))
     me.update()
     ob = bpy.data.objects.new(name, me)

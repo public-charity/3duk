@@ -172,6 +172,29 @@ def terrain_for(doc: dict) -> Heightfield:
     return flat_terrain(float(t.get("z_m", 10.0)), ext)
 
 
+REPO_ROOT = os.path.dirname(os.path.dirname(PROJECT_ONE))
+THANET_LANDSCAPE = os.path.join(REPO_ROOT, "data", "thanet", "out", "unreal", "landscape")
+THANET_STREETSCAPE = os.path.join(REPO_ROOT, "data", "thanet", "out", "unreal", "streetscape")
+_LANDSCAPE_CACHE = []
+
+
+def thanet_landscape():
+    """The real adapter landscape (391 tiles) if it is on disk, else None.  Cached: several tests want it
+    and decoding 391 r16 tiles is the slowest thing in the suite."""
+    if not _LANDSCAPE_CACHE:
+        if os.path.isfile(os.path.join(THANET_LANDSCAPE, "landscape_manifest.json")):
+            _LANDSCAPE_CACHE.append(Heightfield.from_landscape_dir(THANET_LANDSCAPE))
+        else:
+            _LANDSCAPE_CACHE.append(None)
+    return _LANDSCAPE_CACHE[0]
+
+
+def thanet_site(tile: str):
+    """One real adapter document (``site_x<i>_y<j>``) as a dict, or None when the data is not on disk."""
+    p = os.path.join(THANET_STREETSCAPE, "site_%s.json" % tile)
+    return load_json(p) if os.path.isfile(p) else None
+
+
 FIXTURE_BUILDERS = {
     "straight_100": straight_100,
     "sine_5_50": sine_5_50,

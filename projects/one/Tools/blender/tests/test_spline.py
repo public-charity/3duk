@@ -280,5 +280,48 @@ class TestFrames(unittest.TestCase):
         self.assertAlmostEqual(float(np.linalg.norm(fr.b[k])), 1.0, places=12)
 
 
+class TestStationingGuarantee(unittest.TestCase):
+    """The bounds ``adaptive_stations`` actually holds to, on every fixture (expected.json 'stationing').
+
+    STAGES.md stage 3 and stage 7 assert `step_min >= 0.25` and (rail) `step_max <= 1.0`; neither the
+    fixtures nor the real Thanet data meet those, and they are not what the algorithm promises.  These
+    are the real bounds, so a future change to the march that breaks them fails here."""
+
+    ST = EXP["stationing"]
+
+    def test_upper_bound_on_every_fixture(self):
+        for name in ("straight_100", "sine_5_50", "curve_R20_200", "rail_R300_600"):
+            sp = build(syn.load_fixture(name))
+            g = np.diff(sp.s)
+            bound = sp.sampling.step_m + sp.sampling.min_step_m
+            self.assertLessEqual(float(g.max()), bound + 1e-9,
+                                 "%s: max gap %.6f > step_m + min_step_m = %.6f" % (name, g.max(), bound))
+            # and every adaptive-to-adaptive gap except the last one is <= step_m
+            gg, aa, _ = adaptive_gaps(sp)
+            inner = gg[aa][:-1] if aa.any() else gg[:0]
+            self.assertTrue(np.all(inner <= sp.sampling.step_m + 1e-9), name)
+
+    def test_rail_fixture_matches_the_recorded_measurement(self):
+        sp = build(syn.load_fixture("rail_R300_600"))
+        g = np.diff(sp.s)
+        m = self.ST["measured"]["rail_R300_600"]
+        self.assertEqual(len(sp.s), m["N"])
+        self.assertAlmostEqual(float(g.min()), m["step_min"], places=6)
+        self.assertAlmostEqual(float(g.max()), m["step_max"], places=6)
+        self.assertGreater(m["step_max"], 1.0, "the recorded rail step_max is above the STAGES.md bound "
+                                               "of 1.0: that document is what needs correcting")
+
+    def test_no_lower_bound_exists(self):
+        """Two mandatory stations 10 mm apart produce a 10 mm gap with no message anywhere -- the
+        documented `step_min >= 0.25` is unenforceable, not merely unenforced."""
+        doc = syn.load_fixture("straight_100")
+        doc["splines"][0]["sampling"] = dict(doc["splines"][0].get("sampling") or {}, extra_stations_m=[50.0, 50.01, 50.02])
+        sp = build(doc)
+        g = np.diff(sp.s)
+        self.assertAlmostEqual(float(g.min()), 0.01, places=9)
+        self.assertLess(float(g.min()), sp.sampling.min_step_m)
+        self.assertEqual(self.ST["lower_bound_rule"], None)
+
+
 if __name__ == "__main__":
     unittest.main()

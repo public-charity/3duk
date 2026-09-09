@@ -295,5 +295,131 @@ class TestEmbankments(unittest.TestCase):
         self.assertEqual([g for g in res.edge[S.LEFT].group_names if g.startswith("embankment")], ["embankment:batter:0"])
 
 
+class TestRealThanetEmbankment(unittest.TestCase):
+    """BRIEF 1.1: "Edge case: road cutting through a steep bank ... Handle with an extra profile entry on
+    Renderer B".  The batter and retaining-wall code was only ever exercised on synthetic terrain; this
+    runs it on one real Thanet cutting so a measured embankment exists in the deliverable.
+
+    It is also the real-data proof of the null-edge-slot fix: every adapter rail spline has
+    ``profile_ids.edge_left`` AND ``edge_right`` null, so before that fix this embankment built nothing."""
+
+    def test_dumpton_cutting(self):
+        terrain = syn.thanet_landscape()
+        E = EXP["real_thanet"]["rail_cutting"]
+        doc = syn.thanet_site(E["site"].replace("site_", "").replace(".json", ""))
+        if terrain is None or doc is None:
+            self.skipTest("data/thanet/out/unreal not on disk")
+        sid = E["spline"]
+        doc = copy.deepcopy(doc)
+        doc["splines"] = [sp for sp in doc["splines"] if sp["id"] == sid]
+        self.assertEqual(len(doc["splines"]), 1)
+        self.assertIsNone(doc["splines"][0]["profile_ids"]["edge_left"])
+        self.assertIsNone(doc["splines"][0]["profile_ids"]["edge_right"])
+        doc["splines"][0]["segments"] = [{"id": "cutting", "s0_m": 0.0, "s1_m": None, "side": "both",
+                                          "edge": {"embankment": E["embankment_segment"]}}]
+        self.assertEqual(io_json.validate_structure(doc), [])
+        res = build(doc, terrain)
+        sp = res.spline
+        self.assertAlmostEqual(sp.length, E["L"], places=3)
+        self.assertEqual(sp.n, E["n_samples"])
+        self.assertEqual(sp.z_raw_nan_count, E["z_raw_nan_count"])
+        self.assertEqual(sp.warnings, [])
+        for side, key in ((S.LEFT, "left"), (S.RIGHT, "right")):
+            X = E[key]
+            e = res.edge[side]
+            self.assertIsNotNone(e, "%s: no embankment built on a null edge slot" % key)
+            self.assertEqual(e.group_names, [X["group"]])
+            self.assertEqual(e.validate(), [])
+            self.assertEqual([len(e.v), len(e.f)], [X["verts"], X["tris"]])
+            spec = sp.side_spec[side]
+            vi = e.vertices_of_groups(exact=X["group"])
+            o = side * e.vd[vi] - np.interp(e.vs[vi], sp.s, sp.edge_offset(side) + spec.back_offset)
+            h = e.vh[vi] - np.interp(e.vs[vi], sp.s, sp.edge_height(side) + spec.hk_back)
+            self.assertEqual(len(np.unique(e.vs[vi])), X["stations"])
+            if key == "left":
+                self.assertAlmostEqual(float(o.max()), X["wall_thickness_m"], places=9)
+                self.assertAlmostEqual(float(h.max()), X["wall_height_m"], places=3)
+                self.assertAlmostEqual(float(h.min()), -X["skirt_m"], places=9)
+            else:
+                self.assertAlmostEqual(float(o.max()), X["batter_width_m"], places=3)
+                self.assertAlmostEqual(float(h.min()), -X["batter_drop_m"], places=3)
+                self.assertAlmostEqual(float(o.max()) / -float(h.min()), X["slope_ratio"], places=6)
+
+
+class TestNullEdgeProfileSlot(unittest.TestCase):
+    """SCHEMA.md 5 rule 1: a null ``profile_ids.edge_<side>`` is an EMPTY profile (every width 0), not
+    "this side does not exist".  Barriers, embankments and profile switches declared by a segment on
+    that side must still build; before this was fixed they were discarded with no error and no warning."""
+
+    WALL = {"type": "brick_wall", "height_m": 1.8, "thickness_m": 0.215, "material": "brick_red"}
+
+    def _doc(self, seg_edge, side="right"):
+        doc = doc_with(segments=[{"id": "seg", "s0_m": 0.0, "s1_m": 50.0, "side": side, "edge": seg_edge}])
+        doc["splines"][0]["profile_ids"]["edge_%s" % side] = None
+        return doc
+
+    def test_barrier_on_a_null_side_is_built_not_dropped(self):
+        doc = self._doc({"barrier": dict(self.WALL)})
+        self.assertEqual(io_json.validate_structure(doc), [])
+        res = build(doc)
+        e = res.edge[S.RIGHT]
+        self.assertIsNotNone(e, "the 50 m brick wall was silently dropped")
+        self.assertEqual([g for g in e.group_names if g.startswith("barrier")], ["barrier:brick_wall:0"])
+        self.assertNotIn("kerb", e.group_names)        # the empty profile has every width 0
+        self.assertNotIn("pavement", e.group_names)
+        wv = np.unique(e.f[e.group_mask_tris(prefix="barrier:brick_wall")])
+        self.assertEqual(float(e.vs[wv].min()), 0.0)
+        self.assertEqual(float(e.vs[wv].max()), 50.0)
+        # the wall stands on the road edge (back_offset 0) and is 1.8 m tall + 0.05 coping
+        h = e.vh[wv] - np.interp(e.vs[wv], res.spline.s, res.spline.edge_height(S.RIGHT))
+        self.assertAlmostEqual(float(h.max()), 1.85, places=9)
+        self.assertEqual(res.stats["validate"]["edge_right"], [])
+        self.assertEqual(res.spline.warnings, [])
+        # and it really is a closed wall volume, not a stray ribbon
+        self.assertTrue(e.is_closed_manifold(grp_filter={"barrier:brick_wall:0"}))
+
+    def test_embankment_on_a_null_side_is_built_not_dropped(self):
+        terrain = Heightfield.from_function(lambda x, y: 10.0 - 0.5 * np.maximum(0.0, -y - 3.0), (512.0, 512.0), xy0=(0.0, -256.0))
+        doc = self._doc({"embankment": {"side": "auto", "kind": "auto", "material": "grass"}})
+        res = build(doc, terrain)
+        e = res.edge[S.RIGHT]
+        self.assertIsNotNone(e, "the embankment was silently dropped")
+        self.assertEqual([g for g in e.group_names if g.startswith("embankment")], ["embankment:batter:0"])
+
+    def test_profile_switch_on_a_null_side_is_built_not_dropped(self):
+        doc = doc_with(segments=[{"id": "seg", "s0_m": 0.0, "s1_m": 50.0, "side": "right",
+                                  "edge": {"profile_id": "edge_wall_brick"}}],
+                       profiles_edge=["edge_wall_brick"])
+        doc["splines"][0]["profile_ids"]["edge_right"] = None
+        res = build(doc)
+        e = res.edge[S.RIGHT]
+        self.assertIsNotNone(e, "the switched-in wall profile was silently dropped")
+        self.assertEqual([g for g in e.group_names if g.startswith("barrier")], ["barrier:brick_wall:0"])
+
+    def test_a_null_side_with_no_edge_segment_still_builds_nothing(self):
+        """The empty profile must not invent geometry: no segment, no buffer (this is the common case
+        in every real adapter document -- 7837 of 15422 splines carry a null edge_right)."""
+        doc = doc_with()
+        doc["splines"][0]["profile_ids"]["edge_right"] = None
+        res = build(doc)
+        self.assertIsNone(res.edge[S.RIGHT])
+        self.assertNotIn("edge_right", res.stats["buffers"])
+        base = build(doc_with())
+        self.assertEqual(res.stats["n_samples"], base.stats["n_samples"])
+        self.assertEqual(res.stats["buffers"]["road"], base.stats["buffers"]["road"])
+        self.assertEqual(res.stats["buffers"]["edge_left"], base.stats["buffers"]["edge_left"])
+
+    def test_lip_arc_points_must_agree_across_painted_edge_profiles(self):
+        """The swept section has a fixed point count, so a mid-spline switch to a differently
+        tessellated lip is refused rather than silently ignored (it used to be read from the base)."""
+        doc = doc_with(segments=[{"id": "seg", "s0_m": 20.0, "s1_m": 60.0, "side": "left",
+                                  "edge": {"profile_id": "edge_finer_lip"}}])
+        doc["profiles"]["edge"]["edge_finer_lip"] = copy.deepcopy(doc["profiles"]["edge"]["edge_uk_kerb"])
+        doc["profiles"]["edge"]["edge_finer_lip"]["lip"]["arc_points"] = 6
+        errs = io_json.validate_structure(doc)
+        self.assertEqual(len(errs), 1, errs)
+        self.assertIn("lip.arc_points", errs[0])
+
+
 if __name__ == "__main__":
     unittest.main()

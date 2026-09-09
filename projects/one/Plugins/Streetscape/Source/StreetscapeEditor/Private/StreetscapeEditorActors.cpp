@@ -154,7 +154,7 @@ int32 UStreetscapeEditorLibrary::DeleteActorsAndPackages(const TArray<AActor*>& 
 	return Packages.Num();
 }
 
-int32 UStreetscapeEditorLibrary::ImportStreetscapeJson(const FString& FileOrDir, bool bPlacePlayerStart)
+int32 UStreetscapeEditorLibrary::ImportStreetscapeJson(const FString& FileOrDir, bool bPlacePlayerStart, bool bPreloadWorld, int32 MaxNoTerrainActors)
 {
 	UWorld* World = EditorWorld();
 	if (!World) { UE_LOG(LogStreetscapeEditor, Error, TEXT("ImportStreetscapeJson: no editor world")); return -1; }
@@ -165,7 +165,13 @@ int32 UStreetscapeEditorLibrary::ImportStreetscapeJson(const FString& FileOrDir,
 		TArray<FString> Names;
 		IFileManager::Get().FindFiles(Names, *(FileOrDir / TEXT("*.json")), true, false);
 		Names.Sort();
-		for (const FString& N : Names) Files.Add(FileOrDir / N);
+		// the adapter writes streetscape_manifest.json beside the documents; it is not one of them, and feeding it
+		// to the strict loader is a hard failure at the end of an hour-long site import
+		for (const FString& N : Names)
+		{
+			if (N.EndsWith(TEXT("_manifest.json"))) continue;
+			Files.Add(FileOrDir / N);
+		}
 	}
 	else
 	{
@@ -176,10 +182,23 @@ int32 UStreetscapeEditorLibrary::ImportStreetscapeJson(const FString& FileOrDir,
 	// World Partition: a commandlet has nothing loaded after load_level (WorldPartition.cpp:880-886), so
 	// FindActorById below would see an empty world and every re-import would leave the previous actor behind as a
 	// second copy of the same street. Pull the whole site in first, then the replace-by-id is real.
-	LoadRegion(FVector::ZeroVector, 2000000.f);
+	if (bPreloadWorld)
+	{
+		LoadRegion(FVector::ZeroVector, 2000000.f);
+	}
+	else
+	{
+		UE_LOG(LogStreetscapeEditor, Warning,
+			TEXT("ImportStreetscapeJson: bPreloadWorld=false - existing actors are NOT streamed in, so nothing is replaced by id. "
+				 "Only correct when the level is known to hold no streetscape actor for these ids."));
+	}
 
 	int32 Spawned = 0;
 	bool bPlacedStart = false;
+	// A street whose stations all sampled NaN is built flat at z = 0 - geometry that looks fine and is wrong.
+	// FStreetSamples records it as a warning; collect them and refuse the import rather than let it through.
+	TArray<FString> NoTerrainIds;
+	int32 PartialTerrainActors = 0;
 	if (bPlacePlayerStart)
 	{
 		// the import is idempotent for streetscape actors (they are replaced by id); make it idempotent for the
@@ -196,8 +215,13 @@ int32 UStreetscapeEditorLibrary::ImportStreetscapeJson(const FString& FileOrDir,
 			UE_LOG(LogStreetscapeEditor, Log, TEXT("ImportStreetscapeJson: removed %d stale PlayerStart_Streetscape (%d packages deleted)"), Stale.Num(), Gone);
 		}
 	}
+	const double TStart = FPlatformTime::Seconds();
+	int32 FileIndex = 0;
 	for (const FString& File : Files)
 	{
+		++FileIndex;
+		const double TFile = FPlatformTime::Seconds();
+		const int32 SpawnedBefore = Spawned;
 		TSharedPtr<FJsonObject> Obj;
 		FText Err;
 		if (!FStreetscapeJson::LoadFile(File, Obj, &Err)) { UE_LOG(LogStreetscapeEditor, Error, TEXT("%s: %s"), *File, *Err.ToString()); return -1; }
@@ -247,6 +271,22 @@ int32 UStreetscapeEditorLibrary::ImportStreetscapeJson(const FString& FileOrDir,
 				return -1;
 			}
 			++Spawned;
+			if (const FStreetSamples* Sm0 = A->GetSamples())
+			{
+				for (const FString& W : Sm0->Warnings)
+				{
+					if (W.StartsWith(TEXT("no terrain under any station")))
+					{
+						// no per-spline log here: whether this is an Error or an accepted Warning is only known
+						// once they have all been counted, and an Error line would fail the run either way
+						NoTerrainIds.Add(FString::Printf(TEXT("%s (%s)"), *Def.Id, *FPaths::GetCleanFilename(File)));
+					}
+					else if (W.Contains(TEXT("without terrain filled along s")))
+					{
+						++PartialTerrainActors;
+					}
+				}
+			}
 			if (bPlacePlayerStart && !bPlacedStart && Def.Points.Num() >= 2)
 			{
 				const FStreetSamples* Sm = A->GetSamples();
@@ -254,7 +294,8 @@ int32 UStreetscapeEditorLibrary::ImportStreetscapeJson(const FString& FileOrDir,
 				const double Dx = Def.Points[1].X - Def.Points[0].X;
 				const double Dy = Def.Points[1].Y - Def.Points[0].Y;
 				const double BearingDeg = FMath::RadiansToDegrees(FMath::Atan2(Dx, Dy));
-				const FVector Loc = FStreetscapeJson::ToUE(FVector3d(Def.Points[0].X, Def.Points[0].Y, Z + 1.5));
+				// BRIEF/STAGES FD.4 and Tools/ue/README: the spawn point stands 2 m above the first waypoint
+				const FVector Loc = FStreetscapeJson::ToUE(FVector3d(Def.Points[0].X, Def.Points[0].Y, Z + 2.0));
 				const FRotator Rot(0.0, FStreetscapeJson::YawFromBearingDeg(BearingDeg), 0.0);
 				if (APlayerStart* PS = World->SpawnActor<APlayerStart>(APlayerStart::StaticClass(), Loc, Rot))
 				{
@@ -263,6 +304,32 @@ int32 UStreetscapeEditorLibrary::ImportStreetscapeJson(const FString& FileOrDir,
 				}
 			}
 		}
+		if (Files.Num() > 1)
+		{
+			// a site import is 246 documents and about an hour: say where it is, so a run can be watched
+			UE_LOG(LogStreetscapeEditor, Display, TEXT("ImportStreetscapeJson [%d/%d] %s: %d spline(s) in %.1f s (total %d actors, %.0f s, rss %.0f MB)"),
+				FileIndex, Files.Num(), *FPaths::GetCleanFilename(File), Spawned - SpawnedBefore,
+				FPlatformTime::Seconds() - TFile, Spawned, FPlatformTime::Seconds() - TStart,
+				(double)FPlatformMemory::GetStats().UsedPhysical / (1024.0 * 1024.0));
+		}
+	}
+	if (PartialTerrainActors)
+	{
+		UE_LOG(LogStreetscapeEditor, Warning, TEXT("ImportStreetscapeJson: %d of %d actor(s) had station(s) without terrain, filled along s"),
+			PartialTerrainActors, Spawned);
+	}
+	if (NoTerrainIds.Num())
+	{
+		const bool bTooMany = NoTerrainIds.Num() > MaxNoTerrainActors;
+		const FString Msg = FString::Printf(
+			TEXT("ImportStreetscapeJson: %d of %d actor(s) sampled NO terrain at any station and were built flat at z = 0 (limit %d): %s"),
+			NoTerrainIds.Num(), Spawned, MaxNoTerrainActors, *FString::Join(NoTerrainIds, TEXT(", ")));
+		if (bTooMany)
+		{
+			UE_LOG(LogStreetscapeEditor, Error, TEXT("%s"), *Msg);
+			return -1;
+		}
+		UE_LOG(LogStreetscapeEditor, Warning, TEXT("ACCEPTED %s"), *Msg);
 	}
 	return Spawned;
 }

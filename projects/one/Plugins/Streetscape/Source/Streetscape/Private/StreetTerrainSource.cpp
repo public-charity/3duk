@@ -108,7 +108,13 @@ bool FStreetHeightfield::LoadLandscapeDir(const FString& Dir, FText* Err)
 			if ((*Files)->TryGetStringField(TEXT("clip"), S) && !S.IsEmpty()) ClipName = S;
 		}
 		TArray<uint8> Bytes;
-		if (!FFileHelper::LoadFileToArray(Bytes, *(Dir / HmName))) continue;
+		if (!FFileHelper::LoadFileToArray(Bytes, *(Dir / HmName)))
+		{
+			// dropping the tile is worse than failing: every spline over it would sample NaN, FillNanAlong would
+			// hold the last finite height along s, and the street would be built flat and silently wrong
+			if (Err) *Err = FText::FromString(FString::Printf(TEXT("cannot read %s"), *HmName));
+			return false;
+		}
 		if (Bytes.Num() != N2 * 2)
 		{
 			if (Err) *Err = FText::FromString(FString::Printf(TEXT("%s: %d bytes, expected %d"), *HmName, Bytes.Num(), N2 * 2));
@@ -153,11 +159,22 @@ bool FStreetHeightfield::Sample(double X, double Y, double& OutZ) const
 	const int32 Y0 = FMath::Min((int32)FMath::FloorToDouble(Ry), R1 - 1);
 	const double Tx = Cx - X0;
 	const double Ty = Ry - Y0;
+	// row Y0 is the NORTH edge of the cell and Ty grows southwards, which is the landscape's own +Y, so
+	// A = P00 (NW), B = P10 (NE), C = P01 (SW), D = P11 (SE) in the Chaos cell of EStreetHeightSampling's comment.
 	const double A = (double)(*T)[Y0 * Res + X0];
 	const double B = (double)(*T)[Y0 * Res + X0 + 1];
 	const double C = (double)(*T)[(Y0 + 1) * Res + X0];
 	const double D = (double)(*T)[(Y0 + 1) * Res + X0 + 1];
-	const double V = (A * (1 - Tx) + B * Tx) * (1 - Ty) + (C * (1 - Tx) + D * Tx) * Ty;
+	double V;
+	if (Sampling == EStreetHeightSampling::LandscapeTriangulated)
+	{
+		V = (Tx < Ty) ? (A * (1.0 - Ty) + D * Tx + C * (Ty - Tx))
+		              : (A * (1.0 - Tx) + B * (Tx - Ty) + D * Ty);
+	}
+	else
+	{
+		V = (A * (1 - Tx) + B * Tx) * (1 - Ty) + (C * (1 - Tx) + D * Tx) * Ty;
+	}
 	if (!FMath::IsFinite(V)) return false;
 	OutZ = V;
 	return true;
@@ -179,8 +196,9 @@ bool FStreetHeightfield::Bounds(double& X0, double& Y0, double& X1, double& Y1) 
 
 FString FStreetHeightfield::Describe() const
 {
-	return FString::Printf(TEXT("%s tile_m=%g res=%d px_m=%g n_tiles=%d origin=(%g, %g) shift=(%g, %g) xy0=(%g, %g)"),
-		*Source, TileM, Res, PxM, Tiles.Num(), OriginE, OriginN, ShiftXY.X, ShiftXY.Y, XY0.X, XY0.Y);
+	return FString::Printf(TEXT("%s tile_m=%g res=%d px_m=%g n_tiles=%d origin=(%g, %g) shift=(%g, %g) xy0=(%g, %g) sampling=%s"),
+		*Source, TileM, Res, PxM, Tiles.Num(), OriginE, OriginN, ShiftXY.X, ShiftXY.Y, XY0.X, XY0.Y,
+		Sampling == EStreetHeightSampling::LandscapeTriangulated ? TEXT("landscape_triangulated") : TEXT("bilinear"));
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -202,6 +220,7 @@ bool UStreetHeightfieldTerrain::Load()
 {
 	FText Err;
 	bLoaded = Field.LoadLandscapeDir(ResolvedDir(), &Err);
+	Field.Sampling = Sampling;
 	LastError = bLoaded ? FString() : Err.ToString();
 	if (bLoaded)
 	{

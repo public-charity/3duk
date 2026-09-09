@@ -4,7 +4,14 @@
 Run after the pipeline (steps 05-11), from the repo root, with the GDAL environment:
 
     PATH=/c/Users/Shadow/code/3duk-env/env/Library/bin:$PATH SITE=<site> \\
-        C:/Users/Shadow/code/3duk-env/env/python.exe sources/adapters/unreal.py [--only landscape,streetscape,massing,furniture]
+        C:/Users/Shadow/code/3duk-env/env/python.exe sources/adapters/unreal.py \\
+        [--only landscape,streetscape,massing,furniture] [--strict]
+
+--only rebuilds a subset; the root manifest then carries the other products' entries over from the
+manifest it replaces (never null: they are still on disk) and records what it rebuilt in partial_run.
+--strict turns the four "step NN not run" warnings (no coast/, networks/, massing/, furniture/, no
+linear_manifest.json) into refusals: stage 1 legitimately runs the adapter before step 09 exists, so
+they are warnings by default, but a full-pipeline run should not degrade a product in silence.
 
 Reads data/<site>/out/ (terrain, networks incl. step 11, coast, massing, furniture and their
 manifests) plus data/<site>/derived/<site>.gpkg (the raw OSM way geometry and other_tags -- the one
@@ -196,11 +203,24 @@ def _dp_indices(xy, tol, lo, hi):
     return kept
 
 
-def thin_against_interpolant(xy, tol_m, keep=()):
+THIN_SAMPLES = 32                 # interpolant samples per segment while thinning (fast)
+THIN_VERIFY_SAMPLES = 128         # ... and for the deviation that is measured and reported
+
+
+def thin_against_interpolant(xy, tol_m, keep=(), samples=THIN_SAMPLES, verify_samples=THIN_VERIFY_SAMPLES):
     """PIPELINE_CHANGES.md 13.7: keep the first and last vertex and every index in `keep`, start from
     Douglas-Peucker at tol_m, then add the original vertex farthest from the centripetal Catmull-Rom
     through the kept points while that distance exceeds tol_m. tol_m <= 0 keeps everything.
-    Returns (sorted kept indices, max deviation of any original vertex from the final curve)."""
+    Returns (sorted kept indices, max deviation of any original vertex from the final curve).
+
+    The deviation is measured against the interpolant SAMPLED as a polyline, and the chords of a
+    curved segment lie inside the curve, so a coarse sampling understates the deviation of the curve
+    a consumer actually reconstructs (measured: 0.09999 m at 32 samples/segment against 0.10027 m
+    converged, on Thanet's worst spline). The thinning therefore runs a second pass at
+    verify_samples (converged to ~1e-5 m; 32 -> 128 changes the measure by <= 0.3 mm and 128 -> 512
+    by <= 1.3e-5 m) and keeps adding vertices until the DENSE measure is within tol_m too. The
+    returned deviation is that dense one, so `thin_max_dev_m` is a claim about the shipped curve
+    rather than about our sampling of it."""
     xy = np.asarray(xy, dtype=np.float64)
     K = len(xy)
     if K <= 2:
@@ -212,15 +232,16 @@ def thin_against_interpolant(xy, tol_m, keep=()):
     for a, b in zip(forced, forced[1:]):
         kept.update(_dp_indices(xy, tol_m, a, b))
     idx = sorted(kept)
-    for _ in range(K):
-        dense = catmull_rom_dense(xy[idx])
-        dev = _dist_to_polyline(xy, dense)
-        dev[idx] = 0.0
-        k = int(np.argmax(dev))
-        if dev[k] <= tol_m:
-            return idx, float(dev.max())
-        kept.add(k); idx = sorted(kept)
-    return idx, float(_dist_to_polyline(xy, catmull_rom_dense(xy[idx])).max())
+    dev_max = 0.0
+    for n in (samples, verify_samples):
+        for _ in range(K + 1):
+            dev = _dist_to_polyline(xy, catmull_rom_dense(xy[idx], n=n))
+            dev[idx] = 0.0
+            dev_max = float(dev.max())
+            if dev_max <= tol_m:
+                break
+            kept.add(int(np.argmax(dev))); idx = sorted(kept)
+    return idx, dev_max
 
 
 def _locate_on_polyline(p, raw):
@@ -262,6 +283,24 @@ def order_runs(raw_xy, runs):
         kind = "seam" if (pa[0] == pb[0] and pa[1] == pb[1]) else "gap"
         a["to"] = kind; b["from"] = kind
     return out
+
+
+def relink_runs(kept_runs):
+    """Re-index the runs of one way that survived the degenerate drop, and re-judge each join on the
+    two survivors' own end points. `order_runs` numbered ALL the way's runs and described each join
+    with the run that was then its neighbour; after a drop those numbers and flags describe runs that
+    are not in the product: `segment_index` would no longer index `segment_count = len(kept_runs)`,
+    a survivor whose neighbour was dropped would keep a 'seam'/'gap' flag toward nothing (so its end
+    is never registered as a way end and the seam count includes a join that does not exist), and the
+    join between two survivors would be inherited rather than measured. Mutates and returns kept_runs
+    ([(ordered entry, merged points)])."""
+    for k, (o_, _) in enumerate(kept_runs):
+        o_["segment_index"] = k
+        o_["from"] = o_["to"] = None
+    for (oa, pa), (ob, pb) in zip(kept_runs, kept_runs[1:]):
+        kind = "seam" if (pa[-1][0] == pb[0][0] and pa[-1][1] == pb[0][1]) else "gap"
+        oa["to"] = kind; ob["from"] = kind
+    return kept_runs
 
 
 def nearest_z(xy, chain_xyz):
@@ -355,10 +394,13 @@ def rail_profile_for(gauge_m, adp):
     return adp["rail_profile_fallback"], True
 
 
-def profile_ids_for(layer, cls, tags, pav, adp):
+def profile_ids_for(layer, cls, tags, adp):
     """The five ProfileIds keys for a spline (PIPELINE_CHANGES.md 13.5 / 13.12). tags: the stringified
-    source tags (sidewalk*, gauge, ...); pav: the record's pavement width (roads). Refuses an unmapped
-    road class. Barrier classes map through the 'kerb' / 'hedge' / barrier-segment split."""
+    source tags (sidewalk*, ...). Refuses an unmapped road class. Barrier classes map through the
+    'kerb' / 'hedge' / barrier-segment split. A rail spline's road profile is deliberately NOT decided
+    here -- the caller fills ids['road'] from rail_profile_for(<the record's numeric gauge>) so that
+    gauge reaches a profile id down exactly one path (the OSM `gauge` tag string is step 11's input,
+    not a second source of truth)."""
     ids = {"road": None, "edge_left": None, "edge_right": None, "hedge_left": None, "hedge_right": None}
     if layer == "roads":
         road = adp["road_profile_by_class"].get(cls)
@@ -387,11 +429,7 @@ def profile_ids_for(layer, cls, tags, pav, adp):
         ids["edge_right"] = edge if right else None
         return ids
     if layer == "rail":
-        g = tags.get("gauge")
-        try: g = float(g) if g is not None else None
-        except ValueError: g = None
-        ids["road"] = rail_profile_for(g, adp)[0]
-        return ids
+        return ids                                   # ids['road'] is the caller's, via rail_profile_for
     if layer == "barriers":
         if cls == "kerb":
             ids["edge_left"] = adp["edge_profile_default"]
@@ -424,10 +462,16 @@ def load_profiles(profiles_dir):
 
 
 def git_sha():
+    """The commit the products claim to come from, with '-dirty' when the adapter's OWN source or
+    settings differ from it -- a product written from uncommitted code must not claim a clean sha."""
     try:
         r = subprocess.run(["git", "rev-parse", "--short", "HEAD"], cwd=REPO, capture_output=True, text=True, timeout=20)
         s = r.stdout.strip()
-        return s if r.returncode == 0 and s else "unknown"
+        if r.returncode != 0 or not s:
+            return "unknown"
+        d = subprocess.run(["git", "status", "--porcelain", "--", "sources/adapters/unreal.py", "sources/adapters/unreal.json"],
+                           cwd=REPO, capture_output=True, text=True, timeout=20)
+        return s + ("-dirty" if d.returncode == 0 and d.stdout.strip() else "")
     except Exception:
         return "unknown"
 
@@ -460,7 +504,63 @@ def check_adapter_settings(adp, tuning, profiles):
 # products
 # =============================================================================================
 
-def landscape(cfg, adp, src, out, clip, warnings):
+def _epsg_of(cfg):
+    """The site's EPSG code as a string, or None if crs is not written as 'EPSG:<code>'."""
+    crs = str(cfg.get("crs", ""))
+    return crs.split(":", 1)[1].strip() if crs.upper().startswith("EPSG:") and ":" in crs else None
+
+
+def check_georef(path, gt, want, proj, epsg, tol_m=1e-6):
+    """Refuse a source raster whose own georeference is not the one its tile index implies, or whose
+    projection is not the site CRS. Shape alone cannot catch a tile that carries a NEIGHBOUR's data:
+    the product would be self-consistent and silently misplaced. `want` is the expected geotransform."""
+    if gt is None or len(gt) != 6 or any(abs(float(a) - float(b)) > tol_m for a, b in zip(gt, want)):
+        sys.exit(f"unreal adapter: {path} is georeferenced at {tuple(gt) if gt else None} but its tile index "
+                 f"implies {tuple(want)} -- the raster does not cover the tile its name claims; re-run the step "
+                 f"that wrote it")
+    if epsg is not None and epsg not in str(proj or ""):
+        sys.exit(f"unreal adapter: {path} carries projection {str(proj)[:60]!r}, which does not mention the site "
+                 f"CRS EPSG:{epsg} -- the raster is in another CRS or unprojected; re-run the step that wrote it")
+
+
+def _seam_qa(edges, per_unit):
+    """Neighbouring tiles share an edge of samples (513 verts per 512 m tile, the last column of one
+    IS the first column of the next), and the landscape has one vertex there: if the two tiles carry
+    different heights the importer must silently pick one. Compare every shared edge where BOTH tiles
+    mark the sample keep, and separate the samples on edges where NEITHER tile needed a NoData fill --
+    those come from one mosaic and MUST agree; a difference there means the terrain product was
+    written by more than one run. The rest is step 05 filling each tile from its own neighbourhood."""
+    q = {"edges_compared": 0, "samples_compared": 0, "samples_disagreeing": 0,
+         "samples_disagreeing_on_fill_free_edges": 0, "max_disagreement_m": 0.0, "max_at": None,
+         "note": "shared-edge samples where both clip masks say keep. Disagreement is possible only where "
+                 "step 05 invented ground (per-tile NoData fill, or a fabricated tile): each tile fills from "
+                 "its own neighbourhood. fill_free counts the samples that cannot legitimately differ."}
+    for (i, j), E in edges.items():
+        for (di, dj), a_side, b_side in (((1, 0), "e", "w"), ((0, 1), "n", "s")):
+            F = edges.get((i + di, j + dj))
+            if F is None:
+                continue
+            a, ka = E[a_side]
+            b, kb = F[b_side]
+            both = ka & kb
+            q["edges_compared"] += 1
+            q["samples_compared"] += int(both.sum())
+            d = (a.astype(np.int64) - b.astype(np.int64))[both]
+            n_bad = int((d != 0).sum())
+            if not n_bad:
+                continue
+            q["samples_disagreeing"] += n_bad
+            fill_free = E["fill"] == "none" and F["fill"] == "none"
+            if fill_free:
+                q["samples_disagreeing_on_fill_free_edges"] += n_bad
+            worst = float(np.abs(d).max()) / per_unit
+            if worst > q["max_disagreement_m"]:
+                q["max_disagreement_m"] = round(worst, 4)
+                q["max_at"] = {"tiles": [[i, j], [i + di, j + dj]], "fill_free": fill_free}
+    return q
+
+
+def landscape(cfg, adp, src, out, clip, warnings, strict=False):
     """hm_*.r16, clip_*.r8, vis_*.r8 (straddle tiles), weight_*_*.r8, landscape_manifest.json (13.3)."""
     L = adp["landscape"]
     enc = L["encoding"]; per_unit, offset = enc["per_unit"], enc["offset"]
@@ -488,17 +588,36 @@ def landscape(cfg, adp, src, out, clip, warnings):
     cm = None
     if os.path.isdir(cd):
         cm = _jload(need(os.path.join(cd, "coast_manifest.json"), "coast manifest"))
+    elif strict:
+        sys.exit(f"unreal adapter: --strict and no coast/ directory at {cd} (step 09 has not run); "
+                 "the landscape would carry no weightmaps at all")
     else:
         warnings.append("step 09 not run: no coast/ directory, weightmaps absent (weights: null on every tile)")
     bands = cm["bands"] if cm else ["grass", "sand", "rock", "water"]
     class_res = cm["class_res"] if cm else None
     no_dtm = set(tuple(t) for t in (cm.get("tiles_without_dtm", []) if cm else []))
     accept = L["weight_sum_accept"]
+    epsg = _epsg_of(cfg)
+    clipped_away = set(tuple(t) for t in (cm.get("tiles_clipped", []) if cm else []))
+    if cm is not None:
+        # Before anything is cleared or written: coast/ must hold a ground raster for every terrain
+        # tile it does not itself declare absent. A half-written or half-regenerated coast/ (two
+        # tracks building at once -- it has happened) would otherwise ship a landscape missing most
+        # of its ground cover and exit 0. PIPELINE_CHANGES.md 13.10 lists a missing source as a refusal.
+        torn = [[t["x"], t["y"]] for t in tm["tiles"]
+                if (t["x"], t["y"]) not in no_dtm and (t["x"], t["y"]) not in clipped_away
+                and not os.path.exists(os.path.join(cd, f"ground_x{t['x']}_y{t['y']}.tif"))]
+        if torn:
+            sys.exit(f"unreal adapter: {len(torn)} of {len(tm['tiles'])} terrain tile(s) are absent from "
+                     f"coast_manifest.json tiles_without_dtm ({len(no_dtm)} listed) and tiles_clipped but have no "
+                     f"ground_x{{i}}_y{{j}}.tif in {cd} (e.g. {torn[:8]}) -- the coast product is incomplete or is "
+                     "being rewritten; re-run step 09, then this adapter. Nothing was written.")
     o = os.path.join(out, "landscape"); lib.mkdirs(o)
     _clear(o, "hm_x*_y*.r16", "clip_x*_y*.r8", "vis_x*_y*.r8", "weight_*_x*_y*.r8")
     tiles, hist = [], Counter()
     n_hm = n_vis = n_wt = n_null = 0
-    no_ground_raster, degraded = [], 0
+    no_ground_raster, degraded, invented = [], 0, []
+    edges = {}                                       # (i, j) -> the four border rows/columns, for seam QA
     for t in tm["tiles"]:
         i, j = t["x"], t["y"]
         path = need(os.path.join(d, t["file"]), f"terrain tile {t['file']}")
@@ -508,6 +627,10 @@ def landscape(cfg, adp, src, out, clip, warnings):
         if a.shape != (RES, RES):
             sys.exit(f"unreal adapter: {t['file']} is {a.shape[1]}x{a.shape[0]}, manifest res is {RES}")
         gt = ds.GetGeoTransform()
+        check_georef(path, gt, (E0 + i * T - px_m / 2, px_m, 0.0, N0 + (j + 1) * T + px_m / 2, 0.0, -px_m),
+                     ds.GetProjection(), epsg)
+        if str(t.get("fill", "")).startswith("all-nodata"):     # step 05: not one surveyed cell in the tile
+            invented.append([i, j])
         bad = lib.nodata_mask(a, band.GetNoDataValue())
         n_bad = int(bad.sum())
         if clip is not None:
@@ -524,6 +647,12 @@ def landscape(cfg, adp, src, out, clip, warnings):
         h16.astype("<u2").tofile(os.path.join(o, hm_name)); n_hm += 1
         clip_name = L["clip_name"].format(i=i, j=j)
         np.where(bad, 0, 255).astype(np.uint8).tofile(os.path.join(o, clip_name))
+        keep_m = ~bad                                # .copy(): a slice is a VIEW, and keeping 391 views
+        edges[(i, j)] = {"n": (h16[0].copy(), keep_m[0].copy()),        # alive would keep 391 full tiles
+                         "s": (h16[-1].copy(), keep_m[-1].copy()),      # alive with them (~300 MB)
+                         "w": (h16[:, 0].copy(), keep_m[:, 0].copy()),
+                         "e": (h16[:, -1].copy(), keep_m[:, -1].copy()),
+                         "fill": str(t.get("fill", "none"))}
         vis_name = None
         state = t.get("clip_state", "inside")
         if clip is not None and state == "straddle":
@@ -542,6 +671,9 @@ def landscape(cfg, adp, src, out, clip, warnings):
             for arr in arrs:
                 if arr.shape != (class_res, class_res):
                     sys.exit(f"unreal adapter: {gpath} is {arr.shape[1]}x{arr.shape[0]}, coast manifest class_res is {class_res}")
+            gcell = T / float(class_res)
+            check_georef(gpath, g.GetGeoTransform(), (E0 + i * T, gcell, 0.0, N0 + (j + 1) * T, 0.0, -gcell),
+                         g.GetProjection(), epsg)
             s = sum(arr.astype(np.int64) for arr in arrs)
             badsum = (s != 0) & ((s < accept[0]) | (s > accept[1]))
             if badsum.any():
@@ -557,7 +689,7 @@ def landscape(cfg, adp, src, out, clip, warnings):
             n_wt += 1
         else:
             n_null += 1
-            if cm is not None and (i, j) not in no_dtm:
+            if cm is not None and (i, j) not in no_dtm and (i, j) not in clipped_away:
                 no_ground_raster.append([i, j])
         tiles.append({"x": i, "y": j,
                       "files": {"heightmap": hm_name, "clip": clip_name, "vis": vis_name, "weights": weights},
@@ -566,12 +698,39 @@ def landscape(cfg, adp, src, out, clip, warnings):
                       "source_nodata_cells": t.get("nodata_cells", 0), "source_fill": t.get("fill", "none"),
                       "slope_max_deg": t.get("slope_max_deg"), "slope_p99_deg": t.get("slope_p99_deg"),
                       "cells_over_45deg": t.get("cells_over_45deg"), "quad_origin": [T * i, T * (NY - 1 - j)]})
-    if degraded:
-        warnings.append(f"{degraded} tile(s) clipped-cell fill was 'median (degraded)' (scipy absent); the clip mask carries the truth")
-    if cm is not None and no_ground_raster:
-        warnings.append(f"{len(no_ground_raster)} terrain tile(s) have no ground raster in coast/ (weights: null): {no_ground_raster[:8]}")
     if cm is not None and cm.get("water_level") is not None:
         water_level = cm["water_level"]                # the manifest's value, when step 09 ran
+    if degraded:
+        warnings.append(f"{degraded} tile(s) clipped-cell fill was 'median (degraded)' (scipy absent); the clip mask carries the truth")
+    if no_ground_raster:                             # a raster that vanished after the pre-check above
+        sys.exit(f"unreal adapter: {len(no_ground_raster)} terrain tile(s) lost their ground_x{{i}}_y{{j}}.tif in {cd} "
+                 f"while this run was reading it (e.g. {no_ground_raster[:8]}) -- coast/ is being rewritten; re-run "
+                 "step 09, then this adapter")
+    n_invented = len(invented)
+    empty_fill = tm.get("empty_fill_m")
+    if "tiles_fabricated" in tm and sorted([list(t) for t in tm["tiles_fabricated"]]) != sorted(invented):
+        sys.exit(f"unreal adapter: terrain_manifest.json lists {len(tm['tiles_fabricated'])} tiles_fabricated but "
+                 f"{n_invented} tile(s) carry an 'all-nodata' fill -- the manifest and its own tiles disagree; re-run step 05")
+    if n_invented:
+        water = set(tuple(t) for t in (cm.get("water_tiles", []) if cm else []))
+        outside = [t for t in invented if tuple(t) not in water]
+        warnings.append(f"{n_invented} tile(s) had NO surveyed cell at all: step 05 exported them as a flat plate at "
+                        f"{empty_fill if empty_fill is not None else 0.0} m ODN (terrain_manifest fill 'all-nodata -> ...'), "
+                        f"so {n_invented * T * T / 1e6:.1f} km2 of this landscape is fabricated, not survey; "
+                        + (f"all {n_invented} are in coast water_tiles -- mask or water-fill them in the importer"
+                           if not outside else f"{len(outside)} of them are NOT in coast water_tiles: {outside[:8]}")
+                        + "; the list is landscape_manifest.tiles_fabricated")
+    seam_qa = _seam_qa(edges, per_unit)
+    if seam_qa["samples_disagreeing_on_fill_free_edges"]:
+        warnings.append(f"{seam_qa['samples_disagreeing_on_fill_free_edges']} shared-edge sample(s) differ between "
+                        "neighbouring tiles that BOTH had full source coverage -- two tiles cut from one mosaic cannot "
+                        "disagree about a shared vertex: the terrain product was written by more than one run; re-run "
+                        "step 05 for the whole site (landscape_manifest.seam_qa carries the worst case)")
+    elif seam_qa["samples_disagreeing"]:
+        warnings.append(f"{seam_qa['samples_disagreeing']} of {seam_qa['samples_compared']} shared-edge samples differ "
+                        f"between neighbouring tiles (max {seam_qa['max_disagreement_m']} m), every one of them on an "
+                        "edge of a tile whose source had NoData: step 05 fills each tile from its OWN neighbourhood, so "
+                        "invented ground does not match across a seam. Surveyed ground does. See landscape_manifest.seam_qa")
     pad_h16 = int(encode_h16(water_level if water_level is not None else 0.0, per_unit, offset))
     no_ground = sorted(set(map(tuple, list(no_dtm) + [tuple(t) for t in no_ground_raster])))
     man = {"site": cfg["site"], "crs": tm["crs"], "origin": {"E": E0, "N": N0}, "vertical_datum": tm.get("vertical_datum"),
@@ -604,6 +763,11 @@ def landscape(cfg, adp, src, out, clip, warnings):
            "slope_qa": tm.get("slope_qa"), "tiles_missing": tm.get("tiles_missing", []),
            "water_tiles": cm.get("water_tiles", []) if cm else [],
            "tiles_without_ground_raster": [list(t) for t in no_ground],
+           "seam_qa": seam_qa,
+           "tiles_fabricated": invented, "empty_fill_m": empty_fill,
+           "tiles_fabricated_note": ("every cell of these tiles was NoData in the source DTM: step 05 exported a flat plate at "
+                                     "empty_fill_m (terrain_manifest tiles_fabricated / fill 'all-nodata -> ...'). Nothing there "
+                                     "was surveyed, and the clip mask marks them keep -- mask or water-fill them in the importer"),
            "weights_note": ("step 09 has not run: weights null on every tile; re-run the adapter after step 09" if cm is None else
                             "weights null only for tiles_without_ground_raster (coast tiles_without_dtm or no ground raster)"),
            "warnings": list(warnings),
@@ -612,7 +776,7 @@ def landscape(cfg, adp, src, out, clip, warnings):
     print(f"landscape : {n_hm} heightmaps, {n_hm} clip masks, {n_vis} visibility masks, {n_wt} tiles with weights, {n_null} without"
           f" (range {tm['range_m'][0]}..{tm['range_m'][1]} m, h16 window {man['heightmap']['window_m']})")
     return {"dir": "landscape", "manifest": "landscape/landscape_manifest.json", "files": n_hm * 2 + n_vis + n_wt * 4,
-            "heightmaps": n_hm, "vis": n_vis, "weight_tiles": n_wt, "weights_null": n_null,
+            "heightmaps": n_hm, "vis": n_vis, "weight_tiles": n_wt, "weights_null": n_null, "tiles_fabricated": n_invented,
             "tiles_clipped": len(tm.get("tiles_clipped", [])), "clipped_cells_total": tm.get("clipped_cells_total", 0)}
 
 
@@ -659,12 +823,14 @@ class _Hash:
         return out
 
 
-def streetscape(cfg, adp, src, out, clip, profiles, warnings):
+def streetscape(cfg, adp, src, out, clip, profiles, warnings, strict=False):
     """Per-tile Streetscape documents streetscape/site_x{i}_y{j}.json + streetscape_manifest.json (13.4-13.9)."""
     S = adp["streetscape"]
     E0, N0, T = cfg["origin"]["E"], cfg["origin"]["N"], cfg["tile_m"]
     d = os.path.join(src, "networks")
     if not os.path.isdir(d):
+        if strict:
+            sys.exit(f"unreal adapter: --strict and no networks/ directory at {d} (step 06 has not run)")
         warnings.append("step 06 not run: no networks/ directory, no streetscape documents written")
         print("streetscape: none (step 06 not run)")
         return None
@@ -676,6 +842,9 @@ def streetscape(cfg, adp, src, out, clip, profiles, warnings):
     elif glob.glob(os.path.join(d, "rail_x*_y*.jsonl")) or glob.glob(os.path.join(d, "barriers_x*_y*.jsonl")):
         sys.exit(f"unreal adapter: rail_*/barriers_* files exist in {d} but linear_manifest.json does not -- "
                  "a partial step-11 run; re-run step 11")
+    elif strict:
+        sys.exit(f"unreal adapter: --strict and no linear_manifest.json in {d} (step 11 has not run); "
+                 "the rail and barrier layers would be absent")
     else:
         warnings.append("step 11 not run: no linear_manifest.json, rail and barrier layers absent")
     P = lib.paths(cfg)
@@ -732,7 +901,7 @@ def streetscape(cfg, adp, src, out, clip, profiles, warnings):
     docs = defaultdict(lambda: {"splines": [], "junctions": []})
     stats = Counter()
     by_layer, skipped_barriers, barriers_by_type, tags_cov = Counter(), Counter(), Counter(), Counter()
-    thin_max, locate_max = 0.0, 0.0
+    thin_max, locate_max, quant_shift = 0.0, 0.0, 0.0
     used = {"road": set(), "edge": set(), "hedge": set()}
     way_ends = defaultdict(list)                     # (layer, round2 E, round2 N) -> [(spline id, 'start'|'end', osm_id)]
     for (layer, oid), items in sorted(runs_by_way.items()):
@@ -755,6 +924,7 @@ def streetscape(cfg, adp, src, out, clip, profiles, warnings):
             kept_runs.append((o_, pts))
         if not kept_runs:
             continue
+        relink_runs(kept_runs)                       # the drop above renumbers the way; see relink_runs
         # the whole way's step-06/11 chain, for overlay z
         chain = np.array([p for _, pts in kept_runs for p in pts], dtype=np.float64)
         pieces, n_drop = clip_polyline(raw_xy, cfg, clip)
@@ -782,7 +952,7 @@ def streetscape(cfg, adp, src, out, clip, profiles, warnings):
         segments = []
         if layer == "roads":
             pav = rec0.get("pav")
-            pids = profile_ids_for(layer, cls, tags, pav, S)
+            pids = profile_ids_for(layer, cls, tags, S)
             # the pavement override goes to the side(s) that carry a kerb: 'both' when both (or none) do, else that side
             has_l, has_r = pids["edge_left"] is not None, pids["edge_right"] is not None
             side = "both" if has_l == has_r else ("left" if has_l else "right")
@@ -794,7 +964,7 @@ def streetscape(cfg, adp, src, out, clip, profiles, warnings):
             if "edge" in seg or "road" in seg:
                 segments.append(seg)
         elif layer == "rail":
-            pids = profile_ids_for(layer, cls, tags, None, S)
+            pids = profile_ids_for(layer, cls, tags, S)
             pid, unmapped = rail_profile_for(rec0.get("gauge"), S)
             pids["road"] = pid
             flags["gauge_unmapped"] = unmapped
@@ -809,7 +979,7 @@ def streetscape(cfg, adp, src, out, clip, profiles, warnings):
             btype, h, thick, material, hsrc = cb
             if hsrc == "adapter_default": stats["barrier_height_defaulted_by_adapter"] += 1
             if hsrc in ("adapter_default", "adapter_parsed"): tags["h_src"] = hsrc
-            pids = profile_ids_for(layer, cls, tags, None, S)
+            pids = profile_ids_for(layer, cls, tags, S)
             barriers_by_type[btype] += 1
             if btype == "kerb":
                 segments.append({"id": "adapter", "s0_m": 0.0, "s1_m": None, "side": "left", "edge": {"pavement_width_m": 0.0}})
@@ -834,7 +1004,9 @@ def streetscape(cfg, adp, src, out, clip, profiles, warnings):
             rec, tile = o_["rec"], tiles[id(o_["rec"])]
             sid = f"{layer}:{oid}:{o_['segment_index']}"
             way_ids.append(sid)
-            xy = np.array([[p[0], p[1]] for p in pts], dtype=np.float64)
+            # thinned in the LOCAL frame the document is written in, so thin_max_dev_m is measured on
+            # the same numbers the file carries (point_quantum_max_shift_m below bounds the rounding)
+            xy = np.array([[p[0] - E0, p[1] - N0] for p in pts], dtype=np.float64)
             keep = set()
             for k in range(1, len(pts) - 1):
                 if junc_hash.near((pts[k][0], pts[k][1])) or end_hash[layer].near((pts[k][0], pts[k][1])):
@@ -844,7 +1016,9 @@ def streetscape(cfg, adp, src, out, clip, profiles, warnings):
             points = []
             for n_, k in enumerate(idx):
                 e, n, z = pts[k]
-                pt = {"x": round(e - E0, 2), "y": round(n - N0, 2)}
+                x_l, y_l = round(e - E0, 2), round(n - N0, 2)
+                quant_shift = max(quant_shift, abs(x_l - (e - E0)), abs(y_l - (n - N0)))
+                pt = {"x": x_l, "y": y_l}
                 if layer == "roads": pt["width_m"] = float(rec["w"])
                 pt["_z_06"] = z
                 if n_ == 0 and flags["steps"]: pt["tags"] = ["steps"]
@@ -893,7 +1067,7 @@ def streetscape(cfg, adp, src, out, clip, profiles, warnings):
         for (oa, _), (ob, _), sa, sb in zip(kept_runs, kept_runs[1:], way_ids, way_ids[1:]):
             A, B = splines[sa], splines[sb]
             A["continues_to"], B["continues_from"] = sb, sa
-            kind = "seam" if A["continuation_kind"]["to"] == "seam" and B["continuation_kind"]["from"] == "seam" else "gap"
+            kind = oa["to"]                          # measured above on these two runs' own end points
             A["continuation_kind"]["to"] = B["continuation_kind"]["from"] = kind
             A["overrun_points"]["after"] = _xyz(B["points"][1]) if len(B["points"]) > 1 else None
             B["overrun_points"]["before"] = _xyz(A["points"][-2]) if len(A["points"]) > 1 else None
@@ -971,7 +1145,9 @@ def streetscape(cfg, adp, src, out, clip, profiles, warnings):
            "splines_by_layer": {"roads": by_layer.get("roads", 0), "rail": by_layer.get("rail", 0), "barriers": by_layer.get("barriers", 0)},
            "points_in": points_in, "points_out": stats["points_out"], "points_merged_duplicates": stats["points_merged_duplicates"],
            "runs_degenerate": stats["runs_degenerate"],
-           "thin_tolerance_m": tol_thin, "thin_max_dev_m": round(thin_max, 4),
+           "thin_tolerance_m": tol_thin, "thin_max_dev_m": round(thin_max, 6),   # 6 dp: 0.1 must not stand for 0.10004
+           "thin_interpolant_samples_per_segment": THIN_VERIFY_SAMPLES,
+           "point_quantum_m": 0.01, "point_quantum_max_shift_m": round(quant_shift, 6),
            "run_locate_tolerance_m": tol_loc, "run_locate_max_m": round(locate_max, 3),
            "ways": stats["ways"], "ways_multi_run": stats["ways_multi_run"], "ways_with_gaps": stats["ways_with_gaps"],
            "closed_loops": stats["closed_loops"], "junctions": stats["junctions"], "seam_joins": stats["seam_joins"],
@@ -985,7 +1161,13 @@ def streetscape(cfg, adp, src, out, clip, profiles, warnings):
            "sources": {"networks_manifest": "networks/networks_manifest.json", "linear_manifest": "networks/linear_manifest.json" if lm else None,
                        "gpkg": os.path.relpath(gpkg, os.path.dirname(src)).replace("\\", "/"),
                        "smoothing_06": nm.get("smoothing"), "junction_snap_m": snap},
-           "notes": ["points carry no z: the step-06/11 drape is _z_06 (informative) and overlay.pts[*][2]; heights come from the terrain source",
+           "notes": ["thin_max_dev_m is the largest distance of any step-06/11 vertex from the centripetal Catmull-Rom through the "
+                     f"waypoints of its own spline, measured in this file's local frame on the interpolant sampled at "
+                     f"{THIN_VERIFY_SAMPLES} points per segment (converged to ~1e-5 m; a coarser sampling reads ~0.3 mm low). "
+                     "Waypoints are written rounded to point_quantum_m; point_quantum_max_shift_m is the largest shift that "
+                     "rounding actually applied to any waypoint coordinate (0 when the origin is integral and step 06 already "
+                     "emits centimetres), so the shipped curve is within thin_max_dev_m + that of every source vertex",
+                     "points carry no z: the step-06/11 drape is _z_06 (informative) and overlay.pts[*][2]; heights come from the terrain source",
                      "tags: unreal.json tags_passthrough read from the GeoPackage other_tags; rail records add gauge (metres, parsed by step 11), "
                      "gauge_src, tracks, electrified, service, usage and barrier records add h_src, material, fence_type, wall -- all strings",
                      "the pavement segment is written only when the spline has an edge profile and pav differs from the edge profile's "
@@ -1015,11 +1197,13 @@ def _material_hints(S):
     return d.get("materials")
 
 
-def massing(cfg, adp, src, out, warnings):
+def massing(cfg, adp, src, out, warnings, strict=False):
     """massing/buildings_x*_y*.jsonl: every step-07 field kept, rings in local metres (3 dp)."""
     E0, N0 = cfg["origin"]["E"], cfg["origin"]["N"]
     d = os.path.join(src, "massing")
     if not os.path.isdir(d):
+        if strict:
+            sys.exit(f"unreal adapter: --strict and no massing/ directory at {d} (step 07 has not run)")
         warnings.append("step 07 not run: no massing/ directory")
         print("massing   : none (step 07 not run)")
         return None
@@ -1039,11 +1223,13 @@ def massing(cfg, adp, src, out, warnings):
     return {"dir": "massing", "manifest": "massing/massing_manifest.json", "files": nf, "buildings": n}
 
 
-def furniture(cfg, adp, src, out, warnings):
+def furniture(cfg, adp, src, out, warnings, strict=False):
     """furniture/furniture_x*_y*.jsonl: local x/y, z kept, bearing kept, heading_deg added."""
     E0, N0 = cfg["origin"]["E"], cfg["origin"]["N"]
     d = os.path.join(src, "furniture")
     if not os.path.isdir(d):
+        if strict:
+            sys.exit(f"unreal adapter: --strict and no furniture/ directory at {d} (step 10 has not run)")
         warnings.append("step 10 not run: no furniture/ directory")
         print("furniture : none (step 10 not run)")
         return None
@@ -1070,7 +1256,22 @@ def furniture(cfg, adp, src, out, warnings):
     return {"dir": "furniture", "manifest": "furniture/furniture_manifest.json", "files": nf, "placed": n}
 
 
-def write_root_manifest(cfg, adp, out, stats, src, warnings):
+def write_root_manifest(cfg, adp, out, stats, src, warnings, only=None):
+    """The site-level index. A --only run rebuilds SOME products; the others are still on disk and
+    still current, so their entries are carried over from the manifest this run replaces instead of
+    being nulled -- a null here would tell a consumer the product was never built."""
+    path = os.path.join(out, "unreal_manifest.json")
+    previous = _jload(path) if (only is not None and os.path.exists(path)) else None
+    prev_products = (previous or {}).get("products", {}) or {}
+    products, carried = {}, []
+    for k in ("landscape", "streetscape", "massing", "furniture"):
+        if k in stats:
+            products[k] = stats[k]
+        else:
+            products[k] = prev_products.get(k)
+            if products[k] is not None:
+                carried.append(k)
+
     def jl(rel):
         p = os.path.join(src, rel)
         return _jload(p) if os.path.exists(p) else None
@@ -1081,7 +1282,7 @@ def write_root_manifest(cfg, adp, out, stats, src, warnings):
            "frame": FRAME, "frame_note": FRAME_NOTE, "schema_version": SCHEMA_VERSION, "generator": f"{GENERATOR_STEM}@{git_sha()}",
            "clip": lib.clip_manifest(lib.parse_clip(cfg)),
            "adapter_settings": adp,
-           "products": {k: stats.get(k) for k in ("landscape", "streetscape", "massing", "furniture")},
+           "products": products,
            "sources": {"terrain": {"manifest": "terrain/terrain_manifest.json", "tiles": len(tm["tiles"]), "range_m": tm["range_m"],
                                    "slope_qa": tm.get("slope_qa"), "tiles_clipped": tm.get("tiles_clipped", [])} if tm else None,
                        "networks": {"manifest": "networks/networks_manifest.json", "segments": nm.get("segments"), "junctions": nm.get("junctions")} if nm else None,
@@ -1093,17 +1294,30 @@ def write_root_manifest(cfg, adp, out, stats, src, warnings):
                        "massing": {"manifest": "massing/massing_manifest.json", "buildings": mm.get("buildings")} if mm else None,
                        "furniture": {"manifest": "qa_furniture.json", "placed": qf.get("placed")} if qf else None},
            "warnings": list(warnings)}
+    if only is not None:
+        man["partial_run"] = {"rebuilt": sorted(stats), "carried_over_from_previous_manifest": sorted(carried),
+                              "note": "this manifest was written by a --only run: entries under carried_over_* were not "
+                                      "rebuilt and describe the products already on disk; re-run without --only for a "
+                                      "manifest every entry of which was written in one pass"}
     _jdump(man, os.path.join(out, "unreal_manifest.json"))
     return man
 
 
+PRODUCTS = ("landscape", "streetscape", "massing", "furniture")
+
+
 def main(argv=None):
     argv = list(sys.argv[1:] if argv is None else argv)
-    only = None
+    only, strict = None, False
     while argv:
         a = argv.pop(0)
         if a == "--only" and argv:
             only = set(argv.pop(0).split(","))
+            bad = sorted(only - set(PRODUCTS))
+            if bad:
+                sys.exit(f"unreal adapter: --only {','.join(bad)}: no such product; choose from {', '.join(PRODUCTS)}")
+        elif a == "--strict":
+            strict = True
         elif a in ("-h", "--help"):
             print(__doc__); return 0
         else:
@@ -1123,14 +1337,14 @@ def main(argv=None):
           f"clip {'none' if clip is None else clip.stamp()})")
     warnings, stats = [], {}
     if only is None or "landscape" in only:
-        stats["landscape"] = landscape(cfg, adp, src, out, clip, warnings)
+        stats["landscape"] = landscape(cfg, adp, src, out, clip, warnings, strict)
     if only is None or "streetscape" in only:
-        stats["streetscape"] = streetscape(cfg, adp, src, out, clip, profiles, warnings)
+        stats["streetscape"] = streetscape(cfg, adp, src, out, clip, profiles, warnings, strict)
     if only is None or "massing" in only:
-        stats["massing"] = massing(cfg, adp, src, out, warnings)
+        stats["massing"] = massing(cfg, adp, src, out, warnings, strict)
     if only is None or "furniture" in only:
-        stats["furniture"] = furniture(cfg, adp, src, out, warnings)
-    write_root_manifest(cfg, adp, out, stats, src, warnings)
+        stats["furniture"] = furniture(cfg, adp, src, out, warnings, strict)
+    write_root_manifest(cfg, adp, out, stats, src, warnings, only)
     for w in warnings:
         print(f"  WARNING: {w}")
     print(f"-> {out}")

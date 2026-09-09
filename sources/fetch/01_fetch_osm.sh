@@ -100,13 +100,18 @@ fi
 # relation layers GDAL would otherwise emit out of the file, and documents the contract:
 # 04/07/09 read multipolygons, 06 reads lines, 10 reads points.
 echo "01: converting to GeoPackage (reprojecting to $CRS) ..."
-rm -f "$GPKG"
-ogr2ogr -f GPKG -t_srs "$CRS" "$GPKG" "$OSM" points lines multipolygons
+# Build into a sibling and rename at the end. The old code removed $GPKG first, which
+# (a) destroyed the good product before knowing the new one converts and passes the guards
+# below, and (b) aborted the whole step whenever anything held the file open -- normal on
+# Windows while another step, an adapter or a GIS tool is reading it.
+GPKG_TMP="${GPKG%.gpkg}.new.gpkg"      # keep the .gpkg extension: GDAL warns about any other
+rm -f "$GPKG_TMP"
+ogr2ogr -f GPKG -t_srs "$CRS" "$GPKG_TMP" "$OSM" points lines multipolygons
 
 # Guard the reprojection without assuming a particular grid's magnitudes: compare the
 # extent against the bbox reprojected through the same CRS. If -t_srs silently did not
 # apply, the extent is still in degrees and will not land anywhere near it.
-"$PY" - "$GPKG" "$BBOX" "$CRS" <<'PYEOF'
+"$PY" - "$GPKG_TMP" "$BBOX" "$CRS" <<'PYEOF'
 import sys
 from osgeo import ogr, osr
 ogr.UseExceptions(); osr.UseExceptions()
@@ -130,7 +135,23 @@ PYEOF
 # Layers the downstream steps actually rely on. Fail loudly here rather than with a
 # confusing GDAL error three steps later.
 for L in multipolygons lines points; do
-  ogrinfo -so "$GPKG" "$L" >/dev/null 2>&1 || { echo "01: FATAL -- layer '$L' missing from $GPKG" >&2; exit 1; }
+  ogrinfo -so "$GPKG_TMP" "$L" >/dev/null 2>&1 || { echo "01: FATAL -- layer '$L' missing from $GPKG_TMP" >&2; exit 1; }
+done
+
+# Only now replace the product, so a reader never sees a half-written GeoPackage and a failed
+# conversion never destroys the good one. On Windows the rename still fails while another
+# process holds the old file open, so say exactly that instead of a bare "Device or resource
+# busy" -- and leave the verified .tmp in place, so a re-run costs nothing.
+for attempt in 1 2 3 4 5; do
+  if mv -f "$GPKG_TMP" "$GPKG" 2>/dev/null; then break; fi
+  if [ "$attempt" = 5 ]; then
+    echo "01: FATAL -- cannot replace $GPKG: another process has it open (a pipeline step, an adapter" >&2
+    echo "    or a GIS tool reading it). The new GeoPackage is built and verified at $GPKG_TMP;" >&2
+    echo "    close the reader and re-run 01, or rename it into place by hand." >&2
+    exit 1
+  fi
+  echo "01: $GPKG is held open by another process; retrying the rename ($attempt/5) ..." >&2
+  sleep 2
 done
 
 BUILDINGS=$(ogrinfo -q -sql "SELECT COUNT(*) FROM multipolygons WHERE building IS NOT NULL AND building != 'no'" "$GPKG" | grep -oE '[0-9]+' | tail -1)
@@ -177,6 +198,13 @@ json.dump({
     "bytes": os.path.getsize(osm),
     "sha256": h.hexdigest(),
     "query_sha256": qsha,
+    "query_src": (query_src if qsha else "absent"),
+    "query_src_note": "'fetch' -- the query this run sent to Overpass. 'recorded' -- the query file saved "
+                      "beside the extract by the run that fetched it. 'reconstructed' -- the fetch was skipped "
+                      "and the selectors were rebuilt from fetch_osm.sh AS IT IS NOW, so they describe this "
+                      "script, not necessarily the extract on disk. 'absent' -- no query at all. A consumer "
+                      "must test query_src, not just query_sha256 != null: a reconstructed sha256 is a real "
+                      "hash of a query that may never have been sent.",
     "query_selectors": qsel,
     "query_note": qnote,
     "counts": {"buildings": int(buildings), "highways": int(highways),

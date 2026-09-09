@@ -21,6 +21,129 @@
   ],
   "value_noise3_continuity_1mm_max": 0.01
  },
+ "stationing": {
+  "upper_bound_rule": "max gap <= sampling.step_m + sampling.min_step_m",
+  "upper_bound_why": "the march runs `while s + step_at(s) < L - min_step` and then appends L, so the LAST gap alone can reach step_m + min_step; every adaptive-to-adaptive gap before it is <= step_m by construction",
+  "lower_bound_rule": null,
+  "lower_bound_why": "mandatory stations (waypoints, segment and marking boundaries, drop kerbs and their ramps, SCHEMA.md 3.2) are merged only within 1e-9 of each other, so two of them may land arbitrarily close; min_step_m bounds the ADAPTIVE march only",
+  "measured": {
+   "rail_R300_600": {
+    "N": 653,
+    "step_min": 0.306797,
+    "step_max": 1.045784,
+    "step_m": 1.0,
+    "min_step_m": 0.25
+   },
+   "thanet_site_x18_y5_rail": {
+    "command": "python -m streetscape.build --site data/thanet/out/unreal/streetscape/site_x18_y5.json --terrain data/thanet/out/unreal/landscape --only-layer rail",
+    "splines": 66,
+    "station_gaps": 12660,
+    "step_min": 0.010203,
+    "step_max": 1.128405,
+    "splines_with_step_max_over_1m": 21,
+    "gaps_below_min_step_m": 201,
+    "guarantee_violations": 0
+   },
+   "thanet_site_x15_y15_all": {
+    "splines": 321,
+    "station_gaps": 8547,
+    "step_min": 0.01,
+    "step_max": 2.244097,
+    "splines_with_step_max_over_1m": 317,
+    "gaps_below_min_step_m": 524,
+    "guarantee_violations": 0
+   }
+  }
+ },
+ "marking_lift_world": {
+  "lift_m": 0.004,
+  "min_clearance_m": 0.002,
+  "max_clearance_m": 0.005,
+  "rule": "every marking vertex sits over a road triangle, above it by more than min_clearance_m and by less than lift_m + the 1.0 mm sagitta DESIGN.md 4.1 budgets (the ribbon is a chord across a cambered, curving section, so the drop onto it can exceed the nominal lift)",
+  "measured": {
+   "curve_R20_200_flat": {
+    "min": 0.003999999,
+    "max": 0.004015683,
+    "bank_deg": [
+     0.0,
+     0.0
+    ],
+    "verts": 1064
+   },
+   "curve_R20_200_cross_slope_0.1": {
+    "min": 0.003505278,
+    "max": 0.004394644,
+    "bank_deg": [
+     -0.024,
+     4.0
+    ],
+    "verts": 1064
+   },
+   "sine_5_50_cross_slope_0.1": {
+    "min": 0.003319582,
+    "max": 0.004339744,
+    "bank_deg": [
+     0.0,
+     4.0
+    ],
+    "verts": 852
+   },
+   "test_stretch_thanet_landscape": {
+    "min": 0.003641869,
+    "max": 0.00448866,
+    "bank_deg": [
+     -2.831,
+     1.042
+    ],
+    "verts": 518
+   }
+  },
+  "tol": 1e-06
+ },
+ "real_thanet": {
+  "rail_cutting": {
+   "site": "site_x21_y6.json",
+   "spline": "rail:474810874:1",
+   "way": "Chatham Main Line (Ramsgate Branch), the Dumpton cutting",
+   "L": 551.567,
+   "n_samples": 643,
+   "z_raw_nan_count": 0,
+   "note": "profile_ids.edge_left/right are BOTH null on every adapter rail spline, so this embankment only builds because SCHEMA.md 5 rule 1 (null -> an empty profile with every width 0) is now implemented: before, it was silently discarded.",
+   "embankment_segment": {
+    "side": "both",
+    "kind": "auto",
+    "material": "grass",
+    "threshold_m": 0.35
+   },
+   "left": {
+    "group": "embankment:retaining_wall:0",
+    "stations": 175,
+    "wall_thickness_m": 0.3,
+    "wall_height_m": 2.3632,
+    "skirt_m": 0.3,
+    "verts": 1400,
+    "tris": 1392
+   },
+   "right": {
+    "group": "embankment:batter:0",
+    "stations": 22,
+    "batter_width_m": 1.022,
+    "batter_drop_m": 0.6813,
+    "slope_ratio": 1.5,
+    "verts": 44,
+    "tris": 38
+   }
+  },
+  "rail_cutting_render": {
+   "site": "site_x20_y6.json",
+   "spline": "rail:474810874:0",
+   "why": "the deepest two-sided cutting on the isle over its middle third (ground 1.57 m above the track on BOTH sides) that also turns (0.53 rad over 261.8 m)",
+   "L": 261.766,
+   "n_samples": 298,
+   "sleepers": 403,
+   "render": "renders/rail_cutting_cam2.png (STAGES.md stage 7 task 7.3)"
+  }
+ },
  "straight_100": {
   "fixture": "straight_100.json",
   "L": 100.0,
@@ -257,7 +380,7 @@
  },
  "test_stretch": {
   "file": "schema/examples/test_stretch.json",
-  "terrain": "data/thanet/out/unreal/landscape, or data/margate/out/terrain tiles (5,5)+-1 shifted +5120 (Margate origin 632800/168200 -> Thanet 627680/163080)",
+  "terrain": "data/thanet/out/unreal/landscape (THE reference: renders/trinity_square.stats.json is built from it by the STAGES.md FD.2 command). data/margate/out/terrain tiles (5,5)+-1 shifted +5120 (Margate origin 632800/168200 -> Thanet 627680/163080) is a GDAL convenience for running the tests before stage 1 finishes; it does NOT reproduce the committed reference -- 45 of its 177 stats keys differ (every z probe, bank_min/max and all four bboxes, all by <= 2.5 mm = the 1/128 m h16 quantum). No parity key moves.",
   "L": 171.4,
   "L_tol": 0.05,
   "n_samples": 116,
@@ -268,6 +391,12 @@
   },
   "z_ref_tol": 0.02,
   "z_ref_measured": {
+   "10": 20.4689,
+   "100": 19.35,
+   "160": 18.2385
+  },
+  "z_ref_measured_terrain": "data/thanet/out/unreal/landscape",
+  "z_ref_measured_margate_step05": {
    "10": 20.4688,
    "100": 19.3492,
    "160": 18.2393
@@ -276,6 +405,8 @@
   "step_min_floor": 0.125,
   "step_max": 2.0,
   "bank_abs_max": 4.0,
+  "step_min_measured": 0.138253,
+  "step_min_note": "MANDATORY stations outrank sampling.min_step_m and are never merged, so there is no lower bound on a station gap: see the top-level 'stationing' block. 0.125 is a floor for THIS document, not a guarantee.",
   "overlap": 0.04,
   "w_max": 7.0,
   "instances": {

@@ -2,7 +2,7 @@
 
   "C:/Program Files/Blender Foundation/Blender 5.2/blender.exe" -b --python blender_main.py -- \\
       --site X.json --terrain <landscape dir | step-05 dir | heightfield .npz> --out DIR [--gltf] [--render]
-      [--renders DIR] [--only-layer rail] [--resolution 1280x720]
+      [--renders DIR] [--only-layer rail] [--spline <id>[,<id>...]] [--resolution 1920x1080]
 
 Builds every spline with the numpy core (build_all), writes the .npz/stats.json products, creates the bpy
 scene through bpy_bridge, then optionally exports one GLB and renders the three fixed cameras per spline.
@@ -36,7 +36,8 @@ def parse_args(argv):
     ap.add_argument("--gltf", action="store_true")
     ap.add_argument("--render", action="store_true")
     ap.add_argument("--only-layer", default=None, choices=["roads", "rail", "barriers", "authored"])
-    ap.add_argument("--resolution", default="1280x720")
+    ap.add_argument("--spline", default=None, help="comma-separated spline id(s) to build and render (default: all)")
+    ap.add_argument("--resolution", default="1920x1080")   # STAGES.md FD.1 task 1: 1920x1080 PNG
     ap.add_argument("--no-bpy", action="store_true", help="numeric build only (env python)")
     ap.add_argument("--no-terrain-patch", action="store_true")
     return ap.parse_args(argv)
@@ -49,7 +50,8 @@ def main(argv=None) -> int:
     t0 = time.time()
     site = load_site(args.site)
     terrain = load_terrain(args.terrain) if args.terrain else None
-    results = build_all(site, terrain, args.only_layer)
+    results = build_all(site, terrain, args.only_layer,
+                        [v for v in args.spline.split(",") if v] if args.spline else None)
     os.makedirs(args.out, exist_ok=True)
     problems = 0
     for sid, res in results.items():

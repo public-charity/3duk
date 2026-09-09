@@ -165,6 +165,39 @@ def polyline_dense(pts, step=0.05):
     return np.asarray(pts, dtype=float)
 
 
+class TestOverlayRibbon(unittest.TestCase):
+    """BRIEF 1.1 first deliverable: "a debug overlay of the source OSM polyline".  It has to be VISIBLE:
+    an edge-only bpy mesh has no primitives, so EEVEE draws nothing and the glTF exporter omits it."""
+
+    def test_ribbon_has_primitives_and_the_right_cross_section(self):
+        from streetscape.bpy_bridge import overlay_ribbon, OVERLAY_RIBBON_W_M
+        pts = np.array([[0.0, 0.0, 10.0], [10.0, 0.0, 10.0], [10.0, 10.0, 11.0], [20.0, 10.0, 11.0]])
+        verts, faces = overlay_ribbon(pts)
+        self.assertEqual(len(verts), 4 * len(pts))
+        self.assertEqual(len(faces), 2 * (len(pts) - 1), "an overlay with no faces renders as nothing")
+        self.assertTrue(all(len(f) == 4 for f in faces))
+        self.assertEqual(len(set(i for f in faces for i in f)), 4 * len(pts))   # every vertex used
+        V = np.array(verts)
+        for i, p in enumerate(pts):
+            a, b, c, d = V[4 * i], V[4 * i + 1], V[4 * i + 2], V[4 * i + 3]
+            self.assertAlmostEqual(float(np.linalg.norm(a - b)), OVERLAY_RIBBON_W_M, places=9)
+            self.assertAlmostEqual(float(np.linalg.norm(c - d)), OVERLAY_RIBBON_W_M, places=9)
+            self.assertTrue(np.allclose(0.5 * (a + b), p, atol=1e-12))          # centred on the polyline
+            self.assertTrue(np.allclose(0.5 * (c + d), p, atol=1e-12))
+            self.assertAlmostEqual(float(a[2] - b[2]), 0.0, places=12)          # one ribbon horizontal
+            self.assertAlmostEqual(float(c[2] - d[2]), OVERLAY_RIBBON_W_M, places=9)   # the other vertical
+        # degenerate inputs do not raise
+        self.assertEqual(overlay_ribbon(np.zeros((1, 3))), ([], []))
+
+    def test_the_committed_stretch_overlay_builds_a_ribbon(self):
+        doc = syn.load_json(os.path.join(syn.EXAMPLES_DIR, "test_stretch.json"))
+        pts = np.array([[p[0], p[1], 0.0] for p in doc["splines"][0]["overlay"]["pts"]])
+        from streetscape.bpy_bridge import overlay_ribbon
+        verts, faces = overlay_ribbon(pts)
+        self.assertEqual(len(faces), 2 * (len(pts) - 1))
+        self.assertGreater(len(faces), 0)
+
+
 class TestOverlayDistance(unittest.TestCase):
     def spline_of(self, raw):
         pts = [tuple(np.round(p, 2)) for p in chaikin(densify(raw, 8.0), 2)]
@@ -192,9 +225,9 @@ class TestOverlayDistance(unittest.TestCase):
 
 def stretch_terrain():
     """Thanet landscape if present, else the Margate step-05 tiles (GDAL or the npz cache)."""
-    land = os.path.join(REPO, "data", "thanet", "out", "unreal", "landscape")
-    if os.path.isfile(os.path.join(land, "landscape_manifest.json")):
-        return Heightfield.from_landscape_dir(land), "thanet landscape"
+    hf = syn.thanet_landscape()
+    if hf is not None:
+        return hf, "thanet landscape"
     cache = os.path.join(syn.TOOLS_BLENDER, "out", "terrain_margate_step05_thanetframe.npz")
     if os.path.isfile(cache):
         return Heightfield.from_npz(cache), "margate step05 npz cache"
@@ -238,6 +271,17 @@ class TestStretch(unittest.TestCase):
         i = int(np.argmin(np.abs(sp.s - 60.0)))
         o_inner = float((-h.vd[np.abs(h.vs - sp.s[i]) < 1e-9]).min())
         self.assertAlmostEqual(o_inner, E["hedge_inner_face_on_6m_section"], places=9)
+        # the 4 mm marking lift measured in WORLD z on the real banked, cambered, curved stretch
+        from test_road_markings import vertical_clearance_over_road
+        W = EXP["marking_lift_world"]
+        M = W["measured"]["test_stretch_thanet_landscape"]
+        mv, gap = vertical_clearance_over_road(res.road)
+        self.assertEqual(len(mv), M["verts"])
+        self.assertFalse(np.isnan(gap).any(), "a marking vertex sits over no road triangle")
+        self.assertGreater(float(gap.min()), W["min_clearance_m"])
+        if src == "thanet landscape":
+            self.assertAlmostEqual(float(gap.min()), M["min"], delta=W["tol"])
+            self.assertAlmostEqual(float(gap.max()), M["max"], delta=W["tol"])
         self.assertEqual(st["overlay_points"], E["overlay_points"])
         self.assertTrue(all(v == [] for v in st["validate"].values()))
         self.assertEqual(safe_dir_name("authored:trinity_square"), "authored~trinity_square")

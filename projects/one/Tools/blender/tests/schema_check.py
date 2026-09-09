@@ -427,6 +427,7 @@ def semantic_document_checks(doc, label, rep, library_ids):
         road_kind = None
         road_ids_on_spline = []
         edge_ids_on_spline = set()
+        edge_ids_by_side = {"left": set(), "right": set()}
 
         def resolve(slot, kind, table, pid):
             if pid is None:
@@ -446,6 +447,7 @@ def semantic_document_checks(doc, label, rep, library_ids):
             ep = resolve("profile_ids." + slot, "edge", pedges, pids.get(slot))
             if ep is not None:
                 edge_ids_on_spline.add(pids.get(slot))
+                edge_ids_by_side[slot.split("_")[1]].add(pids.get(slot))
         for slot in ("hedge_left", "hedge_right"):
             resolve("profile_ids." + slot, "hedge", phedges, pids.get(slot))
 
@@ -474,6 +476,9 @@ def semantic_document_checks(doc, label, rep, library_ids):
                 p = resolve("segments[%d].edge.profile_id" % gi, "edge", pedges, edge["profile_id"])
                 if p is not None:
                     edge_ids_on_spline.add(edge["profile_id"])
+                    for sd in (("left", "right") if side == "both" else (side,)):
+                        if sd in edge_ids_by_side:
+                            edge_ids_by_side[sd].add(edge["profile_id"])
             if edge.get("barrier"):
                 used_materials |= materials_of_barrier(edge["barrier"])
             if edge.get("embankment"):
@@ -483,7 +488,9 @@ def semantic_document_checks(doc, label, rep, library_ids):
                 used_materials.add(sm.get("inner"))
                 used_materials.add(sm.get("outer"))
             if side in ("left", "right", "both") and edge and pids.get("edge_" + side if side != "both" else "edge_left") is None and "profile_id" not in edge:
-                rep.warn(sw, "edge overrides on side %r but profile_ids.edge_%s is null and no edge.profile_id is given" % (side, side))
+                rep.warn(sw, "edge block on side %r where profile_ids.edge_%s is null: SCHEMA.md 5 rule 1 starts from an "
+                             "EMPTY profile (every width 0), so a barrier or embankment here DOES build and any width "
+                             "override ramps up from 0 -- check that is intended" % (side, side))
             hedge = seg.get("hedge")
             if hedge is not None:
                 if "profile_id" in hedge:
@@ -493,6 +500,17 @@ def semantic_document_checks(doc, label, rep, library_ids):
                     for sd in sides:
                         if sd in ("left", "right") and pids.get("hedge_" + sd) is None:
                             rep.warn(sw, "hedge.present true on side %s but profile_ids.hedge_%s is null and no hedge.profile_id given" % (sd, sd))
+
+        # the swept kerb section has a fixed point count, so every edge profile painted on ONE SIDE of one
+        # spline must agree on lip.arc_points (schema.SideTimeline.evaluate resolves lip size/kind per
+        # station but the tessellation once); io_json._cross_checks makes this an error too
+        for sd in ("left", "right"):
+            aps = {}
+            for eid in sorted(edge_ids_by_side[sd]):
+                aps.setdefault(int((pedges.get(eid, {}).get("lip") or {}).get("arc_points", 3)), []).append(eid)
+            if len(aps) > 1:
+                rep.error(where, "edge profiles painted on the %s side disagree on lip.arc_points %s" % (
+                    sd, {k: sorted(v) for k, v in sorted(aps.items())}))
 
         # overlap / tuck rule across the profiles painted on this spline
         for rid in road_ids_on_spline:

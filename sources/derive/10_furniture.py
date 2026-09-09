@@ -168,7 +168,7 @@ def main():
                "nudged_out_of_carriageway": sum(r["nudged"] for v in buckets.values() for r in v),
                "amenity_kinds_seen": dict(kinds.most_common(12)), "props": PROPS,
                "kerb_m": KERB, "snap_m": SNAP,
-               **({} if CLIP is None else {"clip": lib.clip_manifest(CLIP), "outside_clip": outside_clip})},
+               **({} if CLIP is None else {"clip": lib.clip_manifest(CLIP, CFG), "outside_clip": outside_clip})},
               open(os.path.join(P["out"], "qa_furniture.json"), "w"), indent=1)
     print(f"wrote {n} placements across {len(buckets)} tiles -> {OUT}   ({nseg} segments consulted)")
     print(f"elevation from: {dict(srcs)}   outside grid: {outside}   amenity nodes total: {n_amenity}"

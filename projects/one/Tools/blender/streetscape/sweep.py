@@ -11,6 +11,16 @@ Rows: a hard (smooth=False) interior point of an open section, or any hard point
 emitted twice so the two edges get separate normals; R = P + #hard_interior (open), P + #hard (closed).
 Quads split on the V(i,k)-V(i+1,k+1) diagonal; triangles below 1e-10 m^2 are skipped.  Caps close every
 run of emitted quads with the ring's own vertices (watertight).  UV u = s, v = SectionPoint.v.
+
+CAP GROUP CONVENTION (normative, and the C++ ``FStreetSweep::Sweep`` does the same): an end cap is one
+polygon spanning the WHOLE section ring, so it cannot belong to one section edge's group.  Every cap
+triangle is filed under ``grp_ids[0]`` -- the group of section edge 0.  On the kerb+pavement section that
+puts the pavement rows' share of the two end caps under the ``kerb`` group, so ``stats.json``'s per-group
+vertex/triangle split is approximate at a mask-run end (2 stations of 116 on the test stretch) and exact
+everywhere else.  This is a CONVENTION, not an accident: ``per_group`` is a Blender-vs-Unreal parity key,
+so the two implementations must file caps identically.  Changing it (e.g. to a dedicated "cap" group, or
+splitting the cap by each ear-clipped triangle's source edge) means changing both sides and re-freezing
+``renders/trinity_square.stats.json`` in the same commit.
 """
 from __future__ import annotations
 
@@ -231,7 +241,7 @@ def sweep(buf: MeshBuffer, section: Section, frames: Frames, *,
         runs.append((start, prev + 1))
     if (cap_start or cap_end) and runs:
         cap_mid = buf.material_id(cap_mat if cap_mat is not None else pts[0].mat)
-        cap_gid = grp_ids[0]
+        cap_gid = grp_ids[0]      # module docstring, "CAP GROUP CONVENTION": mirrored by FStreetSweep::Sweep
         # ring: one row per point (the 'before' row; positions coincide for hard points)
         ring_rows = np.array([int(np.where(row_point == k)[0][0]) for k in range(P)], dtype=np.int64)
         for (i0, i1) in runs:

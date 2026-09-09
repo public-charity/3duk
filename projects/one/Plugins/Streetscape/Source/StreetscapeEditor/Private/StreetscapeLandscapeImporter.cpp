@@ -2,6 +2,7 @@
 
 #include "StreetscapeEditorModule.h"
 #include "StreetscapeJson.h"
+#include "Misc/ScopeExit.h"
 
 #include "Editor.h"
 #include "Engine/World.h"
@@ -350,18 +351,109 @@ double NowRssMb()
 // Array assembly (UE_PLAN.md 3.6 step 3 and 3.5)
 // ---------------------------------------------------------------------------------------------------------------
 
+/**
+ * The four edges of one tile, kept while the tile's file is in hand so the shared-edge check below needs no
+ * second read. Heights are raw h16; Vis is the visibility weight (>= 170 = the landscape renders a hole there,
+ * LandscapeEdit.cpp:1857) so a sample that is a hole on either side is excluded from the strict comparison.
+ */
+struct FTileEdges
+{
+	TArray<uint16> HCol0, HColN, HRow0, HRowN;
+	TArray<uint8> VCol0, VColN, VRow0, VRowN;
+};
+
+/**
+ * Result of comparing every pair of neighbouring tiles along their shared row / column.
+ *
+ * The adapter writes a shared edge TWICE - tile (i, j) column res-1 is the same ground as tile (i+1, j) column 0,
+ * and tile (i, j) row 0 (north) is tile (i, j+1) row res-1 (south). Both copies come from the same source raster,
+ * so where the landscape renders ground they must be bit-identical; anything else is a false cliff at a 512 m tile
+ * boundary that no interior probe lattice can ever see. Measured on Thanet 2026-09-08: every one of the 28,725
+ * disagreeing visible samples sits on a cell where the source DTM has NO DATA (open sea filled per tile by step
+ * 05), and there are ZERO disagreements where the source raster has data - hence the default tolerance of 0.
+ */
+struct FSeamCheck
+{
+	int64 Samples = 0;            // shared samples compared (both sides present)
+	int64 Mismatches = 0;         // ... of which the two writes disagree
+	int64 VisibleSamples = 0;     // ... where neither side is a visibility hole
+	int64 VisibleMismatches = 0;
+	int32 MaxDelta = 0;           // |h16 a - h16 b| over all shared samples
+	int32 MaxVisibleDelta = 0;    // ... over the visible ones: this is what the gate uses
+	int32 WorstXM = 0, WorstYM = 0, WorstA = 0, WorstB = 0;
+	FIntPoint WorstTileA = FIntPoint::ZeroValue, WorstTileB = FIntPoint::ZeroValue;
+	FString WorstEdge;
+};
+
 struct FAssembly
 {
 	TArray<uint16> Heights;
 	TArray<uint8> Vis;
 	TArray<uint8> Weights[4];
-	int32 SharedEdgeMaxDelta = 0;
-	int64 SharedEdgeSamples = 0;
+	TMap<FIntPoint, FTileEdges> Edges;
+	FSeamCheck Seam;
 	int32 TilesRead = 0, VisFilesRead = 0, WeightFilesRead = 0;
 	int64 HolesFromVis = 0;
 	TMap<int32, int64> WeightSumHistogram;
 	FString Problem;
 };
+
+/** Compare every neighbouring pair of tiles along the row / column they share. Order-independent and complete. */
+void CheckSharedEdges(const FManifest& M, FAssembly& A)
+{
+	const int32 Res = M.Res;
+	FSeamCheck& S = A.Seam;
+	auto Compare = [&](const FIntPoint& KA, const FIntPoint& KB, const TArray<uint16>& Ha, const TArray<uint16>& Hb,
+		const TArray<uint8>& Va, const TArray<uint8>& Vb, const TCHAR* EdgeName)
+	{
+		for (int32 I = 0; I < Res; ++I)
+		{
+			const int32 Da = (int32)Ha[I], Db = (int32)Hb[I];
+			const int32 D = FMath::Abs(Da - Db);
+			const bool bVisible = (Va.IsValidIndex(I) ? Va[I] : 0) < 170 && (Vb.IsValidIndex(I) ? Vb[I] : 0) < 170;
+			S.Samples++;
+			S.MaxDelta = FMath::Max(S.MaxDelta, D);
+			if (D != 0) S.Mismatches++;
+			if (!bVisible) continue;
+			S.VisibleSamples++;
+			if (D == 0) continue;
+			S.VisibleMismatches++;
+			if (D > S.MaxVisibleDelta)
+			{
+				S.MaxVisibleDelta = D;
+				S.WorstA = Da;
+				S.WorstB = Db;
+				S.WorstTileA = KA;
+				S.WorstTileB = KB;
+				S.WorstEdge = EdgeName;
+				// local metres of the shared sample: east edge = column res-1 of KA, north edge = row 0 of KA
+				if (FCString::Strcmp(EdgeName, TEXT("east")) == 0)
+				{
+					S.WorstXM = M.TileM * KA.X + (Res - 1);
+					S.WorstYM = M.TileM * (KA.Y + 1) - I;
+				}
+				else
+				{
+					S.WorstXM = M.TileM * KA.X + I;
+					S.WorstYM = M.TileM * (KA.Y + 1);
+				}
+			}
+		}
+	};
+	for (const TPair<FIntPoint, FTileEdges>& KV : A.Edges)
+	{
+		const FIntPoint K = KV.Key;
+		const FTileEdges& E = KV.Value;
+		if (const FTileEdges* Ea = A.Edges.Find(FIntPoint(K.X + 1, K.Y)))
+		{
+			Compare(K, FIntPoint(K.X + 1, K.Y), E.HColN, Ea->HCol0, E.VColN, Ea->VCol0, TEXT("east"));
+		}
+		if (const FTileEdges* Nb = A.Edges.Find(FIntPoint(K.X, K.Y + 1)))
+		{
+			Compare(K, FIntPoint(K.X, K.Y + 1), E.HRow0, Nb->HRowN, E.VRow0, Nb->VRowN, TEXT("north"));
+		}
+	}
+}
 
 bool BuildArrays(const FManifest& M, const FPlan& P, FAssembly& A)
 {
@@ -406,27 +498,35 @@ bool BuildArrays(const FManifest& M, const FPlan& P, FAssembly& A)
 		{
 			const int64 DstRow = (int64)(RowBase + R + P.PadNorth);
 			uint16* Dst = A.Heights.GetData() + DstRow * P.Wp + ColBase;
-			const uint16* S = Src + (int64)R * Res;
-			for (int32 C = 0; C < Res; ++C)
+			FMemory::Memcpy(Dst, Src + (int64)R * Res, (size_t)Res * sizeof(uint16));
+		}
+		// keep this tile's four height edges: CheckSharedEdges compares them after every tile is read, so the
+		// comparison is complete and independent of the order the manifest lists the tiles in (the previous
+		// in-place "did the last write differ" test saw only the pairs whose neighbour happened to come first).
+		{
+			FTileEdges& E = A.Edges.Add(FIntPoint(T.X, T.Y));
+			E.HCol0.SetNumUninitialized(Res); E.HColN.SetNumUninitialized(Res);
+			E.HRow0.SetNumUninitialized(Res); E.HRowN.SetNumUninitialized(Res);
+			for (int32 R = 0; R < Res; ++R)
 			{
-				// shared edge rows/columns are written twice: check they agree (they must, same source raster)
-				if ((C == 0 && T.X > 0) || (R == 0 && T.Y < M.Ny - 1))
-				{
-					const int32 Prev = (int32)Dst[C];
-					if (Prev != M.PadH16)
-					{
-						A.SharedEdgeSamples++;
-						A.SharedEdgeMaxDelta = FMath::Max(A.SharedEdgeMaxDelta, FMath::Abs(Prev - (int32)S[C]));
-					}
-				}
-				Dst[C] = S[C];
+				E.HCol0[R] = Src[(int64)R * Res];
+				E.HColN[R] = Src[(int64)R * Res + Res - 1];
 			}
+			FMemory::Memcpy(E.HRow0.GetData(), Src, (size_t)Res * sizeof(uint16));
+			FMemory::Memcpy(E.HRowN.GetData(), Src + (int64)(Res - 1) * Res, (size_t)Res * sizeof(uint16));
 		}
 		A.TilesRead++;
 
 		// visibility: the straddle tiles carry vis_*.r8; kept tiles without one are fully visible (0)
-		if (!T.Vis.IsEmpty() && FFileHelper::LoadFileToArray(Bytes, *(M.Dir / T.Vis)))
+		if (!T.Vis.IsEmpty())
 		{
+			if (!FFileHelper::LoadFileToArray(Bytes, *(M.Dir / T.Vis)))
+			{
+				// an unreadable visibility file would silently leave that tile's clip edge unrendered, so it is
+				// as fatal as a wrong-sized one
+				A.Problem = FString::Printf(TEXT("cannot read %s"), *T.Vis);
+				return false;
+			}
 			if ((int64)Bytes.Num() != N2)
 			{
 				A.Problem = FString::Printf(TEXT("%s: %d bytes, expected %lld"), *T.Vis, Bytes.Num(), N2);
@@ -443,6 +543,19 @@ bool BuildArrays(const FManifest& M, const FPlan& P, FAssembly& A)
 					if (S[C] >= 170) A.HolesFromVis++;   // >= 2/3 * 255 renders as a hole
 				}
 			}
+			{
+				FTileEdges& E = A.Edges.FindChecked(FIntPoint(T.X, T.Y));
+				const uint8* S = Bytes.GetData();
+				E.VCol0.SetNumUninitialized(Res); E.VColN.SetNumUninitialized(Res);
+				E.VRow0.SetNumUninitialized(Res); E.VRowN.SetNumUninitialized(Res);
+				for (int32 R = 0; R < Res; ++R)
+				{
+					E.VCol0[R] = S[(int64)R * Res];
+					E.VColN[R] = S[(int64)R * Res + Res - 1];
+				}
+				FMemory::Memcpy(E.VRow0.GetData(), S, (size_t)Res);
+				FMemory::Memcpy(E.VRowN.GetData(), S + (int64)(Res - 1) * Res, (size_t)Res);
+			}
 			A.VisFilesRead++;
 		}
 		else
@@ -458,7 +571,13 @@ bool BuildArrays(const FManifest& M, const FPlan& P, FAssembly& A)
 		for (int32 B = 0; B < 4; ++B)
 		{
 			if (T.Weights[B].IsEmpty()) continue;
-			if (!FFileHelper::LoadFileToArray(Bytes, *(M.Dir / T.Weights[B]))) continue;
+			if (!FFileHelper::LoadFileToArray(Bytes, *(M.Dir / T.Weights[B])))
+			{
+				// skipping it would leave this tile's ground cover at zero and nothing would say so; a
+				// wrong-sized file two lines below is already fatal, and an unreadable one is no better
+				A.Problem = FString::Printf(TEXT("cannot read %s"), *T.Weights[B]);
+				return false;
+			}
 			if (Bytes.Num() != M.WeightRes * M.WeightRes)
 			{
 				A.Problem = FString::Printf(TEXT("%s: %d bytes, expected %d"), *T.Weights[B], Bytes.Num(), M.WeightRes * M.WeightRes);
@@ -476,6 +595,8 @@ bool BuildArrays(const FManifest& M, const FPlan& P, FAssembly& A)
 		}
 	}
 	Bytes.Empty();
+	CheckSharedEdges(M, A);
+	A.Edges.Empty();
 
 	if (bAnyWeights)
 	{
@@ -675,9 +796,39 @@ double UStreetscapeLandscapeImporter::ProbeHeightM(ALandscapeProxy* Proxy, doubl
 {
 	if (!Proxy) return (double)NAN;
 	const FVector Loc(100.0 * XM, -100.0 * YM, 0.0);
-	TOptional<float> H = Proxy->GetHeightAtLocation(Loc, bUseCollision ? EHeightfieldSource::Complex : EHeightfieldSource::Editor);
-	if (!H.IsSet()) return (double)NAN;
-	return (double)H.GetValue() / 100.0;
+	const EHeightfieldSource Src = bUseCollision ? EHeightfieldSource::Complex : EHeightfieldSource::Editor;
+	TOptional<float> H = Proxy->GetHeightAtLocation(Loc, Src);
+	if (H.IsSet()) return (double)H.GetValue() / 100.0;
+
+	// The landscape's CLOSED upper edge belongs to no component. GetHeightAtLocation finds the component with
+	// FMath::FloorToInt32(ActorSpaceLocation / ComponentSizeQuads) (LandscapeCollision.cpp:2709), so a point
+	// exactly on the last component's far boundary floors to an index one past the end and comes back unset -
+	// even though the surface plainly has a height there, it is the last vertex row. On Thanet the padding goes
+	// north and east, so this is the whole southern edge of the site: 57 of the grid gate's lattice points at
+	// local y = 0 read "the landscape has no height here" while the heightfield reads -1.7 .. -2.6 m.
+	// Retry 0.05 cm inside the extent, which moves the answer by at most slope x 5e-6 m - four orders of
+	// magnitude below the r16 quantum of 1/128 m - and only when the point really is inside the extent.
+	if (ULandscapeInfo* Info = Proxy->GetLandscapeInfo())
+	{
+		int32 MinX = 0, MinY = 0, MaxX = 0, MaxY = 0;
+		if (Info->GetLandscapeExtent(MinX, MinY, MaxX, MaxY))
+		{
+			ALandscape* Land = Info->LandscapeActor.Get();
+			const FTransform Xf = Land ? Land->LandscapeActorToWorld() : Proxy->LandscapeActorToWorld();
+			const FVector Local = Xf.InverseTransformPosition(Loc);
+			if (Local.X >= (double)MinX && Local.X <= (double)MaxX && Local.Y >= (double)MinY && Local.Y <= (double)MaxY)
+			{
+				const double Eps = 5e-4;   // landscape units (quads); one quad is 1 m at scale 100
+				const FVector Nudged(
+					FMath::Clamp(Local.X, (double)MinX + Eps, (double)MaxX - Eps),
+					FMath::Clamp(Local.Y, (double)MinY + Eps, (double)MaxY - Eps),
+					Local.Z);
+				H = Proxy->GetHeightAtLocation(Xf.TransformPosition(Nudged), Src);
+				if (H.IsSet()) return (double)H.GetValue() / 100.0;
+			}
+		}
+	}
+	return (double)NAN;
 }
 
 double UStreetscapeLandscapeImporter::TraceDownZM(double XM, double YM, double TopZM, double BottomZM)
@@ -815,7 +966,7 @@ double UStreetscapeLandscapeImporter::ProbeLayerWeight(ALandscapeProxy* Proxy, d
 }
 
 ALandscape* UStreetscapeLandscapeImporter::ImportSite(const FString& ManifestPath, int32 QuadsPerSection, int32 SectionsPerComponent, int32 WorldPartitionGridSize,
-	const FString& MaterialPath, const FString& LayerInfoPackagePath, int32 MaxComponentsPerImport, FString& OutReportJson)
+	const FString& MaterialPath, const FString& LayerInfoPackagePath, int32 MaxComponentsPerImport, int32 MaxSharedEdgeH16Delta, FString& OutReportJson)
 {
 	const double T0 = FPlatformTime::Seconds();
 	TSharedRef<FJsonObject> Report = MakeShared<FJsonObject>();
@@ -859,8 +1010,60 @@ ALandscape* UStreetscapeLandscapeImporter::ImportSite(const FString& ManifestPat
 	Report->SetNumberField(TEXT("tiles_read"), A.TilesRead);
 	Report->SetNumberField(TEXT("vis_files_read"), A.VisFilesRead);
 	Report->SetNumberField(TEXT("weight_files_read"), A.WeightFilesRead);
-	Report->SetNumberField(TEXT("shared_edge_samples_checked"), (double)A.SharedEdgeSamples);
-	Report->SetNumberField(TEXT("shared_edge_max_h16_delta"), A.SharedEdgeMaxDelta);
+	{
+		const FSeamCheck& S = A.Seam;
+		TSharedRef<FJsonObject> Se = MakeShared<FJsonObject>();
+		Se->SetNumberField(TEXT("samples_checked"), (double)S.Samples);
+		Se->SetNumberField(TEXT("mismatched_samples"), (double)S.Mismatches);
+		Se->SetNumberField(TEXT("max_h16_delta"), S.MaxDelta);
+		Se->SetNumberField(TEXT("visible_samples_checked"), (double)S.VisibleSamples);
+		Se->SetNumberField(TEXT("visible_mismatched_samples"), (double)S.VisibleMismatches);
+		Se->SetNumberField(TEXT("visible_max_h16_delta"), S.MaxVisibleDelta);
+		Se->SetNumberField(TEXT("visible_max_m"), (double)S.MaxVisibleDelta / M.PerUnit);
+		Se->SetNumberField(TEXT("tolerance_h16"), MaxSharedEdgeH16Delta);
+		if (S.MaxVisibleDelta > 0)
+		{
+			TArray<TSharedPtr<FJsonValue>> Xy;
+			Xy.Add(MakeShared<FJsonValueNumber>(S.WorstXM));
+			Xy.Add(MakeShared<FJsonValueNumber>(S.WorstYM));
+			Se->SetArrayField(TEXT("worst_local_m"), Xy);
+			Se->SetStringField(TEXT("worst_edge"), S.WorstEdge);
+			Se->SetStringField(TEXT("worst_tiles"), FString::Printf(TEXT("(%d,%d)|(%d,%d)"),
+				S.WorstTileA.X, S.WorstTileA.Y, S.WorstTileB.X, S.WorstTileB.Y));
+			TArray<TSharedPtr<FJsonValue>> Zs;
+			Zs.Add(MakeShared<FJsonValueNumber>(((double)S.WorstA - M.Offset) / M.PerUnit));
+			Zs.Add(MakeShared<FJsonValueNumber>(((double)S.WorstB - M.Offset) / M.PerUnit));
+			Se->SetArrayField(TEXT("worst_z_m"), Zs);
+		}
+		const bool bWaived = MaxSharedEdgeH16Delta < 0;
+		const bool bFails = !bWaived && S.MaxVisibleDelta > MaxSharedEdgeH16Delta;
+		Se->SetBoolField(TEXT("waived"), bWaived);
+		Se->SetBoolField(TEXT("ok"), !bFails);
+		Report->SetObjectField(TEXT("shared_edge"), Se);
+		// kept as flat fields too: Saved/Tests/gate_c.json and Tools/ue/README quote these names
+		Report->SetNumberField(TEXT("shared_edge_samples_checked"), (double)S.Samples);
+		Report->SetNumberField(TEXT("shared_edge_max_h16_delta"), S.MaxDelta);
+		const FString SeamMsg = FString::Printf(
+			TEXT("shared tile edges disagree: %lld of %lld samples the landscape renders, worst %d h16 = %.3f m at local (%d, %d) between tiles %s (%.3f m vs %.3f m). ")
+			TEXT("Both writes come from the same source raster, so this is a false cliff at a %d m tile boundary. ")
+			TEXT("Root cause is upstream (step 05 fills NoData per tile, so a sea cell filled from inside one tile differs from the same cell filled from inside its neighbour); ")
+			TEXT("pass MaxSharedEdgeH16Delta < 0 to import the known-bad data deliberately."),
+			S.VisibleMismatches, S.VisibleSamples, S.MaxVisibleDelta, (double)S.MaxVisibleDelta / M.PerUnit,
+			S.WorstXM, S.WorstYM, *FString::Printf(TEXT("(%d,%d)|(%d,%d)"), S.WorstTileA.X, S.WorstTileA.Y, S.WorstTileB.X, S.WorstTileB.Y),
+			((double)S.WorstA - M.Offset) / M.PerUnit, ((double)S.WorstB - M.Offset) / M.PerUnit, M.TileM);
+		if (bFails)
+		{
+			return Finish(nullptr, SeamMsg);
+		}
+		if (S.MaxVisibleDelta > 0)
+		{
+			UE_LOG(LogStreetscapeEditor, Warning, TEXT("ImportSite: WAIVED %s"), *SeamMsg);
+		}
+		else
+		{
+			UE_LOG(LogStreetscapeEditor, Log, TEXT("ImportSite: shared tile edges agree exactly over %lld visible samples"), S.VisibleSamples);
+		}
+	}
 	Report->SetNumberField(TEXT("vis_hole_samples"), (double)A.HolesFromVis);
 	{
 		TSharedRef<FJsonObject> Hist = MakeShared<FJsonObject>();
@@ -896,6 +1099,14 @@ ALandscape* UStreetscapeLandscapeImporter::ImportSite(const FString& ManifestPat
 	const FVector ActorLoc = P.ActorLocation(M);
 	ALandscape* Landscape = World->SpawnActor<ALandscape>(ActorLoc, FRotator::ZeroRotator);
 	if (!Landscape) return Finish(nullptr, TEXT("SpawnActor<ALandscape> failed"));
+	// The region path calls CollectGarbage(..., bPerformFullPurge=true) after every block to bound the peak. A
+	// freshly spawned World Partition actor that no loader adapter pins is collectable, and the PARENT ALandscape
+	// is exactly that: measured 2026-09-08, the saved Thanet map came back with 140 LandscapeStreamingProxy actors
+	// and NO ALandscape, so FindLandscape returned null and every landscape probe failed on a level that looked
+	// full. The same import through the single-Import path (a 2x2 cutout) kept its parent. Root it for the
+	// duration of the import.
+	Landscape->AddToRoot();
+	ON_SCOPE_EXIT{ if (IsValid(Landscape)) Landscape->RemoveFromRoot(); };
 	Landscape->SetActorRelativeScale3D(FVector(100.0, 100.0, 100.0));
 	if (!MaterialPath.IsEmpty())
 	{
@@ -1044,6 +1255,11 @@ ALandscape* UStreetscapeLandscapeImporter::ImportSite(const FString& ManifestPat
 				// texture and the device hung. Drain the queue and collect after every region instead.
 				FAssetCompilingManager::Get().FinishAllCompilation();
 				if (Created.Num() > 0) LandscapeEditorUtils::SaveObjects(MakeArrayView(Created));
+				// the parent's own package must reach disk too, and it must survive the purge below
+				{
+					TArray<UObject*> Parent{ Landscape };
+					LandscapeEditorUtils::SaveObjects(MakeArrayView(Parent));
+				}
 				CollectGarbage(RF_NoFlags, /*bPerformFullPurge=*/true);
 				UE_LOG(LogStreetscapeEditor, Log, TEXT("ImportSite: region (%d, %d) components [%d..%d]x[%d..%d], %d new proxies, %d components total, rss %.0f MB"),
 					RegX, RegY, Cx0, Cx1 - 1, Cy0, Cy1 - 1, Created.Num(), Info->XYtoComponentMap.Num(), NowRssMb());
@@ -1062,12 +1278,22 @@ ALandscape* UStreetscapeLandscapeImporter::ImportSite(const FString& ManifestPat
 
 	// --- save
 	const double TSave = FPlatformTime::Seconds();
+	Landscape->Modify();
+	Landscape->MarkPackageDirty();
 	UEditorLoadingAndSavingUtils::SaveDirtyPackages(true, true);
 	Seconds->SetNumberField(TEXT("save"), FPlatformTime::Seconds() - TSave);
 	Rss->SetNumberField(TEXT("after_save"), NowRssMb());
 
 	Report->SetNumberField(TEXT("components"), CountLandscapeComponents(Landscape));
 	Report->SetNumberField(TEXT("proxies"), CountStreamingProxies(Landscape));
+	{
+		// read-back proof that the parent actor itself is on disk: without it FindLandscape() returns null on the
+		// next open and the level has a landscape nobody can address
+		UPackage* Pkg = Landscape->GetExternalPackage();
+		Report->SetStringField(TEXT("landscape_actor_package"), Pkg ? Pkg->GetName() : TEXT("(none - saved in the persistent level)"));
+		Report->SetBoolField(TEXT("landscape_actor_package_dirty_after_save"), Pkg ? Pkg->IsDirty() : false);
+		Report->SetBoolField(TEXT("landscape_actor_spatially_loaded"), Landscape->GetIsSpatiallyLoaded());
+	}
 	{
 		int32 MinX = 0, MinY = 0, MaxX = 0, MaxY = 0;
 		if (Info->GetLandscapeExtent(MinX, MinY, MaxX, MaxY))

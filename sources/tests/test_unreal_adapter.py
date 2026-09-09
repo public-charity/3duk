@@ -133,6 +133,41 @@ class PureFunctions(unittest.TestCase):
         idx0, dev0 = U.thin_against_interpolant(arc, 0.0)
         self.assertEqual(idx0, list(range(len(arc)))); self.assertEqual(dev0, 0.0)
 
+    def test_thin_deviation_is_measured_on_a_converged_sampling(self):
+        """The deviation is measured against the interpolant SAMPLED as a polyline, and a coarse
+        sampling reads the deviation of the curve a consumer reconstructs low (its chords cut inside
+        the curve). The reported number must be the converged one: it is a claim about the shipped
+        file, not about our sampling of it. Thanet's worst spline reads 0.099985 m at 32 samples per
+        segment and 0.100277 m converged -- under the old single-density measure the 0.10 m
+        acceptance passed on the sampling rather than on the geometry."""
+        rs = np.random.RandomState(0)                      # irregular vertex spacing, like an OSM way
+        step = rs.uniform(0.5, 12.0, 60); th = np.cumsum(rs.normal(0, 0.12, 60))
+        xy = np.c_[np.cumsum(step * np.cos(th)), np.cumsum(step * np.sin(th))]
+        idx, dev = U.thin_against_interpolant(xy, 0.10)
+        coarse = U._dist_to_polyline(xy, U.catmull_rom_dense(xy[idx], n=32)).max()
+        dense = U._dist_to_polyline(xy, U.catmull_rom_dense(xy[idx], n=512)).max()
+        self.assertGreater(dense - coarse, 1e-5)           # the two measures really do differ here
+        self.assertAlmostEqual(dev, dense, delta=2e-5)     # ... and the reported one is the converged one
+        self.assertLessEqual(dev, 0.10)
+
+    def test_relink_runs_after_a_degenerate_drop(self):
+        raw = [(0.0, 0.0), (40.0, 0.0)]
+        A = {"id": "W", "pts": [[0.0, 0.0, 1.0], [10.0, 0.0, 1.0]]}
+        B = {"id": "W", "pts": [[10.0, 0.0, 1.0], [20.0, 0.0, 1.0]]}
+        tail = {"id": "W", "pts": [[20.0, 0.0, 1.0]]}                  # degenerate: dropped by streetscape()
+        ordered = U.order_runs(raw, [A, B, tail])
+        self.assertEqual([(o["from"], o["to"]) for o in ordered], [(None, "seam"), ("seam", "seam"), ("seam", None)])
+        kept = U.relink_runs([(ordered[0], A["pts"]), (ordered[1], B["pts"])])
+        self.assertEqual([o["segment_index"] for o, _ in kept], [0, 1])
+        # B's "seam" pointed at the dropped run: its end is a way end again, and it is not a seam join
+        self.assertEqual([(o["from"], o["to"]) for o, _ in kept], [(None, "seam"), ("seam", None)])
+        mid = {"id": "W", "pts": [[15.0, 0.0, 1.0]]}                   # a dropped run between two survivors
+        C = {"id": "W", "pts": [[30.0, 0.0, 1.0], [40.0, 0.0, 1.0]]}
+        ordered = U.order_runs(raw, [A, mid, C])
+        kept = U.relink_runs([(ordered[0], A["pts"]), (ordered[2], C["pts"])])
+        self.assertEqual([o["segment_index"] for o, _ in kept], [0, 1])
+        self.assertEqual([(o["from"], o["to"]) for o, _ in kept], [(None, "gap"), ("gap", None)])
+
     def test_order_runs_shuffled_loop_and_gap(self):
         raw = [(0.0, 0.0), (100.0, 0.0), (100.0, 100.0), (0.0, 100.0), (0.0, 0.0)]       # closed loop
         A = {"id": "L", "pts": [[0.0, 0.0, 1.0], [25.0, 0.0, 1.0], [50.0, 0.0, 1.0]]}
@@ -190,7 +225,7 @@ class PureFunctions(unittest.TestCase):
 
     def test_profile_ids_for_sidewalk_rule(self):
         S = ADP["streetscape"]
-        f = lambda cls, tags: U.profile_ids_for("roads", cls, tags, 1.5, S)
+        f = lambda cls, tags: U.profile_ids_for("roads", cls, tags, S)
         self.assertEqual(f("residential", {"sidewalk": "both"}), {"road": "road_residential", "edge_left": "edge_uk_kerb", "edge_right": "edge_uk_kerb", "hedge_left": None, "hedge_right": None})
         self.assertEqual(f("residential", {})["edge_right"], "edge_uk_kerb")
         self.assertEqual((f("residential", {"sidewalk": "left"})["edge_left"], f("residential", {"sidewalk": "left"})["edge_right"]), ("edge_uk_kerb", None))
@@ -200,12 +235,14 @@ class PureFunctions(unittest.TestCase):
         self.assertEqual(f("service", {})["road"], "road_service")
         with self.assertRaises(SystemExit):
             f("bus_guideway", {})
-        self.assertEqual(U.profile_ids_for("rail", "rail", {"gauge": "1.435"}, None, S)["road"], "rail_standard")
+        # rail: profile_ids_for leaves the road id to the caller (one gauge path -- rail_profile_for)
+        self.assertEqual(U.profile_ids_for("rail", "rail", {"gauge": "1.435"}, S),
+                         {"road": None, "edge_left": None, "edge_right": None, "hedge_left": None, "hedge_right": None})
         self.assertEqual(U.rail_profile_for(0.381, S), ("rail_standard", True))
         self.assertEqual(U.rail_profile_for(1.435, S), ("rail_standard", False))
-        self.assertEqual(U.profile_ids_for("barriers", "hedge", {}, None, S)["hedge_left"], "hedge_privet")
-        self.assertEqual(U.profile_ids_for("barriers", "kerb", {}, None, S)["edge_left"], "edge_uk_kerb")
-        self.assertEqual(U.profile_ids_for("barriers", "wall", {}, None, S)["edge_left"], "edge_barrier_only")
+        self.assertEqual(U.profile_ids_for("barriers", "hedge", {}, S)["hedge_left"], "hedge_privet")
+        self.assertEqual(U.profile_ids_for("barriers", "kerb", {}, S)["edge_left"], "edge_uk_kerb")
+        self.assertEqual(U.profile_ids_for("barriers", "wall", {}, S)["edge_left"], "edge_barrier_only")
 
     def test_load_profiles_and_settings(self):
         prof = U.load_profiles(PROFILES_DIR)
@@ -231,8 +268,14 @@ class PureFunctions(unittest.TestCase):
         finally:
             shutil.rmtree(tmp, ignore_errors=True)
 
-    def test_git_sha_is_a_string(self):
-        self.assertIsInstance(U.git_sha(), str)
+    def test_git_sha_is_a_string_and_marks_uncommitted_source(self):
+        sha = U.git_sha()
+        self.assertIsInstance(sha, str); self.assertTrue(sha)
+        import subprocess
+        d = subprocess.run(["git", "status", "--porcelain", "--", "sources/adapters/unreal.py", "sources/adapters/unreal.json"],
+                           cwd=REPO, capture_output=True, text=True)
+        if d.returncode == 0 and sha != "unknown":     # a product from uncommitted code must say so
+            self.assertEqual(sha.endswith("-dirty"), bool(d.stdout.strip()), sha)
 
 
 # =============================================================================================
@@ -242,6 +285,7 @@ class PureFunctions(unittest.TestCase):
 E0, N0, T, NX, NY, RES = 400000.0, 100000.0, 64, 2, 1, 65
 ND = -9999.0
 CLIP = {"type": "halfplane", "line": [[E0 + 118, N0], [E0 + 118, N0 + 64]], "keep": "left"}     # keep the west
+WKT = "FAKE_WKT[EPSG:27700]"            # what osr.SpatialReference.ExportToWkt() gives steps 05/09 here
 
 
 def zfun(E, N):
@@ -306,7 +350,7 @@ class SyntheticSite(unittest.TestCase):
         for i, (a, keep) in cls.tile_arrays().items():
             arr = a.copy(); arr[~keep] = ND
             ds = gdal.GetDriverByName("GTiff").Create(os.path.join(d, f"dtm_x{i}_y0.tif"), RES, RES, 1, gdal.GDT_Float32)
-            ds.SetGeoTransform((E0 + i * T - 0.5, 1.0, 0.0, N0 + T + 0.5, 0.0, -1.0)); ds.SetProjection("FAKE")
+            ds.SetGeoTransform((E0 + i * T - 0.5, 1.0, 0.0, N0 + T + 0.5, 0.0, -1.0)); ds.SetProjection(WKT)
             ds.GetRasterBand(1).SetNoDataValue(ND); ds.GetRasterBand(1).WriteArray(arr)
             n_clip = int((~keep).sum()); total += n_clip
             kept = a[keep]; rng = [min(rng[0], float(kept.min())), max(rng[1], float(kept.max()))]
@@ -335,7 +379,7 @@ class SyntheticSite(unittest.TestCase):
                 km = lib.cell_mask(cls.clip, (E0 + i * T, cell, 0.0, N0 + T, 0.0, -cell), CR, CR)
                 for b in (grass, sand, rock, water): b[~km] = 0
             ds = gdal.GetDriverByName("GTiff").Create(os.path.join(d, f"ground_x{i}_y0.tif"), CR, CR, 4, gdal.GDT_Byte)
-            ds.SetGeoTransform((E0 + i * T, cell, 0.0, N0 + T, 0.0, -cell))
+            ds.SetGeoTransform((E0 + i * T, cell, 0.0, N0 + T, 0.0, -cell)); ds.SetProjection(WKT)
             for b, arr in enumerate((grass, sand, rock, water)):
                 ds.GetRasterBand(b + 1).WriteArray(arr)
             cls.ground[i] = ds
@@ -722,13 +766,17 @@ class SyntheticSite(unittest.TestCase):
 
     def test_refuse_tile_shape(self):
         path = os.path.join(self.src, "terrain", "dtm_x9_y9.tif")
-        gdal.GetDriverByName("GTiff").Create(path, 64, 64, 1, gdal.GDT_Float32)
+        ds = gdal.GetDriverByName("GTiff").Create(path, 64, 64, 1, gdal.GDT_Float32)
+        ds.SetGeoTransform((E0 + 9 * T - 0.5, 1.0, 0.0, N0 + 10 * T + 0.5, 0.0, -1.0)); ds.SetProjection(WKT)
+        gpath = os.path.join(self.src, "coast", "ground_x9_y9.tif")     # ... so the torn-coast check is not what fires
+        gd = gdal.GetDriverByName("GTiff").Create(gpath, 32, 32, 4, gdal.GDT_Byte)
+        gd.SetGeoTransform((E0 + 9 * T, T / 32.0, 0.0, N0 + 10 * T, 0.0, -T / 32.0)); gd.SetProjection(WKT)
         def mutate(tm):
             tm["tiles"].append({**tm["tiles"][0], "x": 9, "y": 9, "file": "dtm_x9_y9.tif", "clipped_cells": 0, "clip_state": "inside"})
         try:
             self.assertIn("manifest res is 65", self._with_manifest(mutate))
         finally:
-            os.remove(path)
+            os.remove(path); os.remove(gpath)
 
     def test_refuse_stale_clip(self):
         msg = self._with_manifest(lambda tm: tm["clip"].update(line=[[E0 + 100, N0], [E0 + 100, N0 + 64]]))
@@ -760,6 +808,145 @@ class SyntheticSite(unittest.TestCase):
             self.assertIn("bands sum to 100 at (0, 0)", str(cm.exception))
         finally:
             band.WriteArray(orig)
+
+    def test_refuse_terrain_tile_with_a_neighbours_georeference(self):
+        """Shape alone cannot catch a tile carrying another tile's data: the product would be
+        self-consistent and silently misplaced."""
+        path = os.path.join(self.src, "terrain", "dtm_x0_y0.tif")
+        ds = gdal.Open(path); good = ds.GetGeoTransform()
+        try:
+            ds.SetGeoTransform((E0 + T - 0.5, 1.0, 0.0, N0 + T + 0.5, 0.0, -1.0))       # tile (1, 0)'s window
+            with self.assertRaises(SystemExit) as cm:
+                self._landscape()
+            self.assertIn("georeferenced at", str(cm.exception))
+            self.assertIn("dtm_x0_y0.tif", str(cm.exception))
+            ds.SetGeoTransform(good); ds.SetProjection("FAKE_WKT[EPSG:3857]")           # right place, wrong CRS
+            with self.assertRaises(SystemExit) as cm:
+                self._landscape()
+            self.assertIn("EPSG:27700", str(cm.exception))
+        finally:
+            ds.SetGeoTransform(good); ds.SetProjection(WKT)
+
+    def test_refuse_ground_raster_mis_georeferenced(self):
+        g = self.ground[0]; good = g.GetGeoTransform()
+        try:
+            g.SetGeoTransform((E0 + T, T / 32.0, 0.0, N0 + T, 0.0, -T / 32.0))          # tile (1, 0)'s window
+            with self.assertRaises(SystemExit) as cm:
+                self._landscape()
+            self.assertIn("ground_x0_y0.tif", str(cm.exception))
+        finally:
+            g.SetGeoTransform(good)
+
+    def test_refuse_torn_coast_product(self):
+        """A tile the coast manifest does NOT list in tiles_without_dtm but whose ground raster is
+        absent means coast/ is incomplete or is being rewritten -- refuse, never ship a landscape
+        missing its ground cover with exit 0 (PIPELINE_CHANGES.md 13.10 refusals)."""
+        path = os.path.join(self.src, "coast", "ground_x0_y0.tif")
+        os.remove(path)
+        try:
+            with self.assertRaises(SystemExit) as cm:
+                self._landscape()
+            msg = str(cm.exception)
+            self.assertIn("tiles_without_dtm", msg); self.assertIn("[[0, 0]]", msg); self.assertIn("step 09", msg)
+            self.assertIn("Nothing was written", msg)                  # refused before _clear touched the product
+        finally:
+            open(path, "ab").close()                       # the fake keeps the raster; only the file was gone
+
+    def test_tiles_fabricated_are_counted_and_warned(self):
+        """Every cell NoData in the source: step 05 exports a flat plate (terrain_manifest
+        tiles_fabricated). Fabricated ground, and nothing in the adapter's manifest counted it."""
+        out2 = os.path.join(self.root, "invented"); lib.mkdirs(out2)
+        tm = json.loads(json.dumps(self.terrain_manifest))
+        tm["tiles"][0]["fill"] = "all-nodata -> -0.6"
+        tm["tiles_fabricated"] = [[0, 0]]; tm["empty_fill_m"] = -0.6
+        jdump(tm, self.tm_path)
+        warns = []
+        try:
+            st = U.landscape(self.cfg, ADP, self.src, out2, self.clip, warns)
+        finally:
+            jdump(self.terrain_manifest, self.tm_path)
+        man = jload(os.path.join(out2, "landscape", "landscape_manifest.json"))
+        self.assertEqual(man["tiles_fabricated"], [[0, 0]]); self.assertEqual(st["tiles_fabricated"], 1)
+        self.assertEqual(man["empty_fill_m"], -0.6)
+        self.assertTrue(any("NO surveyed cell at all" in w for w in warns), warns)
+        self.assertEqual(self.lm["tiles_fabricated"], [])              # the site itself has none
+        tm["tiles_fabricated"] = [[1, 0]]                              # manifest list vs per-tile fill disagree
+        jdump(tm, self.tm_path)
+        try:
+            with self.assertRaises(SystemExit) as cm:
+                U.landscape(self.cfg, ADP, self.src, out2, self.clip, [])
+            self.assertIn("tiles_fabricated", str(cm.exception))
+        finally:
+            jdump(self.terrain_manifest, self.tm_path)
+
+    def test_strict_refuses_a_missing_source_directory(self):
+        cd = os.path.join(self.src, "coast")
+        os.rename(cd, cd + ".away")
+        try:
+            with self.assertRaises(SystemExit) as cm:
+                U.main(["--strict"])
+            self.assertIn("--strict", str(cm.exception)); self.assertIn("step 09", str(cm.exception))
+        finally:
+            os.rename(cd + ".away", cd)
+        self.assertTrue(os.path.exists(os.path.join(self.L, "weight_grass_x0_y0.r8")))   # nothing was cleared
+
+    def test_only_carries_the_other_products_over(self):
+        """--only rebuilds a subset; the products it did not touch are still on disk and still
+        current, so the site-level index must not null them."""
+        try:
+            self.assertEqual(U.main(["--only", "streetscape"]), 0)
+            m = jload(os.path.join(self.out, "unreal_manifest.json"))
+            self.assertEqual([k for k, v in m["products"].items() if v is None], [])
+            self.assertEqual(m["products"]["landscape"]["heightmaps"], 2)
+            self.assertEqual(m["products"]["massing"]["buildings"], 1)
+            self.assertEqual(m["partial_run"]["rebuilt"], ["streetscape"])
+            self.assertEqual(m["partial_run"]["carried_over_from_previous_manifest"], ["furniture", "landscape", "massing"])
+            with self.assertRaises(SystemExit) as cm:
+                U.main(["--only", "landscpae"])
+            self.assertIn("no such product", str(cm.exception))
+        finally:
+            U.main([])                                     # leave the tree as setUpClass built it
+        m = jload(os.path.join(self.out, "unreal_manifest.json"))
+        self.assertNotIn("partial_run", m); self.assertEqual(m["products"]["landscape"]["heightmaps"], 2)
+
+    def test_seam_qa_measures_the_shared_edge(self):
+        """The two synthetic tiles share a column of 65 samples; both are fully covered, so every
+        sample must agree, and a difference on a fill-free edge must be called out."""
+        q = self.lm["seam_qa"]
+        self.assertEqual((q["edges_compared"], q["samples_disagreeing"], q["samples_disagreeing_on_fill_free_edges"]),
+                         (1, 0, 0))
+        self.assertGreater(q["samples_compared"], 0)      # the clipped part of tile (1, 0) is not counted
+        self.assertEqual(q["max_disagreement_m"], 0.0)
+        h0 = np.fromfile(os.path.join(self.L, "hm_x0_y0.r16"), dtype="<u2").reshape(RES, RES)
+        h1 = np.fromfile(os.path.join(self.L, "hm_x1_y0.r16"), dtype="<u2").reshape(RES, RES)
+        k = np.fromfile(os.path.join(self.L, "clip_x1_y0.r8"), dtype=np.uint8).reshape(RES, RES)[:, 0] == 255
+        self.assertEqual(int(q["samples_compared"]), int(k.sum()))
+        self.assertTrue((h0[:, -1][k] == h1[:, 0][k]).all())
+        # a tile that carries a neighbour's data on its shared edge is exactly what this catches
+        ds = gdal.Open(os.path.join(self.src, "terrain", "dtm_x0_y0.tif"))
+        a = ds.GetRasterBand(1).ReadAsArray(); orig = a.copy()
+        try:
+            a[:, -1] = a[:, -1] + 3.0
+            ds.GetRasterBand(1).WriteArray(a)
+            warns = []
+            out2 = os.path.join(self.root, "seam"); lib.mkdirs(out2)
+            U.landscape(self.cfg, ADP, self.src, out2, self.clip, warns)
+            man = jload(os.path.join(out2, "landscape", "landscape_manifest.json"))
+            self.assertEqual(man["seam_qa"]["samples_disagreeing_on_fill_free_edges"], int(k.sum()))
+            self.assertAlmostEqual(man["seam_qa"]["max_disagreement_m"], 3.0, places=3)
+            self.assertTrue(any("written by more than one run" in w for w in warns), warns)
+        finally:
+            ds.GetRasterBand(1).WriteArray(orig)
+
+    def test_manifest_records_how_the_thinning_was_measured(self):
+        m = self.sm
+        self.assertEqual(m["thin_interpolant_samples_per_segment"], U.THIN_VERIFY_SAMPLES)
+        self.assertEqual(m["point_quantum_m"], 0.01)
+        self.assertLessEqual(m["point_quantum_max_shift_m"], 0.005 + 1e-9)      # half a quantum, by construction
+        for d in self.docs.values():                                            # ... and it is what shipped
+            for sp in d["splines"]:
+                for pt in sp["points"]:
+                    self.assertEqual(pt["x"], round(pt["x"], 2)); self.assertEqual(pt["y"], round(pt["y"], 2))
 
     def test_refuse_partial_step11(self):
         lm = os.path.join(self.src, "networks", "linear_manifest.json")

@@ -5,7 +5,9 @@ of schema.py applied to the document (unknown keys, types, enums, ranges, condit
 ``frame`` const, ``schema_version`` 1.x) plus the cross-references (every ``profile_ids.*`` and
 ``Segment.*.profile_id`` resolves inside the document, ``s0_m < s1_m``, one road kind per spline).
 ``validate_warnings(doc)`` returns the non-fatal notes (unhinted material names, missing overlay on a
-non-authored spline, lane widths over width_m).
+non-authored spline, lane widths over width_m).  A structurally invalid document cannot be walked for
+warnings, so it returns its structural errors prefixed ``invalid: `` -- never an empty list, which would
+read as "clean".
 """
 from __future__ import annotations
 
@@ -83,6 +85,24 @@ def _cross_checks(site: S.Site) -> List[str]:
         p = road_kind_problem = S.road_kinds_consistent(sp, site)
         if road_kind_problem:
             errs.append("%s: %s" % (where, p))
+        # the swept kerb section has a fixed point count, so every edge profile painted on one side of
+        # one spline must agree on lip.arc_points (SideTimeline.evaluate resolves size/kind per station
+        # but the tessellation once).  A mid-spline switch to a differently tessellated lip is refused
+        # rather than silently ignored.
+        for slot, sd in (("edge_left", "left"), ("edge_right", "right")):
+            aps = {}
+            eid = getattr(ids, slot)
+            if eid in site.profiles.edge:
+                aps.setdefault(int(site.profiles.edge[eid].lip.arc_points), []).append(eid)
+            for seg in sp.segments:
+                if seg.edge is None or seg.edge.profile_id is None or seg.side not in (sd, "both"):
+                    continue
+                pid2 = seg.edge.profile_id
+                if pid2 in site.profiles.edge:
+                    aps.setdefault(int(site.profiles.edge[pid2].lip.arc_points), []).append(pid2)
+            if len(aps) > 1:
+                errs.append("%s: edge profiles painted on the %s side disagree on lip.arc_points %s" % (
+                    where, sd, {k: sorted(set(v)) for k, v in sorted(aps.items())}))
         # semantic errors that are cheap to check structurally
         rid = ids.road
         if rid in site.profiles.road:
@@ -125,10 +145,12 @@ def validate_structure(doc: dict) -> List[str]:
 
 
 def validate_warnings(doc: dict) -> List[str]:
+    """Non-fatal notes.  A structurally invalid document cannot be walked for warnings, so its
+    structural errors are returned prefixed ``invalid: `` rather than an empty (falsely clean) list."""
     errs: List[str] = []
     site = S.Site._from(doc, "$", errs)
     if errs:
-        return []
+        return ["invalid: " + e for e in errs]
     warns: List[str] = []
     for path, name in _iter_materials(site):
         if name not in S.MATERIAL_NAMES:

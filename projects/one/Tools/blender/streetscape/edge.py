@@ -137,6 +137,10 @@ def build_edge(spline: Spline, side: int, terrain=None, params=None) -> Tuple[Me
         if bar is None or bar.type == "none":
             continue
         mask = (s >= a - 1e-9) & (s <= b + 1e-9)
+        if mask.sum() < 2:
+            # a barrier run shorter than one station gap sweeps nothing; say so instead of vanishing
+            spline.warnings.append("barrier %s %s [%g, %g] covers %d station(s): nothing swept"
+                                   % (S.SIDE_NAME[side], bar.type, a, b, int(mask.sum())))
         if not mask.any():
             continue
         ob = o0 + spec.back_offset + float(bar.offset_m)

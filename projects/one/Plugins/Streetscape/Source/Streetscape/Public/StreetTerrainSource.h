@@ -18,9 +18,39 @@
 
 class ALandscapeProxy;
 
+/**
+ * How a sample between four grid posts is interpolated.
+ *
+ * Bilinear is the numpy prototype's rule (Tools/blender/streetscape/terrain.py) and the frozen contract every
+ * parity number in fixtures/expected.json was computed with.
+ *
+ * LandscapeTriangulated is what the ALandscape the explorer collides with actually is. UE stores a landscape as
+ * a triangle mesh, and Chaos splits every cell along its (0,0)-(1,1) diagonal:
+ *   Chaos::FHeightField::GetHeightAt -> GetHeightNormalAt
+ *   (Engine/Source/Runtime/Experimental/Chaos/Private/Chaos/HeightField.cpp:921-968), reached from
+ *   ULandscapeHeightfieldCollisionComponent::GetHeight (LandscapeCollision.cpp:2548) and
+ *   ALandscapeProxy::GetHeightAtLocation (LandscapeCollision.cpp:2703).
+ * With Fx, Fy the fractions inside the cell and P00 north-west, P10 north-east, P01 south-west, P11 south-east
+ * (grid +Y is landscape +Y = south):
+ *   Fx <  Fy:  P00*(1 - Fy) + P11*Fx        + P01*(Fy - Fx)
+ *   Fx >= Fy:  P00*(1 - Fx) + P10*(Fx - Fy) + P11*Fy
+ *
+ * The two rules differ by up to 0.52 m on Thanet's steepest ground (measured over 1200 gradient-rich points),
+ * which is four times the 0.125 m kerb Renderer B exists to model, so a street draped with one sits above or
+ * below the ground the pawn walks on. Bilinear stays the DEFAULT until the numpy core switches with it - the
+ * geometry track owns fixtures/expected.json - but the rule is implemented, tested and measurable now.
+ */
+UENUM(BlueprintType)
+enum class EStreetHeightSampling : uint8
+{
+	Bilinear             UMETA(DisplayName = "Bilinear (numpy parity)"),
+	LandscapeTriangulated UMETA(DisplayName = "Landscape triangulated (what the pawn walks on)"),
+};
+
 /** Pure C++ heightfield (no UObject), so the tests and the numpy-parity checks can use it directly. */
 struct STREETSCAPE_API FStreetHeightfield
 {
+	EStreetHeightSampling Sampling = EStreetHeightSampling::Bilinear;
 	double TileM = 512.0;
 	int32 Res = 513;
 	double PxM = 1.0;
@@ -99,6 +129,16 @@ public:
 	/** Document origin (survey metres) that queries are expressed in; defaults to the manifest origin. */
 	UPROPERTY(EditAnywhere, Category = "Streetscape") FVector2D DocumentOriginEN = FVector2D::ZeroVector;
 	UPROPERTY(EditAnywhere, Category = "Streetscape") bool bDocumentOriginSet = false;
+	/**
+	 * Interpolation between grid posts. Bilinear is the numpy contract and the default; LandscapeTriangulated is
+	 * what ALandscape::GetHeightAtLocation returns, so a street draped with it sits exactly on the ground the
+	 * pawn collides with. See EStreetHeightSampling. Switching the default is a coordinated change with the
+	 * numpy core (Tools/blender/streetscape/terrain.py) because it moves every parity number.
+	 */
+	UPROPERTY(EditAnywhere, Category = "Streetscape") EStreetHeightSampling Sampling = EStreetHeightSampling::Bilinear;
+
+	/** Python-facing setter (the UPROPERTY alone is enough for Blueprint, not for a running commandlet's cache). */
+	UFUNCTION(BlueprintCallable, Category = "Streetscape") void SetSampling(EStreetHeightSampling In) { Sampling = In; Field.Sampling = In; }
 
 	UFUNCTION(BlueprintCallable, Category = "Streetscape") bool Load();
 	UFUNCTION(BlueprintCallable, Category = "Streetscape") bool IsLoaded() const { return bLoaded; }

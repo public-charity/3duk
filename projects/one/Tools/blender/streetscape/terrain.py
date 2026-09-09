@@ -8,7 +8,12 @@ coverage -- a literal transcription of ``sources/derive/06_build_networks.py:54-
 
 Sources:
   Heightfield.from_landscape_dir(path)   adapter product: landscape_manifest.json + hm_*.r16 + clip_*.r8
-                                         (z = (h16 - 32768) / 128, NaN where clip == 0)
+                                         (z = (h16 - 32768) / 128, NaN where clip == 0).  An inconsistent
+                                         directory raises: a tile the manifest lists whose heightmap is
+                                         absent, and a tile that declares a clip mask whose raster is
+                                         absent, are both errors -- the clip raster is what makes a
+                                         clipped cell a deliberate absence (BRIEF 4.1), so defaulting it
+                                         to "no clipping" would build road across the Wantsum cut.
   Heightfield.from_step05_dir(path)      GDAL convenience (env python): terrain/dtm_x*_y*.tif of step 05
   Heightfield.from_function(fn, ...)     synthetic fields for the tests
 
@@ -83,7 +88,12 @@ class Heightfield:
             clip_name = files.get("clip") or "clip_x%d_y%d.r8" % key
             hm_path = os.path.join(path, hm_name)
             if not os.path.isfile(hm_path):
-                continue
+                # A tile the manifest lists but whose heightmap is absent is an inconsistent directory,
+                # not "no terrain here": silently skipping it turns real ground into a NaN hole and the
+                # splines over it get filled heights with only a generic warning.
+                raise FileNotFoundError(
+                    "%s: landscape_manifest.json lists tile (%d, %d) but its heightmap %s is missing"
+                    % (path, key[0], key[1], hm_name))
             h16 = np.fromfile(hm_path, dtype="<u2")
             if h16.size != res * res:
                 raise ValueError("%s: %d values, expected %d" % (hm_path, h16.size, res * res))
@@ -93,6 +103,13 @@ class Heightfield:
             if os.path.isfile(cpath):
                 clip = np.fromfile(cpath, dtype=np.uint8).reshape(res, res)
                 z[clip == 0] = np.nan
+            elif files.get("clip") is not None or str(t.get("clip_state", "")) == "straddle" or int(t.get("clipped_cells", 0) or 0) > 0:
+                # The clip raster is what makes a clipped cell a DELIBERATE ABSENCE (BRIEF 4.1 crop
+                # semantics).  Loading a straddle tile without it turns the Wantsum cut into ordinary
+                # ground and roads/kerbs would be built across water.  Refuse rather than default.
+                raise FileNotFoundError(
+                    "%s: tile (%d, %d) declares clip mask %s (clip_state=%r, clipped_cells=%s) but the file is missing"
+                    % (path, key[0], key[1], clip_name, t.get("clip_state"), t.get("clipped_cells")))
             hf.tiles[key] = z.astype(np.float32)
         return hf
 

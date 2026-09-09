@@ -144,6 +144,49 @@ class TestHeightfield(unittest.TestCase):
         finally:
             shutil.rmtree(d, ignore_errors=True)
 
+    def _landscape_dir(self, d, *, write_hm=True, write_clip=True, clip_state="straddle"):
+        """A one-tile adapter landscape directory, optionally missing one of its two rasters."""
+        z = np.round(field_fn(*np.meshgrid(np.arange(RES, dtype=float), TILE - np.arange(RES, dtype=float))) * 128) / 128
+        if write_hm:
+            ((np.round(z * 128) + 32768).astype("<u2")).tofile(os.path.join(d, "hm_x3_y2.r16"))
+        clip = np.full((RES, RES), 255, dtype=np.uint8)
+        clip[10:20, 30:40] = 0
+        if write_clip:
+            clip.tofile(os.path.join(d, "clip_x3_y2.r8"))
+        man = {"site": "t", "origin": {"E": 627680, "N": 163080}, "tile_m": 512, "res": 513, "px_m": 1.0,
+               "heightmap": {"z_encoding": {"per_unit": 128, "offset": 32768}},
+               "tiles": [{"x": 3, "y": 2, "clip_state": clip_state, "clipped_cells": int((clip == 0).sum()),
+                          "files": {"heightmap": "hm_x3_y2.r16", "clip": "clip_x3_y2.r8"}}],
+               "tiles_missing": [], "tiles_clipped": []}
+        with open(os.path.join(d, "landscape_manifest.json"), "w", encoding="utf-8") as fh:
+            json.dump(man, fh)
+        return int((clip == 0).sum())
+
+    def test_missing_heightmap_raises(self):
+        """A tile the manifest lists whose hm_*.r16 is absent used to be skipped with `continue`."""
+        d = tempfile.mkdtemp()
+        try:
+            self._landscape_dir(d, write_hm=False)
+            with self.assertRaises(FileNotFoundError) as cm:
+                Heightfield.from_landscape_dir(d)
+            self.assertIn("hm_x3_y2.r16", str(cm.exception))
+        finally:
+            shutil.rmtree(d, ignore_errors=True)
+
+    def test_missing_clip_mask_raises(self):
+        """A declared clip raster that is absent used to load as 'no clipping' -- the one way this code
+        could silently build road across the Wantsum cut."""
+        d = tempfile.mkdtemp()
+        try:
+            n_clipped = self._landscape_dir(d, write_clip=True)
+            self.assertEqual(int(np.isnan(Heightfield.from_landscape_dir(d).tiles[(3, 2)]).sum()), n_clipped)
+            os.remove(os.path.join(d, "clip_x3_y2.r8"))
+            with self.assertRaises(FileNotFoundError) as cm:
+                Heightfield.from_landscape_dir(d)
+            self.assertIn("clip_x3_y2.r8", str(cm.exception))
+        finally:
+            shutil.rmtree(d, ignore_errors=True)
+
     def test_from_step05_dir_margate_tile(self):
         terrain_dir = os.path.join(os.path.dirname(os.path.dirname(syn.PROJECT_ONE)), "data", "margate", "out", "terrain")
         if not os.path.isfile(os.path.join(terrain_dir, "terrain_manifest.json")):

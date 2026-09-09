@@ -55,7 +55,7 @@
     },
     "Jubilee Clock Tower": {
       "h_body": 24.0, "roof": "tower", "tier": "hero",
-      "why": "Tiny footprint (7px) undersamples the tower. Real height ~24m."
+      "why": "Tiny footprint (7px) undersamples the tower, so the p50 rung reads 12.1 m and an override is needed. But 24.0 is WRONG by about 9 m and was never measured: on 2026-09-08 the LIDAR over OSM way 589052636's 22 footprint cells gave DSM max 21.45 - DTM p50 6.49 = 14.96 m, nDSM p90 14.49 m, and the way's own OSM height tag says 14 -- three independent numbers agreeing on ~15 m. thanet.json (which covers the same building) has been corrected to 15.0. This value is left at 24.0 ONLY because data/margate/out is the frozen byte-identity baseline of BRIEF 8 and changing it rewrites two product files; correcting it to 15.0 is a deliberate re-baseline, not a silent edit. Nothing reads this `why` field, so recording the measurement here changes no product."
     }
   }
 }

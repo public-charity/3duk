@@ -33,10 +33,16 @@ public:
 	 * Import the whole site (UE_PLAN.md 3.6). MaxComponentsPerImport 0 = one Import call for everything; otherwise
 	 * a component count above it takes the region path of 3.7 (16x16-component blocks). Returns the landscape
 	 * (nullptr on failure) and always writes OutReportJson.
+	 *
+	 * MaxSharedEdgeH16Delta gates the shared-edge check: neighbouring tiles write the row / column they share
+	 * twice and, where the landscape renders ground, the two writes must agree bit for bit - they come from the
+	 * same source raster. 0 (the default the scripts pass) = must be identical; a positive value allows that many
+	 * h16 units (1 h16 = 1/128 m at Z scale 100); a NEGATIVE value waives the gate for a deliberate import of
+	 * known-bad data and records "waived": true in the report.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Streetscape")
 	static ALandscape* ImportSite(const FString& ManifestPath, int32 QuadsPerSection, int32 SectionsPerComponent, int32 WorldPartitionGridSize,
-		const FString& MaterialPath, const FString& LayerInfoPackagePath, int32 MaxComponentsPerImport, FString& OutReportJson);
+		const FString& MaterialPath, const FString& LayerInfoPackagePath, int32 MaxComponentsPerImport, int32 MaxSharedEdgeH16Delta, FString& OutReportJson);
 
 	/** The editor world's ALandscape (the parent actor, not a streaming proxy); nullptr when none. */
 	UFUNCTION(BlueprintCallable, Category = "Streetscape")

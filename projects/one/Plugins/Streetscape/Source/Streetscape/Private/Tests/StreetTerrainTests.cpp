@@ -76,3 +76,75 @@ bool FStreetTerrainBilinearTest::RunTest(const FString& Parameters)
 	}
 	return true;
 }
+
+// Streetscape.Terrain.Triangulated: EStreetHeightSampling::LandscapeTriangulated reproduces the rule the engine's
+// own heightfield uses, so a street draped through the terrain source sits on the ground the pawn collides with.
+// Rule and citation: Chaos::FHeightField::GetHeightAt -> GetHeightNormalAt, HeightField.cpp:921-968, reached from
+// ALandscapeProxy::GetHeightAtLocation (LandscapeCollision.cpp:2703 -> :2548). Every cell splits on its
+// (0,0)-(1,1) diagonal; the fractions are measured with +Y southwards, which is our row direction.
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FStreetTerrainTriangulatedTest, "Streetscape.Terrain.Triangulated", EAutomationTestFlags::EditorContext | EAutomationTestFlags::ProductFilter)
+bool FStreetTerrainTriangulatedTest::RunTest(const FString& Parameters)
+{
+	// A field that is planar over each triangle but NOT bilinear: a 45-degree ridge along the SW-NE diagonal.
+	// f(x, y) = min(x_frac, 1 - y_frac) style content is awkward to build from a function, so use the measured
+	// Ramsgate harbour-wall cell instead: the four DTM corners the georegistration audit read out of the raster,
+	// where the two rules disagree by 0.518 m.
+	//   SW -2.182   SE -0.435   NW -1.781   NE 2.240   at local (10595.636, 1232.358)
+	const double NW = -1.781, NE = 2.240, SW = -2.182, SE = -0.435;
+	auto Cell = [&](double X, double Y) -> double
+	{
+		// one 1 m cell with its NW post at (0, 1): x in [0, 1], y in [0, 1] with y = 1 north
+		const double Fx = X;
+		const double Fy = 1.0 - Y;                 // fraction measured southwards, as the engine's grid +Y is
+		return (Fx < Fy) ? (NW * (1.0 - Fy) + SE * Fx + SW * (Fy - Fx))
+		                 : (NW * (1.0 - Fx) + NE * (Fx - Fy) + SE * Fy);
+	};
+	const double Fx = 0.636, Fy = 0.642;           // the audit's point, to the millimetre
+	const double Expect = NW * (1.0 - Fy) + SE * Fx + SW * (Fy - Fx);
+	TestTrue(TEXT("the closed form matches the measured engine height -0.92735"), FMath::Abs(Expect - (-0.92735)) < 5e-5);
+	TestTrue(TEXT("the helper agrees with the closed form"), FMath::Abs(Cell(Fx, 1.0 - Fy) - Expect) < 1e-12);
+
+	// The same four posts through FStreetHeightfield, both ways.
+	auto Field = [&](double X, double Y) -> double
+	{
+		// posts at integer metres: (0,0) SW, (1,0) SE, (0,1) NW, (1,1) NE, repeated so every cell is the same
+		const int32 Ix = (int32)FMath::FloorToDouble(X), Iy = (int32)FMath::FloorToDouble(Y);
+		const bool bEast = (Ix & 1) != 0, bNorth = (Iy & 1) != 0;
+		return bNorth ? (bEast ? NE : NW) : (bEast ? SE : SW);
+	};
+	FStreetHeightfield H = FStreetHeightfield::FromFunction(Field, FVector2d(512.0, 512.0), 1.0, 512.0);
+	double Zb = 0, Zt = 0;
+	const double X = 10.0 + Fx, Y = 100.0 + (1.0 - Fy);   // an even cell: SW at (10, 100)
+	H.Sampling = EStreetHeightSampling::Bilinear;
+	TestTrue(TEXT("bilinear sample"), H.Sample(X, Y, Zb));
+	H.Sampling = EStreetHeightSampling::LandscapeTriangulated;
+	TestTrue(TEXT("triangulated sample"), H.Sample(X, Y, Zt));
+	const double Bilin = (SW * (1 - Fx) + SE * Fx) * (1 - (1.0 - Fy)) + (NW * (1 - Fx) + NE * Fx) * (1.0 - Fy);
+	AddInfo(FString::Printf(TEXT("bilinear %.5f, triangulated %.5f, |difference| %.5f m"), Zb, Zt, FMath::Abs(Zb - Zt)));
+	TestTrue(TEXT("bilinear is the untouched rule"), FMath::Abs(Zb - Bilin) < 1e-6);
+	TestTrue(TEXT("triangulated is the Chaos rule"), FMath::Abs(Zt - Expect) < 1e-6);
+	TestTrue(TEXT("the two rules disagree by more than the 0.125 m kerb on this cell"), FMath::Abs(Zb - Zt) > 0.125);
+
+	// on a planar patch the two rules must agree exactly - a triangulation of a plane is that plane
+	FStreetHeightfield P = FStreetHeightfield::FromFunction([](double Xx, double Yy) { return 0.5 * Xx - 0.25 * Yy + 1.0; }, FVector2d(512.0, 512.0), 1.0, 512.0);
+	double MaxDiff = 0.0;
+	for (int32 I = 0; I < 2000; ++I)
+	{
+		const double Px = FStreetNoise::UnitNoise01((uint32)I, 211) * 500.0;
+		const double Py = FStreetNoise::UnitNoise01((uint32)I, 212) * 500.0;
+		double Z1 = 0, Z2 = 0;
+		P.Sampling = EStreetHeightSampling::Bilinear;
+		P.Sample(Px, Py, Z1);
+		P.Sampling = EStreetHeightSampling::LandscapeTriangulated;
+		P.Sample(Px, Py, Z2);
+		MaxDiff = FMath::Max(MaxDiff, FMath::Abs(Z1 - Z2));
+	}
+	AddInfo(FString::Printf(TEXT("planar patch, 2000 points: max |bilinear - triangulated| = %.3g"), MaxDiff));
+	TestTrue(TEXT("the two rules agree exactly on a plane"), MaxDiff < 1e-9);
+	// at grid posts the rules are identical by construction
+	double Za = 0, Zc = 0;
+	P.Sampling = EStreetHeightSampling::Bilinear;      P.Sample(37.0, 91.0, Za);
+	P.Sampling = EStreetHeightSampling::LandscapeTriangulated; P.Sample(37.0, 91.0, Zc);
+	TestTrue(TEXT("identical at a grid post"), FMath::Abs(Za - Zc) < 1e-12);
+	return true;
+}

@@ -22,6 +22,14 @@ Three modes, all headless:
       every target layer with its ULandscapeLayerInfoObject, and the painted weight of the four ground covers +
       the visibility layer at each --weights-at point (UE_PLAN.md 3.5 / DESIGN.md 9).
 
+  --massing [--load-all] [--massing-at "x,y;..."] [--refresh-collision]
+      actor and building totals against massing_manifest.json, plus a per-footprint roof height. FAILS on zero
+      actors: in a World Partition commandlet "nothing streamed in" and "nothing there" are the same report.
+
+  --materials [--load-all]
+      finishes shader compilation, then reports the material every streetscape / massing component would draw
+      with and how many slots fall back to the engine default (the WorldGridMaterial checkerboard).
+
     run_ue_python.ps1 -Script 04_probe.py -Render -Args "--points <csv> --landscape"
 
 World Partition: a commandlet loads no actor until a region is, so --points and --landscape-info load a box of
@@ -80,6 +88,13 @@ def mode_points(opts):
     hf = uc.heightfield(opts["landscape_dir"] or None)
     if hf is None:
         uc.fail(NAME, "no site actor / terrain source in this level")
+    if opts["sample_mode"]:
+        modes = {"bilinear": unreal.StreetHeightSampling.BILINEAR,
+                 "triangulated": unreal.StreetHeightSampling.LANDSCAPE_TRIANGULATED}
+        if opts["sample_mode"] not in modes:
+            uc.fail(NAME, "--sample-mode must be bilinear or triangulated")
+        hf.set_sampling(modes[opts["sample_mode"]])
+        uc.log("terrain source sampling = %s" % opts["sample_mode"])
     rows = []
     with open(opts["points"]) as fh:
         for line in fh:
@@ -121,7 +136,8 @@ def mode_points(opts):
             "landscape": bool(land), "landscape_none": n_land_none, "regions_loaded": n_regions,
             "blocked": n_blocked, "unclipped": len(rows) - n_clipped,
             "blocked_matches_unclipped": n_blocked == len(rows) - n_clipped,
-            "max_abs_dz_m": round(max_dz, 5) if land else None}
+            "max_abs_dz_m": round(max_dz, 5) if land else None,
+            "sample_mode": opts["sample_mode"] or "bilinear"}
 
 
 GROUND_LAYERS = ("grass", "sand", "rock", "water")
@@ -218,24 +234,55 @@ def mode_actor(opts):
     length_cm = spline.get_spline_length()
     step_cm = float(opts["step_m"]) * 100.0
     n = max(2, int(length_cm // step_cm) + 1)
+
+    # The spline COMPONENT's own points carry z = 0: the interchange documents deliberately have no z on their
+    # waypoints (heights are sampled and smoothed at build time, BRIEF 1.1). Tracing from spline_z +/- 5 m
+    # therefore ran from +5 m to -5 m ODN - twenty metres below Margate - and reported "0 of 172 stations block"
+    # for a road that is perfectly solid. Take the vertical window from the ROAD BUFFER's own bounding box, which
+    # is in the same document frame and is what was actually built.
+    top_m, bot_m = 300.0, -300.0
+    stats = lib.actor_stats_json(opts["actor"])
+    if stats:
+        bb = ((json.loads(stats).get("buffers") or {}).get("road") or {}).get("bbox")
+        if bb and len(bb) == 2:
+            bot_m, top_m = float(bb[0][2]) - 5.0, float(bb[1][2]) + 5.0
+    hf = uc.heightfield(opts["landscape_dir"] or None)
+    uc.log("trace window %.2f .. %.2f m ODN (from the road buffer's bbox)" % (bot_m, top_m))
+
     blocked = 0
+    buried = 0
     rows = []
     for i in range(n):
         d = min(length_cm, i * step_cm)
         p = spline.get_location_at_distance_along_spline(d, unreal.SplineCoordinateSpace.WORLD)
         x, y, z = p.x / 100.0, -p.y / 100.0, p.z / 100.0
-        zt = imp.trace_down_zm(x, y, z + 5.0, z - 5.0)
+        zt = imp.trace_down_zm(x, y, top_m, bot_m)
         hit = not (zt is None or math.isnan(zt))
         blocked += int(hit)
+        zh = hf.probe_m(x, y) if hf is not None else float("nan")
+        # the trace lands on whatever is highest. Landing within 2 cm of the RAW terrain means the street is not
+        # what was hit: the landscape is over it (the streetscape does not carve the terrain, BRIEF 1.1).
+        on_terrain = bool(hit and not math.isnan(zh) and abs(zt - zh) < 0.02)
+        buried += int(on_terrain)
         rows.append({"s_m": round(d / 100.0, 2), "xy": [round(x, 3), round(y, 3)], "z_spline_m": round(z, 3),
                      "trace_z_m": None if not hit else round(zt, 3), "blocked": hit,
-                     "dz_m": None if not hit else round(zt - z, 4)})
+                     "z_heightfield_m": None if math.isnan(zh) else round(zh, 3),
+                     "hit_is_terrain": on_terrain,
+                     "dz_terrain_m": None if (not hit or math.isnan(zh)) else round(zt - zh, 4)})
     print(json.dumps({"actor": opts["actor"], "length_m": round(length_cm / 100.0, 3), "stations": len(rows),
                       "blocked": blocked, "rows": rows[:10]}, sort_keys=True))
-    return {"mode": "actor", "actor": opts["actor"], "length_m": round(length_cm / 100.0, 3),
-            "stations": len(rows), "blocked": blocked,
-            "all_blocked": blocked == len(rows) and len(rows) > 0,
-            "max_abs_dz_m": round(max((abs(r["dz_m"]) for r in rows if r["dz_m"] is not None), default=float("nan")), 4)}
+    dzs = [r["dz_terrain_m"] for r in rows if r["dz_terrain_m"] is not None]
+    out = {"mode": "actor", "actor": opts["actor"], "length_m": round(length_cm / 100.0, 3),
+           "stations": len(rows), "blocked": blocked,
+           "trace_window_m": [round(bot_m, 2), round(top_m, 2)],
+           "all_blocked": blocked == len(rows) and len(rows) > 0,
+           "stations_where_the_hit_is_the_terrain": buried,
+           "max_dz_above_terrain_m": round(max(dzs), 4) if dzs else None,
+           "min_dz_above_terrain_m": round(min(dzs), 4) if dzs else None}
+    if not out["all_blocked"]:
+        uc.fail(NAME, "a downward trace over the road blocks at only %d of %d stations - the road is not walkable "
+                      "(UE_PLAN 8.7 / STAGES FD.4). %s" % (blocked, len(rows), json.dumps(out, sort_keys=True)))
+    return out
 
 
 def _class_path(cls):
@@ -375,19 +422,53 @@ def mode_massing(opts):
             p["trace_z_m_after_refresh"] = None if (zt is None or math.isnan(zt)) else round(zt, 4)
         total["collision_tris_refreshed"] = tris
     out = {"mode": "massing", "actors": len(actors), "totals": total, "z_min_m": zmin, "z_max_m": zmax,
-           "tiles": len(tiles), "probes": probes, "refreshed_collision": bool(opts["refresh_collision"])}
+           "tiles": len(tiles), "probes": probes, "refreshed_collision": bool(opts["refresh_collision"]),
+           "load_all": bool(opts["load_all"])}
     print(json.dumps(out, sort_keys=True))
+    # "nothing streamed in" and "nothing there" look identical in a World Partition commandlet, so zero actors
+    # against a manifest that lists files is a failure, not a report of zeros.
+    if not actors:
+        expect = None
+        mpath = (opts["landscape_dir"] or uc.data_dir()).rstrip("/")
+        mpath = uc.data_dir() + "/massing/massing_manifest.json"
+        if os.path.isfile(mpath):
+            with open(mpath) as fh:
+                expect = json.load(fh).get("files")
+        if expect:
+            uc.fail(NAME, "found 0 AStreetscapeMassingActor while %s lists %d file(s)%s"
+                    % (mpath, expect, "" if opts["load_all"] else " - and no --load-all / --massing-at was given, so nothing was streamed in"))
+        uc.fail(NAME, "found 0 AStreetscapeMassingActor and no massing_manifest.json to compare against")
     return out
+
+
+def mode_materials(opts):
+    """What material every streetscape / massing component would actually draw with, and whether the shader
+    compiler still has work queued. Separates 'the material table did not resolve' from 'the shader map was not
+    ready, so the engine substituted WorldGridMaterial' when a capture comes back grey."""
+    lib = unreal.StreetscapeEditorLibrary
+    lib.load_region(unreal.Vector(0, 0, 0), 2000000.0) if opts["load_all"] else None
+    waited = lib.finish_shader_compilation()
+    audit = json.loads(lib.material_audit_json())
+    audit["shader_jobs_waited_on"] = waited
+    print(json.dumps(audit, sort_keys=True))
+    if audit.get("components", 0) == 0:
+        uc.fail(NAME, "no streetscape or massing components in the level (use --load-all to stream them in)")
+    return {"mode": "materials", "components": audit["components"], "slots": audit["slots"],
+            "slots_using_engine_default": audit["slots_using_engine_default"], "slots_null": audit["slots_null"],
+            "distinct_materials": audit["distinct_materials"], "shader_jobs_waited_on": waited,
+            "shader_jobs_remaining": audit.get("shader_jobs_remaining")}
 
 
 def main(argv):
     opts = uc.parse_args(argv, flags=("landscape", "trace_from_above", "explorer", "landscape_info", "load_all", "massing",
-                                      "refresh_collision"), options={
+                                      "refresh_collision", "materials"), options={
         "points": "", "actor": "", "map": DEFAULT_MAP, "step_m": "1.0", "landscape_dir": "",
-        "load_radius_m": "300", "weights_at": "", "massing_at": "",
+        "load_radius_m": "300", "weights_at": "", "massing_at": "", "sample_mode": "",
     })
     load_map(opts["map"])
-    if opts["explorer"]:
+    if opts["materials"]:
+        payload = mode_materials(opts)
+    elif opts["explorer"]:
         payload = mode_explorer(opts)
     elif opts["landscape_info"]:
         payload = mode_landscape_info(opts)
@@ -398,7 +479,7 @@ def main(argv):
     elif opts["points"]:
         payload = mode_points(opts)
     else:
-        uc.fail(NAME, "one of --points, --actor, --explorer, --landscape-info or --massing is required")
+        uc.fail(NAME, "one of --points, --actor, --explorer, --landscape-info, --massing or --materials is required")
     uc.report(NAME, payload)
 
 

@@ -61,9 +61,18 @@ public:
 	 * Load a Streetscape document (a file, or a directory of site_x*_y*.json), spawn one AStreetscapeActor per
 	 * spline, label it with the spline id and RebuildAll it. Returns the number of actors spawned (-1 on error).
 	 * bPlacePlayerStart drops an APlayerStart at the first spline's first point, yaw = bearing - 90.
+	 * bPreloadWorld streams the whole world in before the import so "replace the actor with this id" can see the
+	 * actors already there (a World Partition commandlet has nothing loaded, and an invisible actor is not
+	 * replaced, it is doubled). Pass false ONLY when the caller knows the level holds no streetscape actor for
+	 * these ids - a slice of a fresh site import - because at site scale (15,422 splines) preloading every slice
+	 * would hold the whole isle in memory at once.
+	 * MaxNoTerrainActors is how many splines may come out with NO terrain under any station - built flat at
+	 * z = 0, which is geometry that looks right and is wrong. 0 (the default) means any such spline fails the
+	 * import and its id is logged as an Error; a positive value accepts up to that many and logs them as
+	 * Warnings, so accepting a known-bad document is a deliberate, counted, recorded act.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Streetscape")
-	static int32 ImportStreetscapeJson(const FString& FileOrDir, bool bPlacePlayerStart);
+	static int32 ImportStreetscapeJson(const FString& FileOrDir, bool bPlacePlayerStart, bool bPreloadWorld = true, int32 MaxNoTerrainActors = 0);
 
 	/** Street ids of every AStreetscapeActor in the editor world, sorted. */
 	UFUNCTION(BlueprintCallable, Category = "Streetscape")
@@ -102,6 +111,27 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Streetscape")
 	static int32 ImportMassing(const FString& Dir, const FString& MaterialPath, FString& OutReportJson);
+
+	// -- phase 5: what the renderer actually got -------------------------------------------------------------------
+
+	/**
+	 * Block until every queued shader has compiled AND its results have been applied
+	 * (FShaderCompilingManager::FinishAllCompilation, Runtime/Engine/Public/ShaderCompiler.h:1327; the manager is
+	 * GShaderCompilingManager, :1371). A material whose shader map is not ready renders as
+	 * UMaterial::GetDefaultMaterial - the engine's WorldGridMaterial checkerboard - and a Python script that only
+	 * *sleeps* between captures never gets there, because the compiler's results are applied from the game thread
+	 * the script is blocking. Returns the number of jobs that were still outstanding when it was called.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Streetscape")
+	static int32 FinishShaderCompilation();
+
+	/**
+	 * What material every streetscape / massing component would actually draw with: per component, the slot count
+	 * and each slot's material path, plus a count of slots resolving to the engine default material. Separates
+	 * "the table did not resolve" from "the shader map was not ready" when a capture comes back grey.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Streetscape")
+	static FString MaterialAuditJson();
 
 	/**
 	 * Destroy actors AND delete the World Partition external-actor packages that hold them

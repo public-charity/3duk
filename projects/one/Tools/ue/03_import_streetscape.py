@@ -1,8 +1,16 @@
 """Import a Streetscape JSON document into the level as AStreetscapeActors (UE_PLAN.md 5.3 row 3).
 
   run_ue_python.ps1 -Script 03_import_streetscape.py -Args "--json <file-or-dir> [--player-start] [--stats-out <file>]
-                                                            [--map /Game/Thanet/Maps/Thanet] [--save]"
+                                                            [--map /Game/Thanet/Maps/Thanet] [--save]
+                                                            [--expect-actors N] [--stats-limit N]"
   run_ue_python.ps1 -Script 03_import_streetscape.py -Args "--verify --stats-out <file>"   (re-open a saved map)
+
+--verify FAILS when it finds no actor: in a World Partition commandlet "nothing streamed in" and "nothing there"
+are indistinguishable to the caller, so success on zero is never a pass. --expect-actors N compares the count
+against the number the caller knows to expect (streetscape_manifest.splines_by_layer summed, for a site import).
+--stats-limit N caps the per-actor ActorStatsJson work at N actors (0 = all); at site scale it is the slow part.
+--allow-no-terrain N accepts up to N splines whose stations all sampled NO ground (they are built flat at z = 0,
+which is geometry that looks right and is wrong); the default 0 fails the import and names them.
 
 One actor per spline, labelled with the spline id, with the components its profile_ids ask for (Road, EdgeLeft,
 EdgeRight, HedgeLeft, HedgeRight, Overlay) and the mesh built from the SAME FStreetSamples the spline produced.
@@ -51,14 +59,14 @@ def actor_summary(stats_text):
 def main(argv):
     opts = uc.parse_args(
         argv,
-        flags=("player_start", "save", "verify"),
+        flags=("player_start", "save", "verify", "no_preload"),
         options={"json": "", "map": DEFAULT_MAP, "stats_out": "", "site": "", "origin_e": "", "origin_n": "",
-                 "region_radius_m": "1000", "set_game_mode": ""},
+                 "region_radius_m": "20000", "set_game_mode": "", "expect_actors": "", "stats_limit": "0", "slice": "", "allow_no_terrain": "0", "files": ""},
     )
     src = ""
-    if not opts["verify"]:
+    if not opts["verify"] and not opts["files"]:
         if not opts["json"]:
-            uc.fail(NAME, "--json <file-or-dir> is required (or --verify to re-open a saved map)")
+            uc.fail(NAME, "--json <file-or-dir> (or --files a,b,c) is required, or --verify to re-open a saved map")
         src = opts["json"].replace("\\", "/")
         if not (os.path.isfile(src) or os.path.isdir(src)):
             uc.fail(NAME, "no such file or directory: %s" % src)
@@ -81,15 +89,56 @@ def main(argv):
     if opts["verify"]:
         # re-opened map: World Partition commandlets skip LoadLastLoadedRegions, so pull the actors in by hand and
         # let OnRegister -> PostRegisterAllComponents rebuild every mesh from the saved definition (DESIGN.md 10)
+        # the default radius used to be 1 km around UE (0, 0), which is the SOUTH-WEST CORNER of the site - the
+        # test stretch is 11.5 km from it, so --verify streamed nothing in and then reported success on an empty
+        # world. 20 km covers the whole 13.3 x 9.7 km isle.
         r = float(opts["region_radius_m"]) * 100.0
         unreal.StreetscapeEditorLibrary.load_region(unreal.Vector(0.0, 0.0, 0.0), r)
         n = len(unreal.StreetscapeEditorLibrary.streetscape_actor_ids())
         uc.log("verify: load_region(radius %g m) -> %d streetscape actor(s) after %.1fs" % (r / 100.0, n, uc.elapsed_s()))
+        if n == 0:
+            uc.fail(NAME, "verify found 0 AStreetscapeActor in %s after streaming a %g m radius - "
+                          "'nothing streamed in' and 'nothing there' look identical, so this is a failure, not a pass"
+                    % (opts["map"], r / 100.0))
     else:
-        n = unreal.StreetscapeEditorLibrary.import_streetscape_json(src, bool(opts["player_start"]))
-        if n < 0:
-            uc.fail(NAME, "import_streetscape_json(%s) failed - see the errors above" % src)
-        uc.log("import_streetscape_json -> %d actor(s) after %.1fs" % (n, uc.elapsed_s()))
+        files = [src]
+        if opts["files"]:
+            # exact document list: --slice boundaries move when the directory listing changes, and re-running a
+            # slice with --no-preload after that would spawn a second actor for every id it re-imports
+            files = [f.replace("\\", "/") for f in opts["files"].split(",") if f.strip()]
+            for f in files:
+                if not os.path.isfile(f):
+                    uc.fail(NAME, "--files names a file that does not exist: %s" % f)
+            uc.log("--files: %d document(s)" % len(files))
+        elif os.path.isdir(src):
+            files = sorted(src + "/" + f for f in os.listdir(src)
+                           if f.lower().endswith(".json") and not f.lower().endswith("_manifest.json"))
+            if opts["slice"]:
+                i, k = (int(v) for v in opts["slice"].split("/"))
+                if not (1 <= i <= k):
+                    uc.fail(NAME, "--slice must be i/n with 1 <= i <= n")
+                files = files[(i - 1) * len(files) // k: i * len(files) // k]
+                uc.log("slice %s: %d of the site's documents (%s .. %s)"
+                       % (opts["slice"], len(files), os.path.basename(files[0]) if files else "-",
+                          os.path.basename(files[-1]) if files else "-"))
+            if not files:
+                uc.fail(NAME, "no .json documents under %s for this slice" % src)
+        # Site scale is 15,422 actors. Preloading the whole world before EVERY document would hold the entire isle
+        # in memory for the run; a slice of a fresh build knows the level holds none of its ids, so it preloads
+        # once at most. --no-preload turns it off entirely (only correct on a level with no streetscape actors).
+        n = 0
+        preload = not opts["no_preload"]
+        for k, f in enumerate(files):
+            got = unreal.StreetscapeEditorLibrary.import_streetscape_json(
+                f, bool(opts["player_start"]) and k == 0, preload, int(opts["allow_no_terrain"]))
+            if got < 0:
+                uc.fail(NAME, "import_streetscape_json(%s) failed - see the errors above" % f)
+            n += got
+            preload = False
+            if len(files) > 1:
+                uc.log("[%d/%d] %s -> %d actor(s) (total %d) after %.1fs"
+                       % (k + 1, len(files), os.path.basename(f), got, n, uc.elapsed_s()))
+        uc.log("import_streetscape_json -> %d actor(s) from %d document(s) after %.1fs" % (n, len(files), uc.elapsed_s()))
 
     ids = [str(i) for i in unreal.StreetscapeEditorLibrary.streetscape_actor_ids()]
     eas = unreal.get_editor_subsystem(unreal.EditorActorSubsystem)
@@ -98,9 +147,17 @@ def main(argv):
         if isinstance(a, unreal.StreetscapeActor):
             actors[str(a.get_editor_property("street_id"))] = a
 
+    if opts["expect_actors"]:
+        want = int(opts["expect_actors"])
+        if len(ids) != want:
+            uc.fail(NAME, "expected %d streetscape actor(s), the level has %d" % (want, len(ids)))
+        uc.log("actor count %d == --expect-actors" % want)
+
     per_actor = {}
     stats_written = None
-    for k, sid in enumerate(ids):
+    limit = int(opts["stats_limit"])
+    stats_ids = ids if limit <= 0 else ids[:limit]
+    for k, sid in enumerate(stats_ids):
         text = unreal.StreetscapeEditorLibrary.actor_stats_json(sid)
         if not text:
             uc.fail(NAME, "actor_stats_json(%s) returned nothing" % sid)
@@ -143,10 +200,10 @@ def main(argv):
         saved = uc.save_all()
         # PreSave stashes and empties every renderer's UDynamicMesh; PostSaveRoot puts it back, so the meshes must
         # still be there in this session (DESIGN.md 10 - the design's "save then blank" bug)
-        for sid in ids:
+        for sid in stats_ids:
             st = json.loads(unreal.StreetscapeEditorLibrary.actor_stats_json(sid))
             after_save[sid] = {k: [v["verts"], v["tris"]] for k, v in (st.get("buffers") or {}).items()}
-        for sid in ids:
+        for sid in stats_ids:
             before = per_actor[sid]["stats"]["buffers"]
             if after_save[sid] != before:
                 uc.fail(NAME, "%s: buffers changed across the save: %s -> %s" % (sid, before, after_save[sid]))
@@ -160,7 +217,9 @@ def main(argv):
         "origin": [origin_e, origin_n],
         "terrain": terrain.describe_source() if terrain else None,
         "actors": n,
-        "ids": ids,
+        "ids": ids if len(ids) <= 40 else (ids[:40] + ["... %d more" % (len(ids) - 40)]),
+        "ids_count": len(ids),
+        "stats_for": len(stats_ids),
         "per_actor": per_actor,
         "player_starts": player_starts,
         "game_mode_set": game_mode_set,

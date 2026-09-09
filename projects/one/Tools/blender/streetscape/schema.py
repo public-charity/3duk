@@ -1347,20 +1347,31 @@ class SideTimeline:
     hedge_intervals: list
     drop_kerbs: List[DropKerb]
     _mandatory: list
+    has_base: bool = True             # profile_ids.edge_<side> was non-null (SCHEMA.md 5 rule 1)
+    present_ranges: list = field(default_factory=list)   # [(a, b)] painted by spline segments when has_base is False
 
     def mandatory_stations(self) -> list:
         return sorted(set(self._mandatory))
+
+    def _present(self, s: np.ndarray) -> np.ndarray:
+        """Where Renderer B exists on this side.
+
+        SCHEMA.md 5 rule 1 makes a null ``profile_ids.edge_<side>`` an EMPTY profile (every width 0),
+        not "no side": a spline segment may still declare a barrier, an embankment, a profile switch or
+        a width on that side, and it must build.  ``present`` is True over the whole spline when the side
+        has a base profile, and over each such segment's range (ramps included) when it does not."""
+        if self.has_base:
+            return np.ones(len(s), dtype=bool)
+        out = np.zeros(len(s), dtype=bool)
+        for a, b in self.present_ranges:
+            out |= (s >= a - 1e-9) & (s <= b + 1e-9)
+        return out
 
     def evaluate(self, s: np.ndarray) -> SideSpec:
         s = np.asarray(s, dtype=np.float64)
         N = len(s)
         base = self.base
-        present = np.full(N, base is not None, dtype=bool)
-        if base is None:
-            z = np.zeros(N)
-            obj = np.array([None] * N, dtype=object)
-            return SideSpec(self.side, present, z, z, z, z, z, z, ["none"] * N, 1, z, z, z, obj, obj, obj, obj,
-                            np.zeros(N, dtype=bool), z, z, z, z, z, z, z, [], [], self.hedge_intervals, False)
+        present = self._present(s)
         kw = _ramped(s, base.kerb_width_m, self.scalar_overrides["kerb_width_m"])
         kh = _ramped(s, base.kerb_height_m, self.scalar_overrides["kerb_height_m"])
         pw = _ramped(s, base.pavement_width_m, self.scalar_overrides["pavement_width_m"])
@@ -1369,7 +1380,12 @@ class SideTimeline:
         splits = _values_at(self.split_intervals, s, None)
         lip_size = np.array([p.lip.size_m if p.lip.kind != "none" else 0.0 for p in profs])
         lip_kind = [p.lip.kind for p in profs]
-        arc_points = int(base.lip.arc_points)
+        # The section's point count is fixed across stations, so lip.arc_points must be too: every edge
+        # profile painted on one side of one spline shares it (io_json._cross_checks refuses otherwise).
+        # EMPTY_EDGE_PROFILE (the substitute for a null slot, SCHEMA.md 5 rule 1) carries the schema
+        # default and never builds a lip -- it does not get a vote.
+        aps = sorted({int(p.lip.arc_points) for p in profs if p is not EMPTY_EDGE_PROFILE})
+        arc_points = aps[0] if aps else int(base.lip.arc_points)
         tuck_depth = np.array([p.tuck_depth_m for p in profs])
         tuck_in = np.array([p.tuck_in_m for p in profs])
         skirt = np.array([p.skirt_m for p in profs])
@@ -1432,10 +1448,17 @@ def drop_factor(s: np.ndarray, s_d: float, length: float, ramp: float) -> np.nda
 
 _EDGE_SCALARS = ("kerb_width_m", "kerb_height_m", "pavement_width_m", "pavement_crossfall_pct")
 
+#: SCHEMA.md 5 rule 1: "Start from ``profile_ids.<slot>`` (null -> an empty profile with every width 0)".
+#: A null ``edge_left``/``edge_right`` therefore does NOT mean "this side does not exist": a spline
+#: segment may still declare a barrier, an embankment, a profile switch or a width there and it must
+#: build.  Treated as immutable -- ``resolve_side`` hands it out by identity, never a copy.
+EMPTY_EDGE_PROFILE = EdgeProfile()
+
 
 def resolve_side(spline: SplineDef, side: int, site: Site, L: float, ramp_default: Optional[float] = None) -> SideTimeline:
     eid = spline.profile_ids.edge(side)
-    base = site.profiles.edge[eid] if eid is not None else None
+    has_base = eid is not None
+    base = site.profiles.edge[eid] if has_base else EMPTY_EDGE_PROFILE
     hid = spline.profile_ids.hedge(side)
     hedge_base = site.profiles.hedge[hid] if hid is not None else None
     ramp_d = float(ramp_default if ramp_default is not None else ROAD_SAMPLING_DEFAULTS["width_ramp_m"])
@@ -1447,12 +1470,12 @@ def resolve_side(spline: SplineDef, side: int, site: Site, L: float, ramp_defaul
     emb_layers = []
     hedge_layers = []
     drops: List[DropKerb] = []
-    if base is not None:
-        for b in base.barriers:
-            bar_layers.append((b.s0_m, b.s1_m, b.inline() if b.type != "none" else None))
-        for e in base.embankments:
-            emb_layers.append((e.s0_m, e.s1_m, e.inline()))
-        drops += list(base.drop_kerbs)
+    present_ranges: List[Tuple[float, float]] = []
+    for b in base.barriers:
+        bar_layers.append((b.s0_m, b.s1_m, b.inline() if b.type != "none" else None))
+    for e in base.embankments:
+        emb_layers.append((e.s0_m, e.s1_m, e.inline()))
+    drops += list(base.drop_kerbs)
     if hedge_base is not None:
         for hs in hedge_base.segments:
             h = HedgeSpec(hedge_base, hs.offset_m,
@@ -1462,7 +1485,7 @@ def resolve_side(spline: SplineDef, side: int, site: Site, L: float, ramp_defaul
     # profile switches replace the PROFILE-LEVEL lists inside their range; those layers sit below every
     # spline-segment layer (SCHEMA.md 5.4: profile list layers first, then spline segments in file order)
     for seg in spline.segments:
-        if not seg.applies_to(side) or seg.edge is None or base is None or seg.edge.profile_id is None:
+        if not seg.applies_to(side) or seg.edge is None or seg.edge.profile_id is None:
             continue
         s0 = float(seg.s0_m)
         s1 = L if seg.s1_m is None else float(seg.s1_m)
@@ -1485,7 +1508,8 @@ def resolve_side(spline: SplineDef, side: int, site: Site, L: float, ramp_defaul
         s1 = L if seg.s1_m is None else float(seg.s1_m)
         ramp = ramp_d if seg.ramp_m is None else float(seg.ramp_m)
         e = seg.edge
-        if e is not None and base is not None:
+        if e is not None:
+            present_ranges.append((max(0.0, s0 - ramp), min(L, s1 + ramp)))
             if e.profile_id is not None:
                 p = site.profiles.edge[e.profile_id]
                 prof_layers.append((s0, s1, p))
@@ -1535,7 +1559,7 @@ def resolve_side(spline: SplineDef, side: int, site: Site, L: float, ramp_defaul
                         barrier_intervals=paint_intervals(L, bar_layers),
                         embankment_intervals=paint_intervals(L, emb_layers),
                         hedge_intervals=paint_intervals(L, hedge_layers), drop_kerbs=drops,
-                        _mandatory=_clamp_open(mand, L))
+                        _mandatory=_clamp_open(mand, L), has_base=has_base, present_ranges=present_ranges)
 
 
 def road_kinds_consistent(spline: SplineDef, site: Site) -> Optional[str]:

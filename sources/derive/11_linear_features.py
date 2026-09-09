@@ -182,7 +182,7 @@ json.dump({"site": CFG["site"], "crs": CFG["crs"],
            "layers": summary,
            "ways_skipped_by_class": skipped_all,
            "barrier_areas_skipped": n_areas,
-           **({} if CLIP is None else {"clip": lib.clip_manifest(CLIP)})},
+           **({} if CLIP is None else {"clip": lib.clip_manifest(CLIP, CFG)})},
           open(os.path.join(OUT, "linear_manifest.json"), "w"), indent=1)
 
 print(f"wrote {summary['rail']['segments']} rail + {summary['barriers']['segments']} barrier segments -> {OUT}; "

@@ -288,6 +288,9 @@ try:
             ("b11", {"building": "house", "other_tags": '"building:levels"=>"3"'},          rect(E0 + 140, N0 + 300, 8, 8),   (8.0, 9.0, 10.0, 50, 11.0, 10.9)),
             ("b12", {"building": "house", "other_tags": '"building:levels"=>"4"'},          rect(E0 + 160, N0 + 300, 8, 8),   (10.0, 11.0, 12.0, 50, 11.0, 10.9)),
             ("b13", {"building": "house"},                                                   rect(E0 - 100, N0 + 100, 8, 8),   (4.0, 5.0, 6.0, 50, 3.0, 2.9)),   # off-grid
+            # off-grid AND carrying levels + a trustworthy p50: the exact shape that used to poison
+            # the height_calib fit. It is not emitted, so it must not steer the line either.
+            ("b15", {"building": "house", "other_tags": '"building:levels"=>"2"'},          rect(E0 - 200, N0 + 140, 8, 8),   (30.0, 40.0, 45.0, 50, 3.0, 2.9)),
             # in a DSM coverage gap: 04 found ground (DTM) but no first-return cells -> height must come down the ladder, ground must stay real
             ("b14", {"building": "house", "other_tags": '"building:levels"=>"2"'},          rect(E0 + 180, N0 + 300, 8, 8),   (np.nan, np.nan, np.nan, 0, 11.0, 10.9))]
     nodesA = [("n1", E0 + 300, N0 + 201, '"amenity"=>"waste_basket"'),   # 1 m off a 7 m road: in carriageway
@@ -351,13 +354,16 @@ try:
     bl = jl(os.path.join(out, "massing", "buildings_*.jsonl")); bb = {b["id"]: b for b in bl}
     mm = json.load(open(os.path.join(out, "massing", "massing_manifest.json")))
     cal = mm["height_calib"]
-    check("A07 13 buildings emitted (off-grid b13 dropped), incl. the 2 without LIDAR", len(bl) == 13 and "b13" not in bb and mm["outside_grid"] == 1
+    check("A07 13 buildings emitted (off-grid b13, b15 dropped), incl. the 2 without LIDAR", len(bl) == 13
+          and "b13" not in bb and "b15" not in bb and mm["outside_grid"] == 2
           and bb["b6"]["base_z"] is None and bb["b6"]["lidar_px"] == 0)
     check("A07 DSM-gap building keeps its real ground; only the height goes down the ladder",
           bb["b14"]["base_z"] == 11.0 and bb["b14"]["skirt"] == 10.4 and bb["b14"]["lidar_px"] == 0 and bb["b14"]["eaves"] is None
           and bb["b14"]["src"] == "osm_levels" and mm["buildings_without_dsm"] == 1 and mm["buildings_without_lidar"] == 2, str(bb["b14"]))
-    check("A07 calibration FITTED from the site's own buildings, outlier rejected", cal["source"] == "fitted" and mm["height_calib_fit"]["n"] == 6
-          and mm["height_calib_fit"]["rejected"] == 1 and 1.6 < cal["m_per_level"] < 2.0 and 2.5 < cal["intercept"] < 4.5, str(cal) + str(mm["height_calib_fit"]))
+    check("A07 calibration FITTED from the site's own buildings, outlier rejected, off-grid b15 excluded from the fit",
+          cal["source"] == "fitted" and mm["height_calib_fit"]["n"] == 6 and mm["height_calib_fit"]["rejected"] == 1
+          and mm["height_calib_fit"]["excluded_off_grid"] == 1 and "excluded_off_clip" not in mm["height_calib_fit"]
+          and 1.6 < cal["m_per_level"] < 2.0 and 2.5 < cal["intercept"] < 4.5, str(cal) + str(mm["height_calib_fit"]))
     check("A07 osm_levels rung uses the fitted line, not the fallback", bb["b6"]["src"] == "osm_levels"
           and abs(bb["b6"]["h"] - (cal["intercept"] + 3 * cal["m_per_level"])) < 0.01 and abs(bb["b6"]["h"] - (9.9 + 3 * 9.9)) > 1)
     check("A07 lidar_p50 when p50 agrees with levels", bb["b1"]["src"] == "lidar_p50" and bb["b1"]["h"] == 6.8)
@@ -540,13 +546,26 @@ try:
                  ("bk1", "kerb", [L(1200, 700), L(1250, 700)], None, '"height"=>"15 cm"'),
                  ("bh1", "hedge", [L(400, 400), L(800, 800)], None, None),         # crosses the line at (550, 550)
                  ("bg1", "gate", [L(1200, 750), L(1202, 750)], None, None)]        # point-like: skipped, counted
-    bldC = [("cb1", {"building": "house", "other_tags": '"building:levels"=>"2"'}, rect(E0c + 1200, N0c + 600, 10, 10), (4.0, 6.0, 8.0, 40, 44.0, 43.8)),
-            ("cb2", {"building": "house", "other_tags": '"building:levels"=>"2"'}, rect(E0c + 200, N0c + 200, 10, 10), (4.0, 6.0, 8.0, 40, 26.0, 25.8))]   # centre outside
+    # cb1 and cb3-cb5 are inside the clip and sit exactly on h = 3 + 2*levels, so the auto fit below has
+    # one arithmetic answer. cb2 is OUTSIDE the clip and off the line: it is not emitted, so it must not
+    # enter the calibration either -- with it the fit is no longer 3.0 + 2.0*levels.
+    bldC = [("cb1", {"building": "house", "other_tags": '"building:levels"=>"2"'}, rect(E0c + 1200, N0c + 600, 10, 10), (4.0, 7.0, 8.0, 40, 44.0, 43.8)),
+            ("cb2", {"building": "house", "other_tags": '"building:levels"=>"2"'}, rect(E0c + 200, N0c + 200, 10, 10), (4.0, 6.0, 8.0, 40, 26.0, 25.8)),   # centre outside
+            ("cb3", {"building": "house", "other_tags": '"building:levels"=>"1"'}, rect(E0c + 1300, N0c + 500, 10, 10), (4.0, 5.0, 6.0, 40, 43.0, 42.8)),
+            ("cb4", {"building": "house", "other_tags": '"building:levels"=>"2"'}, rect(E0c + 1330, N0c + 500, 10, 10), (4.0, 7.0, 8.0, 40, 43.0, 42.8)),
+            ("cb5", {"building": "house", "other_tags": '"building:levels"=>"3"'}, rect(E0c + 1360, N0c + 500, 10, 10), (4.0, 9.0, 10.0, 40, 43.0, 42.8)),
+            # a seamark: `height` is the LIGHT's elevation above MHWS, seamark:landmark:height the tower
+            ("cb6", {"building": "yes", "name": "Test Light",
+                     "other_tags": '"height"=>"57","seamark:type"=>"light_major","seamark:landmark:height"=>"26"'},
+             rect(E0c + 1400, N0c + 700, 10, 10), (10.0, 18.0, 24.0, 40, 43.0, 42.8)),
+            # a seamark with only the ambiguous tag: still used, but reported
+            ("cb7", {"building": "yes", "other_tags": '"height"=>"18","seamark:type"=>"light_minor"'},
+             rect(E0c + 1440, N0c + 700, 10, 10), (2.0, 4.5, 12.7, 8, 43.0, 42.8))]
     nodesC = [("cn1", E0c + 702, N0c + 700, '"amenity"=>"waste_basket"'),          # 2 m off rd1, inside
               ("cn2", E0c + 100, N0c + 150, '"amenity"=>"waste_basket"')]          # outside
     C = synth("_dryrun_c", {
         "origin": {"E": E0c, "N": N0c}, "clip": CLIP_C, "water_level": -50.0,
-        "height_calib": {"mode": "fixed", "intercept": 2.5, "m_per_level": 3.0, "dispute_m": 4.0},
+        "height_calib": {"mode": "auto", "min_buildings": 3, "fallback": {"intercept": 9.9, "m_per_level": 9.9}, "dispute_m": 4.0},
         "coast": {"foreshore_max_odn": -50.0, "rock_slope_deg": [25.0, 45.0], "water_margin_m": 0.75},
         "landmarks": {},
     }, px=1, RES=513, NX=3, NY=2, zfun=zC, ways=waysC, buildings=bldC, nodes=nodesC,
@@ -615,9 +634,22 @@ try:
     # ---- 07 massing with the clip
     blc = jl(os.path.join(outc, "massing", "buildings_*.jsonl"))
     mmc = json.load(open(os.path.join(outc, "massing", "massing_manifest.json")))
-    check("C07 outside_clip 1 (cb2's envelope centre), one building kept (cb1), manifest clip block",
-          mmc["outside_clip"] == 1 and [b["id"] for b in blc] == ["cb1"] and mmc["buildings"] == 1 and mmc["outside_grid"] == 0
-          and mmc["clip"]["line"] == CLIP_C["line"], f"{mmc.get('outside_clip')} {[b['id'] for b in blc]}")
+    bc = {b["id"]: b for b in blc}
+    check("C07 outside_clip 1 (cb2's envelope centre), 6 buildings kept, manifest clip block",
+          mmc["outside_clip"] == 1 and sorted(bc) == ["cb1", "cb3", "cb4", "cb5", "cb6", "cb7"] and mmc["buildings"] == 6
+          and mmc["outside_grid"] == 0 and mmc["clip"]["line"] == CLIP_C["line"],
+          f"{mmc.get('outside_clip')} {sorted(bc)}")
+    # The fit population must BE the model population. cb1/cb3/cb4/cb5 lie exactly on h = 3 + 2*levels;
+    # off-clip cb2 (levels 2, p50 6.0) does not, so if it leaked in the answer would not be 3.0/2.0.
+    check("C07 height_calib fitted from IN-CLIP buildings only: exactly 3.0 + 2.0*levels, off-clip cb2 excluded",
+          mmc["height_calib"] == {"intercept": 3.0, "m_per_level": 2.0, "source": "fitted", "dispute_m": 4.0}
+          and mmc["height_calib_fit"] == {"n": 4, "rejected": 0, "rmse_m": 0.0, "excluded_off_clip": 1},
+          f"{mmc['height_calib']} {mmc['height_calib_fit']}")
+    check("C07 seamark: seamark:landmark:height beats the ambiguous `height` tag (26, not 57); "
+          "a seamark with only `height` still uses it and is reported",
+          bc["cb6"]["src"] == "seamark_height" and bc["cb6"]["h"] == 26.0
+          and bc["cb7"]["src"] == "osm_height" and bc["cb7"]["h"] == 18.0
+          and mmc["by_height_source"]["seamark_height"] == 1, f"{bc['cb6']} {bc['cb7']}")
 
     # ---- 09 ground cover with the clip
     cmc = json.load(open(os.path.join(outc, "coast", "coast_manifest.json")))
@@ -744,6 +776,12 @@ try:
     cmC = lib.clip_manifest(clipC)
     check("C-lib clip_manifest: None -> None; stamp keys + semantics", lib.clip_manifest(None) is None
           and set(cmC) == {"type", "line", "keep", "semantics"} and cmC["line"] == CLIP_C["line"] and "centres" in cmC["semantics"])
+    cmW = lib.clip_manifest(clipC, cfgC)
+    check("C-lib clip_manifest(clip, cfg) carries the kept region as WKT over the whole grid",
+          set(cmW) == {"type", "line", "keep", "semantics", "wkt", "wkt_note"}
+          and lib.site_bbox(cfgC) == (E0c, N0c, E0c + 3 * 512, N0c + 2 * 512)
+          and cmW["wkt"] == lib.clip_wkt(clipC, lib.site_bbox(cfgC)) and cmW["wkt"].count(",") == 4
+          and lib.clip_manifest(None, cfgC) is None, str(cmW.get("wkt")))
     sd = clipC.signed_distance_out(E0c + np.array([0, 0, 1100, 1100]), N0c + np.array([1100, 0, 0, 1100]))
     check("C-lib signed_distance_out: 0 on the line, + into the cut", abs(sd[0]) < 1e-9 and abs(sd[2]) < 1e-9
           and abs(sd[1] - 1100 / math.sqrt(2)) < 1e-6 and abs(sd[3] + 1100 / math.sqrt(2)) < 1e-6, str(sd))
@@ -804,6 +842,20 @@ try:
     check("lib.nodata_mask: nan and -3.4e38 also caught", lib.nodata_mask(np.array([np.nan, -3.4e38, 1.0]), None).tolist() == [True, True, False])
     m = lib.fill_nodata(a, bad)
     check("lib.fill_nodata fills and names its method", a[1, 1] != -9999.0 and np.isfinite(a).all() and m in ("median (degraded)", "nearest"))
+    e0v = np.full((3, 3), -9999.0); eb = lib.nodata_mask(e0v, -9999.0)
+    m0 = lib.fill_nodata(e0v, eb)
+    e1v = np.full((3, 3), -9999.0); m1 = lib.fill_nodata(e1v, lib.nodata_mask(e1v, -9999.0), empty_fill=-0.6)
+    check("lib.fill_nodata all-nodata: default 0 unchanged, empty_fill used and named",
+          m0 == "all-nodata -> 0" and (e0v == 0.0).all() and m1 == "all-nodata -> -0.6" and (e1v == -0.6).all(), f"{m0} {m1}")
+    pd_ = os.path.join(tempfile.gettempdir(), "_dryrun_product")
+    shutil.rmtree(pd_, ignore_errors=True)
+    lib.begin_product(pd_, "test_step")
+    mark = os.path.join(pd_, lib.INCOMPLETE)
+    present = os.path.exists(mark) and json.load(open(mark))["step"] == "test_step"
+    lib.end_product(pd_); lib.end_product(pd_)          # idempotent: a second call must not raise
+    check("lib.begin_product / end_product: the marker exists only while the product is being rebuilt",
+          present and not os.path.exists(mark) and lib.INCOMPLETE == "_incomplete.json")
+    shutil.rmtree(pd_, ignore_errors=True)
     check("lib.pixel_size / tile_px at 2 m", lib.pixel_size((0, 2, 0, 0, 0, -2)) == (2, 2) and lib.tile_px({"tile_m": 512}, (0, 2, 0, 0, 0, -2)) == (256, 256))
     try:
         lib.tile_px({"tile_m": 500}, (0, 3, 0, 0, 0, -3)); ok = False
@@ -839,6 +891,10 @@ try:
             check(f"lib.tiff_info georef_origin: {label} == {want}", got == want, str(got))
         else:
             print(f"  SKIP  lib.tiff_info georef_origin: {label} ({os.path.relpath(pth, REPO)} absent)")
+
+    # ---- every product directory must declare itself complete when the run succeeded
+    left = sorted(os.path.relpath(p, ROOT) for p in glob.glob(os.path.join(ROOT, "**", lib.INCOMPLETE), recursive=True))
+    check("no _incomplete.json survives a successful run of any site (05 and 09 remove theirs)", left == [], str(left))
 
 except Exception:
     traceback.print_exc()

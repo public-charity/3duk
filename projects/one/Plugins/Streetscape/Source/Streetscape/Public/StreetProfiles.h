@@ -19,6 +19,15 @@ struct STREETSCAPE_API FRoadProfileData : public FStreetJsonBase
 {
 	GENERATED_BODY()
 	UPROPERTY(EditAnywhere, Category = "Streetscape") EStreetRoadKind Kind = EStreetRoadKind::Road;
+	/**
+	 * BRIEF 1.1 names "lane count, per-lane widths" among Renderer A's profile fields, and they are carried,
+	 * schema-validated and exposed here - but NO geometry code on either side reads them. The ribbon is built
+	 * from WidthM alone and every marking anchor is centre / edge_left / edge_right, never lane-relative
+	 * (SCHEMA.md $defs/Marking). They are informational metadata for downstream traffic use, and the only
+	 * consumer today is io_json.py's warning when sum(lane_widths_m) > width_m. The natural way to make them
+	 * load-bearing is a `lane` marking anchor measured from a lane boundary; until that exists, treat a change
+	 * to these fields as changing nothing about the mesh.
+	 */
 	UPROPERTY() TOptional<int32> Lanes;
 	UPROPERTY(EditAnywhere, Category = "Streetscape") bool bHasLaneWidthsM = false;
 	UPROPERTY(EditAnywhere, Category = "Streetscape") TArray<double> LaneWidthsM;

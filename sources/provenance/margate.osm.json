@@ -5,13 +5,35 @@
   "crs": "EPSG:27700",
   "datum_transformation": "unknown id, Inverse of OSGB36 to WGS 84 (9) + British National Grid, 1 m, United Kingdom (UK) - offshore to boundary of UKCS within 49\u00b045'N to 61\u00b0N and 9\u00b0W to 2\u00b0E; onshore Great Britain (England, Wales and Scotland). Isle of Man onshore.",
   "extract_mtime_utc": "2026-09-07T21:30:56+00:00",
-  "recorded_utc": "2026-09-07T21:37:47+00:00",
+  "recorded_utc": "2026-09-08T21:01:52+00:00",
   "bbox_wgs84_swne": "51.365,1.345,51.402,1.432",
   "bytes": 8978896,
   "sha256": "0a11d37c5edea2a7f29a71740fe08ef62b36eaa48d7b75ad8d0aa48c3944ff3f",
+  "query_sha256": "6fbf265743f3c0752734700531d9afc6b1e0a7284eb3a3366ff1c4a9c0424384",
+  "query_src": "reconstructed",
+  "query_src_note": "'fetch' -- the query this run sent to Overpass. 'recorded' -- the query file saved beside the extract by the run that fetched it. 'reconstructed' -- the fetch was skipped and the selectors were rebuilt from fetch_osm.sh AS IT IS NOW, so they describe this script, not necessarily the extract on disk. 'absent' -- no query at all. A consumer must test query_src, not just query_sha256 != null: a reconstructed sha256 is a real hash of a query that may never have been sent.",
+  "query_selectors": [
+    "node[\"amenity\"]",
+    "node[\"natural\"=\"tree\"]",
+    "node[\"shop\"]",
+    "node[\"tourism\"]",
+    "relation[\"building\"]",
+    "way[\"barrier\"]",
+    "way[\"building\"]",
+    "way[\"highway\"]",
+    "way[\"landuse\"]",
+    "way[\"leisure\"]",
+    "way[\"man_made\"]",
+    "way[\"natural\"]",
+    "way[\"railway\"]",
+    "way[\"waterway\"]"
+  ],
+  "query_note": "query_* describe margate.osm.query as RECONSTRUCTED from fetch_osm.sh's selectors at record time, because the fetch was skipped (extract already on disk) and no query had been recorded with it; the extract may have been fetched with different selectors -- judge by counts.railway / counts.barriers, not by the selector list.",
   "counts": {
     "buildings": 7669,
-    "highways": 3717
+    "highways": 3717,
+    "railway": 0,
+    "barriers": 467
   },
   "note": "Re-fetching later will differ; archive C:/Users/Shadow/code/3duk/data/margate/raw/margate.osm to reproduce."
 }

@@ -113,12 +113,20 @@ bool AStreetscapeMassingActor::BuildFromFile(const FString& Path)
 		if (Line.TrimStartAndEnd().IsEmpty()) continue;
 		TSharedPtr<FJsonObject> Obj;
 		TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(Line);
-		if (!FJsonSerializer::Deserialize(Reader, Obj) || !Obj.IsValid()) continue;
+		if (!FJsonSerializer::Deserialize(Reader, Obj) || !Obj.IsValid())
+		{
+			Stats.SkippedLines++;
+			continue;
+		}
 
 		double BaseZ = 0, H = 0, Skirt = 0;
 		Obj->TryGetNumberField(TEXT("base_z"), BaseZ);
 		Obj->TryGetNumberField(TEXT("h"), H);
-		if (!Obj->TryGetNumberField(TEXT("skirt"), Skirt)) Skirt = BaseZ - 1.0;
+		if (!Obj->TryGetNumberField(TEXT("skirt"), Skirt))
+		{
+			Skirt = BaseZ - 1.0;
+			Stats.SkirtDefaulted++;
+		}
 		double Top = BaseZ + H;
 		if (Top < Skirt + MinHeightM)
 		{
@@ -126,7 +134,11 @@ bool AStreetscapeMassingActor::BuildFromFile(const FString& Path)
 			Stats.ClampedHeights++;
 		}
 		const TArray<TSharedPtr<FJsonValue>>* Rings = nullptr;
-		if (!Obj->TryGetArrayField(TEXT("rings"), Rings)) continue;
+		if (!Obj->TryGetArrayField(TEXT("rings"), Rings))
+		{
+			Stats.SkippedBuildings++;
+			continue;
+		}
 		Stats.Buildings++;
 
 		for (const TSharedPtr<FJsonValue>& RV : *Rings)
@@ -163,6 +175,11 @@ bool AStreetscapeMassingActor::BuildFromFile(const FString& Path)
 			}
 			B.AppendTriangles(Tris, MatId, GrpId);
 
+			// DECISION (placeholder massing, BRIEF 5 stage 8 "grey boxes"): a hole ring contributes its walls
+			// (the courtyard's inside faces) but not a cap, so the roof and floor polygons of the outer ring run
+			// straight across the courtyard. Triangulating outer-with-holes belongs with the real building
+			// assets, not with the placeholder. Measured on Thanet: 28 hole rings of 20,160 (Stats.HoleRings
+			// reports it per tile, so the omission is visible rather than assumed).
 			if (!bHole)
 			{
 				TopRing.Reset(); BotRing.Reset();
@@ -193,6 +210,17 @@ bool AStreetscapeMassingActor::BuildFromFile(const FString& Path)
 	Stats.BuildMs = (FPlatformTime::Seconds() - T0) * 1000.0;
 	UE_LOG(LogStreetscape, Verbose, TEXT("MassingActor %s: %d buildings, %d rings (%d holes), %d verts / %d tris in %.0f ms"),
 		*FPaths::GetCleanFilename(Path), Stats.Buildings, Stats.Rings, Stats.HoleRings, Stats.Verts, Stats.Tris, Stats.BuildMs);
+	if (Stats.SkippedLines || Stats.SkippedBuildings || Stats.SkippedRings)
+	{
+		// a partly readable file must never pass as complete
+		UE_LOG(LogStreetscape, Warning, TEXT("MassingActor %s: %d unparsable line(s), %d building(s) without rings, %d unreadable ring(s)"),
+			*FPaths::GetCleanFilename(Path), Stats.SkippedLines, Stats.SkippedBuildings, Stats.SkippedRings);
+	}
+	if (Stats.SkirtDefaulted)
+	{
+		UE_LOG(LogStreetscape, Warning, TEXT("MassingActor %s: %d building(s) had no \"skirt\" field, extruded from base_z - 1 m"),
+			*FPaths::GetCleanFilename(Path), Stats.SkirtDefaulted);
+	}
 	return true;
 }
 

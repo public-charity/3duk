@@ -139,6 +139,15 @@ sem("road kind mismatch on switch", lambda d: (d["profiles"]["road"].__setitem__
                                                  d["splines"][0]["segments"][0].__setitem__("road", {"profile_id": "r2"})), "differs from the spline's base road kind")
 sem("overlay missing on non-authored", lambda d: (d["splines"][0]["source"].__setitem__("layer", "roads"), d["splines"][0].pop("overlay")), "overlay missing")
 sem("edge-anchored negative offset", lambda d: d["profiles"]["road"]["road_trinity"]["markings"][1].__setitem__("offset_m", -0.25), "needs offset_m >= 0")
+sem("edge block on a null edge slot", lambda d: (d["splines"][0]["profile_ids"].__setitem__("edge_right", None),
+                                                  d["splines"][0]["segments"].append({"id": "wall_on_null", "s0_m": 0.0, "s1_m": 50.0, "side": "right",
+                                                                                      "edge": {"barrier": {"type": "brick_wall", "height_m": 1.8, "thickness_m": 0.215, "material": "brick_red"}}})),
+    "SCHEMA.md 5 rule 1 starts from an EMPTY profile")
+sem("lip.arc_points disagreement on one side", lambda d: (d["profiles"]["edge"].__setitem__("edge_finer_lip", copy.deepcopy(d["profiles"]["edge"]["edge_uk_kerb"])),
+                                                           d["profiles"]["edge"]["edge_finer_lip"]["lip"].__setitem__("arc_points", 6),
+                                                           d["splines"][0]["segments"].append({"id": "finer", "s0_m": 10.0, "s1_m": 40.0, "side": "left",
+                                                                                               "edge": {"profile_id": "edge_finer_lip"}})),
+    "disagree on lip.arc_points")
 
-print("NEGATIVE TESTS: %d case(s), %d failure(s)" % (len(cases) + 12, fails))
+print("NEGATIVE TESTS: %d case(s), %d failure(s)" % (len(cases) + 14, fails))
 sys.exit(1 if fails else 0)

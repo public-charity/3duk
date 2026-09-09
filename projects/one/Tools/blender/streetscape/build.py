@@ -1,6 +1,7 @@
 """Build entry points (geometry.md 5.12): build_spline / build_all, the deterministic writer and the CLI.
 
   python -m streetscape.build --site X.json --terrain DIR --out DIR [--only-layer roads|rail|barriers]
+      [--spline <id>[,<id>...]]
 
 Output per spline: <out>/<safe id>/{road,edge_left,edge_right,hedge_left,hedge_right}.npz,
 instances.json, overlay.json, stats.json.  The directory name is the spline id with ':' replaced by
@@ -117,7 +118,14 @@ def build_overlay(sdef: S.SplineDef, terrain: Optional[Heightfield], site: S.Sit
 
 
 def _assert_stations(spline: Spline, buffers: Dict[str, MeshBuffer]) -> dict:
-    """DESIGN.md 5 rule 2: every buffer's non-marking stations equal spline.s exactly."""
+    """DESIGN.md 5 rule 2, stated exactly as the code enforces it.
+
+    The ``road`` buffer's stations must EQUAL ``spline.s`` (``np.array_equal``): Renderer A sweeps the
+    whole spline, so any missing or extra station is a bug.  Every other buffer (``edge_*``, ``hedge_*``)
+    is masked -- a barrier, an embankment or a hedge legitimately covers a sub-range -- so the rule there
+    is containment: every station a masked buffer carries is a spline station (``np.isin``), never an
+    interpolated one.  Marking strips carry interpolated dash-end stations and are excluded by
+    ``station_values``.  Neither test tolerates a resampled or drifted station."""
     out = {}
     for name, buf in buffers.items():
         st = station_values(buf)
@@ -199,12 +207,20 @@ def compute_stats(res: BuildResult, terrain: Optional[Heightfield]) -> dict:
     return st
 
 
-def build_all(site: S.Site, terrain: Optional[Heightfield], only_layer: Optional[str] = None) -> Dict[str, BuildResult]:
+def build_all(site: S.Site, terrain: Optional[Heightfield], only_layer: Optional[str] = None,
+              only_ids=None) -> Dict[str, BuildResult]:
+    """Every spline of the document, optionally filtered by ``source.layer`` and/or by spline id
+    (``only_ids``: an iterable, used to pick one real way out of a 300-spline adapter tile)."""
+    want = None if only_ids is None else set(only_ids)
     out = {}
     for sdef in site.splines:
         if only_layer is not None and sdef.source.layer != only_layer:
             continue
+        if want is not None and sdef.id not in want:
+            continue
         out[sdef.id] = build_spline(site, sdef.id, terrain)
+    if want is not None and not out:
+        raise KeyError("no spline of %s matches --spline %s" % (site.site, sorted(want)))
     return out
 
 
@@ -237,6 +253,7 @@ def main(argv=None) -> int:
     ap.add_argument("--terrain", required=False, default=None, help="landscape dir or step-05 terrain dir")
     ap.add_argument("--out", required=True)
     ap.add_argument("--only-layer", default=None, choices=["roads", "rail", "barriers", "authored"])
+    ap.add_argument("--spline", default=None, help="comma-separated spline id(s) to build (default: all)")
     ap.add_argument("--fail-on-validate", action="store_true", help="exit 2 when any MeshBuffer.validate() message exists")
     ap.add_argument("--export-terrain-npz", default=None, help="write the loaded heightfield (tiles under the site) as an .npz cache for Blender")
     ap.add_argument("--terrain-tiles", default=None, help="comma list i_j,i_j of step-05 tiles to read (default: the tiles under the splines +- 1)")
@@ -252,7 +269,8 @@ def main(argv=None) -> int:
         if args.export_terrain_npz:
             terrain.save_npz(args.export_terrain_npz)
             print("terrain cache written: %s (%d tiles)" % (args.export_terrain_npz, len(terrain.tiles)))
-    results = build_all(site, terrain, args.only_layer)
+    results = build_all(site, terrain, args.only_layer,
+                        [v for v in args.spline.split(",") if v] if args.spline else None)
     os.makedirs(args.out, exist_ok=True)
     problems = 0
     index = {}

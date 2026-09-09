@@ -52,16 +52,18 @@ first run); regenerate it after every build that adds or renames reflected types
 | `gen_python_stub.ps1` | writes `Intermediate/PythonStub/unreal.py` (see below) | `THANET_OK gen_python_stub {...}` |
 | `run_ue_tests.ps1` | the Automation tests headlessly (below) | one `Success`/`Fail` line per test |
 | `numpy_parity_dump.py` | (pipeline python, not UE) writes the numpy prototype's spline arrays for `Streetscape.Spline.NumpyParity` | `wrote ... numpy_parity.json` |
-| `03_import_streetscape.py` | `--json <file-or-dir>` → one `AStreetscapeActor` per spline (label = spline id) with the components its `profile_ids` ask for, built from ONE `FStreetSamples`; `--player-start` drops an `APlayerStart` at the first point (yaw = bearing − 90); `--stats-out <file>` writes the first spline's `ActorStatsJson` (the parity file); `--save` saves and then re-reads every buffer to prove the PreSave/PostSaveRoot round trip; `--verify` skips the import and instead re-opens a saved map, `load_region`s the actors in and reports the rebuilt counts | `THANET_OK 03_import_streetscape {"actors": 1, "per_actor": {...}, ...}` |
-| `05_screenshot.py` | `--camera cam1\|cam2\|cam3\|all --actor <spline id> --out <dir or .png>`: the eye / target / FOV come from `StreetscapeEditorLibrary.actor_camera_json`, the C++ mirror of `Tools/blender/streetscape/render.py camera_defs`, so Unreal and Blender frame the same thing. Transient `SceneCapture2D` → `TextureRenderTarget2D` → `RenderingLibrary.export_render_target`, then the PNG is rewritten opaque. `--source final_ldr\|scene_hdr\|base_color`, `--ev <bias>` (manual exposure), `--warm-s <s>` (wait between captures for the project material shaders). **Needs `-Render`** | `THANET_OK 05_screenshot {"cameras": {"cam1": {"bytes": ..., "distinct_rgb": ...}}}` |
+| `03_import_streetscape.py` | `--json <file-or-dir>` → one `AStreetscapeActor` per spline (label = spline id) with the components its `profile_ids` ask for, built from ONE `FStreetSamples`; `--player-start` drops an `APlayerStart` 2 m above the first point (yaw = bearing − 90); `--stats-out <file>` writes the first spline's `ActorStatsJson` (the parity file); `--save` saves and then re-reads every buffer to prove the PreSave/PostSaveRoot round trip; `--verify` re-opens a saved map, streams a `--region-radius-m` (default 20 km, the whole isle) and reports the rebuilt counts — **it fails on zero actors**, because in a World Partition commandlet "nothing streamed in" and "nothing there" are the same report; `--expect-actors N` compares the count against the manifest; `--slice i/n` imports one nth of a directory's documents (site scale needs several commandlets or the whole isle stays resident); `--no-preload` skips the 20 km pre-stream, correct only on a level known to hold no streetscape actor for these ids; `--stats-limit N` caps the per-actor stats work | `THANET_OK 03_import_streetscape {"actors": 1, "per_actor": {...}, ...}` |
+| `05_screenshot.py` | `--camera cam1\|cam2\|cam3\|all --actor <spline id> --out <dir or .png>` (or the free camera `--x --y --z --yaw --pitch`): the eye / target / FOV come from `StreetscapeEditorLibrary.actor_camera_json`, the C++ mirror of `Tools/blender/streetscape/render.py camera_defs`, so Unreal and Blender frame the same thing. Transient `SceneCapture2D` → `TextureRenderTarget2D` → `RenderingLibrary.export_render_target`, then the PNG is rewritten opaque. Between the first and the real capture it calls `StreetscapeEditorLibrary.finish_shader_compilation()`, which BLOCKS on `FShaderCompilingManager::FinishAllCompilation` — sleeping never worked because the compiler's results are applied on the game thread the script is holding. **Guards**: every capture reports `distinct_rgb` and `mean_luminance` and the run FAILS below `--min-distinct` (64) / `--min-lum` (6) or above `--max-lum` (250), and the report carries a material audit of the level. `--source final_ldr\|scene_hdr\|base_color`, `--ev <bias>`. **Needs `-Render`** | `THANET_OK 05_screenshot {"cameras": {"cam1": {"bytes": ..., "distinct_rgb": ..., "mean_luminance": ...}}, "materials": {...}}` |
 | `compare_stats.py` | (any python, stdlib only) `--ue <ActorStatsJson> --numpy <Tools/blender/.../stats.json>`: length ±0.05 m, `n_samples`, overlap min/max, per-buffer AND per-material AND per-group verts/tris, marking strips, instance counts, `stations_identical` | one line per row then `PARITY OK` (exit 0) or `PARITY FAIL` (exit 1) |
 
 | script | does | prints |
 |---|---|---|
-| `02_import_landscape.py` | reads `landscape_manifest.json` and drives `StreetscapeLandscapeImporter.ImportSite`: one World Partition `ALandscape` (2067 components / 140 streaming proxies for Thanet), the four ground-cover weightmaps and the `__LANDSCAPE_VISIBILITY__` mask that cuts the clip line, then the three gate probes (`grid`, `cliff`, `clip`). `--probes-only` re-runs the probes on a saved map; `--recreate-map`; `--no-grid` / `--no-cliff` / `--no-clip`; `--report <json>`. **Needs `-Render`** | `THANET_OK 02_import_landscape {"import": {...}, "grid": {...}, "cliff": {...}, "clip": {...}}` |
-| `04_probe.py` | five read-only modes on a saved map. `--points <csv> --landscape` → CSV `x,y,z_heightfield,z_landscape,z_landscape_collision,clipped,z_trace,blocked`; `--actor <id> --trace-from-above`; `--explorer` → game mode, default pawn, the pawn's tuning numbers and Enhanced Input bindings, every `PlayerStart`; `--landscape-info [--load-all] [--weights-at "x,y;..."]` → component / proxy counts, extent, scale, material, target layers and the painted weight of each cover at a point; `--massing [--massing-at "x,y;..."] [--refresh-collision]` → actor and building totals plus a per-footprint roof height. `--load-radius-m` streams a box around each point (World Partition loads nothing on its own in a commandlet); `--load-all` pulls the whole world in (~5 GB). **Needs `-Render`** | `THANET_OK 04_probe {"mode": ..., ...}` |
+| `02_import_landscape.py` | reads `landscape_manifest.json` and drives `StreetscapeLandscapeImporter.ImportSite`: one World Partition `ALandscape` (2067 components / 140 streaming proxies for Thanet), the four ground-cover weightmaps and the `__LANDSCAPE_VISIBILITY__` mask that cuts the clip line, then the **shared-edge check** and the three gate probes (`grid`, `cliff`, `clip`). **Every gate can fail the script**: `grid.within_0_01_m`, `cliff.agree`, `cliff.slope_ok`, `clip.pass` and `shared_edge.ok` are branched on, and a failure prints `THANET_FAIL` with the list. `--max-shared-edge-h16 <n>` is the tolerance for the row/column two neighbouring tiles both write (0 = identical, which sound data gives; negative waives the gate and records `"waived": true`). `--probes-only` re-runs the probes on a saved map and streams the WHOLE world first so the grid probe sees every tile (`--no-load-all` for the cheap cliff+clip path, which then reports the grid probe as `skipped` instead of a false verdict); `--recreate-map`; `--no-grid` / `--no-cliff` / `--no-clip`; `--report <json>`. **Needs `-Render`** | `THANET_OK 02_import_landscape {"import": {...}, "grid": {...}, "cliff": {...}, "clip": {...}}` or `THANET_FAIL ... gate(s) failed: ...` |
+| `04_probe.py` | six read-only modes on a saved map. `--points <csv> --landscape` → CSV `x,y,z_heightfield,z_landscape,z_landscape_collision,clipped,z_trace,blocked` (`--sample-mode bilinear\|triangulated` switches the terrain source's interpolation, which is how the 0.52 m disagreement with the landscape was measured); `--actor <id> --trace-from-above`; `--explorer`; `--landscape-info [--load-all] [--weights-at "x,y;..."]`; `--massing [--massing-at ...] [--refresh-collision]` — **fails when it finds zero massing actors** while `massing_manifest.files` is non-zero; `--materials [--load-all]` finishes shader compilation and reports the material every component would draw with and how many slots fell back to the engine default. `--load-radius-m` streams a box around each point; `--load-all` pulls the whole world in (~5 GB). **Needs `-Render`** | `THANET_OK 04_probe {"mode": ..., ...}` |
 | `06_import_massing.py` | one `AStreetscapeMassingActor` per `massing/buildings_x{i}_y{j}.jsonl`, each extruding that tile's footprints from `skirt` to `base_z + h` into one `UDynamicMeshComponent`, material `MI_massing_grey` (created here, not in `01`, so the SCHEMA.md 7 material count stays 21). Checks the actor and building counts against `massing_manifest.json`. `--dir`, `--material`, `--no-save` | `THANET_OK 06_import_massing {"actors": 216, "buildings": 20121, "matches_manifest": true, ...}` |
 | `make_cutout_manifest.py` | (pipeline python) writes a reduced `landscape_manifest.json` over a rectangle of tiles, for a fast partial import while debugging | `wrote ... n tiles` |
+| `00_build_level.ps1` | **rebuilds the whole level with one command** and then asserts it: bootstrap → landscape → test stretch → massing → the site streetscape in `-StreetscapeSlices` commandlets → two assertion passes. `-Recreate` builds from nothing, `-AllowSeamH16 <n>` is passed to the landscape gate, `-Skip*` drops a step, `-AssertOnly` runs only the assertion | one `=== <step>` line per step, then `00_build_level: level rebuilt and asserted in N s` |
+| `07_assert_level.py` | opens the saved map and compares what is in it against the adapter's manifests: streetscape actors vs `streetscape_manifest.splines_by_layer`, massing actors and buildings vs `massing_manifest`, landscape components / proxies vs the importer's own plan, plus a PlayerStart and a game mode with a default pawn. Counts come from the World Partition **external-actor packages via the asset registry** (nothing loaded), which is the only way to count 15,422 actors; `--census-only` reports without failing, `--no-load-all` skips the streaming pass | `THANET_OK 07_assert_level {"expect": {...}, "got": {...}, "problems": []}` |
 
 `Tools/ue/shots/` holds the committed PNG captures; `*.png` is routed through LFS by the root `.gitattributes`
 (`git check-attr filter -- projects/one/Tools/ue/shots/x.png` → `filter: lfs`).
@@ -132,6 +134,13 @@ np.sum's pairwise summation and float32 heightfield tiles on purpose; see Street
 | `04_probe.py --points` on 45 points with 29 400 m regions loaded | 10 s script time |
 | `04_probe.py --landscape-info --load-all` (whole world streamed in to count components) | 12.5 s script time, RSS 5.1 GB |
 | `04_probe.py --explorer` (spawn the pawn, build the input objects, read the bindings) | 3 s script time |
+| `00_build_level.ps1 -Recreate` end to end (bootstrap, landscape, test stretch, massing, 12 streetscape slices, 2 assertion passes) | ~17 min |
+| `02_import_landscape.py` full site through the region path (`--max-components 256`, 12 blocks) | 366 s, peak RSS ~19 GB |
+| `02_import_landscape.py --probes-only` on a level holding only the landscape (whole world streamed, 14,347 grid points) | 15 s |
+| `03_import_streetscape.py --slice i/12 --no-preload --save` (about 20 documents, 400-1800 actors) | 30-90 s each, ~14 min for the whole site |
+| the whole site imported: 15,423 `AStreetscapeActor` external-actor packages | 15,787 packages in the level |
+| `07_assert_level.py --no-load-all` (counts from the asset registry, nothing streamed) | 1 s |
+| `07_assert_level.py` streaming the WHOLE isle (15,423 streetscape + 216 massing + 140 proxies, every mesh rebuilt on load) | **384 s, RSS 19.5 GB** |
 
 Commandlets run with the null RHI (no `-AllowCommandletRendering`), so no shader compilation happened; expect the
 first `-Render` run of the landscape phase to be the slow one.
@@ -275,6 +284,166 @@ PYTHONPATH=projects/one/Tools/blender C:/Users/Shadow/code/3duk-env/env/python.e
   --site projects/one/schema/examples/test_stretch.json --terrain data/thanet/out/unreal/landscape --out <scratch>
 # -> z_ref_probe, z_raw_probe, bank_min/max, step_min/max, mandatory_stations all identical; PARITY OK
 ```
+
+## What was eating the level
+
+The audit before this pass recorded that the saved map lost its test-stretch actor "during a sequence of
+read-only-looking gate commands" and that the mechanism was unidentified. It is `01_bootstrap.py`.
+
+`remove_template_landscape()` exists because `--template /Engine/Maps/Templates/OpenWorld` brings its own
+landscape, minimap and 64 HLOD packages, none of which this project wants. It ran on **every** bootstrap,
+including the idempotent "the map already exists, load it and check it" path, and its class list contains
+`Landscape`. So the second time anyone ran `01_bootstrap.py` on a level that already held the imported Thanet
+landscape, the log said
+
+```
+[thanet] removing template actor Landscape_thanet (Landscape)
+```
+
+and the parent `ALandscape` was destroyed. What was left on disk was 140 `LandscapeStreamingProxy` packages and
+no landscape actor - a level that looks complete to a file count and fails every landscape probe. The proxies
+survived only because a World Partition commandlet has not streamed them in, so `get_all_level_actors()` never
+saw them; a run that HAD streamed them would have deleted those too.
+
+It now removes template actors only on the run that actually created the map from a template, and otherwise says
+what it is keeping. `--recreate` remains the switch that means "throw the map away".
+
+## Two more the gates found
+
+**The landscape's closed upper edge had no height.** `ALandscapeProxy::GetHeightAtLocation` finds the component
+with `FMath::FloorToInt32(ActorSpaceLocation / ComponentSizeQuads)` (`LandscapeCollision.cpp:2709`), so a point
+exactly on the last component's far boundary floors to an index one past the end and comes back unset. Thanet's
+padding goes north and east, which makes the site's whole southern edge (local y = 0) that boundary: the grid gate
+found 57 lattice points where the landscape reported no height and the heightfield reported -1.7 .. -2.6 m.
+`ProbeHeightM` now retries 5e-4 quads inside the extent - four orders of magnitude below the 1/128 m height
+quantum - and only when the point is genuinely inside. `landscape_none` went 57 -> 0.
+
+**`03_import_streetscape.py --json <dir>` fed `streetscape_manifest.json` to the strict document loader**, which
+is a hard failure at the very end of a site import (the manifest sorts last). Directory imports now skip
+`*_manifest.json`.
+
+## Two defects the new gates found in the level itself
+
+**The region path was losing the parent `ALandscape`.** `ImportSite` bounds its peak memory with
+`CollectGarbage(RF_NoFlags, bPerformFullPurge=true)` after every 16x16-component block. A freshly spawned World
+Partition actor that no loader adapter pins is collectable, and the parent `ALandscape` is exactly that: the
+saved Thanet map came back with **140 `LandscapeStreamingProxy` actors and no `ALandscape` at all**, so
+`FindLandscape()` returned null and `02_import_landscape.py --probes-only`, `04_probe.py --landscape-info` and
+`--points --landscape` all failed on a level that looked complete. The same import through the single-Import path
+(a 2x2 cutout, `GateClean`) kept its parent - `{"Landscape": 1, "LandscapeStreamingProxy": 4}` on disk - which is
+what pinned the cause to the region loop. `ImportSite` now roots the actor for the duration, saves its package
+with each block's proxies, marks it dirty before the final save, and reports `landscape_actor_package` and
+`landscape_actor_package_dirty_after_save` so the read-back proof is in the import report.
+
+**One street on the isle has no ground under any station.** `roads:132194822:0` in `site_x7_y7.json` is a 5-point
+fragment that lies **entirely between 0.01 m and 0.19 m inside the clip line**. `FStreetHeightfield::Sample` needs
+all four corners of its 1 m cell to be unclipped, so within about a metre of the cut it returns nothing: every
+station sampled NaN, `FillNanAlong` had nothing to hold, and the street would have been built flat at z = 0 at the
+very edge of the world. The import now names it and refuses unless `--allow-no-terrain N` says how many such
+splines are being accepted. The lasting fix is upstream/coordinated: `Sample` should fall back to the nearest
+valid corner near the clip line (the landscape itself renders and collides right up to the line - measured 6 mm),
+and the numpy `Heightfield.sample` has to change with it.
+
+## Gates that can fail (the integrity pass, 2026-09-08)
+
+Everything in this section was added because a check existed but could not report a failure. The rule now is that
+a verification mode which finds nothing FAILS, and a probe whose verdict is False FAILS the script.
+
+| was | is |
+|---|---|
+| `02_import_landscape.py` printed `THANET_OK` and exited 0 with `grid.within_0_01_m: false` - the four verdicts were data, nothing branched on them | the script branches on `grid.within_0_01_m`, `cliff.agree`, `cliff.slope_ok`, `clip.pass` and the importer's `shared_edge.ok`, and prints `THANET_FAIL ... gate(s) failed: ...` |
+| `--probes-only` streamed only the cliff tile and the clip line, so `probe_grid` (which walks every tile) left 8217 of 9775 points unstreamed and could never pass | `--probes-only` streams the whole world by default; `--no-load-all` keeps the cheap path and reports the grid probe as `"skipped": "..."` instead of a verdict |
+| `probe_grid`'s lattice was `tile_m // (per_tile + 1)` with a, b in 1..5, i.e. offsets 85..425 of a 512 m tile - it could never land on a tile edge | offsets `0, 85, 170, 255, 340, 425, 512`, so tile-boundary rows and columns are in the gate |
+| the importer measured the shared-edge disagreement, wrote `shared_edge_max_h16_delta: 2267` into the report and neither warned nor failed; and it only saw the pairs whose neighbour happened to be read first (190,831 of 378,081 samples) | `CheckSharedEdges` compares every neighbouring pair from the tile edges it already holds - complete and order-independent - and `ImportSite` returns an error above `MaxSharedEdgeH16Delta` (default 0) |
+| `03_import_streetscape.py --verify` printed `THANET_OK ... "actors": 0` after streaming a 1 km radius around UE (0, 0), which is the site's south-west corner - 11.5 km from the test stretch | 20 km radius, and zero actors is a `THANET_FAIL`; `--expect-actors N` checks the count against the manifest |
+| `04_probe.py --massing` printed success with 216 actors' worth of zeros when nothing was streamed in | zero actors against a non-empty `massing_manifest.files` is a `THANET_FAIL` that names the missing loading mode |
+| `05_screenshot.py` reported `THANET_OK` for a frame that was black apart from an overlay line, because the only guard was `distinct_rgb < 4` | `distinct_rgb`, `mean_luminance` and configurable thresholds, plus a material audit of the level in the report |
+| an unreadable heightmap tile was `continue`d in `FStreetHeightfield::LoadLandscapeDir`, so every street over it sampled NaN, was forward-filled along s and built flat | it returns false with the filename, as the wrong-size case already did |
+| an unreadable weight or visibility file was `continue`d in the landscape importer, leaving that tile's ground cover at zero | both are hard failures, like the wrong-size case two lines below them |
+| a street whose stations all sampled NaN was built flat at z = 0 and the import still returned success | `ImportStreetscapeJson` collects the `no terrain under any station` warnings and returns -1, naming the splines |
+| STAGES 5.7's "C++ check that the edge renderer's stations equal the road renderer's" existed only as a report field computed when someone asked for `ActorStatsJson` | `RebuildAllChecked` compares every renderer buffer's station set against `FStreetSamples::S` on every build of every spline, and fails the build |
+| the massing reader dropped an unparsable JSONL line and defaulted a missing `skirt` silently | `FStreetMassingStats::SkippedLines` / `SkirtDefaulted` / `SkippedBuildings`, warned about per tile and summed in the import report |
+| no `AStreetscapeActor` component was ever attached to its root: the root spline was left Movable while every child is Static, so `AttachToComponent` refused all ~16 per street | `AStreetscapeActor` sets the root spline to `EComponentMobility::Static` |
+| the `PlayerStart` stood 1.5 m above the first waypoint while BRIEF/STAGES FD.4 and this file all said 2 m | 2 m, as documented |
+
+## Rebuilding the level (and why there is one command for it)
+
+```bash
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File C:/Users/Shadow/code/3duk/projects/one/Tools/ue/00_build_level.ps1 -Recreate
+```
+
+`projects/one/Content/` is git-ignored: the level is not an artefact anyone can review, it is something the scripts
+produce. Until this script existed it was produced by hand, in an order nobody had written down, with nothing that
+would notice if it came out short - and it did. Measured 2026-09-08 before this pass:
+
+- the saved map held **140 `LandscapeStreamingProxy` actors and no `ALandscape` at all**, so
+  `02_import_landscape.py --probes-only` could not find a landscape to probe and `04_probe.py --landscape-info`
+  would have failed the same way. The landscape had been in it earlier the same day.
+- it held **one** `AStreetscapeActor` (the authored test stretch) and none of the isle's 15,422 streets, because
+  STAGES 2.12 had never been run.
+
+`00_build_level.ps1` runs bootstrap -> landscape -> test stretch -> massing -> the site streetscape (in
+`-StreetscapeSlices` separate commandlets, because every actor a run imports stays resident until it exits) and
+finishes with `07_assert_level.py`, which compares what is in the level against the adapter's own manifests and
+fails if it is short. `-AllowSeamH16 -1` waives the landscape importer's shared-edge gate for a deliberate import
+of the known-bad tile seams described below.
+
+## The tile-seam defect in the terrain data (upstream, unfixed)
+
+Neighbouring 512 m tiles write the row / column they share **twice** - tile (i, j) column 512 is tile (i+1, j)
+column 0 - and both writes come from the same source raster, so they must be identical. On Thanet they are not,
+and the landscape carries the difference as a false cliff at a tile boundary. Measured three ways, all agreeing:
+
+| measurement | number |
+|---|---|
+| shared samples across all 391 tiles (numpy over the `hm_*.r16` files) | 378,081 |
+| samples where the two writes disagree | 35,951 (max 1402 h16 = **10.95 m**) |
+| ... restricted to samples the landscape renders (neither side a visibility hole) | 28,725 of 370,797 (max 683 h16 = **5.34 m**) |
+| ... of those, more than 1 m / more than 5 m apart | 14,507 / 113 |
+| tiles with at least one disagreeing edge | 77 of 391 |
+| the importer's own check on a 2x2 cutout at tiles (23,17)-(24,17) | `864 of 2052`, worst `683 h16 = 5.336 m` at local (512, 512), −2.188 m vs 3.148 m |
+| in-engine probe of those six points (`04_probe.py --points seam.csv --landscape`) | `max_abs_dz_m 4e-05` — landscape and heightfield agree with each other, so **both carry the artefact** |
+
+**Root cause, established here and handed to the pipeline track:** every one of the 28,725 disagreeing visible
+samples sits on a cell where the source DTM has **no data**. Checked exhaustively against the nodata mask of
+`data/thanet/interim/dtm.vrt` (11.273 % of the mosaic, open sea): `at_source_nodata 28725, at_source_data 0`, and
+`max_delta_h16_where_source_has_data = 0`. Step 05 fills NoData **per tile**, so a sea cell filled from inside
+tile A gets a different nearest neighbour than the same cell filled from inside tile B. The surveyed ground is
+bit-identical across every seam; only the fill disagrees. The fix belongs upstream (fill the mosaic, or fill the
+shared edge once).
+
+What the Unreal side does about it: `ImportSite` compares every shared edge (order-independently, from the tile
+edges it already has in hand) and **refuses the import** when the two writes disagree by more than
+`MaxSharedEdgeH16Delta` (default 0). Proven both ways on 2 x 2 cutouts:
+
+```
+tiles (23,17)  -> THANET_FAIL 02_import_landscape import_site failed: shared tile edges disagree: 864 of 2052 ...
+tiles (15,15)  -> LogStreetscapeEditor: ImportSite: shared tile edges agree exactly over 2052 visible samples
+```
+
+`probe_grid` in `02_import_landscape.py` now samples the tile boundary rows and columns as well as the interior
+(offsets 0 and `tile_m`, not just 85..425 of a 512 m tile), so the one place the assembly can go wrong is no
+longer the one place the gate cannot look.
+
+## Two ground surfaces, two interpolation rules
+
+The plugin's terrain source (`UStreetHeightfieldTerrain`, what every spline, road, kerb, hedge and rail is draped
+on) interpolates the 1 m grid **bilinearly**, because that is what the numpy prototype does and what every frozen
+parity number was computed with. The `ALandscape` the pawn collides with is a **triangle mesh**: Chaos splits each
+cell on its (0,0)-(1,1) diagonal (`Chaos::FHeightField::GetHeightAt` -> `GetHeightNormalAt`,
+`Engine/Source/Runtime/Experimental/Chaos/Private/Chaos/HeightField.cpp:921-968`, reached from
+`ALandscapeProxy::GetHeightAtLocation`, `LandscapeCollision.cpp:2703` -> `:2548`). On steep ground the two differ
+by up to **0.52 m** - four times the 0.125 m kerb Renderer B exists to model.
+
+`EStreetHeightSampling::LandscapeTriangulated` implements the engine's rule exactly and
+`Streetscape.Terrain.Triangulated` proves it: on the measured Ramsgate harbour-wall cell (corners SW −2.182,
+SE −0.435, NW −1.781, NE 2.240) bilinear gives −0.40959 and the triangulated rule gives −0.92735, the height the
+engine itself returned there; on a planar patch the two agree to 0 over 2000 points, and at grid posts they are
+identical. `04_probe.py --points --sample-mode triangulated` measures it against the live landscape.
+
+**The default is still Bilinear.** Switching it moves every number in
+`Tools/blender/tests/fixtures/expected.json` and `renders/trinity_square.stats.json`, which the geometry track
+owns: the numpy `Heightfield.sample` has to adopt the same rule in the same change.
 
 ## Opening the project in the GUI later
 

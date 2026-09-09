@@ -91,7 +91,7 @@ if skipped:
 if CLIP is not None:
     on_disk = [[i, j] for (i, j) in skipped
                if any(os.path.exists(os.path.join(P["lidar"], f"{k}_x{i}_y{j}.tif")) for k in ("dtm", "dsm"))]
-    json.dump({"clip": lib.clip_manifest(CLIP),
+    json.dump({"clip": lib.clip_manifest(CLIP, CFG),
                "skipped_positions": [[i, j] for (i, j) in skipped],
                "skipped_positions_on_disk": on_disk,
                "note": "skipped_positions are wholly outside the clip and were not requested this run; "
