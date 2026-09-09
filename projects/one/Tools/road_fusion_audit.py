@@ -13,8 +13,37 @@ landscape given by --landscape, which is the product the engine actually imports
 pointing at ``landscape_conformed`` it is the acceptance gate.
 
 Exit 1 (and a GATE FAIL line) when the worst penetration exceeds --gate-m or the worst float exceeds
---float-gate-m.  `--sampling landscape_triangulated` measures against the surface the pawn walks on
-and the camera sees, rather than the bilinear numpy contract; the two differ only between grid posts.
+--float-gate-m.
+
+WHAT THIS GATE DOES NOT MEASURE, and why the pictures disagreed with it
+----------------------------------------------------------------------
+At commit b1cd3e5 this gate said GATE PASS over the whole isle -- zero penetration, 0.03 m of
+clearance -- and 16 of the 31 street frames of ``renders/b1cd3e5`` had no carriageway in them.  Both
+were true.  Three measurements settled why (2026-09-09, clearance agent; raw output under
+``projects/one/Saved/Clearance/``):
+
+1. It is NOT the sampling rule.  Over 241,205 points inside real corridors on that product, the
+   bilinear rule and the landscape's own triangulated rule disagree by 0.4 mm at the median, 5.4 mm
+   at the p95 and 13 mm at the p99, and NEITHER puts a single point of ground above a road.
+   (``Saved/Clearance/rules_conformed.json``; --sampling now defaults to the triangulated rule
+   anyway, so the measurement is of the surface the camera sees.)
+2. It IS the landscape's level of detail -- the surface it DRAWS, which is not the surface
+   ``GetHeightAtLocation`` returns.  ``--lod k`` measures against it (Heightfield.lod_skeleton):
+   ground above the road at 0.04 % of corridor points at LOD 1, 3.2 % at LOD 2, 15.2 % at LOD 3
+   (p99 0.32 m, max 4.36 m).  A 0.03 m sink survives none of that.
+3. Proved in the engine, same camera, same level, same conform, one property changed:
+   ``broadstairs/st_peters_high_street`` and ``cliftonville/princess_margaret_avenue_at_northdown``
+   render as unbroken grass with the render harness's LOD "pin" applied, and as complete streets --
+   carriageway, kerbs, both footways -- with ``MaxLODLevel = 0``, and equally with the landscape's
+   OWN default LOD settings.  The harness's pin sets LODDistributionSetting and
+   LOD0DistributionSetting to 1.0, and ``LandscapeRender.cpp:1548-1568`` divides the screen-size
+   ratio by ``max(distribution, 1.01)`` per level -- so with 1.0 every LOD threshold collapses onto
+   the LOD0 one and a component that leaves LOD0 falls straight to the coarsest LOD in the chain.
+   The fix for the road defect was the road defect.  See needs_from_others.
+
+So the sink is not "3 cm is enough because the numbers say zero": it is set from an engine sweep
+(``Saved/Clearance/frames3``, the landscape lowered by 0, 5, 10 and 20 cm under a fixed camera) and
+bounded by what the built block can cover -- ``conform.sink_profile``.
 """
 from __future__ import annotations
 
@@ -50,7 +79,19 @@ def main():
     ap.add_argument("--k-road", type=int, default=9)
     ap.add_argument("--k-edge", type=int, default=5)
     ap.add_argument("--layers", default="roads,rail")
-    ap.add_argument("--sampling", default="bilinear", choices=["bilinear", "landscape_triangulated"])
+    ap.add_argument("--sampling", default="landscape_triangulated",
+                    choices=["bilinear", "landscape_triangulated"],
+                    help="the rule the LANDSCAPE is read with.  Default is the landscape's own "
+                         "triangulation -- the surface the camera sees and the pawn walks on "
+                         "(docs/TERRAIN_ROADS.md 3.5), not the numpy bilinear contract.  Inside real "
+                         "corridors the two differ by 0.4 mm at the median and 13 mm at the p99 "
+                         "(Saved/Clearance/rules_conformed.json), so this changes the number very "
+                         "little and the claim a great deal.")
+    ap.add_argument("--structures", default="skip", choices=["skip", "include"],
+                    help="ways flagged bridge or tunnel carry the elevation of the ground UNDER the "
+                         "structure, unadjusted (06_build_networks.py:15-16), and the conform does not "
+                         "burn them.  Measuring 'is the ground above the deck' on those is measuring "
+                         "the wrong thing: they are counted and named, not gated.")
     ap.add_argument("--slope", action="store_true", help="also bucket by terrain slope (4 extra samples/station)")
     ap.add_argument("--gate-m", type=float, default=None)
     ap.add_argument("--float-gate-m", type=float, default=0.125,
@@ -59,6 +100,11 @@ def main():
                     help="fail when more than this fraction of stations float (the recorded baseline; "
                          "it may only go down, as the geometry track turns the recorded runs into "
                          "embankments and retaining walls)")
+    ap.add_argument("--lod", type=int, default=0,
+                    help="measure against the surface the landscape DRAWS at this level of detail "
+                         "(Heightfield.lod_skeleton), not the one its height query returns.  0 is "
+                         "the full triangulation.  This is the difference between a road that is "
+                         "above the ground in the data and a road that is visible.")
     ap.add_argument("--worst", type=int, default=20, help="how many worst stations to list")
     ap.add_argument("--out", required=True)
     args = ap.parse_args()
@@ -68,6 +114,8 @@ def main():
     hf_survey = Heightfield.from_landscape_dir(args.survey)
     same = os.path.abspath(args.survey) == os.path.abspath(args.landscape)
     hf_test = hf_survey if same else Heightfield.from_landscape_dir(args.landscape)
+    if args.lod > 0:
+        hf_test = hf_test.lod_skeleton(args.lod)
     hf_test.sampling = args.sampling
     print("survey %d tiles, test %d tiles (%s), %.1f s"
           % (len(hf_survey.tiles), len(hf_test.tiles), args.sampling, time.time() - t0), flush=True)
@@ -101,6 +149,7 @@ def main():
     cache = {}
     records = []
     skipped = []
+    structures = []
     worst = []
     for n, (path, i) in enumerate(chosen):
         if path not in cache:
@@ -108,6 +157,10 @@ def main():
         site = cache[path]
         sdef = site.splines[i]
         cls = (sdef.source.cls if sdef.source is not None else None) or "?"
+        if args.structures == "skip" and sdef.flags is not None and (sdef.flags.bridge or sdef.flags.tunnel):
+            structures.append([os.path.basename(path), sdef.id, cls,
+                               "bridge" if sdef.flags.bridge else "tunnel"])
+            continue
         try:
             sp = Spline(sdef, site, hf_survey)
         except Exception as e:                                          # noqa: BLE001
@@ -139,10 +192,15 @@ def main():
     out = {"config": {"landscape": os.path.abspath(args.landscape).replace("\\", "/"),
                       "survey": os.path.abspath(args.survey).replace("\\", "/"),
                       "streetscape": os.path.abspath(args.streetscape).replace("\\", "/"),
-                      "sampling": args.sampling, "k_road": args.k_road, "k_edge": args.k_edge,
+                      "sampling": args.sampling, "lod": args.lod, "structures": args.structures,
+                      "k_road": args.k_road, "k_edge": args.k_edge,
                       "layers": sorted(layers), "n": len(chosen), "extra_docs": args.extra_doc,
                       "elapsed_s": round(time.time() - t0, 1)},
            "summary": agg, "skipped": skipped, "skipped_count": len(skipped),
+           "structures_not_gated": structures[:400], "structures_not_gated_count": len(structures),
+           "structures_note": ("bridge/tunnel ways are excluded from the gate: their elevation is the "
+                               "ground under the structure, unadjusted, and the conform does not burn "
+                               "them.  Pass --structures include to measure them anyway."),
            "worst_stations": [{"penetration_m": w[0], "float_m": w[1], "spline_id": w[2], "cls": w[3],
                                "doc": w[4], "station": w[5], "s_m": w[6], "local_xy_m": [w[7], w[8]]}
                               for w in worst[:args.worst]]}

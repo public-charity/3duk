@@ -130,6 +130,23 @@ def _cross_checks(site: S.Site) -> List[str]:
         if sp.id in seen:
             errs.append("$.splines[%d]: duplicate spline id %r" % (si, sp.id))
         seen.add(sp.id)
+    # junctions (SCHEMA.md 4.18).  A junction is now read by the geometry core, so an end that points
+    # at nothing is a structural error rather than an unread placeholder: it would silently shrink the
+    # junction by one arm and change the trim radius of every other arm at that node.
+    jids = set()
+    for ji, j in enumerate(site.junctions):
+        jw = "$.junctions[%d] (%s)" % (ji, j.id)
+        if j.id in jids:
+            errs.append("%s: duplicate junction id" % jw)
+        jids.add(j.id)
+        for ei, e in enumerate(j.ends):
+            if e.spline_id not in seen:
+                errs.append("%s.ends[%d]: spline %r is not in this document" % (jw, ei, e.spline_id))
+    for si, sp in enumerate(site.splines):
+        for slot in ("junction_start", "junction_end"):
+            v = getattr(sp, slot)
+            if v is not None and v not in jids:
+                errs.append("$.splines[%d] (%s).%s: %r is not in junctions[]" % (si, sp.id, slot, v))
     return errs
 
 
@@ -161,6 +178,23 @@ def validate_warnings(doc: dict) -> List[str]:
     for pid, p in site.profiles.road.items():
         if p.lane_widths_m and sum(p.lane_widths_m) > p.width_m + 1e-9:
             warns.append("$.profiles.road.%s: sum(lane_widths_m) %r > width_m %r" % (pid, sum(p.lane_widths_m), p.width_m))
+    # junctions (SCHEMA.md 4.18): the geometry core silently skips these, so say so here
+    snap = float(S.JUNCTION_DEFAULTS["snap_m"])
+    by_id = {sp.id: sp for sp in site.splines}
+    for ji, j in enumerate(site.junctions):
+        jw = "$.junctions[%d] (%s)" % (ji, j.id)
+        if j.kind == "disc" and len(j.ends) < 3:
+            warns.append("%s: kind 'disc' with %d end(s): nothing is trimmed or filled below 3"
+                         % (jw, len(j.ends)))
+        for ei, e in enumerate(j.ends):
+            sp = by_id.get(e.spline_id)
+            if sp is None or not sp.points:
+                continue
+            p = sp.points[0] if e.end == "start" else sp.points[-1]
+            d = float((p.x - j.x) ** 2 + (p.y - j.y) ** 2) ** 0.5
+            if d > snap:
+                warns.append("%s.ends[%d]: spline %s %s is %.3f m from the node (junction_snap_m %.1f)"
+                             % (jw, ei, e.spline_id, e.end, d, snap))
     return warns
 
 

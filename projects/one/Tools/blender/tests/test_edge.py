@@ -312,6 +312,12 @@ class TestRealThanetEmbankment(unittest.TestCase):
         sid = E["spline"]
         doc = copy.deepcopy(doc)
         doc["splines"] = [sp for sp in doc["splines"] if sp["id"] == sid]
+        # keeping one spline out of a real tile leaves the tile's junctions pointing at splines that
+        # are no longer here, which io_json now (rightly) calls a structural error: drop them with the
+        # splines they refer to.  Nothing in this test is about junctions.
+        doc["junctions"] = []
+        for slot in ("junction_start", "junction_end"):
+            doc["splines"][0][slot] = None
         self.assertEqual(len(doc["splines"]), 1)
         self.assertIsNone(doc["splines"][0]["profile_ids"]["edge_left"])
         self.assertIsNone(doc["splines"][0]["profile_ids"]["edge_right"])

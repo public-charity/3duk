@@ -293,6 +293,30 @@ ROAD_SAMPLING_DEFAULTS = dict(step_m=2.0, min_step_m=0.25, curvature_gain=20.0, 
 RAIL_SAMPLING_DEFAULTS = dict(ROAD_SAMPLING_DEFAULTS, step_m=1.0, curvature_gain=60.0,
                               smoothing_window_m=40.0, smoothing_passes=2, bank_max_deg=6.0)
 
+# Junction policy (SCHEMA.md 4.18).  These are DEFAULTS OF THE GEOMETRY CORE, not document fields:
+# nothing about a junction that a renderer needs is stored per junction that can be derived from the
+# splines that meet there.  The C++ port must carry the same numbers.
+#
+#   snap_m                a spline end within this distance of (x, y) is an arm of the junction
+#                         (the adapter's own junction_snap_m; measured max on Thanet is 0.257 m)
+#   clearance_deg         angular clearance eps subtracted from each adjacent arm gap before the trim
+#                         radius is solved, so two neighbouring carriageways never touch in plan
+#   max_trim_radius_m     the point beyond which an arm's requirement is declared UNSEPARABLE and the
+#                         arm falls back to the junction's own radius_m.  20 m separates every arm
+#                         pair on Thanet down to a 21 degree gap (the 1st percentile of the 5,185
+#                         measured gaps); below that the requirement runs away as 1/tan and the trim
+#                         would cost more road than the overlap it removes
+#   max_trim_frac_of_length  an arm never gives up more than this fraction of its own spline to one
+#                         junction, whatever the angles ask for
+#   min_remaining_m       a spline trimmed at both ends keeps at least this much; below it both trims
+#                         are scaled by one common factor rather than the spline vanishing or inverting
+#   corner_step_deg       plan resolution of the Renderer B kerb corner and of the Renderer A patch
+#                         boundary that follows it
+#   corner_handle_frac    cap on the cubic corner handle as a fraction of the endpoint's distance to
+#                         the junction centre, so the fillet can never fold through the centre
+JUNCTION_DEFAULTS = dict(snap_m=0.3, clearance_deg=2.0, max_trim_radius_m=20.0, min_remaining_m=1.0,
+                         max_trim_frac_of_length=0.5, corner_step_deg=10.0, corner_handle_frac=0.45)
+
 
 @dataclass
 class Camber(SchemaObject):
@@ -992,12 +1016,23 @@ class JunctionEnd(SchemaObject):
 
 @dataclass
 class Junction(SchemaObject):
+    """SCHEMA.md 4.18.  ``kind: "disc"`` means the junction is SURFACED: the shared spline layer trims
+    every arm listed in ``ends`` back to the derived trim radius, Renderer A fills the hole with a
+    tarmac patch and Renderer B turns the kerb corner between adjacent arms.  ``kind: "none"`` means
+    the record is a plain node: nothing is trimmed and nothing is filled.
+
+    Only ``trim_radius_m`` was added when junctions stopped being placeholders, and it is an OVERRIDE,
+    never a stored derivation: leave it null (as the adapter does) and the radius is solved from
+    ``radius_m``, the arms' own directions and the arms' own half-widths, so it can never go stale
+    when a profile width changes."""
+
     SPEC = {
         "id": (ID, True, ""),
         "x": (NUM, True, 0.0),
         "y": (NUM, True, 0.0),
         "z": (_S("opt", NUM), False, None),
         "radius_m": (NONNEG, False, None),
+        "trim_radius_m": (_S("opt", NONNEG), False, None),
         "kind": (_S("enum", ("disc", "none")), False, "disc"),
         "ends": (_S("list", _S("obj", JunctionEnd)), True, list),
     }
@@ -1006,6 +1041,7 @@ class Junction(SchemaObject):
     y: float = 0.0
     z: Optional[float] = None
     radius_m: Optional[float] = None
+    trim_radius_m: Optional[float] = None
     kind: str = "disc"
     ends: List[JunctionEnd] = field(default_factory=list)
 

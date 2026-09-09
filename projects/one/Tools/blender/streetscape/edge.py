@@ -11,7 +11,12 @@ level (``spline.edge_height(side)``).  Per station (from the resolved SideSpec):
 D, S, E share one height: the split boundary is flush by construction.  The S row is always emitted
 (at 0.5 * kw with the kerb material where no split is in force) so one row set serves the whole
 sweep and a profile switch changes only materials.  Groups: ``kerb``, ``pavement``,
-``barrier:<type>:<s0>``, ``embankment:<kind>:<s0>``.
+``barrier:<type>:<s0>``, ``embankment:<kind>:<s0>``, ``corner_kerb:<junction>:<k>``,
+``corner_pavement:<junction>:<k>``.
+
+At a junction the kerb stops at the SHARED trim (``spline.active``, resolved in spline.py so Renderer A
+stops at the identical station) and ``build_junction_corners`` turns the corner between adjacent arms
+with a fillet instead of running on into the middle of the crossing (SCHEMA.md 4.18).
 """
 from __future__ import annotations
 
@@ -23,7 +28,7 @@ import numpy as np
 from . import schema as S
 from .instance import Instance, make_transform
 from .mesh import MeshBuffer
-from .spline import Spline
+from .spline import JunctionPlan, Spline, corner_curve, corner_frames, resolve_arm_frames
 from .sweep import Section, SectionPoint, sweep
 
 
@@ -39,22 +44,23 @@ def post_stations(a: float, b: float, pitch: float) -> List[float]:
     return out
 
 
-def _kerb_section(spec: S.SideSpec, spline: Spline, side: int):
-    """Per-station point arrays (N, P) and the material/group layout of the kerb + pavement section."""
-    N = spline.n
-    m = spec.arc_points
-    kw, hk, r = spec.kerb_width, spec.hk, spec.lip_r
-    pw, hkb = spec.pavement_width, spec.hk_back
-    ti, td, sk = spec.tuck_in, spec.tuck_depth, spec.skirt
-    frac = np.where(spec.split, spec.split_frac, 0.5)
-    cols_o = [-ti, np.zeros(N), np.zeros(N)]
-    cols_h = [-td, -td, hk - r]
+def kerb_columns(kw, hk, r, pw, hkb, ti, td, sk, frac, lip_kind, m: int):
+    """(O (M, P), Hh (M, P)) of the kerb + pavement section, from per-station scalars only.
+
+    The ONE definition of the section's shape: ``_kerb_section`` evaluates it along a spline and
+    ``build_junction_corner`` evaluates it along a corner arc between two arms, so a corner is the same
+    kerb as the straight it grew out of and cannot drift from it (BRIEF 1.1's "same spline" rule applied
+    to the one place where there is no spline)."""
+    M = len(np.atleast_1d(hk))
+    z = np.zeros(M)
+    cols_o = [-ti + z, z.copy(), z.copy()]
+    cols_h = [-td + z, -td + z, hk - r]
     for j in range(1, m + 1):
         th = math.radians(90.0 * j / (m + 1))
-        lo = np.zeros(N)
-        lh = np.zeros(N)
-        for i in range(N):
-            kind = spec.lip_kind[i]
+        lo = np.zeros(M)
+        lh = np.zeros(M)
+        for i in range(M):
+            kind = lip_kind[i]
             if kind == "radius":
                 lo[i] = r[i] - r[i] * math.cos(th)
                 lh[i] = hk[i] - r[i] + r[i] * math.sin(th)
@@ -67,10 +73,26 @@ def _kerb_section(spec: S.SideSpec, spline: Spline, side: int):
                 lh[i] = hk[i]
         cols_o.append(lo)
         cols_h.append(lh)
-    cols_o += [r, kw * frac, kw, kw + pw, kw + pw]
-    cols_h += [hk, hk, hk, hkb, -sk]
-    O = np.column_stack(cols_o)
-    Hh = np.column_stack(cols_h)
+    cols_o += [r + z, kw * frac, kw + z, kw + pw, kw + pw]
+    cols_h += [hk + z, hk + z, hk + z, hkb + z, -sk + z]
+    return np.column_stack(cols_o), np.column_stack(cols_h)
+
+
+def kerb_layout(m: int):
+    """(smooth (P,), groups (E,), n_inner_edges) of the kerb + pavement section."""
+    n_inner_edges = 2 + (m + 1)          # A-B, B-C, C..D
+    groups = ["kerb"] * (n_inner_edges + 2) + ["pavement", "pavement"]
+    smooth = [False, False, True] + [True] * m + [True, True, True, False, False]
+    return smooth, groups, n_inner_edges
+
+
+def _kerb_section(spec: S.SideSpec, spline: Spline, side: int):
+    """Per-station point arrays (N, P) and the material/group layout of the kerb + pavement section."""
+    N = spline.n
+    m = spec.arc_points
+    frac = np.where(spec.split, spec.split_frac, 0.5)
+    O, Hh = kerb_columns(spec.kerb_width, spec.hk, spec.lip_r, spec.pavement_width, spec.hk_back,
+                         spec.tuck_in, spec.tuck_depth, spec.skirt, frac, spec.lip_kind, m)
     P = O.shape[1]
     # edges: A-B, B-C, C-L1, ..., Lm-D, D-S, S-E, E-F, F-G
     E = P - 1
@@ -81,15 +103,13 @@ def _kerb_section(spec: S.SideSpec, spline: Spline, side: int):
     pav = spec.mat_pavement
     top_out = np.where(spec.split, outer, kerb)
     pav_mat = np.where(spec.split, outer, pav)
-    n_inner_edges = 2 + (m + 1)          # A-B, B-C, C..D
+    smooth, groups, n_inner_edges = kerb_layout(m)
     for k in range(n_inner_edges):
         mats[:, k] = inner
     mats[:, n_inner_edges] = inner       # D-S (top_in)
     mats[:, n_inner_edges + 1] = top_out  # S-E
     mats[:, n_inner_edges + 2] = pav_mat  # E-F
     mats[:, n_inner_edges + 3] = pav_mat  # F-G
-    groups = ["kerb"] * (n_inner_edges + 2) + ["pavement", "pavement"]
-    smooth = [False, False, True] + [True] * m + [True, True, True, False, False]
     # nominal v = cumulative section length of the base profile at station 0
     v = [0.0]
     for k in range(1, P):
@@ -117,7 +137,10 @@ def build_edge(spline: Spline, side: int, terrain=None, params=None) -> Tuple[Me
     buf = MeshBuffer()
     inst: List[Instance] = []
     spec = spline.side_spec[side]
-    if not spec.present.any():
+    # the junction trim is a mask on the SHARED spline, so Renderer B stops exactly where Renderer A
+    # does: kerb and pavement never run on into the middle of a junction (SCHEMA.md 4.18)
+    present = spec.present & spline.active
+    if not present.any():
         return buf, inst
     o0 = spline.edge_offset(side)
     h0 = spline.edge_height(side)
@@ -129,14 +152,14 @@ def build_edge(spline: Spline, side: int, terrain=None, params=None) -> Tuple[Me
     if spec.has_kerb_or_pavement:
         section, O, Hh, mats, groups = _kerb_section(spec, spline, side)
         sweep(buf, section, frames, side=side, lateral=o0, height=h0, point_o=O, point_h=Hh,
-              mask=spec.present, cap_start=True, cap_end=True, cap_mat=None, group=groups, edge_mat_station=mats)
+              mask=present, cap_start=True, cap_end=True, cap_mat=None, group=groups, edge_mat_station=mats)
 
     # -- barriers ----------------------------------------------------------------------------------
     hb_all = h0 + spec.hk_back
     for a, b, bar in spec.barrier_timeline:
         if bar is None or bar.type == "none":
             continue
-        mask = (s >= a - 1e-9) & (s <= b + 1e-9)
+        mask = (s >= a - 1e-9) & (s <= b + 1e-9) & spline.active
         if mask.sum() < 2:
             # a barrier run shorter than one station gap sweeps nothing; say so instead of vanishing
             spline.warnings.append("barrier %s %s [%g, %g] covers %d station(s): nothing swept"
@@ -157,7 +180,8 @@ def build_edge(spline: Spline, side: int, terrain=None, params=None) -> Tuple[Me
             kind = "post_round" if bar.type in S.FENCE_TYPES else "post_square"
             ps = float(bar.post_size_m)
             post_h = H + 0.05 if bar.type in S.FENCE_TYPES else H
-            sj = np.array(post_stations(a, b, float(bar.post_pitch_m)))
+            sj = np.array(post_stations(max(a, spline.s_trim[0]), min(b, spline.s_trim[1]),
+                                        float(bar.post_pitch_m)))
             fr = frames.at(sj)
             ob_j = np.interp(sj, s, ob)
             hb_j = np.interp(sj, s, hb_all)
@@ -190,7 +214,7 @@ def build_edge(spline: Spline, side: int, terrain=None, params=None) -> Tuple[Me
             z_b = spline.z_ref + h0 + spec.hk_back
             zt = terrain.sample(xy_b[:, 0], xy_b[:, 1])
             dz = z_b - zt
-            valid = np.isfinite(dz) & rng
+            valid = np.isfinite(dz) & rng & spline.active
             thr = float(emb.threshold_m)
             want_batter = emb.kind in ("batter", "auto")
             want_wall = emb.kind in ("retaining_wall", "auto")
@@ -220,3 +244,97 @@ def build_edge(spline: Spline, side: int, terrain=None, params=None) -> Tuple[Me
                     sweep(buf, sec, frames, side=side, lateral=ob, height=hb_all, point_o=O, point_h=Hh, mask=mask,
                           cap_start=True, cap_end=True, cap_mat=emb.material, group="embankment:retaining_wall:%g" % a)
     return buf, inst
+
+
+# --------------------------------------------------------------------------------------------
+# the junction corner (still Renderer B: a kerb that turns is still a kerb -- BRIEF 1.1)
+# --------------------------------------------------------------------------------------------
+
+def build_junction_corners(plan: JunctionPlan, junction_id: str, splines, buf: MeshBuffer) -> dict:
+    """Sweep the kerb + pavement round the corner between each adjacent pair of arms, into ``buf``.
+
+    The kerb stops at the trim (``build_edge`` masks by ``spline.active``) and this picks it up there:
+    the corner's first ring is the arm's own last ring -- same position, same outward normal, same up
+    vector -- so there is no kink and no gap at the join, and the fillet turns the corner instead of
+    running on into the middle of the junction.
+
+    THE OVERLAP RULE HOLDS ALONG THE CORNER BY CONSTRUCTION.  The corner is swept along the KERB LINE
+    (``ArmFrame.p_hi`` / ``p_lo`` are the kerb-line origins, so ``lateral = 0``), and Renderer A's patch
+    boundary is that same curve, from the same ``corner_curve`` call, offset outward by the arm's own
+    ``overlap_m`` and dropped by its ``skirt_drop_m``.  The road therefore overhangs the corner kerb by
+    exactly ``overlap_m`` (40 mm on the UK profiles) at every sample, the same as it does along a
+    straight -- measured, not assumed, by ``test_junction.TestCorner.test_overlap_along_corner``.
+
+    The two arms may carry different edge profiles.  Every scalar of the section is linearly
+    interpolated along the corner and the material set switches at the midpoint, so a brick kerb meeting
+    a concrete one changes over halfway round rather than at a seam.  Sections whose ARC POINT COUNT
+    differs cannot be interpolated column for column; those corners are skipped and counted."""
+    out = {"corners": 0, "skipped_no_kerb": 0, "skipped_incompatible": 0, "verts": 0, "tris": 0}
+    frames = resolve_arm_frames(plan, junction_id, splines)
+    if frames is None or len(frames) < 3:
+        return out
+    j = plan.junction(junction_id)
+    node = np.array([j.x, j.y], dtype=np.float64)
+    cfg = plan.cfg
+    v0, t0 = len(buf.v), len(buf.f)
+    for k, af in enumerate(frames):
+        nx = frames[(k + 1) % len(frames)]
+        sa, ia = af.spline.side_spec[af.side_hi], af.i
+        sb, ib = nx.spline.side_spec[nx.side_lo], nx.i
+        use_a = bool(sa.has_kerb_or_pavement and sa.present[ia])
+        use_b = bool(sb.has_kerb_or_pavement and sb.present[ib])
+        if not (use_a or use_b):
+            out["skipped_no_kerb"] += 1
+            continue
+        # one arm kerbed and the other not (a footway meeting a street): run THAT arm's section round
+        # the corner unchanged and cap the far end, rather than leaving the kerb hanging at the trim
+        cap_start, cap_end = False, False
+        if not use_b:
+            sb, ib, cap_end = sa, ia, True
+        elif not use_a:
+            sa, ia, cap_start = sb, ib, True
+        if int(sa.arc_points) != int(sb.arc_points):
+            out["skipped_incompatible"] += 1
+            continue
+        P, T = corner_curve(af.p_hi, nx.p_lo, -af.u, nx.u, node,
+                            cfg["corner_step_deg"], cfg["corner_handle_frac"])
+        fr = corner_frames(P, T, af.n_hi, nx.n_lo)
+        fr.s = fr.s + float(af.spline.s[af.i])          # UV u keeps running in metres across the join
+        M = len(P)
+        t = np.linspace(0.0, 1.0, M)
+
+        def lerp(name):
+            return (1.0 - t) * float(getattr(sa, name)[ia]) + t * float(getattr(sb, name)[ib])
+        frac_a = float(sa.split_frac[ia]) if bool(sa.split[ia]) else 0.5
+        frac_b = float(sb.split_frac[ib]) if bool(sb.split[ib]) else 0.5
+        m = int(sa.arc_points)
+        half = M // 2
+        lip_kind = [str(sa.lip_kind[ia])] * half + [str(sb.lip_kind[ib])] * (M - half)
+        O, Hh = kerb_columns(lerp("kerb_width"), lerp("hk"), lerp("lip_r"), lerp("pavement_width"),
+                             lerp("hk_back"), lerp("tuck_in"), lerp("tuck_depth"), lerp("skirt"),
+                             (1.0 - t) * frac_a + t * frac_b, lip_kind, m)
+        P_pts = O.shape[1]
+        E = P_pts - 1
+        smooth, groups, n_inner = kerb_layout(m)
+        mats = np.empty((M, E), dtype=object)
+        for row, (spec, idx) in enumerate([(sa, ia)] * half + [(sb, ib)] * (M - half)):
+            split = bool(spec.split[idx])
+            inner = str(spec.mat_inner[idx])
+            for c in range(n_inner + 1):
+                mats[row, c] = inner
+            mats[row, n_inner + 1] = str(spec.mat_outer[idx]) if split else str(spec.mat_kerb[idx])
+            pav = str(spec.mat_outer[idx]) if split else str(spec.mat_pavement[idx])
+            mats[row, n_inner + 2] = pav
+            mats[row, n_inner + 3] = pav
+        v = [0.0]
+        for c in range(1, P_pts):
+            v.append(v[-1] + float(np.hypot(O[0, c] - O[0, c - 1], Hh[0, c] - Hh[0, c - 1])))
+        section = Section(tuple(SectionPoint(float(O[0, c]), float(Hh[0, c]), str(mats[0, min(c, E - 1)]),
+                                             v[c], smooth[c]) for c in range(P_pts)), False)
+        gnames = ["corner_%s:%s:%d" % (g, junction_id, k) for g in groups]
+        sweep(buf, section, fr, side=-1, lateral=0.0, height=0.0, point_o=O, point_h=Hh,
+              cap_start=cap_start, cap_end=cap_end, cap_mat=None, group=gnames, edge_mat_station=mats)
+        out["corners"] += 1
+    out["verts"] = len(buf.v) - v0
+    out["tris"] = len(buf.f) - t0
+    return out

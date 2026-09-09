@@ -46,6 +46,18 @@ that config and run `photos.py assign` to re-file the catalogue without re-downl
 | **commons** | mixed CC / PD | landmark-heavy | Medium. Often the highest resolution, and clusters on exactly the buildings worth modelling. |
 | **flickr** | CC (derivative-permitting only) | variable | Medium; needs `FLICKR_API_KEY`. |
 
+**A third of the Geograph corpus is low resolution and there is nothing to be done about it.**
+`_original.jpg` — the photographer's upload — only exists for images uploaded above the old
+site display size. Measured over the completed Thanet download: 2,905 of 8,659 Geograph images
+(34%) have no `_original` and no `_1024x1024` either, so the fetcher falls back to the plain
+`.jpg` at roughly 640 px. Those are ~100 KB against 789 KB median for the rest. Treat them as
+reference and context, not as reconstruction input; `url_used` in the manifest records which
+rung each file came from, so you can filter on it:
+
+```bash
+grep '"source": "geograph"' images/margate/MANIFEST.jsonl | grep '_original'   # the usable ones
+```
+
 Set the two keys and re-run `catalogue` to fold them in:
 
 ```bash

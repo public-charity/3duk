@@ -1371,6 +1371,45 @@ def furniture(cfg, adp, src, out, warnings, strict=False):
     return {"dir": "furniture", "manifest": "furniture/furniture_manifest.json", "files": nf, "placed": n}
 
 
+def derived_products(out):
+    """Index the products that live BESIDE this adapter's output but are not written by it.
+
+    ``landscape_conformed`` is the one that matters today: it is the landscape the engine actually
+    imports (projects/one/Tools/conform_landscape.py burns the road corridor into a copy), and until
+    now the root index listed only ``landscape``, so the product a consumer loads was announced by
+    nothing but its own manifest.  The adapter does not build it and must not pretend to: this block
+    says what is on disk, who wrote it, and that its heights are no longer the survey inside the
+    corridor.  An absent directory yields an entry with ``present: false`` rather than no entry at
+    all, so "not built yet" and "not known about" cannot be confused.
+    """
+    known = {"landscape_conformed": {
+        "derived_from": "landscape",
+        "generator": "projects/one/Tools/conform_landscape.py",
+        "manifest": "landscape_conformed/landscape_manifest.json",
+        "why": ("the road corridor burned into a copy of the landscape so the built street sits on "
+                "the ground instead of in it (projects/one/docs/TERRAIN_ROADS.md 8); the heights "
+                "inside the corridor are the ROAD, not the survey, and conform_delta_x{i}_y{j}.r16 "
+                "recovers the survey cell by cell"),
+        "written_by_this_adapter": False,
+    }}
+    out_block = {}
+    for name, meta in known.items():
+        entry = dict(meta)
+        mpath = os.path.join(out, name, "landscape_manifest.json")
+        man = _jload(mpath) if os.path.exists(mpath) else None
+        entry["present"] = man is not None
+        if man is not None:
+            c = man.get("conform") or {}
+            entry["generated_utc"] = c.get("generated_utc")
+            entry["commit"] = c.get("commit")
+            entry["cells_changed"] = c.get("cells_changed")
+            entry["max_fill_m"] = c.get("max_fill_m")
+            entry["max_cut_m"] = c.get("max_cut_m")
+            entry["heightmap_semantics"] = (man.get("heightmap") or {}).get("semantics")
+        out_block[name] = entry
+    return out_block
+
+
 def write_root_manifest(cfg, adp, out, stats, src, warnings, only=None):
     """The site-level index. A --only run rebuilds SOME products; the others are still on disk and
     still current, so their entries are carried over from the manifest this run replaces instead of
@@ -1398,6 +1437,7 @@ def write_root_manifest(cfg, adp, out, stats, src, warnings, only=None):
            "clip": lib.clip_manifest(lib.parse_clip(cfg)),
            "adapter_settings": adp,
            "products": products,
+           "derived_products": derived_products(out),
            "sources": {"terrain": {"manifest": "terrain/terrain_manifest.json", "tiles": len(tm["tiles"]), "range_m": tm["range_m"],
                                    "slope_qa": tm.get("slope_qa"), "tiles_clipped": tm.get("tiles_clipped", [])} if tm else None,
                        "networks": {"manifest": "networks/networks_manifest.json", "segments": nm.get("segments"), "junctions": nm.get("junctions")} if nm else None,

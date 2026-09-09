@@ -208,3 +208,113 @@ def load_fixture(name: str) -> dict:
     if os.path.isfile(path):
         return load_json(path)
     return FIXTURE_BUILDERS[name]()
+
+
+# -- junction fixtures (SCHEMA.md 4.18) -----------------------------------------------------------
+#
+# Six shapes, chosen because each one breaks a different naive implementation:
+#   crossroads      the symmetric case a fan handles trivially -- the control
+#   tee             an odd arm count, and two collinear arms whose corner is a straight kerb
+#   five_arm        more arms than a quad patch could ever hold
+#   skew            30 / 150 degree crossing: the acute pair is where a notch appears if the trim
+#                   distance ignores width, and where the corner fillet has to wrap a nose
+#   slope           the same crossroads on a 6 % grade: a flat disc at one z would float / bury
+#   widths          12 m trunk meeting 4 m lanes: the wide arm must be pushed back further than the
+#                   narrow ones or its end edge cuts across theirs
+#
+# Every arm is a straight spline running OUT of the node, so ``end == "start"`` for all of them and the
+# trim distance along the spline is exactly the trim radius -- which is what makes the assertions in
+# test_junction.py exact rather than approximate.
+
+JUNCTION_NODE = (200.0, 100.0)
+
+
+def junction_doc(name: str, bearings, widths=None, length: float = 60.0, radius_m: float = 4.0,
+                 node=JUNCTION_NODE, edge_profile: str = "edge_uk_kerb", terrain_note=None) -> dict:
+    """A synthetic junction: one straight arm per bearing (degrees), all meeting at ``node``."""
+    if widths is None:
+        widths = [6.0] * len(bearings)
+    splines = []
+    ends = []
+    for k, (bd, w) in enumerate(zip(bearings, widths)):
+        th = math.radians(bd)
+        sid = "authored:arm%d" % k
+        pts = [{"x": round(node[0] + math.cos(th) * t, 6), "y": round(node[1] + math.sin(th) * t, 6),
+                "width_m": float(w)} for t in (0.0, length * 0.5, length)]
+        splines.append({
+            "id": sid,
+            "source": {"layer": "authored", "osm_id": None, "name": sid, "cls": None},
+            "profile_ids": {"road": "road_test_marked", "edge_left": edge_profile,
+                            "edge_right": edge_profile, "hedge_left": None, "hedge_right": None},
+            "points": pts,
+            "sampling": dict(ROAD_SAMPLING),
+            "segments": [], "drop_kerbs": [],
+            "junction_start": "j0", "junction_end": None,
+            "overlay": {"kind": "other", "pts": [[p["x"], p["y"]] for p in pts], "osm_id": None},
+        })
+        ends.append({"spline_id": sid, "end": "start"})
+    d = {
+        "schema_version": "1.0.0", "site": name, "crs": "EPSG:27700", "origin": {"E": 0, "N": 0},
+        "vertical_datum": "ODN", "frame": FRAME,
+        "generator": "hand-authored (Tools/blender/tests/synthetic.py)",
+        "materials": copy.deepcopy(straight_100()["materials"]),
+        "profiles": {"road": {"road_test_marked": _road_test_marked()},
+                     "edge": {edge_profile: library_profile(edge_profile)}, "hedge": {}},
+        "splines": splines,
+        "junctions": [{"id": "j0", "x": node[0], "y": node[1], "z": None, "radius_m": radius_m,
+                       "kind": "disc", "ends": ends}],
+    }
+    if terrain_note is not None:
+        d["_terrain"] = terrain_note
+    return d
+
+
+def junction_crossroads() -> dict:
+    return junction_doc("junction_crossroads", [0.0, 90.0, 180.0, 270.0])
+
+
+def junction_tee() -> dict:
+    return junction_doc("junction_tee", [0.0, 90.0, 180.0])
+
+
+def junction_five_arm() -> dict:
+    return junction_doc("junction_five_arm", [0.0, 72.0, 144.0, 216.0, 288.0])
+
+
+def junction_skew() -> dict:
+    return junction_doc("junction_skew", [0.0, 30.0, 180.0, 210.0])
+
+
+def junction_slope() -> dict:
+    """The crossroads again, on a 6 % grade running east and 3 % north, so every arm meets the node at
+    a different level and the patch has to be a surface."""
+    return junction_doc("junction_slope", [0.0, 90.0, 180.0, 270.0],
+                        terrain_note={"kind": "grade", "gx": 0.06, "gy": 0.03, "z_m": 10.0})
+
+
+def junction_widths() -> dict:
+    """A 12 m trunk crossing two 4 m lanes and one 6 m street."""
+    return junction_doc("junction_widths", [0.0, 90.0, 180.0, 270.0],
+                        widths=[12.0, 4.0, 12.0, 6.0], radius_m=4.0)
+
+
+def graded_terrain(gx: float = 0.06, gy: float = 0.03, z0: float = 10.0, extent=(512.0, 512.0)):
+    return Heightfield.from_function(lambda x, y: z0 + gx * (x - 200.0) + gy * (y - 100.0),
+                                     extent, xy0=(0.0, -256.0))
+
+
+def junction_terrain_for(doc: dict):
+    t = doc.get("_terrain") or {}
+    if t.get("kind") == "grade":
+        return graded_terrain(float(t["gx"]), float(t["gy"]), float(t.get("z_m", 10.0)))
+    return flat_terrain(float(t.get("z_m", 10.0)))
+
+
+JUNCTION_BUILDERS = {
+    "junction_crossroads": junction_crossroads,
+    "junction_tee": junction_tee,
+    "junction_five_arm": junction_five_arm,
+    "junction_skew": junction_skew,
+    "junction_slope": junction_slope,
+    "junction_widths": junction_widths,
+}

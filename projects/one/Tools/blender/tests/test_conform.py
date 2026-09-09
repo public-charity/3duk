@@ -108,11 +108,45 @@ class TestSyntheticCorridor(unittest.TestCase):
                              "daylight under the kerb/pavement after the conform")
 
     def test_the_sink_is_hidden_by_the_block(self):
-        """The ground is put 30 mm under the road-edge plane; the kerb tucks 30 mm under it and the
-        pavement skirt reaches 300 mm, so nothing of the sink is visible (DESIGN.md 4.2)."""
-        spec = self.sp.side_spec[S.LEFT]
-        self.assertGreaterEqual(float(np.min(spec.tuck_depth)), C.CorridorParams.sink_m - 1e-12)
-        self.assertGreaterEqual(float(np.min(spec.skirt)), C.CorridorParams.sink_m)
+        """The sink never exceeds what the built block can cover -- that is what makes it data and
+        not taste (conform.sink_profile).  A side with a kerb and pavement covers `skirt` (0.30 m in
+        every shipped edge profile) and the sink may take at most `sink_cover_frac` of it; a bare
+        ribbon covers only `skirt_drop_m` and keeps the floor, whose 1 cm of overhang is an order
+        inside the 0.125 m float gate."""
+        params = C.CorridorParams()
+        sink = C.sink_profile(self.sp, params)
+        self.assertLessEqual(float(sink.max()), params.sink_max_m + 1e-12)
+        self.assertGreaterEqual(float(sink.min()), params.sink_m - 1e-12)
+        for side in (S.LEFT, S.RIGHT):
+            spec = self.sp.side_spec[side]
+            has = np.asarray(spec.present, dtype=bool) & (np.asarray(spec.back_offset) > 0.0)
+            if has.any():
+                self.assertLessEqual(float(sink[has].max()),
+                                     float(np.min(np.asarray(spec.skirt)[has])) * params.sink_cover_frac + 1e-12,
+                                     "the sink takes more than its share of the pavement skirt")
+            if (~has).any():
+                bare = float(sink[~has].max()) - float(np.min(np.asarray(self.sp.skirt_drop_m)[~has]))
+                self.assertLessEqual(bare, 0.03,
+                                     "a ribbon with no kerb is sunk further than it can hide")
+
+    def test_lod_skeleton_is_the_surface_the_landscape_draws(self):
+        """``Heightfield.lod_skeleton(k)`` must keep every 2^k-th post exactly and put the straight
+        line between them everywhere else -- that is what the landscape's coarser meshes draw, and it
+        is the difference between a road that is above the ground in the data and one that is visible
+        (road_fusion_audit.py's header records the measurement)."""
+        for k in (1, 2, 3):
+            lod = self.hf2.lod_skeleton(k)
+            s = 1 << k
+            for key, T in self.hf2.tiles.items():
+                A, B = np.asarray(T, dtype=np.float64), np.asarray(lod.tiles[key], dtype=np.float64)
+                np.testing.assert_allclose(B[::s, ::s], A[::s, ::s], atol=1e-4,
+                                           err_msg="LOD %d moved a post it is supposed to keep" % k)
+                mid = B[s // 2::s, ::s]
+                lo, hi = A[0::s, ::s][:-1], A[s::s, ::s]
+                np.testing.assert_allclose(mid, 0.5 * (lo + hi), atol=1e-3,
+                                           err_msg="LOD %d is not linear between the posts it keeps" % k)
+                break
+            self.assertEqual(set(lod.tiles), set(self.hf2.tiles))
 
     def test_outside_the_corridor_is_untouched(self):
         far = 0

@@ -23,7 +23,8 @@ sources/
                     Streetscape-frame adapter for Unreal and Blender
   provenance/       what was actually fetched -- bbox, sha256, feature counts, the query
   tests/            dryrun.py fake-GDAL run of 05-11 + adapters on three synthetic sites;
-                    regress_outputs.sh byte-identity of a site's products;
+                    regress_outputs.sh a site's products against a snapshot -- rasters byte
+                    for byte, manifests structurally, and `selftest` to prove it can fail;
                     test_unreal_adapter.py
   run.sh            the driver
 ```
@@ -211,10 +212,46 @@ That standard is now a script. `sources/tests/regress_outputs.sh snapshot margat
 hashes every file under `data/margate/out/` (795 files on 2026-09-08, also kept by hand as
 `data/margate/regress/baseline_2026-09-08.sha256`); after an edit, `SITE=margate
 ./sources/run.sh --from 05` re-runs 05–11 on the existing interim data and
-`regress_outputs.sh compare margate before` must print `0 problems` — nothing changed,
-nothing removed; the only files a later step may add are step 11's `networks/barriers_*`,
-`rail_*`, `linear_manifest.json` and the Unreal adapter's `unreal/**`. The clip work landed
-this way: 795 identical, 46 added, 0 changed, and no clipless manifest gained a clip key.
+`regress_outputs.sh compare margate <label>` must print `0 problems`. The only files a later
+step may add are step 11's `networks/barriers_*`, `rail_*`, `linear_manifest.json` and the
+Unreal adapter's `unreal/**`. The clip work landed this way: 795 identical, 46 added,
+0 changed, and no clipless manifest gained a clip key.
+
+**Rasters byte for byte, manifests structurally.** A gate that compares one hash per file
+has a failure mode that eventually kills it: a manifest gains a key, or `generator` records
+a new commit sha, and from then on *every* comparison is red, so nothing can be caught. That
+is exactly what happened here — by 2026-09-09 the gate failed under all four snapshots on
+disk. It now classifies instead of counting:
+
+| verdict | what it means |
+|---|---|
+| `CHANGED` / `REMOVED` / `ADDED-UNEXPECTED` | a **problem**. Any raster, `.jsonl`, `.png` or other non-JSON file that differs by one byte lands here with no allowance of any kind. |
+| `PROVENANCE` | a JSON product that differs **only** in its `generator` string (the code's git sha). Allowed, printed, counted. |
+| `EXTENDED` | a JSON product that differs **only** by gaining a key named in the script's `ALLOW_ADDED` table, with the commit that added it. Allowed, printed with the key. |
+
+Both allowances are proved by hash, not asserted: the current file is parsed, the declared
+new keys deleted and the provenance string put back, and the result must re-serialise to the
+snapshot's bytes exactly. One recorded number moving by one digit fails. Adding a row to
+`ALLOW_ADDED` is a deliberate act and needs the reason written beside it.
+
+`regress_outputs.sh selftest margate` proves the gate can still fail: it copies four real
+products into a scratch site, breaks one thing at a time — a flipped bit in a GeoTIFF, an
+edited `.jsonl` record, a changed manifest number, an undeclared new key, a removed key, a
+1 cm move of one spline point, a deleted file, an unexpected file — and requires the exact
+verdict and exit code for each. 12 cases, 0 failed on 2026-09-09.
+
+Against the pre-edit baselines the products of this round are clean:
+`compare margate baseline_2026-09-08` → `794 identical, 1 extended (allowed), 788 added
+(allowed), 0 problems` and `compare margate terrain_fix_before` → `1582 identical, 1 extended
+(allowed), 0 problems`. The one extended file is `terrain/terrain_manifest.json`, which
+gained `shared_edges` when step 05's per-tile NoData fill became one fill over the mosaic;
+deleting those 677 bytes reproduces the baseline hash exactly, and all 91 Margate terrain
+rasters are byte-identical to 2026-09-08. The two mid-round labels `before` and
+`fixer_before` are **superseded and still red on purpose**: 64 files differ only in
+provenance and 2 only gained keys, but 18 streetscape documents and 2 adapter manifests
+really did change when `3e26561` added centimetre quantisation of point coordinates and took
+`thin_max_dev_m` from 4 decimal places to 6. Those are product changes and the gate is right
+to say so.
 
 ## Cliffs
 

@@ -172,7 +172,7 @@ unless the row says otherwise. Defaults apply when the key is absent.
 | `materials` | `{name: MaterialHint}` | — | `{}` | H A? | preview hints only |
 | `profiles` | `{road:{}, edge:{}, hedge:{}}` | all three maps required | required | A H U | every profile referenced by the document's splines, inline |
 | `splines` | `Spline[]` | — | required | A H U | |
-| `junctions` | `Junction[]` | — | `[]` | A H U | placeholders |
+| `junctions` | `Junction[]` | — | `[]` | A H U | the document's surfaced junctions; §4.18 |
 
 Per-tile adapter documents additionally carry `_tile: {x, y, tile_m, bounds_local: [x0, y0, x1, y1]}`
 and `_profile_ids_used: {road: [], edge: [], hedge: []}` as notes.
@@ -370,7 +370,7 @@ knowing its geometry.
 | `segments` | `Segment[]` | `[]` | A H U | §4.16 |
 | `drop_kerbs` | `SplineDropKerb[]` | `[]` | H U | adapter emits none this round |
 | `overlay` | `Overlay` | — | A H U | required in practice when `source.layer ≠ authored` (semantic warning) |
-| `junction_start`, `junction_end` | Id / null | null | A H U | |
+| `junction_start`, `junction_end` | Id / null | null | A H U | normative: that end is trimmed back to the junction's trim radius, §4.18 |
 | `continues_from`, `continues_to` | Id / null | null | A U | seam / way / gap neighbour |
 | `continuation_kind` | `Continuation` = `{from, to}` each `seam`\|`way`\|`gap`\|null | — | A U | seam: same way continues in the adjacent tile; way: another way starts/ends at this node with no junction disc; gap: same way continues after an off-grid / off-clip excursion |
 | `overrun_points` | `OverrunPoints` = `{before, after}` each `XYZ` `[x,y,z]`\|null | — | A U | neighbour's second point, so end tangents match without loading the neighbour's document |
@@ -418,9 +418,81 @@ informative.
 
 ### 4.18 `Junction`
 
-`{id, x, y, z: number|null, radius_m, kind: disc|none, ends: [{spline_id, end: start|end}]}`. Step 06
-`_junction` records map to `kind: disc`, `radius_m = r`; `ends` lists the splines of the same document
-whose first/last point is within 0.3 m. No renderer reads junctions this round.
+`{id, x, y, z: number|null, radius_m, trim_radius_m: number|null, kind: disc|none,
+ends: [{spline_id, end: start|end}]}`. Step 06 `_junction` records map to `kind: disc`,
+`radius_m = r`; `ends` lists the splines of the same document whose first/last point is within
+`junction_snap_m` = 0.3 m (measured maximum on Thanet: 0.257 m over 5,185 ends).
+
+**`kind`** is the switch. `disc`: the junction is SURFACED — the shared spline layer trims every arm
+in `ends`, Renderer A fills the hole with one tarmac patch and Renderer B turns the kerb corner
+between adjacent arms. `none`: a plain node — nothing is trimmed and nothing is filled. A junction
+with fewer than three surviving arms is treated as `none` (two splines meeting end to end already
+share their end point; there is nothing to fill).
+
+**One field was added and it is an override, not a stored derivation.** `trim_radius_m` is null in
+every adapter document and should stay null: everything a renderer needs beyond the fields above is
+DERIVED from the arms themselves, so it cannot go stale when a profile width changes. What is derived,
+and how:
+
+| derived | from |
+|---|---|
+| which arms, and in what order | `ends`, ordered by the bearing of each arm's outward tangent at its trim station |
+| the arm's half-extent `e` | `max(edge_offset(left), edge_offset(right)) + overlap_m` at the trim station — the outer edge of the ribbon's skirt row, i.e. where the carriageway actually ends in plan |
+| the trim radius `d` | below |
+| the arm's trim station | the first arc length, scanning inward from that end, at which the centreline reaches plan distance `d` from `(x, y)` |
+| the patch boundary | each arm's own ribbon end row, joined by the corner fillets |
+| the patch's material and apex height | the arms' own `surface_material` and `z_ref` |
+| the kerb corner radius | the fillet tangent to both kerb lines at the two trim ends (no stored radius) |
+
+**The trim radius.** Order the arms by `phi_i`, the bearing of the arm's TRIM POINT about the node
+(not of its tangent: on a spline that curves near its end the tangent swings far faster than the node
+direction, and solving on it makes the fixed point oscillate). At radius `d` an arm of half-extent `e`
+subtends an angular half-width of about `atan(e / d)` there — measured exactly, as the larger deviation
+of the arm's two skirt corners from `phi_i`. Requiring each arm to take at most half of each of its two
+adjacent gaps makes neighbouring arms disjoint in bearing, which is what stops a wide road leaving a
+notch across a narrow one. With `D_i` the smaller of arm *i*'s two adjacent gaps and
+`clearance_deg = 2°` (an arm already inside its share of both gaps asks for no change at all):
+
+```
+requirement_i = e_i / tan((D_i - clearance) / 2)         (0 when the gap is >= 180 deg)
+d             = clamp(max over arms of requirement_i, radius_m, max_trim_radius_m = 20 m)
+d_i           = min(d, max(radius_m, max_trim_frac_of_length * L_i))
+```
+
+The maximum is taken over the arms, not per arm, because a junction has one size: a 12 m trunk
+crossing a 4 m lane makes a big junction for both of them. Two escapes stop that being destructive.
+An arm whose requirement exceeds `max_trim_radius_m` is **unseparable** — two OSM ways can leave the
+same node 2° apart, and separating those would need `e / tan(1°)` ≈ 340 m of trim to fix an overlap
+that exists along the whole length of both arms anyway — so it is dropped from the maximum and
+recorded rather than driving it. And no arm gives up more than `max_trim_frac_of_length` = 0.5 of its
+own spline to one junction. Because `e` is read at the trim station and the trim station depends on
+`d`, the solve is iterated three times from `d = radius_m`; it converges in one step wherever the
+width is constant near the end; the fixed point is run to convergence within eight passes.
+
+**The trim is a mask on `s`, never a re-basing.** `s` is the document's own coordinate — every
+`Segment.s0_m/s1_m`, marking interval, drop kerb, barrier run and hedge run is expressed in it — so
+re-basing would silently move every authored `s`, would have to be mirrored in the adapter and in the
+C++ port, and would make `length_m` mean something different from the document. Masking changes only
+which stations are *emitted*: `length_m` and the station array are unchanged, and **both trim stations
+are added to the mandatory set** (§3.2) so they exist exactly and every renderer sees the same extent.
+A spline trimmed at both ends keeps at least `min_remaining_m` = 1 m; when the two trims would leave
+less, both are scaled by one common factor so it shortens symmetrically instead of vanishing or
+inverting, and the arms are re-derived at the scaled trims so the patch still meets the ribbon exactly.
+A spline shorter than `min_remaining_m` is not trimmed at all.
+
+**Geometry-core defaults** (`schema.JUNCTION_DEFAULTS`; not document fields, and the C++ port carries
+the same numbers): `snap_m` 0.3, `clearance_deg` 2.0, `max_trim_radius_m` 20.0, `min_remaining_m` 1.0,
+`max_trim_frac_of_length` 0.5, `corner_step_deg` 10.0, `corner_handle_frac` 0.45.
+
+**What the renderers do with it.** Renderer A stops the ribbon at the trim and, in the SAME buffer with
+the SAME material, emits the patch as a fan from the node to a boundary made of each arm's own ribbon
+end row plus the corner fillets offset outward by `overlap_m` and dropped by `skirt_drop_m`; the apex
+sits at the highest arm crown, so the patch is a surface that meets each arm at that arm's level rather
+than a disc at one z. Renderer B stops the kerb at the same trim and sweeps the same kerb section along
+the same fillet, so the road overhangs the corner kerb by the same `overlap_m` it does along a
+straight. Group names: `junction:<id>` on the road buffer, `corner_kerb:<id>:<k>` and
+`corner_pavement:<id>:<k>` on the edge buffer. Those prefixes are excluded from every `(s, d, h)`
+measurement (`mesh.NON_STATION_PREFIXES`) because they are not swept along the spline.
 
 ### 4.19 `ProfileFile`
 
@@ -597,6 +669,38 @@ sides; left drop kerb `s_m 70` (defaults); markings `centre_1004` + `dyl_left_10
 The other fixtures (`sine_5_50`, `curve_R20_200`, `rail_R300_600`) and their numbers are DESIGN.md 3.10;
 `Tools/blender/tests/make_fixtures.py` writes all of them to `Tools/blender/tests/fixtures/` with
 `expected.json`, which both test suites read.
+
+### 9.4 The six junction fixtures — the numbers every implementation must reproduce
+
+`synthetic.JUNCTION_BUILDERS` builds six documents, each one straight 60 m arm per bearing meeting at
+one node with `radius_m = 4.0`, `road_test_marked` carriageways and `edge_uk_kerb` both sides on flat
+`z = 10` terrain (`junction_slope` on a 6 % east / 3 % north grade). Frozen in
+`fixtures/expected.json:junction`; asserted by `tests/test_junction.py:TestFrozenCounts`.
+
+| fixture | bearings ° | widths m | `trim_radius_m` | boundary | patch v / t | corners | corner t | total v / t |
+|---|---|---|---|---|---|---|---|---|
+| `junction_crossroads` | 0 90 180 270 | 6 | **4.000000** | 70 | 71 / 70 | 4 | 760 | 5357 / 7838 |
+| `junction_tee` | 0 90 180 | 6 | **4.000000** | 44 | 45 / 44 | 3 | 400 | 3899 / 5700 |
+| `junction_five_arm` | 0 72 144 216 288 | 6 | **4.341570** | 95 | 96 / 95 | 5 | 1100 | 7197 / 10343 |
+| `junction_skew` | 0 30 180 210 | 6 | **12.192774** | 70 | 71 / 70 | 4 | 760 | 4717 / 6870 |
+| `junction_slope` | 0 90 180 270 | 6 | **4.000000** | 70 | 71 / 70 | 4 | 760 | 5357 / 7838 |
+| `junction_widths` | 0 90 180 270 | 12 4 12 6 | **6.254603** | 82 | 83 / 82 | 4 | 760 | 5549 / 8258 |
+
+Patch plan areas: 61.1172, 54.8786, 68.4125, 256.3222, 61.0966, 149.4264 m². `patch_verts` is
+`boundary + 1` (the apex) and `patch_tris` is `boundary` — one fan triangle per boundary edge.
+
+Where the radii come from (§4.18): crossroads / tee / slope ask for less than the record's own 4.0 m,
+so the floor wins. `five_arm`: 72° gaps, `e = 3.04`, `3.04 / tan(35°) = 4.341570`. `skew`: 30° gaps,
+`3.04 / tan(14°) = 12.192774` — the acute pair drives it, and it is inside the 20 m cap so the pair is
+separated rather than declared unseparable. `widths`: the 12 m trunk, `e = 6.04`, at 90° gaps,
+`6.04 / tan(44°) = 6.254603`, and the 4 m lanes are pushed back to the same radius because a junction
+has one size.
+
+Measured on all six: worst patch-to-ribbon gap **0.0 m**, worst kerb-to-corner gap **0.0 m**,
+double-covered patch area **< 1e-11 m²**, road-over-kerb overlap **0.040 m** at every corner sample,
+skirt drop **0.020 m**, and the corner deviates from the true circular fillet by less than
+`2.7e-4 · r` (0.27 mm on the crossroads' 1.0 m corner) — the known error of the `(4/3)·tan(τ/4)` cubic
+handle, two orders of magnitude inside the 40 mm overlap it sits in.
 
 ---
 

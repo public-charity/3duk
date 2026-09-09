@@ -89,12 +89,36 @@ THROTTLE = Throttle()
 # 2026-09-09 with a catalogue run and a second script in flight at ~3/s combined.
 RATE = {"www.geograph.org.uk": 1.0, "api.geograph.org.uk": 1.0, "s0.geograph.org.uk": 1.0,
         "s1.geograph.org.uk": 1.0, "s2.geograph.org.uk": 1.0, "s3.geograph.org.uk": 1.0,
-        "commons.wikimedia.org": 1.0}
+        "commons.wikimedia.org": 1.0, "upload.wikimedia.org": 0.5}
+# The baseline each host returns to as requests succeed, so one 429 during a long download does
+# not pin the rest of the run at the ceiling.
+RATE_BASE = dict(RATE)
+OK_STREAK = {}
 RATE_DEFAULT = 0.34
 # Ceiling on the 429 backoff below. It doubles per 429 and each retry of one request can
 # trigger it again, so an unbounded rule reaches minutes per request after a brief wobble;
 # observed on Commons on 2026-09-09, which climbed 1 -> 2 -> 4 -> 8 -> 16 s in four steps.
 RATE_MAX = 20.0
+
+
+def recover(host):
+    """Ease a backed-off host back toward its baseline after a run of successes.
+
+    The backoff below doubles on every 429 and, without this, never comes down: one burst
+    early in a long download pins the host at RATE_MAX for hours. Observed on
+    upload.wikimedia.org, which went to 20 s a minute into a 2,700-file download and would
+    have taken 15 hours at that rate. Recovery is deliberately slower than the backoff --
+    25 clean requests to halve the interval, against an instant doubling on a single 429.
+    """
+    cur = RATE.get(host)
+    base = RATE_BASE.get(host, RATE_DEFAULT)
+    if cur is None or cur <= base:
+        return
+    n = OK_STREAK.get(host, 0) + 1
+    if n >= 25:
+        RATE[host], OK_STREAK[host] = max(cur / 2, base), 0
+    else:
+        OK_STREAK[host] = n
 
 
 def http(url, timeout=60, max_bytes=None, retries=3):
@@ -107,7 +131,9 @@ def http(url, timeout=60, max_bytes=None, retries=3):
         try:
             req = urllib.request.Request(url, headers={"User-Agent": UA, "Accept": "*/*"})
             with urllib.request.urlopen(req, timeout=timeout) as r:
-                return r.status, r.headers, (r.read(max_bytes) if max_bytes else r.read())
+                body = r.read(max_bytes) if max_bytes else r.read()
+            recover(host)
+            return r.status, r.headers, body
         except urllib.error.HTTPError as e:
             last = f"HTTP {e.code} {e.reason}"
             if e.code in (400, 401, 403, 404):        # not going to get better by asking again
@@ -121,6 +147,7 @@ def http(url, timeout=60, max_bytes=None, retries=3):
                 except ValueError:
                     delay = 0.0
                 RATE[host] = min(max(RATE.get(host, RATE_DEFAULT) * 2, 1.0), RATE_MAX)
+                OK_STREAK[host] = 0
                 print(f"    429 from {host}; backing off to {RATE[host]:.1f}s between requests")
                 time.sleep(max(delay, 5.0 * (attempt + 1)))
                 continue
@@ -431,10 +458,26 @@ def cat_commons(cfg, log):
 
 # ---------------------------------------------------------------- commons categories
 
-# Category branches that are not photographs OF the place.
+# Category branches that are not photographs OF the place. Two kinds, both learned by watching
+# the walk go wrong: media that is not a photograph (maps, engravings, sheet music), and
+# ORGANISATIONS AND PEOPLE. The second is the one that bites -- Category:Margate, Kent contains
+# Category:Margate F.C., which at depth 3 reaches the squad, and the walk cheerfully collects
+# several hundred portraits of footballers as "imagery of Margate". This list is a heuristic and
+# will not be complete; `via_category` is recorded on every row so a bad branch can be filtered
+# out afterwards without re-walking.
 CAT_SKIP = re.compile(r"\b(maps?|coats? of arms|flags?|books?|sheet music|videos?|audio|"
                       r"logos?|timetables?|documents?|diagrams?|plaques of|postcards? of|"
-                      r"engravings?|paintings?|drawings?|prints?)\b", re.I)
+                      r"engravings?|paintings?|drawings?|prints?|"
+                      r"f\.?c\.?|football|players|footballers|managers|squads?|"
+                      r"people|persons|men|women|births|deaths|portraits?|"
+                      r"politicians|writers|artists|musicians|bands|albums|singles|"
+                      r"films?|television|posters|stamps|coins|banknotes|"
+                      r"mayors|councillors|residents|natives|alumni|"
+                      # Date partitions: "Ramsgate by year" -> "1890s in Ramsgate" -> ... Those
+                      # re-file photographs already collected under the parent, so they add no
+                      # files while queueing hundreds of rate-limited requests. Observed: one
+                      # such branch queued 224 categories for zero new files.
+                      r"by year|by decade|by month|by date|\d{4}s?\ in)\b", re.I)
 IMG_EXT = (".jpg", ".jpeg", ".png", ".tif", ".tiff", ".webp")
 
 
@@ -499,7 +542,7 @@ def cat_commons_cat(cfg, log):
                         elif CAT_SKIP.search(title):
                             skipped += 1
                     elif m.get("ns") == 6 and title.lower().endswith(IMG_EXT):
-                        files.setdefault(title, slug)
+                        files.setdefault(title, (slug, cat))
                 cont = (d.get("continue") or {}).get("cmcontinue")
                 if not cont:
                     break
@@ -530,7 +573,7 @@ def cat_commons_cat(cfg, log):
             if not ii.get("url") or not str(ii.get("mime", "")).startswith("image/"):
                 continue
             title = p.get("title", "")
-            slug = files.get(title, "_unassigned")
+            slug, via = files.get(title, ("_unassigned", ""))
             em = ii.get("extmetadata") or {}
 
             def meta(key):
@@ -547,6 +590,7 @@ def cat_commons_cat(cfg, log):
                 "id": f"commons:{pid}", "source": "commons_cat",
                 "lat": lat_i, "lon": lon_i, "coord_exact": exact,
                 "seed_town": slug,
+                "via_category": via,
                 "title": title,
                 "author": meta("Artist") or "unknown",
                 "date": meta("DateTimeOriginal")[:10],
@@ -687,7 +731,11 @@ def do_catalogue(args):
                    "bbox_wgs84": cfg["bbox_wgs84"], "count": len(rows), "items": rows},
                   open(path, "w", encoding="utf-8"), indent=1)
         print(f"[{src}] {len(rows)} items in {time.time()-t0:.0f}s -> {os.path.relpath(path, ROOT)}")
-    dedupe_commons()
+    if getattr(args, "dedupe", False):
+        dedupe_commons()
+    else:
+        print("[dedupe] skipped (pass --dedupe to drop Commons files that duplicate Geograph "
+              "or another Commons pass)")
     summarise()
 
 
@@ -820,9 +868,14 @@ def candidate_urls(r, size):
     Geograph needs a fallback chain and it is not optional: `_original.jpg` is the
     photographer's upload and is what you want, but it only exists for images uploaded above
     the old display size. For anything older the derivative was never made and every sized
-    variant 404s -- only the plain `.jpg` (around 640 px, ~85 KB) exists. Measured on the
-    Thanet catalogue: about 5% of records, which is ~500 photographs silently lost if the
-    chain stops at `_original`.
+    variant 404s -- only the plain `.jpg` exists.
+
+    Measured over the completed Thanet download, not estimated: **34%** of 8,659 Geograph
+    images (2,905 of them) had no `_original` and came from the plain rung. Those are ~100 KB
+    median against 789 KB for `_original`, so a third of this corpus is roughly 640 px and is
+    reference material rather than reconstruction input. Without the chain all 2,905 would
+    simply have 404'd -- an early run, judged on its first thousand records, put the figure at
+    5% and was wrong by a factor of seven.
     """
     first = r.get("url_hd") if size == "hd" else (r.get("url_sd") or r.get("url_hd"))
     urls = [first] if first else []

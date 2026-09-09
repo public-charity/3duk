@@ -261,6 +261,75 @@ nudge); not placed.
 walls. `qa_furniture.json` — placement counts and every amenity kind seen, so you can find
 out what else is mappable.
 
+## `unreal/` — the adapter's own tree, and the one product that is **not** the survey
+
+*Everything above this heading is checked by `sources/tests/dryrun.py` on synthetic sites. This section
+is not: `dryrun.py` exercises the adapter's own refusals, but `landscape_conformed/` is built by
+`projects/one/`, outside `sources/`, and its own tests are
+`projects/one/Tools/blender/tests/test_conform.py` (16 cases as of 2026-09-09, including a byte-for-byte reconstruction
+of the survey from the delta rasters) and `projects/one/Tools/road_fusion_audit.py` (the whole-isle
+acceptance gate). It is described here because a consumer reading `data/<site>/out/` will find it and
+must not mistake it for the survey.*
+
+Everything above is written by `sources/derive/` and is the survey. `data/<site>/out/unreal/`
+is different in kind: it is written by `sources/adapters/unreal.py`, which converts the
+survey into the Streetscape frame (local metres from `origin`, X east, Y north, Z ODN) for
+Unreal and Blender. It is derived, it is regenerable from the survey in one command, and
+`unreal_manifest.json` at its root is the index of what it holds. It changes nothing above
+it: the adapter never writes into `terrain/`, `networks/`, `massing/`, `coast/` or
+`furniture/`.
+
+| directory | what it is |
+|---|---|
+| `unreal/landscape/` | The survey as an engine heightmap: `hm_x{i}_y{j}.r16` (h16 of step 05's filled DTM), `clip_*.r8`, `vis_*.r8`, `weight_{band}_*.r8`, `landscape_manifest.json`. **This is still the survey**, re-encoded. |
+| `unreal/streetscape/` | `site_x{i}_y{j}.json` — the road, rail and barrier centrelines as splines with inlined profiles, plus `junctions[]`, and `streetscape_manifest.json`. |
+| `unreal/massing/`, `unreal/furniture/` | The step 07 / step 10 products in the same frame. |
+| **`unreal/landscape_conformed/`** | **Not the survey.** See below. |
+
+### `landscape_conformed/` — the ground with the roads burned into it
+
+`projects/one/Tools/conform_landscape.py` (geometry core
+`projects/one/Tools/blender/streetscape/conform.py`) reads `unreal/landscape/` and every
+`unreal/streetscape/site_*.json` and writes a **second, complete landscape product** beside
+the first. It exists because a 6–12 m road ribbon laid on a 1 m DTM has the ground standing
+through the carriageway at most stations — 84.9 % of the isle's 666,314 road stations before
+this pass, zero after (`projects/one/docs/TERRAIN_ROADS.md` §4, §8).
+
+**Its semantics, in one sentence: under the road corridor the ground IS the road surface,
+not the measurement.** The manifest says so in words — `heightmap.semantics` reads
+*"h16 of step 05's filled DTM, CONFORMED TO THE ROAD CORRIDOR — not the raw survey"* — and
+a consumer that wants the survey must read `unreal/landscape/` or `terrain/` instead.
+
+* Same file layout as `landscape/`. `clip_*.r8`, `vis_*.r8` and every `weight_*.r8` are
+  copied **byte for byte**; only `hm_*.r16` differs, and only inside the corridor.
+* `landscape_manifest.json` carries an extra `conform` block: the corridor parameters
+  (sink 0.03 m, verge 2 m, blend 3–12 m at a 34° batter, clamp 2 m outside the built
+  surface), the generator, the commit, and every headline number — on Thanet
+  `cells_changed` 12,697,333 (12.70 km², 12.9 % of the kept land), `|Δ|` p50 0.078 m,
+  p95 0.430 m, max fill +17.38 m, max cut −14.66 m, `cells_clamped` 1,321,998,
+  `arbitrations` 9,248,160 — plus a `slope_qa` measured over the changed tiles beside the
+  survey's, so a flattened cliff would be visible rather than silent (it is not: the site
+  maximum is 86.278° before and after).
+* **`conform_delta_x{i}_y{j}.r16`** — int16, little-endian, row-major, `res × res`, one per
+  changed tile (246 of 391 on Thanet; an absent file means that tile is byte-identical to
+  `landscape/`). It is `h16_conformed − h16_survey`, so **the survey is recoverable cell by
+  cell**: `z_survey_m = (h16_conformed − delta) / 128 − 32768 / 128`. That is what the delta
+  rasters are for — they are the audit trail that makes a modified ground honest: the
+  directory name says the product is different, the manifest says how and why, and the
+  deltas prove exactly which cells moved and by how much. `Tools/blender/tests/test_conform.py`
+  reconstructs the survey from them and compares it byte for byte.
+* `conform_clamped.json` — the runs where the ground wanted to move more than the clamp
+  (1,554 on Thanet; 204 over 5 m). These are cuttings, cliff edges and promenades under
+  cliffs, where flattening the ground is the wrong answer; the list is the input to
+  Renderer B's embankment / retaining-wall segments.
+* The pass refuses to run when source and destination are the same path, and refuses a
+  manifest that already carries a `conform` block, so it can never be applied twice.
+* **Who reads which.** The Unreal landscape import reads `landscape_conformed`. Everything
+  that samples ground height for the road itself — the splines, the Blender driver's
+  `--terrain`, both test suites — reads `landscape`, because the road drapes on the survey
+  (`projects/one/docs/BRIEF.md` §1.1). That is what stops the burn feeding back into the
+  road it was burned from.
+
 ## Writing an adapter
 
 Read the manifests, not the config. Subtract `origin` if you want local coordinates; swap

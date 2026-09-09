@@ -36,7 +36,7 @@
       }
     },
     "splines": { "type": "array", "items": { "$ref": "#/$defs/Spline" }, "description": "The shared splines. Each is built once and read by all three renderers." },
-    "junctions": { "type": "array", "items": { "$ref": "#/$defs/Junction" }, "default": [], "description": "Junction placeholders (BRIEF 6 Q7). No renderer reads them in this round." }
+    "junctions": { "type": "array", "items": { "$ref": "#/$defs/Junction" }, "default": [], "description": "The surfaced junctions of this document (BRIEF 6 Q7, closed). The shared spline layer trims the arms, Renderer A fills the patch, Renderer B turns the kerb corner." }
   },
 
   "$defs": {
@@ -542,8 +542,8 @@
         "segments": { "type": "array", "items": { "$ref": "#/$defs/Segment" }, "default": [] },
         "drop_kerbs": { "type": "array", "items": { "$ref": "#/$defs/SplineDropKerb" }, "default": [] },
         "overlay": { "$ref": "#/$defs/Overlay", "description": "Required in practice for every spline with source.layer != authored (semantic warning when absent)." },
-        "junction_start": { "oneOf": [ { "$ref": "#/$defs/Id" }, { "type": "null" } ], "description": "Junction id at points[0], or null." },
-        "junction_end": { "oneOf": [ { "$ref": "#/$defs/Id" }, { "type": "null" } ], "description": "Junction id at points[-1], or null." },
+        "junction_start": { "oneOf": [ { "$ref": "#/$defs/Id" }, { "type": "null" } ], "description": "Junction id at points[0], or null. Normative: the shared spline layer trims this end back to that junction's trim radius." },
+        "junction_end": { "oneOf": [ { "$ref": "#/$defs/Id" }, { "type": "null" } ], "description": "Junction id at points[-1], or null. Normative: the shared spline layer trims this end back to that junction's trim radius." },
         "continues_from": { "oneOf": [ { "$ref": "#/$defs/Id" }, { "type": "null" } ], "description": "Spline id that ends where this one starts (seam / way / gap continuation), else null." },
         "continues_to": { "oneOf": [ { "$ref": "#/$defs/Id" }, { "type": "null" } ], "description": "Spline id that starts where this one ends, else null." },
         "continuation_kind": { "$ref": "#/$defs/Continuation" },
@@ -553,14 +553,15 @@
     },
 
     "Junction": {
-      "description": "Placeholder for a later round (BRIEF 6 Q7). Renderers ignore it now; spline ends are not trimmed. Step 06 '_junction' discs map onto kind 'disc' with radius_m = r.",
+      "description": "A surfaced road junction. kind 'disc': the shared spline layer trims every arm in ends[] back to the derived trim radius, Renderer A fills the hole with one tarmac patch and Renderer B turns the kerb corner between adjacent arms. kind 'none': a plain node, nothing trimmed, nothing filled. Step 06 '_junction' discs map onto kind 'disc' with radius_m = r. Everything a renderer needs beyond these fields is DERIVED from the arms themselves (SCHEMA.md 4.18).",
       "type": "object", "additionalProperties": false, "patternProperties": { "^_": {} },
       "required": ["id", "x", "y", "ends"],
       "properties": {
         "id": { "$ref": "#/$defs/Id", "description": "Adapter: 'junction:<i>_<j>:<k>'." },
         "x": { "type": "number" }, "y": { "type": "number" },
-        "z": { "oneOf": [ { "type": "number" }, { "type": "null" } ], "description": "Informative (step-06 drape), null if unknown." },
-        "radius_m": { "$ref": "#/$defs/NonNeg", "description": "Disc radius (half the widest incident carriageway plus margin), metres." },
+        "z": { "oneOf": [ { "type": "number" }, { "type": "null" } ], "description": "Informative (step-06 drape), null if unknown. The patch takes its heights from the arms, never from here." },
+        "radius_m": { "$ref": "#/$defs/NonNeg", "description": "Disc radius (half the widest incident carriageway plus margin), metres. A FLOOR on the derived trim radius, not the trim radius itself." },
+        "trim_radius_m": { "oneOf": [ { "$ref": "#/$defs/NonNeg" }, { "type": "null" } ], "default": null, "description": "Override of the derived trim radius, metres. Null (the adapter always writes null / omits it) means derive it from radius_m, the arm directions and the arm half-widths, so it cannot go stale when a profile width changes." },
         "kind": { "type": "string", "enum": ["disc", "none"], "default": "disc" },
         "ends": {
           "type": "array", "items": {

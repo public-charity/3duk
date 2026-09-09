@@ -207,10 +207,12 @@ class MeshBuffer:
             ids = [i for i, n in enumerate(self.group_names) if n.startswith(prefix)]
         return np.isin(self.grp, ids)
 
-    def vertices_of_groups(self, prefix: str = "", exact: Optional[str] = None, exclude_prefix: Optional[str] = None) -> np.ndarray:
-        """Indices of vertices used by triangles of the named group(s)."""
+    def vertices_of_groups(self, prefix: str = "", exact: Optional[str] = None, exclude_prefix=None) -> np.ndarray:
+        """Indices of vertices used by triangles of the named group(s).  ``exclude_prefix`` is one
+        prefix or a tuple of them."""
         if exclude_prefix is not None:
-            ids = [i for i, n in enumerate(self.group_names) if not n.startswith(exclude_prefix)]
+            pre = (exclude_prefix,) if isinstance(exclude_prefix, str) else tuple(exclude_prefix)
+            ids = [i for i, n in enumerate(self.group_names) if not n.startswith(pre)]
             sel = np.isin(self.grp, ids)
         else:
             sel = self.group_mask_tris(prefix, exact)
@@ -326,7 +328,14 @@ def distinct_positions(V: np.ndarray, tol: float = 1e-9) -> np.ndarray:
 # measurements for the seam tests (DESIGN.md 5)
 # --------------------------------------------------------------------------------------------
 
-def station_values(buf: MeshBuffer, exclude_prefix: str = "marking:") -> np.ndarray:
+# Groups whose vertices are NOT stations of the spline, so every (s, d, h) measurement steps over
+# them: painted strips carry interpolated dash ends, and junction patches and kerb corners are not
+# swept along the spline at all (SCHEMA.md 4.18).  The overlap and station rules are stated in terms
+# of the swept ribbon, and this is what "the swept ribbon" means in code.
+NON_STATION_PREFIXES = ("marking:", "junction:", "corner_")
+
+
+def station_values(buf: MeshBuffer, exclude_prefix=NON_STATION_PREFIXES) -> np.ndarray:
     vi = buf.vertices_of_groups(exclude_prefix=exclude_prefix)
     return np.unique(buf.vs[vi])
 
@@ -336,7 +345,7 @@ def measure_lateral_overlap(road: MeshBuffer, edge: MeshBuffer, side: int, tuck_
     kerb_face = min(side*vd of the edge 'kerb'-group verts at s above the tuck rows (the lowest kerb row
     at that station is the A/B underside at -tuck_depth; everything above it is the visible block).
     Returns {'min_m', 'max_m', 'per_station', 'stations'}."""
-    rv = road.vertices_of_groups(exclude_prefix="marking:")
+    rv = road.vertices_of_groups(exclude_prefix=NON_STATION_PREFIXES)
     stations = np.unique(road.vs[rv])
     kv = edge.vertices_of_groups(exact="kerb")
     per = np.full(len(stations), np.nan)
@@ -392,10 +401,11 @@ def coincident_xy_pairs(a: MeshBuffer, b: MeshBuffer, d_band, side: int, tol_xy:
     return count
 
 
-def surface_height_at(buf: MeshBuffer, s: float, d: float, group_prefix_exclude: str = "marking:") -> float:
+def surface_height_at(buf: MeshBuffer, s: float, d: float, group_prefix_exclude=NON_STATION_PREFIXES) -> float:
     """Height vh of the (non-marking) mesh at parameter (s, d): barycentric on the triangle whose
     (vs, vd) footprint contains the point.  NaN when none does."""
-    ids = [i for i, n in enumerate(buf.group_names) if not n.startswith(group_prefix_exclude)]
+    pre = (group_prefix_exclude,) if isinstance(group_prefix_exclude, str) else tuple(group_prefix_exclude)
+    ids = [i for i, n in enumerate(buf.group_names) if not n.startswith(pre)]
     sel = np.isin(buf.grp, ids)
     F = buf.f[sel]
     S0 = buf.vs[F]

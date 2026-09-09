@@ -4,7 +4,8 @@ The VM this is built on drops without warning, and it has already taken the sess
 times. This file is the handover: read it first after any disconnect, and it should be enough to
 pick the work up cold. Keep it current — it is the only file that claims to describe *now*.
 
-Last updated: 2026-09-09, during the "finish the base" round.
+Last updated: 2026-09-09, at the end of the "roads above ground, joined properly" round, by the
+integrity agent. Sections 3 and 8 are the ones that go stale first.
 
 ---
 
@@ -22,9 +23,21 @@ hedge), with every variant expressed as profile JSON and arc-length segment list
 | | |
 |---|---|
 | Branch | `thanet-explorer` (not merged to `main`) |
-| Last commit | `3e26561` — integrity-pass fixes from the pipeline, geometry and adapter audits |
-| Before that | `4bfee9d` massing + explorer pawn, `bc08e22` renderers + landscape import, `98db6f1` pipeline + adapter + geometry + UE core, `8c099f2` design |
-| Green as of `3e26561` | `build.ps1` Result: Succeeded · 23/23 Unreal automation tests · 100 numpy tests · dryrun 143+ checks, 0 failed · Margate byte-identical (795 files) |
+| Last commit | `44f36bd` — a fixed set of 45 viewpoints rendered at every commit, and the road defect finally explained |
+| Before that | `b1cd3e5` conform + seams + honest gates + the whole isle in the level, `b1a7c52` this file + `TERRAIN_ROADS.md`, `3e26561` integrity fixes, `4bfee9d` massing + explorer pawn, `bc08e22` renderers + landscape import |
+| Re-measured 2026-09-09 by the integrity pass (at `44f36bd` + working tree) | `dryrun.py` **167 passed, 0 failed** · `test_unreal_adapter.py` **Ran 47 … OK** · numpy suite **Ran 116 … OK** · `build.ps1` **Result: Succeeded** · `run_ue_tests.ps1` **26 `Result={Success}`, 0 failures** (`Saved/Logs/tests.log`) · Margate gate **green** (below) |
+
+**The Margate regression gate passes again**, and it can still fail:
+
+```bash
+export PY=C:/Users/Shadow/code/3duk-env/env/python.exe
+./sources/tests/regress_outputs.sh compare  margate terrain_fix_before   # 1582 identical, 1 extended, 0 problems
+./sources/tests/regress_outputs.sh compare  margate baseline_2026-09-08  # 794 identical, 1 extended, 788 added, 0 problems
+./sources/tests/regress_outputs.sh selftest margate                      # 12 cases, 0 failed
+```
+
+`before` and `fixer_before` are **superseded snapshots and are still red on purpose** — see
+`docs/STAGES.md` note (a). Use `terrain_fix_before` or `baseline_2026-09-08`.
 
 **Data on disk (all git-ignored, hours to rebuild — do not delete):**
 
@@ -33,100 +46,169 @@ hedge), with every variant expressed as profile JSON and arc-length segment list
   against (`sources/provenance/thanet.osm.json` records its sha256).
 - `data/thanet/out/` — the survey products: 391 terrain tiles, roads, massing, coast, furniture, rail
   and barriers.
-- `data/thanet/out/unreal/` — the engine products: 391 `hm_*.r16`, 391 `clip_*.r8`, 31 `vis_*.r8`,
-  weightmaps, 246 streetscape documents (~15,422 splines), massing, furniture.
+- `data/thanet/out/unreal/` — the engine products: `landscape/` (391 `hm_*.r16`, 391 `clip_*.r8`,
+  31 `vis_*.r8`, weightmaps), 246 streetscape documents (~15,422 splines), massing, furniture, **and
+  `landscape_conformed/`** — see §4. `landscape_clean/` and `landscape_seam/` are 25-file 2×2 cutouts
+  left behind by `Tools/ue/gate_proofs.py`; they are scratch, not products.
 - `projects/one/Content/` 2.1 GB — the generated level: landscape (2,067 components, 140 proxies),
-  216 massing actors, one test-stretch streetscape actor. **Regenerable** by the `Tools/ue` scripts,
-  which is why it is ignored; regenerating the landscape costs ~6 minutes plus editor startup.
+  216 massing actors, 15,423 streetscape actors. **Regenerable** by the `Tools/ue` scripts, which is
+  why it is ignored; regenerating the landscape costs ~6 minutes plus editor startup.
+- `renders/<commit>/` — the fixed 45-viewpoint render set, committed via LFS with a `manifest.json`
+  holding each camera transform and each image's sha256. `renders/b1cd3e5/INDEX.md` is the
+  defect-by-defect reading of what the model looks like.
 
-## 3. What is running right now
+## 3. What this round did, agent by agent
 
-A workflow, `thanet-finish-real`, run id **`wf_c1860991-626`**, script at
-`~/.claude/projects/C--Users-Shadow-code-3duk/<session>/workflows/scripts/thanet-finish-real-wf_c1860991-626.js`.
+Three agents worked in parallel on Alex's request — *"fix the roads so they are all above ground as
+necessary and make sure they join together properly … make this a solid foundation"*. The binding
+architectural call was:
 
-Resume it with `Workflow({scriptPath: "<that path>", resumeFromRunId: "wf_c1860991-626"})`. Completed
-agents replay from cache; only the interrupted one and its successors re-run. **Do not edit the
-shared prompt preamble in that script** — it invalidates every cached agent and throws the finished
-work away. Editing one agent's own prompt is safe.
+> A junction is road **surface**, so filling it is **Renderer A**. There is no fourth renderer.
+> The **trimming** of a spline end back to a junction belongs one level lower, in the **shared spline
+> layer**, so Renderer A and Renderer B read one trimmed extent and cannot drift. Renderer B stops the
+> kerb and pavement at the trim and turns the corner with a radius. Junctions are **data** — 1,642
+> `_junction` records already in `data/thanet/out/networks/roads_*.jsonl`, already carried into every
+> site document as `junctions[]` — use them, do not invent a parallel mechanism.
 
-Its five phases run in order because each depends on the last:
+- **Geometry / spline** — `Tools/blender/streetscape/{spline,schema,road,edge,hedge,mesh,build,
+  terrain,conform}.py`, `tests/synthetic.py`, `tests/test_conform.py`, `Tools/conform_landscape.py`,
+  `Tools/road_fusion_audit.py`, `schema/streetscape.schema.json`. A `JunctionPlan` resolves the trim
+  once per site; `Spline` takes `trim=(t_start, t_end)` as a **mask on `s`**, not a re-basing (so every
+  segment list and every `s`-ranged override keeps its meaning), and both trim stations are added to
+  the mandatory station set so they exist exactly in every renderer's list. `resolve_widths` became
+  the one definition of half-width that `Spline` and `JunctionPlan` both call.
+- **Clearance / adapter** — `sources/adapters/unreal.py` gained `derived_products()`, so
+  `unreal_manifest.json` finally indexes `landscape_conformed`: what wrote it, when, at which commit,
+  how many cells it changed, and that its heights inside the corridor are the road and not the survey.
+  An absent directory yields `present: false` rather than no entry, so "not built yet" and "not known
+  about" cannot be confused.
+- **Integrity** (this file's author) — `sources/tests/regress_outputs.sh`, `sources/OUTPUT.md`,
+  `README.md`, `Tools/ue/run_ue_python.ps1`, `docs/STAGES.md`, `docs/RESUME.md`. See §5 and §6.
 
-1. **Diagnose** — done. Wrote `docs/TERRAIN_ROADS.md` and the tools in `Tools/diag/`.
-2. **Terrain fidelity** — fix the tile-boundary seams (D1) and pin down the sampler disagreement (D2).
-3. **Road corridor** — stop roads fusing with the ground (D3). The headline.
-4. **Full import** — honest gates (D4) and the whole network into the level (D5).
-5. **Prove** — an independent verifier re-measures everything, then the README and STAGES status.
+**Both of the other two were still mid-flight when this was written.** `git status --short` and
+`git diff --stat` first, then run the suites in §2 before believing any of it.
 
-If the workflow cannot be resumed, the phases are independent enough to re-launch individually from
-the descriptions in section 4 plus `docs/TERRAIN_ROADS.md`.
+## 4. The defects, and where each one stands
 
-## 4. The five defects, as measured
+`docs/TERRAIN_ROADS.md` is the measured analysis; `renders/b1cd3e5/INDEX.md` is what it looks like.
 
-`docs/TERRAIN_ROADS.md` is the full analysis with every command and number. In short:
+**D1 — tile-boundary seams. FIXED** (`b1cd3e5`). Step 05 no longer nearest-fills open sea and no
+longer fills per tile; the fill is decided once over the site mosaic, and `terrain_manifest.json`
+gained a `shared_edges` block that step 05 exits non-zero on. Thanet: 737 pairs, **0 of 378,081**
+shared samples disagreeing, worst 0.0 m (was 29,188 cells and 5.34 m). Margate: 162 pairs, 0 of
+83,106.
 
-**D1 — tile-boundary seams.** 85 of 737 adjacent tile pairs disagree on the row of samples they
-share; worst 5.34 m in visible ground, 10.95 m including ground hidden behind the cut. Cause proven:
-every one of the 29,188 disagreeing cells is a cell the survey never measured, and step 05 fills each
-tile's NoData from that tile's own neighbourhood, so two tiles invent different heights for the same
-edge. The raw rasters agree exactly (0 of 330,946 cells differ). No disagreeing cell is on surveyed
-ground, so D1 does not touch any road corridor — it is independent of D3.
+**D2 — "two terrain truths" was a misdiagnosis.** The heightfield and the ALandscape are the same
+data, agreeing at every grid post to 0.53 mm; they differ only between posts, bilinear versus the
+landscape's triangle pairs, bounded by `|twist|/4` (max 6.12 m over the site, 0.026 % of quads over
+0.5 m). `Streetscape.Terrain.Triangulated` exists and passes. **The §3.5 recommendation was NOT
+carried out** and this is easy to assume otherwise: `StreetTerrainSource.h:53` and `:138` still
+default to `EStreetHeightSampling::Bilinear`, and `Tools/blender/streetscape/terrain.py`'s
+`Heightfield.sample` is still bilinear only — so the conform was burned against the bilinear rule
+while the ground the player sees and collides with is triangulated. Checked 2026-09-09; it is a
+coordinated change (`DESIGN.md` §8 specifies bilinear and the frozen fixtures move with it).
 
-**D2 — "two terrain truths" was a misdiagnosis.** The plugin's heightfield and the imported landscape
-are the *same data*, agreeing at every grid post to 0.53 mm. They differ only in how they interpolate
-*between* posts: bilinear versus the landscape's triangle pairs. The 0.52 m figure is the
-interpolation bound of a single 1 m quad with a 2.08 m twist; 0.026 % of quads exceed 0.5 m. Worth
-recording and bounding, not "fixing".
+**D3 — roads fusing with the ground. FIXED in the data** (`b1cd3e5`). The corridor conform burns the
+road's own built surface into a copy of the landscape. Whole isle, 13,097 splines, 666,314 stations:
+stations with ground above the built surface **565,545 → 0**, carriageway penetrated **826.7 km →
+0.000 km**, worst penetration **13.826 m → 0.000000 m**.
 
-**D3 — the fusion Alex saw.** 89.7 % of road stations have terrain above the road surface somewhere
-across the carriageway: 24.0 of the 26.7 km sampled, median penetration 6.1 cm, p99 63 cm, max 4.1 m.
-The authored test stretch penetrates at 100 % of its stations. **The driver is not the longitudinal
-smoothing** — at a 5 m window it is worse (93.5 %). It is the cross-section: a flat or cambered
-ribbon meeting a rough, cross-sloping 1 m DTM, negative at 94.4 % of stations against 47.3 % for the
-longitudinal term. Recommended fix: conform the landscape to the road over a corridor, as a
-deterministic pass writing a *new* product directory, leaving the survey untouched. Core corridor is
-7.01 km², 7.1 % of the kept land; median change 4.1 cm, p95 0.34 m.
+**D3b — and yet the road is not in the picture. OPEN, and it is now the headline.** Measured over the
+45-frame set at `b1cd3e5`: of the 31 frames that stand on or look along a road, **the carriageway is
+drawn in 15 and missing in 16**. It is not the geometry — a downward trace at those same cameras hits
+the street 2.7–6.0 cm above the landscape, and hiding the `LandscapeProxy` actors brings the whole
+street back (`Tools/ue/diag_road_visibility.py`, `Saved/RoadVisibility/`). **The surface the landscape
+rasterises is not the surface its own height query returns**, and the drawn ground wins wherever a
+1 m quad holds more than the conform's 3 cm sink. Pinning LOD 0 removes it in a capture
+(`05_screenshot.py --landscape-lod0-screen-size`) but not at runtime. Deepening the sink is not free:
+the kerb tuck is 0.03 m, so a deeper sink shows daylight under the kerb.
 
-**D4 — dishonest gates.** `02_import_landscape.py` prints `THANET_OK` and exits 0 whatever its own
-probes concluded; `--verify` modes report success on zero actors; some I/O failures are skipped in
-silence.
+**D4 — dishonest gates. FIXED** (`b1cd3e5` for the import gates, this round for the two below).
 
-**D5 — the network is not in the level.** Only the hand-authored test stretch was ever imported. The
-246 adapter documents (~15,422 splines) have never been built as geometry in the engine.
+**D5 — the network is in the level.** 15,423 streetscape actors, 216 massing actors, 140 proxies,
+`PlayerStart`, game mode and pawn set, `problems: []` (`Saved/Tests/d5_assert_final.json`).
 
-## 5. Rules that cost previous sessions hours
+## 5. The two integrity defects closed this round
+
+**The Margate gate could not pass under any snapshot on disk.** A gate that compares one hash per
+file dies the first time a manifest gains a key or `generator` records a new commit sha, and it had.
+`regress_outputs.sh` now compares rasters and record files **byte for byte with no allowance of any
+kind**, and JSON products **structurally**: `PROVENANCE` when only the `generator` string differs,
+`EXTENDED` when the only difference is a key named in the script's `ALLOW_ADDED` table, `CHANGED`
+otherwise. Both allowances are proved by re-serialising the reduced file and hashing it against the
+snapshot, so one changed digit still fails. What actually changed is in `docs/STAGES.md` note (a),
+with the byte counts. `selftest` breaks twelve things on purpose and requires the exact verdict for
+each.
+
+**The headless runner was reporting crashes as successes — read this before trusting any THANET_OK.**
+`Tools/ue/run_ue_python.ps1` used to attribute *every* non-zero exit to this machine's VC++
+redistributable advisory. There are two causes, not one, and they were measured on 2026-09-09:
+
+| what the run did | raw exit | why |
+|---|---|---|
+| `ue_common.py`, with and without `-Render` | **1** | the VC++ advisory, counted as an error by the commandlet framework |
+| `04_probe.py --points … ` (no `--landscape`, `regions_loaded 0`) | **1** | the same |
+| `04_probe.py --points … --landscape` (`regions_loaded 1`) | **0xC0000005** | access violation at teardown |
+| `07_assert_level.py --census-only` (streams the whole world) | **0xC0000005** | the same |
+| all nine `render_set.ps1` batches at `b1cd3e5` | **0xC0000005** | the same (`renders/b1cd3e5/manifest.json`) |
+
+**It fires when, and only when, the run streamed in a World Partition region, and it fires after
+everything is finished.** In every measured case the Python script printed `THANET_OK`, the output
+files were written (`Saved/probe/census.json`, all 45 images and their reports), and the log ran all
+the way through the Warning/Error Summary to `LogExit: Exiting.` and `Log file closed` with no crash
+marker anywhere. **No output is lost.** There is also **no callstack**: UE writes no
+`Saved/Crashes/` entry and Windows writes no dump, because the fault is after the crash handler has
+been torn down. Getting a stack would mean attaching a debugger (procdump/windbg, neither installed)
+to the commandlet — that is the next step if it ever starts costing work rather than exit codes.
+
+The runner now names the NTSTATUS, waives the teardown crash **only** against positive proof that the
+work finished (Python succeeded, ≥1 `THANET_OK`, no `THANET_FAIL`, no crash marker, clean shutdown),
+prints a banner when it does, writes a `VERDICT` line and a row in
+`Saved/Logs/run_ue_python_verdicts.tsv`, refuses the waiver under `-StrictExit`, and fails loudly with
+a 40-line log excerpt for anything else. Verified on four cases: advisory → 0, teardown crash → 0 with
+the banner, teardown crash `-StrictExit` → non-zero, deliberate Python failure → non-zero.
+
+## 6. Rules that cost previous sessions hours
 
 - **PATH must use the `/c/` form**: `export PATH="/c/Users/Shadow/code/3duk-env/env/Library/bin:$PATH"`.
   A `C:/...` entry is invisible to bash — GDAL disappears and numpy's LAPACK dies silently with no
   output at all.
 - **Python is only** `C:/Users/Shadow/code/3duk-env/env/python.exe`. The `python`/`python3` on PATH
-  are broken Microsoft Store stubs.
-- **Every `UnrealEditor-Cmd` run exits 1** because of a VC++ redistributable advisory logged at Error
-  severity. `Tools/ue/run_ue_python.ps1` derives the real verdict from the log; anything else that
-  trusts the raw exit code will read every success as a failure.
+  are broken Microsoft Store stubs. `regress_outputs.sh` needs one too — `export PY=` it.
+- **`run_ue_python.ps1` exit 0 is not proof.** Read the `VERDICT` line it prints and confirm the
+  output files exist. §5 says why.
 - **UE 5.8 prints `Test Completed. Result={Success}`**, not `{Passed}`.
 - **Close the GUI editor before headless work.** Both processes fight over asset locks in `Content/`.
 - **Never launch the GUI from an agent**; it blocks on a modal dialog with no one to click it.
+- **`--max-components 256` on the landscape import.** With `0` the importer tries all 2,067 components
+  in one `Import` call and the D3D12 device dies with `E_OUTOFMEMORY` after ~12 minutes.
 - **Blender headless renders with EEVEE only** in `-b` mode on this machine, and its scripts must sit
   on a short path — the session scratchpad path is 270 characters and Blender cannot open files there.
 - **Long jobs must run in the background with a log.** The Bash tool caps at 600 s; a landscape import
-  is ~6 min, a full build ~2 min, the first editor start several minutes.
+  is ~6 min, the conform ~13.5 min, the 45-frame render set ~19 min, the first editor start several
+  minutes.
+- **Never `git commit/stash/checkout/reset` from an agent** — the orchestrator commits between phases.
 
-## 6. If you are starting completely cold
+## 7. If you are starting completely cold
 
 ```bash
-cd /c/Users/Shadow/code/3duk && git log --oneline -6 && git status --short
+cd /c/Users/Shadow/code/3duk && git log --oneline -6 && git status --short && git diff --stat
 ```
 
-Then read, in order: this file, `docs/BRIEF.md` sections 4, 7 and 8, `docs/TERRAIN_ROADS.md` section 1,
-and `docs/STAGES.md` for what each stage's acceptance command is. Confirm the tree is still green
-before changing anything:
+Then read, in order: this file, `docs/BRIEF.md` sections 1.1, 4 and 7, `docs/TERRAIN_ROADS.md`
+sections 1 and 8, `renders/b1cd3e5/INDEX.md`, and `docs/STAGES.md` §0 for what each stage's acceptance
+command is and what was last seen to pass. Confirm the tree is still green before changing anything:
 
 ```bash
 export PATH="/c/Users/Shadow/code/3duk-env/env/Library/bin:$PATH"
-C:/Users/Shadow/code/3duk-env/env/python.exe sources/tests/dryrun.py | tail -3
-./sources/tests/regress_outputs.sh compare margate before
-powershell -NoProfile -ExecutionPolicy Bypass -File projects/one/Tools/build.ps1
-powershell -NoProfile -ExecutionPolicy Bypass -File projects/one/Tools/ue/run_ue_tests.ps1
+export PY=C:/Users/Shadow/code/3duk-env/env/python.exe
+$PY sources/tests/dryrun.py | tail -1                               # 167 passed, 0 failed
+$PY sources/tests/test_unreal_adapter.py 2>&1 | tail -1             # OK
+$PY -m unittest discover -s projects/one/Tools/blender/tests -p "test_*.py" 2>&1 | tail -1
+./sources/tests/regress_outputs.sh compare margate terrain_fix_before | tail -1
+./sources/tests/regress_outputs.sh selftest margate | tail -1
+powershell -NoProfile -ExecutionPolicy Bypass -File projects/one/Tools/build.ps1 | tail -3
+powershell -NoProfile -ExecutionPolicy Bypass -File projects/one/Tools/ue/run_ue_tests.ps1 | tail -5
 ```
 
 To look at the world rather than rebuild it, open the editor on the saved level — but only when no
@@ -136,9 +218,19 @@ headless job is running:
 "/c/Program Files/Epic Games/UE_5.8/Engine/Binaries/Win64/UnrealEditor.exe" "C:/Users/Shadow/code/3duk/projects/one/Thanet.uproject"
 ```
 
-## 7. Uncommitted work
+## 8. Uncommitted work
 
 Agents write into the working tree and the orchestrator commits between phases, so after a crash
-there will usually be uncommitted changes from the agent that was mid-flight. They are not
+there will usually be uncommitted changes from the agents that were mid-flight. They are not
 necessarily broken — check them, build, run the tests, and commit what passes rather than discarding
 it. `git status --short` and `git diff --stat` are the first two commands after any disconnect.
+
+At the moment this file was written the tree held, uncommitted: the geometry track's junction trim
+(`Tools/blender/streetscape/**`, `schema/streetscape.schema.json`, `Tools/conform_landscape.py`,
+`Tools/road_fusion_audit.py`), the adapter's `derived_products` block
+(`sources/adapters/unreal.py`), this round's integrity work (`sources/tests/regress_outputs.sh`,
+`sources/OUTPUT.md`, `README.md`, `projects/one/Tools/ue/run_ue_python.ps1`, `docs/STAGES.md`, this
+file), an unrelated edit to `sources/fetch/photos.py`, and `sources/config/thanet_towns.json`
+untracked. The trim work changes the geometry the conform is burned from, so
+**`Tools/conform_landscape.py` and `Tools/road_fusion_audit.py` have to be re-run and the landscape
+re-imported before the level matches the splines again** — a `conform_v2` run was in progress.

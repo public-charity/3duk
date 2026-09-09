@@ -41,8 +41,11 @@ def build_rail(spline: Spline, params=None) -> Tuple[MeshBuffer, List[Instance]]
     bm = spec.ballast.material
     sec = Section((SectionPoint(float(O[0, 0]), -depth, bm, 0.0, True), SectionPoint(float(O[0, 1]), 0.0, bm, 1.0, False),
                    SectionPoint(float(O[0, 2]), 0.0, bm, 2.0, False), SectionPoint(float(O[0, 3]), -depth, bm, 3.0, True)), False)
+    # rail is never an arm of a road junction (JunctionPlan drops rail ends -- a level crossing is not
+    # a tarmac junction), so spline.active is all-true here; the mask is carried anyway so that a rail
+    # spline given a trim by a future junction kind cannot silently ignore it
     sweep(buf, sec, spline.frames, side=+1, lateral=0.0, height=0.0, point_o=O, point_h=Hh,
-          cap_start=False, cap_end=False, group="ballast")
+          mask=spline.active, cap_start=False, cap_end=False, group="ballast")
     # -- sleepers -------------------------------------------------------------------------------
     sl = spec.sleeper
     L = spline.length
@@ -50,7 +53,7 @@ def build_rail(spline: Spline, params=None) -> Tuple[MeshBuffer, List[Instance]]
     j = 0
     while sl.phase_m + j * sl.pitch_m <= L + 1e-9:
         sj = sl.phase_m + j * sl.pitch_m
-        if sj >= -1e-9:
+        if sj >= -1e-9 and spline.s_trim[0] - 1e-9 <= sj <= spline.s_trim[1] + 1e-9:
             js.append(sj)
         j += 1
     if js:
@@ -75,6 +78,6 @@ def build_rail(spline: Spline, params=None) -> Tuple[MeshBuffer, List[Instance]]
     height = (sl.height_m - sl.embed_m) + float(spec.pad_m)
     for name, sign in (("rail:left", +1.0), ("rail:right", -1.0)):
         sweep(buf, rsec, spline.frames, side=+1, lateral=sign * lat, height=height,
-              cap_start=True, cap_end=True, cap_mat=rs.material, group=name)
+              mask=spline.active, cap_start=True, cap_end=True, cap_mat=rs.material, group=name)
     buf.marking_strips = 0  # type: ignore[attr-defined]
     return buf, inst

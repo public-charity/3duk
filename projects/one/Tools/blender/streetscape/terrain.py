@@ -192,6 +192,49 @@ class Heightfield:
             hf.tiles[key] = d["t_%d_%d" % key]
         return hf
 
+    # -- the coarser surfaces the landscape can DRAW ---------------------------------------------
+    def lod_skeleton(self, k: int) -> "Heightfield":
+        """The surface an ALandscape draws at level of detail ``k``: every 2^k-th vertex kept, the
+        rest replaced by the straight line between the kept ones.
+
+        Why a terrain sampler has to know this.  ``sample`` answers the question the ENGINE'S HEIGHT
+        QUERY answers -- and that is not the surface on the screen.  A landscape component renders a
+        decimated mesh whose spacing doubles with each LOD, so a corridor conformed to a road at the
+        1 m posts can still be drawn over by a triangle that spans 2, 4 or 8 m and never sees them.
+        Measured over 241,205 points inside real Thanet corridors on the shipped conformed product
+        (``projects/one/Saved/Clearance/rules_conformed.json``): with the landscape's own LOD-0
+        triangulation NOT ONE point has ground above the road, at LOD 1 it is 0.04 % of points,
+        at LOD 2 3.2 %, at LOD 3 15.2 % with a p99 of 0.32 m.  That is the whole distance between
+        "the data says the road is above the ground" and the 16 of 31 street frames of
+        ``renders/b1cd3e5`` that had no carriageway in them.
+
+        Anchoring: tile (i, j)'s north-west sample sits at mosaic vertex (512*(ny-1-j), 512*i)
+        (``landscape_manifest.ue_import_unpadded.tile_quad_origin``), and 512 is a multiple of 2^k
+        for every k <= 9, so decimating inside each tile is the same decimation as decimating the
+        assembled mosaic -- no seam is invented by doing it per tile.  This models the LOD mesh as
+        point decimation; the engine additionally box-filters the heightmap texture into its mips,
+        which smooths rather than samples.  It is therefore a lower bound on the LOD error, and it is
+        already large enough to explain the pictures.
+        """
+        import copy as _copy
+        k = int(k)
+        if k <= 0:
+            return self
+        s = 1 << k
+        r1 = self.res - 1
+        idx = np.arange(self.res)
+        lo = np.minimum((idx // s) * s, r1)
+        hi = np.minimum(lo + s, r1)
+        t = (idx - lo) / np.where(hi > lo, hi - lo, 1)
+        out = _copy.copy(self)
+        out.tiles = {}
+        for key, T in self.tiles.items():
+            A = T.astype(np.float64)
+            B = A[lo, :] * (1.0 - t)[:, None] + A[hi, :] * t[:, None]
+            out.tiles[key] = (B[:, lo] * (1.0 - t)[None, :] + B[:, hi] * t[None, :]).astype(np.float32)
+        out.source = (self.source or "") + " +lod%d" % k
+        return out
+
     # -- frames --------------------------------------------------------------------------------
     def rebased(self, doc_E: float, doc_N: float) -> "Heightfield":
         """View of this heightfield for a document whose origin is (doc_E, doc_N): x_hf = x_doc + (doc_E - E_hf)."""

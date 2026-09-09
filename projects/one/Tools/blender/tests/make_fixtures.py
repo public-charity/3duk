@@ -53,6 +53,54 @@ EXPECTED = {
     # ("step_min >= 0.25") and stage 7 ("step_max <= 1.0, step_min >= 0.25") state bounds the algorithm
     # has never held to, on the fixtures or on real data; these are the true ones and test_spline.py
     # asserts them on every fixture.
+    # Junctions (SCHEMA.md 4.18).  Six synthetic shapes from synthetic.JUNCTION_BUILDERS, built by
+    # tests/test_junction.py and by the C++ Automation port, which must reproduce every count here
+    # EXACTLY -- they are the whole contract between the two implementations of the junction geometry.
+    #
+    #   trim_radius_m   the DERIVED radius (nothing in the document stores it): the largest requirement
+    #                   any arm makes of max(e_left, e_right) + overlap over tan((gap - 2 deg)/2),
+    #                   floored by the record's radius_m (4.0 in every fixture) and capped at 20 m.
+    #                   crossroads / tee / slope: no arm asks for more than the floor, so 4.0 exactly.
+    #                   five_arm: 72 deg gaps, e = 3.04, 3.04/tan(35 deg) = 4.34157.
+    #                   skew: 30 deg gaps, 3.04/tan(14 deg) = 12.192774 -- the acute pair drives it.
+    #                   widths: the 12 m trunk, e = 6.04, at 90 deg gaps: 6.04/tan(44 deg) = 6.254603,
+    #                   and the 4 m lanes are pushed back to the same radius because a junction has one
+    #                   size (see JunctionPlan._solve_radii).
+    #   patch_boundary  vertices of the closed patch boundary; patch_verts = that + 1 (the apex) and
+    #                   patch_tris = the boundary count, one fan triangle per boundary edge.
+    #   corner_tris     Renderer B's kerb + pavement swept round each corner at corner_step_deg = 10.
+    #   total_*         every buffer of every arm, patch and corners included.
+    #
+    # Measured with these, on every fixture: worst patch-to-ribbon gap 0.0 m, worst kerb-to-corner gap
+    # 0.0 m, double-covered patch area < 1e-11 m2, road-over-kerb overlap 0.040 m along every corner.
+    "junction": {
+        "gap_tol_m": 1e-9,
+        "overlap_m": 0.04,
+        "skirt_drop_m": 0.02,
+        "defaults": {"snap_m": 0.3, "clearance_deg": 2.0, "max_trim_radius_m": 20.0,
+                     "min_remaining_m": 1.0, "max_trim_frac_of_length": 0.5,
+                     "corner_step_deg": 10.0, "corner_handle_frac": 0.45},
+        "fixtures": {
+            "junction_crossroads": {"trim_radius_m": 4.0, "arms": 4, "patch_verts": 71, "patch_tris": 70,
+                                    "patch_boundary": 70, "patch_area_m2": 61.1172, "corners": 4,
+                                    "corner_tris": 760, "total_verts": 5357, "total_tris": 7838},
+            "junction_tee": {"trim_radius_m": 4.0, "arms": 3, "patch_verts": 45, "patch_tris": 44,
+                             "patch_boundary": 44, "patch_area_m2": 54.8786, "corners": 3,
+                             "corner_tris": 400, "total_verts": 3899, "total_tris": 5700},
+            "junction_five_arm": {"trim_radius_m": 4.34157, "arms": 5, "patch_verts": 96, "patch_tris": 95,
+                                  "patch_boundary": 95, "patch_area_m2": 68.4125, "corners": 5,
+                                  "corner_tris": 1100, "total_verts": 7197, "total_tris": 10343},
+            "junction_skew": {"trim_radius_m": 12.192774, "arms": 4, "patch_verts": 71, "patch_tris": 70,
+                              "patch_boundary": 70, "patch_area_m2": 256.3222, "corners": 4,
+                              "corner_tris": 760, "total_verts": 4717, "total_tris": 6870},
+            "junction_slope": {"trim_radius_m": 4.0, "arms": 4, "patch_verts": 71, "patch_tris": 70,
+                               "patch_boundary": 70, "patch_area_m2": 61.0966, "corners": 4,
+                               "corner_tris": 760, "total_verts": 5357, "total_tris": 7838},
+            "junction_widths": {"trim_radius_m": 6.254603, "arms": 4, "patch_verts": 83, "patch_tris": 82,
+                                "patch_boundary": 82, "patch_area_m2": 149.4264, "corners": 4,
+                                "corner_tris": 760, "total_verts": 5549, "total_tris": 8258},
+        },
+    },
     "stationing": {
         "upper_bound_rule": "max gap <= sampling.step_m + sampling.min_step_m",
         "upper_bound_why": "the march runs `while s + step_at(s) < L - min_step` and then appends L, so the "

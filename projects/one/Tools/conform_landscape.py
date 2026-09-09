@@ -127,7 +127,12 @@ def main():
     ap.add_argument("--out", default="data/thanet/out/unreal/landscape_conformed")
     ap.add_argument("--extra-doc", action="append", default=[])
     ap.add_argument("--limit", type=int, default=0, help="stop after N site documents (smoke runs)")
-    ap.add_argument("--sink-m", type=float, default=C.CorridorParams.sink_m)
+    ap.add_argument("--sink-m", type=float, default=C.CorridorParams.sink_m,
+                    help="the FLOOR of the per-station sink (conform.sink_profile)")
+    ap.add_argument("--sink-max-m", type=float, default=C.CorridorParams.sink_max_m,
+                    help="the CAP of the per-station sink")
+    ap.add_argument("--sink-cover-frac", type=float, default=C.CorridorParams.sink_cover_frac,
+                    help="fraction of the built block's own cover the sink may use")
     ap.add_argument("--verge-m", type=float, default=C.CorridorParams.verge_m)
     ap.add_argument("--blend-min-m", type=float, default=C.CorridorParams.blend_min_m)
     ap.add_argument("--blend-max-m", type=float, default=C.CorridorParams.blend_max_m)
@@ -138,7 +143,9 @@ def main():
     args = ap.parse_args()
 
     t0 = time.time()
-    params = C.CorridorParams(sink_m=args.sink_m, verge_m=args.verge_m, blend_min_m=args.blend_min_m,
+    params = C.CorridorParams(sink_m=args.sink_m, sink_max_m=args.sink_max_m,
+                              sink_cover_frac=args.sink_cover_frac,
+                              verge_m=args.verge_m, blend_min_m=args.blend_min_m,
                               blend_max_m=args.blend_max_m, batter_deg=args.batter_deg,
                               report_delta_m=args.report_delta_m, clamp_m=args.clamp_m)
     src = os.path.abspath(args.landscape).replace("\\", "/")
@@ -167,6 +174,7 @@ def main():
     per_class = {}
     n_docs = 0
     skipped = []
+    structures = []
     earth_all = []
     for path in files:
         site = io_json.load_site(path)
@@ -175,12 +183,36 @@ def main():
             if layer not in params.layers or sdef.profile_ids.road is None:
                 continue
             cls = (sdef.source.cls if sdef.source is not None else None) or "?"
+            if sdef.flags is not None and (sdef.flags.bridge or sdef.flags.tunnel):
+                # A STRUCTURE, not a road on the ground.  The pipeline's own contract is that a
+                # bridge or tunnel way carries the elevation of the ground UNDER it, unadjusted
+                # (sources/derive/06_build_networks.py:15-16, 11_linear_features.py:22) -- the
+                # invented +3 m / -4 m offsets were removed on purpose.  So burning this way's
+                # corridor would conform the ground to a surface that is not the ground: at the
+                # Chatham Main Line bridge over Minnis Road the rail way dives from 11.2 m to 8.5 m
+                # in 18 m because that is the ROAD underneath, and the burn cut that dive into the
+                # ground the road itself is built on.  The ground under a structure belongs to
+                # whatever passes below it, and that way burns it.
+                kind = "bridge" if sdef.flags.bridge else "tunnel"
+                skipped.append([os.path.basename(path), sdef.id, "structure: %s (not burned)" % kind])
+                structures.append({"spline_id": sdef.id, "cls": cls, "kind": kind,
+                                   "layer": layer, "doc": os.path.basename(path)})
+                acc.stats["splines_structure"] = acc.stats.get("splines_structure", 0) + 1
+                continue
             try:
                 sp = Spline(sdef, site, hf)
             except Exception as e:                                      # noqa: BLE001
                 skipped.append([os.path.basename(path), sdef.id, repr(e)[:160]])
                 acc.stats["splines_skipped"] += 1
                 continue
+            if getattr(sp, "trimmed", False):
+                # The burn must claim the ground under the junction disc, and only the UNTRIMMED
+                # extent does (conform.py's JUNCTIONS note).  Spline() trims only when a trim is
+                # handed in and this call hands none in, so a trimmed spline here means the default
+                # changed underneath the burn -- fail loudly rather than leave a hole per junction.
+                sys.exit("%s: %s came back TRIMMED (%.3f/%.3f m).  The corridor burn must see the "
+                         "untrimmed extent or the ground under every junction disc is left as survey."
+                         % (os.path.basename(path), sdef.id, sp.trim_m[0], sp.trim_m[1]))
             if any("no terrain under any station" in w for w in sp.warnings):
                 # z_ref would be 0 m: burning that would dig a crater in ground the survey never saw
                 skipped.append([os.path.basename(path), sdef.id, "no terrain under any station"])
@@ -309,6 +341,14 @@ def main():
         "streetscape": os.path.abspath(args.streetscape).replace("\\", "/"),
         "splines_burned": stats["splines"],
         "splines_skipped": stats["splines_skipped"],
+        "splines_structure": int(stats.get("splines_structure", 0)),
+        "structure_note": ("ways flagged bridge or tunnel are NOT burned.  Their elevation is the "
+                           "ground under the structure, unadjusted (sources/derive/06_build_networks.py "
+                           "15-16), so conforming the ground to them would cut the deck's dive into "
+                           "the ground the way underneath is built on.  The ground under a structure "
+                           "belongs to whatever passes below, and that way burns it.  The list is "
+                           "conform_structures.json; the DECK height itself is a geometry-core "
+                           "question and is not decided here."),
         "cells_changed": total_changed,
         "cells_touched": stats["cells_touched"],
         "contributions": stats["contributions"],
@@ -351,6 +391,20 @@ def main():
     hm = dict(man2["heightmap"])
     hm["semantics"] = ("h16 of step 05's filled DTM, CONFORMED TO THE ROAD CORRIDOR -- not the raw "
                        "survey.  See the `conform` block and conform_delta_x{i}_y{j}.r16.")
+    # The source manifest's roundtrip block measures the SURVEY against its own GeoTIFF and tells a
+    # consumer it may assert the two agree to the quantum.  Inside the corridor that is false by up to
+    # `max_fill_m`, so carrying it forward unchanged is a lie by omission (open defect 4 of
+    # BRIEF.md 9.2).  It is kept -- it is still true OUTSIDE the corridor and the delta rasters make
+    # the difference recoverable -- but it is re-scoped in words, here, on this product.
+    if isinstance(hm.get("roundtrip_measured"), dict):
+        rt = dict(hm["roundtrip_measured"])
+        rt["scope"] = ("MEASURED ON THE SOURCE (unconformed) PRODUCT, and true here only for cells "
+                       "this pass did not change.  Inside the corridor the heights are the road, not "
+                       "the survey: see conform.abs_delta_m and conform_delta_x{i}_y{j}.r16, which "
+                       "recover the survey cell by cell.")
+        rt["cells_changed_by_conform"] = total_changed
+        rt["max_abs_change_by_conform_m"] = round(max(abs(max_fill), abs(max_cut)), 4)
+        hm["roundtrip_measured"] = rt
     man2["heightmap"] = hm
     man2["conform"] = conform_block
     man2["conform_tiles"] = tiles_out
@@ -364,7 +418,49 @@ def main():
                             "here so Renderer B can carry an embankment or retaining wall (BRIEF 1.1)"),
                    "runs": sorted(clamped, key=lambda r: -abs(r["worst_m"]))}, fh, indent=1)
         fh.write("\n")
+    with open(os.path.join(dst, "conform_structures.json"), "w", encoding="utf-8", newline="\n") as fh:
+        json.dump({"note": conform_block["structure_note"],
+                   "count": len(structures),
+                   "by_kind": {k: sum(1 for s in structures if s["kind"] == k) for k in ("bridge", "tunnel")},
+                   "splines": sorted(structures, key=lambda r: (r["kind"], r["spline_id"]))}, fh, indent=1)
+        fh.write("\n")
+    # Announce the product in the adapter's own site index.  Until this ran, `unreal_manifest.json`
+    # listed `landscape` and not `landscape_conformed` -- so the landscape the engine imports was
+    # announced by nothing but its own manifest (open defect 3 of BRIEF.md 9.2).  The adapter now
+    # carries a `derived_products` block (sources/adapters/unreal.py:derived_products); this refreshes
+    # the entry so the index is current without re-running the adapter.  Only that one key is
+    # rewritten, and only if the index exists.
+    root_index = os.path.join(os.path.dirname(dst), "unreal_manifest.json")
+    index_updated = False
+    if os.path.isfile(root_index):
+        try:
+            idx = json.load(open(root_index, encoding="utf-8"))
+            entry = (idx.get("derived_products") or {}).get(os.path.basename(dst), {})
+            entry.update({
+                "derived_from": conform_block["source"].strip("./") or "landscape",
+                "generator": conform_block["generator"],
+                "manifest": "%s/landscape_manifest.json" % os.path.basename(dst),
+                "written_by_this_adapter": False,
+                "present": True,
+                "generated_utc": conform_block["generated_utc"],
+                "commit": conform_block["commit"],
+                "cells_changed": conform_block["cells_changed"],
+                "max_fill_m": conform_block["max_fill_m"],
+                "max_cut_m": conform_block["max_cut_m"],
+                "heightmap_semantics": hm["semantics"],
+            })
+            entry.setdefault("why", ("the road corridor burned into a copy of the landscape so the "
+                                     "built street sits on the ground instead of in it"))
+            idx.setdefault("derived_products", {})[os.path.basename(dst)] = entry
+            with open(root_index, "w", encoding="utf-8", newline="\n") as fh:
+                json.dump(idx, fh, indent=1)
+                fh.write("\n")
+            index_updated = True
+        except Exception as e:                                          # noqa: BLE001
+            print("WARNING: could not update %s: %r" % (root_index, e), flush=True)
     report = {"ok": True, "elapsed_s": round(time.time() - t0, 1), "docs": n_docs,
+              "root_index_updated": index_updated, "root_index": root_index,
+              "structures_not_burned": len(structures),
               "out": dst, "conform": conform_block, "by_class": per_class,
               "skipped": skipped[:200], "skipped_total": len(skipped),
               "files_copied": copied, "tiles": len(tiles_out)}
