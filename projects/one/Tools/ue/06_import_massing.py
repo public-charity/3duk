@@ -52,7 +52,7 @@ def ensure_grey_material():
 
 
 def main(argv):
-    opts = uc.parse_args(argv, flags=("no_save",), options={
+    opts = uc.parse_args(argv, flags=("no_save", "allow_mismatch", "no_preload"), options={
         "dir": "", "map": DEFAULT_MAP, "material": "",
     })
     massing_dir = (opts["dir"] or (uc.data_dir() + "/massing")).replace("\\", "/")
@@ -63,18 +63,23 @@ def main(argv):
     if not les.load_level(opts["map"]):
         uc.fail(NAME, "load_level(%s) failed" % opts["map"])
     # World Partition: nothing is loaded in a commandlet until a region is (Tools/ue/README.md), and the massing
-    # actors of a previous run must be visible for ImportMassing to replace them.
-    unreal.StreetscapeEditorLibrary.load_region(unreal.Vector(0, 0, 0), 2000000.0)
-
+    # actors of a previous run must be visible for ImportMassing to replace them. That preload now lives INSIDE
+    # ImportMassing, under bPreloadWorld, so --no-preload can switch it off; doing it here as well made the flag a
+    # lie (measured: 19.4 GB and climbing on a level holding the whole isle's streetscape, with --no-preload given).
     material, created = (opts["material"], False) if opts["material"] else ensure_grey_material()
     uc.log("massing material %s (created=%s)" % (material, created))
 
-    n, report_json = unreal.StreetscapeEditorLibrary.import_massing(massing_dir, material)
+    # ImportMassing streams the world in itself unless told not to; at site scale that also pulls in every one of
+    # the 15,422 streetscape actors and rebuilds their meshes (~19 GB), so --no-preload exists for a level that is
+    # known to hold no massing actor. It is loud in the log and recorded as report.preloaded either way.
+    n, report_json = unreal.StreetscapeEditorLibrary.import_massing(massing_dir, material, not opts["no_preload"])
     report = json.loads(report_json)
     if n < 0:
         uc.fail(NAME, "import_massing failed: %s" % report.get("error"))
 
     expected = None
+    man = {}
+    problems = []
     man_path = os.path.join(massing_dir, "massing_manifest.json")
     if os.path.isfile(man_path):
         with open(man_path) as fh:
@@ -85,11 +90,36 @@ def main(argv):
         report["matches_manifest"] = (n == expected)
         report["buildings_match_manifest"] = (report.get("buildings") == man.get("buildings"))
 
+    # ---- the verdict. matches_manifest / buildings_match_manifest / failed used to be carried out as data:
+    # the script printed THANET_OK for an import that built 3 of 216 tiles, or 0 of 216, or dropped a tile whose
+    # jsonl could not be parsed (ImportMassing counts those in `failed` and returns the actors it did manage).
+    problems = []
+    if n <= 0:
+        problems.append("import_massing created %d actor(s)" % n)
+    if int(report.get("failed") or 0) > 0:
+        problems.append("%s tile(s) failed to build (ImportMassing.failed) - see the errors above"
+                        % report.get("failed"))
+    if expected is not None and not report["matches_manifest"]:
+        problems.append("actors %d != massing_manifest.files %s" % (n, expected))
+    if expected is not None and not report["buildings_match_manifest"]:
+        problems.append("buildings %s != massing_manifest.buildings %s"
+                        % (report.get("buildings"), man.get("buildings")))
+    if problems and opts["allow_mismatch"]:
+        uc.log("WARNING: accepted by --allow-mismatch: %s" % "; ".join(problems))
+        report["accepted_problems"] = problems
+        problems = []
+
     if not opts["no_save"]:
         uc.save_all()
 
+    if problems:
+        uc.fail(NAME, "massing import gate(s) failed: %s" % "; ".join(problems))
+
     uc.report(NAME, {
         "actors": n,
+        "preloaded": report.get("preloaded"),
+        "failed": report.get("failed"),
+        "accepted_problems": report.get("accepted_problems"),
         "dir": massing_dir,
         "material": material,
         "material_created": created,

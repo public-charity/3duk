@@ -108,8 +108,8 @@ def synth(site, cfg_extra, px, RES, NX, NY, zfun, nodata_patch=None, ways=(), be
     gt = (E0 - px / 2, px, 0.0, N0 + NY * T + px / 2, 0.0, -px)
     EE, NN = np.meshgrid(E0 + px * np.arange(W), N0 + NY * T - px * np.arange(H))
     Z = zfun(EE, NN).astype(np.float32)
-    if nodata_patch:
-        e0, e1, n0, n1 = nodata_patch
+    for (e0, e1, n0, n1) in ([] if not nodata_patch else
+                             [nodata_patch] if isinstance(nodata_patch[0], (int, float)) else list(nodata_patch)):
         Z[(EE >= e0) & (EE < e1) & (NN >= n0) & (NN < n1)] = ND
     for (si, sj) in skip_tiles:         # the shared edge row/column belongs to the neighbours
         Z[(EE >= E0 + si * T) & (EE < E0 + (si + 1) * T) & (NN >= N0 + sj * T) & (NN < N0 + (sj + 1) * T)] = ND
@@ -203,11 +203,49 @@ def no_clip_keys(site_out, label):
           not bad and all(v is None for v in nd), f"{bad} nodata={nd}")
 
 
+def terrain_seam_checks(out, label):
+    """D1, permanently: every sample two neighbouring tiles SHARE must be bit-identical.
+
+    grid_res = tile_m/px + 1, so tile (i, j)'s east column IS tile (i+1, j)'s west column and its
+    north row IS tile (i, j+1)'s south row -- one landscape vertex, one value. Filling NoData per
+    tile made each tile invent that line from its own cells and the two answers differed: on the
+    real Thanet product, 28,725 of 370,797 shared samples, the worst by 5.34 m. Site A now carries
+    a NoData patch straddling its seam so this check has something to catch; it is run on every
+    dry-run site because a fill that is only seam-safe on the site it was tested on is not a fix.
+    Measured here from the written rasters AND compared against the manifest's own audit, so the
+    manifest cannot claim a clean edge the files do not have.
+    """
+    tm = json.load(open(os.path.join(out, "terrain", "terrain_manifest.json")))
+    arrs = {(t["x"], t["y"]): gdal.Open(os.path.join(out, "terrain", t["file"])).GetRasterBand(1).ReadAsArray()
+            for t in tm["tiles"]}
+    worst, bad, pairs, samples = 0.0, 0, 0, 0
+    for (i, j), a in sorted(arrs.items()):
+        for (di, dj), sa, sb in (((1, 0), (slice(None), -1), (slice(None), 0)),
+                                 ((0, 1), (0, slice(None)), (-1, slice(None)))):
+            b = arrs.get((i + di, j + dj))
+            if b is None:
+                continue
+            pairs += 1
+            samples += int(a[sa].size)
+            dd = np.abs(a[sa].astype(np.float64) - b[sb].astype(np.float64))
+            bad += int((dd != 0).sum())
+            worst = max(worst, float(dd.max()))
+    se = tm.get("shared_edges", {})
+    check(f"{label}05 every shared tile edge is bit-identical ({pairs} pairs, {samples} samples)",
+          pairs > 0 and bad == 0 and worst == 0.0, f"{bad} samples differ, worst {worst} m")
+    check(f"{label}05 manifest shared_edges is the audit of the files just written, and reports zero",
+          se.get("pairs") == pairs and se.get("samples_compared") == samples
+          and se.get("samples_disagreeing") == 0 and se.get("max_disagreement_m") == 0.0
+          and se.get("max_at") is None, str(se))
+
+
 def adapter_checks(site, label, S, clip_block=None, tm=None):
     """PIPELINE_CHANGES.md 13.10's dryrun hook, per site. Skipped (not passed) when the adapter is absent."""
+    nm3 = f"{label}-unreal seam_qa: no h16 sample two tiles share differs, kept or clipped"
     names = [f"{label}-unreal manifest round-trips origin/tile_m/nx/ny/res",
              (f"{label}-unreal clipped_cells == clip-mask zeros per tile and in total; vis present for straddle tiles only; clip block copied"
-              if clip_block else f"{label}-unreal no clip, all-255 clip masks, no vis files")]
+              if clip_block else f"{label}-unreal no clip, all-255 clip masks, no vis files"),
+             nm3]
     if adapter_ran.get(site) is None:
         for nm_ in names: skip(nm_, f"{ADAPTER} absent")
         return
@@ -239,6 +277,16 @@ def adapter_checks(site, label, S, clip_block=None, tm=None):
                   and not glob.glob(os.path.join(U, "landscape", "vis_*.r8")) and lmf.get("clipped_cells_total", 0) == 0)
             check(names[1], ok, str(zeros))
         done.add(names[1])
+        # D1 on the product the landscape is actually built from. The h16 carries no NoData: the
+        # clipped cells are filled too, and that fill is decided over the site mosaic for the same
+        # reason step 05's is, so EVERY shared sample must match -- the kept ones a player stands on
+        # and the invented ones behind the clip alike (35,951 of them differed on Thanet, by up to
+        # 10.95 m, when the fill was per tile).
+        q = lmf["seam_qa"]
+        check(nm3, q["samples_compared_all"] > 0 and q["samples_disagreeing_all"] == 0
+              and q["samples_disagreeing"] == 0 and q["max_disagreement_all_m"] == 0.0
+              and q["max_disagreement_m"] == 0.0, str(q))
+        done.add(nm3)
     except Exception as ex:
         traceback.print_exc()
         for nm_ in names:
@@ -303,7 +351,14 @@ try:
         "height_calib": {"mode": "auto", "min_buildings": 3, "fallback": {"intercept": 9.9, "m_per_level": 9.9}, "dispute_m": 4.0},
         "coast": {"foreshore_max_odn": 1.2, "rock_slope_deg": [22.0, 40.0], "water_margin_m": 0.75, "water_tolerance_m": 0.3},
         "landmarks": {"_note": "test", "Test Tower": {"h_body": 57.0, "roof": "flat"}, "Never Matches": {"h_body": 1.0}},
-    }, px=1, RES=RES, NX=NX, NY=NY, zfun=zA, nodata_patch=(E0 + 700, E0 + 740, N0 + 400, N0 + 440),
+    }, px=1, RES=RES, NX=NX, NY=NY, zfun=zA,
+       # two DTM holes: one inside tile (1, 0), and one 64 m wide x 70 m tall STRADDLING the seam at
+       # E0+512. The straddling one is the D1 regression case: filled per tile, tile (0, 0) reaches
+       # its nearest valid cell 33 m to the WEST of the shared column and tile (1, 0) reaches 33 m to
+       # the EAST, so the two invent heights 1.3 m apart for the same landscape vertex. Filled over
+       # the site mosaic there is one nearest cell and one answer. It sits clear of every way,
+       # building, node, the beach polygon and the cliff row, so only the seam checks see it.
+       nodata_patch=[(E0 + 700, E0 + 740, N0 + 400, N0 + 440), (E0 + 480, E0 + 544, N0 + 230, N0 + 300)],
        ways=waysA, beach=rect(E0, N0 + SEA_N, 400, 60), buildings=bldA, nodes=nodesA, decoys=True)
     out, Z = A["out"], A["Z"]
     print("\n=== checks: site A")
@@ -317,13 +372,30 @@ try:
     check("A05 manifest: crs, origin, true range, datum, no missing tiles", tm["crs"] == "EPSG:27700" and tm["origin"]["E"] == E0
           and tm["range_m"][0] == SEA_Z and abs(tm["range_m"][1] - z_at(E0 + 1024, N0 + 511)) < 0.01 and tm["vertical_datum"] == "TEST"
           and tm["tiles_missing"] == [], str(tm["range_m"]))
-    check("A05 nodata cells counted on the patched tile only", [t["nodata_cells"] > 0 for t in tm["tiles"]] == [False, True])
+    # The straddling hole is counted on BOTH tiles, each getting exactly its own share of it
+    # (the shared column belongs to both), so the count stays a property of the tile, not of the hole.
+    want_nd = [int((Z[:, :RES] == -9999.0).sum()), int((Z[:, RES - 1:] == -9999.0).sum())]
+    check("A05 nodata cells counted per tile, the straddling hole split across both",
+          [t["nodata_cells"] for t in tm["tiles"]] == want_nd and want_nd[0] > 0 and want_nd[1] > want_nd[0],
+          f"{[t['nodata_cells'] for t in tm['tiles']]} vs {want_nd}")
     tiles = {(t["x"], t["y"]): gdal.Open(os.path.join(out, "terrain", t["file"])).GetRasterBand(1).ReadAsArray() for t in tm["tiles"]}
     check("A05 -9999 never reaches the output", all(a.min() > -100 for a in tiles.values()))
     check("A05 filled patch is plausible ground, not a hole", 20 < tiles[(1, 0)][80:110, 195:225].min() and tiles[(1, 0)][80:110, 195:225].max() < 50)
     check("A05 output stays north-up (row 0 == north edge of the VRT)", np.array_equal(tiles[(0, 0)][0], Z[0, :RES]))
-    check("A05 shared seam column identical across tiles", np.array_equal(tiles[(0, 0)][:, -1], tiles[(1, 0)][:, 0]))
-    check("A05 fill method reported per tile", all(t["fill"] in ("median (degraded)", "nearest", "none") for t in tm["tiles"]))
+    seam_holes = int((Z[:, RES - 1] == -9999.0).sum())      # invented cells ON the shared column
+    check("A05 shared seam column identical across tiles, THROUGH the straddling DTM hole",
+          seam_holes > 0 and np.array_equal(tiles[(0, 0)][:, -1], tiles[(1, 0)][:, 0]),
+          f"{seam_holes} invented cells on the seam column; equal={np.array_equal(tiles[(0, 0)][:, -1], tiles[(1, 0)][:, 0])}")
+    check("A05 fill method reported per tile, and it says the decision was made over the mosaic",
+          [t["fill"] for t in tm["tiles"]] == ["mosaic nearest", "mosaic nearest"], str([t["fill"] for t in tm["tiles"]]))
+    check("A05 fill_reach_max_m records how far the invention travelled; the site block totals the mosaic",
+          all(30.0 <= t["fill_reach_max_m"] <= 40.0 for t in tm["tiles"])
+          and tm["fill"]["method"] == "nearest"
+          and tm["fill"]["nodata_cells"] == sum(want_nd) - seam_holes
+          and tm["fill"]["mosaic"]["shared_cell_conflicts"] == 0
+          and tm["fill"]["mosaic"]["shape"] == [RES, NX * (RES - 1) + 1],
+          f"{[t.get('fill_reach_max_m') for t in tm['tiles']]} {tm.get('fill')}")
+    terrain_seam_checks(out, "A")
     check("A05 slope QA: the 20 m/1 m cliff survives as ~87 deg", tm["slope_qa"]["max_deg"] > 85 and all("slope_max_deg" in t for t in tm["tiles"]), str(tm["slope_qa"]))
 
     # ---- 06 roads
@@ -478,6 +550,10 @@ try:
     tb = gdal.Open(os.path.join(outb, "terrain", "dtm_x0_y1.tif")).GetRasterBand(1).ReadAsArray()
     check("B05 tile content matches the VRT at 2 m (north tile, north-west corner)", tb.shape == (257, 257) and np.array_equal(tb[0], Zb[0, :257]))
     check("B05 slope QA reflects a gentle site (max ~3 deg), not site A's cliff", tmb["slope_qa"]["max_deg"] < 5 and tmb["slope_qa"]["pct_cells_over_45deg"] == 0)
+    check("B05 a fully covered site keeps the manifest it always had: no fill block, no reach fields",
+          "fill" not in tmb and not any("fill_reach_max_m" in t for t in tmb["tiles"])
+          and all(t["fill"] == "none" for t in tmb["tiles"]), str(tmb.get("fill")))
+    terrain_seam_checks(outb, "B")
     rb = jl(os.path.join(outb, "networks", "roads_*.jsonl")); segb = [r for r in rb if r["cls"] != "_junction"]
     r1 = sorted([s for s in segb if s["id"] == "r1"], key=lambda s: s["pts"][0][0])
     check("B06 road split across 3 tiles at a different origin, lanes=4 -> 13 m", len(r1) == 3 and r1[0]["w"] == 13.0 and all(E0b <= v[0] <= E0b + 1536 for s in r1 for v in s["pts"]))
@@ -608,6 +684,9 @@ try:
           and tc[(1, 1)]["clipped_cells"] == 2926 and tc[(0, 1)]["clipped_cells"] == 167466 and tc[(2, 0)]["clipped_cells"] == 2926
           and "deliberate absence" in tmc["clip_note"] and all(t["nodata_cells"] == 0 for t in tmc["tiles"]),
           f"{tmc.get('clipped_cells_total')} {[t['clipped_cells'] for t in tmc['tiles']]}")
+    # the clip writes NoData into the shared edges too, and a cell on the line is kept or cut by
+    # its centre, which both tiles compute identically -- so the seam stays bit-identical through it
+    terrain_seam_checks(outc, "C")
 
     # ---- 06 roads with the clip
     rc = jl_tiles(os.path.join(outc, "networks", "roads_x*_y*.jsonl"))
@@ -847,6 +926,45 @@ try:
     e1v = np.full((3, 3), -9999.0); m1 = lib.fill_nodata(e1v, lib.nodata_mask(e1v, -9999.0), empty_fill=-0.6)
     check("lib.fill_nodata all-nodata: default 0 unchanged, empty_fill used and named",
           m0 == "all-nodata -> 0" and (e0v == 0.0).all() and m1 == "all-nodata -> -0.6" and (e1v == -0.6).all(), f"{m0} {m1}")
+    # reach: the distance the invention travelled, in CRS metres, so a 2 m grid reports 2 m per cell
+    rv = np.array([[1.0, -9999.0, -9999.0, 4.0]]); rb = lib.nodata_mask(rv, -9999.0)
+    rr = np.zeros(rv.shape)
+    lib.fill_nodata(rv, rb, px_m=2.0, reach=rr)
+    check("lib.fill_nodata reach is in CRS metres and 0 on cells it did not touch",
+          rr.tolist() == [[0.0, 2.0, 2.0, 0.0]] and rv.tolist() == [[1.0, 1.0, 4.0, 4.0]], f"{rr.tolist()} {rv.tolist()}")
+
+    # ---- the mosaic: the whole of the D1 fix at lib level
+    mcfg = {"nx": 2, "ny": 2, "grid_res": 5, "tile_m": 8, "origin": {"E": 1000, "N": 2000}}
+    Hm, Wm, gtm, pxm = lib.mosaic_geom(mcfg)
+    check("lib.mosaic_geom: neighbours share one line of samples, north-up, centres on the tile grid",
+          (Hm, Wm, pxm) == (9, 9, 2.0) and gtm == (999.0, 2.0, 0.0, 2017.0, 0.0, -2.0), f"{(Hm, Wm, pxm)} {gtm}")
+    check("lib.mosaic_window: tile (i, j+1) sits ABOVE (i, j) and shares its bottom row",
+          (lib.mosaic_window(mcfg, 0, 0)[0].start, lib.mosaic_window(mcfg, 0, 1)[0].stop) == (4, 5)
+          and lib.mosaic_window(mcfg, 1, 0)[1] == slice(4, 9))
+    tiles_in = {p: np.full((5, 5), 1.0) for p in ((0, 0), (1, 0), (0, 1), (1, 1))}
+    tiles_in[(0, 0)][2, 2] = np.nan                       # a hole 2 cells from the seam in tile (0, 0)
+    arr, minfo = lib.assemble_mosaic(mcfg, lambda i, j: tiles_in.get((i, j)))
+    check("lib.assemble_mosaic lays tiles out and counts the cells written twice",
+          arr.shape == (9, 9) and minfo["tiles"] == 4 and minfo["overlap_cells"] == 4 * 5 * 5 - 9 * 9
+          and minfo["overlap_conflicts"] == 0 and minfo["nodata_cells"] == 1, str(minfo))
+    conf = {(0, 0): np.full((5, 5), 1.0), (1, 0): np.full((5, 5), 1.0)}
+    conf[(1, 0)][:, 0] = 7.0                              # its west column is not its neighbour's east one
+    _, cinfo = lib.assemble_mosaic(mcfg, lambda i, j: conf.get((i, j)), label="conflict")
+    check("lib.assemble_mosaic will not hide a shared edge two tiles disagree about",
+          cinfo["overlap_cells"] == 5 and cinfo["overlap_conflicts"] == 5 and cinfo["overlap_conflict_max"] == 6.0, str(cinfo))
+    ed = {(0, 0): {"n": np.array([1.0, 2.0]), "s": np.array([0.0, 0.0]), "w": np.array([0.0, 0.0]), "e": np.array([3.0, 4.0])},
+          (1, 0): {"n": np.array([0.0, 0.0]), "s": np.array([0.0, 0.0]), "w": np.array([3.0, 4.5]), "e": np.array([0.0, 0.0])}}
+    sa = lib.shared_edge_audit(ed)
+    check("lib.shared_edge_audit compares each pair once, on the line they share, and locates the worst",
+          (sa["pairs"], sa["samples_compared"], sa["samples_disagreeing"]) == (1, 2, 1)
+          and abs(sa["max_disagreement_m"] - 0.5) < 1e-12 and sa["max_at"]["tiles"] == [[0, 0], [1, 0]]
+          and sa["max_at"]["index"] == 1, str(sa))
+    ok_ed = {k: {s: v.copy() for s, v in sides.items()} for k, sides in ed.items()}
+    ok_ed[(1, 0)]["w"] = ed[(0, 0)]["e"].copy()
+    sok = lib.shared_edge_audit(ok_ed)
+    check("lib.shared_edge_audit reports a clean zero when the tiles agree",
+          (sok["pairs"], sok["samples_compared"], sok["samples_disagreeing"]) == (1, 2, 0)
+          and sok["max_disagreement_m"] == 0.0 and sok["max_at"] is None, str(sok))
     pd_ = os.path.join(tempfile.gettempdir(), "_dryrun_product")
     shutil.rmtree(pd_, ignore_errors=True)
     lib.begin_product(pd_, "test_step")

@@ -305,6 +305,12 @@ def probe_clip(land, man, plan_json, hf):
         if not row["minus"]["blocked"] and row["minus"]["z_heightfield_m"] is None:
             ok_minus += 1
         pts.append(row)
+    if not pts:
+        # every sample of the clip line fell outside this manifest's coverage (a cutout, say). "pass: false" for
+        # that is a lie about the cut; say the probe did not run and let --allow-skipped-gates decide.
+        return {"skipped": "the clip line does not cross this manifest's coverage (0 of %d samples inside)" % CLIP_SAMPLES,
+                "line_local_m": [[round(ax, 2), round(ay, 2)], [round(bx, 2), round(by, 2)]],
+                "keep": clip.get("keep"), "samples": 0}
     mid = (ax + dx * 0.5, ay + dy * 0.5)
     return {
         "line_local_m": [[round(ax, 2), round(ay, 2)], [round(bx, 2), round(by, 2)]],
@@ -321,8 +327,49 @@ def probe_clip(land, man, plan_json, hf):
     }
 
 
+def probe_counts(report, plan_json, man, whole_world_loaded):
+    """The gate nobody was running: does the LEVEL hold what the PLAN said it would?
+
+    components / proxies / extent came back in the report as data and nothing branched on them, so an import that
+    built 1,700 of 2,067 components printed THANET_OK with the shortfall inside the JSON. Also checks that every
+    tile the manifest lists was actually read (tiles_read), which is the counted version of "a heightmap tile that
+    could not be read". In --probes-only --no-load-all only the streamed proxies are in ULandscapeInfo, so the
+    component/proxy comparison is meaningless there and says so instead of passing.
+    """
+    land = report.get("landscape") or {}
+    imp = report.get("import") or {}
+    out = {
+        "components_in_level": land.get("components"),
+        "components_planned": plan_json.get("components_planned"),
+        "proxies_in_level": land.get("proxies"),
+        "proxies_expected": plan_json.get("proxies_expected"),
+        "extent_in_level": land.get("extent"),
+        "extent_planned": plan_json.get("extent"),
+        "tiles_read": imp.get("tiles_read"),
+        "tiles_in_manifest": plan_json.get("tiles_in_manifest"),
+        "whole_world_loaded": bool(whole_world_loaded),
+    }
+    if not whole_world_loaded:
+        out["skipped"] = ("only the streamed proxies are in ULandscapeInfo::XYtoComponentMap, so a component or "
+                          "proxy count taken here is a count of what happens to be loaded, not of the landscape")
+        return out
+    bad = []
+    if out["components_in_level"] != out["components_planned"]:
+        bad.append("components %s != planned %s" % (out["components_in_level"], out["components_planned"]))
+    if out["proxies_in_level"] != out["proxies_expected"]:
+        bad.append("proxies %s != expected %s" % (out["proxies_in_level"], out["proxies_expected"]))
+    if out["extent_in_level"] != out["extent_planned"]:
+        bad.append("extent %s != planned %s" % (out["extent_in_level"], out["extent_planned"]))
+    if out["tiles_read"] is not None and out["tiles_read"] != out["tiles_in_manifest"]:
+        bad.append("tiles_read %s != tiles_in_manifest %s" % (out["tiles_read"], out["tiles_in_manifest"]))
+    out["problems"] = bad
+    out["ok"] = not bad
+    return out
+
+
 def main(argv):
-    opts = uc.parse_args(argv, flags=("probes_only", "recreate_map", "no_cliff", "no_clip", "no_grid", "no_load_all"), options={
+    opts = uc.parse_args(argv, flags=("probes_only", "recreate_map", "no_cliff", "no_clip", "no_grid", "no_load_all",
+                                      "allow_skipped_gates", "no_counts"), options={
         "manifest": "",
         "qps": "127",
         "sections": "2",
@@ -420,8 +467,13 @@ def main(argv):
     uc.log("landscape: %s" % json.dumps(report["landscape"], sort_keys=True))
 
     # the reference heightfield must read the SAME directory the landscape came from (DESIGN.md 8)
-    unreal.StreetscapeEditorLibrary.ensure_site_actor(str(man.get("site", uc.site_name())),
-                                                      float(man["origin"]["E"]), float(man["origin"]["N"]))
+    site_actor = unreal.StreetscapeEditorLibrary.ensure_site_actor(str(man.get("site", uc.site_name())),
+                                                                   float(man["origin"]["E"]), float(man["origin"]["N"]))
+    prev_dir = ""
+    if site_actor is not None:
+        t = site_actor.get_editor_property("terrain_source")
+        if t is not None:
+            prev_dir = str(t.get_editor_property("landscape_dir") or "")
     hf = uc.heightfield(os.path.dirname(manifest))
     if hf is None:
         uc.fail(NAME, "no site actor / terrain source to probe the heightfield with")
@@ -441,6 +493,11 @@ def main(argv):
         clip = probe_clip(land, man, plan_json, hf)
         report["clip"] = clip
         uc.log("clip probe: %s" % json.dumps({k: v for k, v in clip.items() if k != "points"}, sort_keys=True))
+
+    if not opts["no_counts"]:
+        report["counts"] = probe_counts(report, plan_json, man,
+                                        whole_world_loaded=not (opts["probes_only"] and opts["no_load_all"]))
+        uc.log("counts gate: %s" % json.dumps(report["counts"], sort_keys=True))
 
     uc.save_all()
     report["rss_mb_end"] = round(imp.rss_mb(), 1)
@@ -469,18 +526,27 @@ def main(argv):
         "cliff": {k: report.get("cliff", {}).get(k) for k in ("max_abs_dz_m", "transect_slope_max_deg", "slope_max_deg", "tile_slope_max_deg", "slope_vs_tile_deg", "slope_within_2deg_of_tile", "agree", "slope_ok", "tile_scan", "skipped")} if "cliff" in report else None,
         "clip": {k: report.get("clip", {}).get(k) for k in ("samples", "kept_side_ok", "cut_side_ok", "pass")} if "clip" in report else None,
         "shared_edge": (report.get("import") or {}).get("shared_edge"),
+        "counts": report.get("counts"),
     }
 
     # ---- the verdict. Before this the script printed THANET_OK whatever the probes concluded: grid.within_0_01_m,
     # cliff.agree, cliff.slope_ok and clip.pass were carried as data and nothing branched on them (STAGES 1.13).
     failures = []
+    skipped = []
 
     def check(section, key, want=True):
         sec = report.get(section)
         if sec is None:
             return                       # the probe was switched off with --no-<section>
         if "skipped" in sec:
-            uc.log("gate %s.%s: SKIPPED (%s)" % (section, key, sec["skipped"]))
+            # a gate that did not run is not a gate that passed. --no-load-all and a clip-less manifest both land
+            # here, and both used to print one log line and let the run report success.
+            if opts["allow_skipped_gates"]:
+                uc.log("gate %s.%s: SKIPPED and ALLOWED by --allow-skipped-gates (%s)" % (section, key, sec["skipped"]))
+                skipped.append("%s.%s (%s)" % (section, key, sec["skipped"]))
+                return
+            failures.append("%s.%s did not run: %s (pass --allow-skipped-gates to accept that on purpose)"
+                            % (section, key, sec["skipped"]))
             return
         got = sec.get(key)
         if got is None:
@@ -492,6 +558,7 @@ def main(argv):
     check("cliff", "agree")
     check("cliff", "slope_ok")
     check("clip", "pass")
+    check("counts", "ok")
     se = (report.get("import") or {}).get("shared_edge")
     if se is not None and not se.get("ok", True):
         failures.append("shared_edge.ok is False (max %s h16 over %s visible samples)"
@@ -499,7 +566,24 @@ def main(argv):
     if se is not None and se.get("waived"):
         uc.log("WARNING: the shared-edge gate was WAIVED (--max-shared-edge-h16 %s); worst %s h16 = %s m at %s"
                % (opts["max_shared_edge_h16"], se.get("visible_max_h16_delta"), se.get("visible_max_m"), se.get("worst_local_m")))
+    # ...but the LEVEL must not keep it.  The gates above probe the landscape against the directory it
+    # was imported from, which since docs/TERRAIN_ROADS.md 8 is `landscape_conformed`; the streets are
+    # a different question and BRIEF 1.1 answers it -- a road drapes on the SURVEY.  Leaving the probe's
+    # directory on the saved site actor makes the next 03_import_streetscape build its roads on the
+    # ground that was burned from roads, a feedback loop whose first symptom is terrain standing back
+    # up through the carriageway. Restore whatever the level had.
+    if site_actor is not None:
+        t = site_actor.get_editor_property("terrain_source")
+        probe_dir = os.path.normpath(os.path.dirname(manifest)).lower()
+        keep = prev_dir if (prev_dir and os.path.normpath(prev_dir).lower() != probe_dir) else ""
+        if t is not None and str(t.get_editor_property("landscape_dir") or "") != keep:
+            t.set_editor_property("landscape_dir", keep)
+            t.load()
+            uc.log("terrain source set to %r for the level (the probe's %s is temporary)"
+                   % (keep or "<settings default: the survey>", os.path.dirname(manifest)))
+            uc.save_all()
     summary["gates_failed"] = failures
+    summary["gates_skipped"] = skipped
     if failures:
         uc.log("report written to %s" % out_path.replace("\\", "/"))
         uc.fail(NAME, "gate(s) failed: %s | summary %s" % ("; ".join(failures), json.dumps(summary, sort_keys=True)))

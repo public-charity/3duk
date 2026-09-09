@@ -81,39 +81,183 @@ def tile_px(cfg, gt):
     return int(round(nx)), int(round(ny))
 
 
-def fill_nodata(a, bad, label="", empty_fill=0.0):
+# ---- the site mosaic, and why the nodata fill lives on it -----------------------
+# THE ARRAY HANDED TO fill_nodata IS THE UNIT OF DECISION, and that is the whole of defect D1.
+# Filling one 513x513 tile at a time makes each tile invent the row it SHARES with its neighbour
+# out of its own cells, and two tiles reach different answers: measured on the Thanet product on
+# 2026-09-09, 28,725 of 370,797 shared samples disagreed, the worst by 5.34 m -- a false cliff
+# 512 m long on every seam the sea touches, carried faithfully through the adapter into the
+# landscape (projects/one/docs/TERRAIN_ROADS.md 2).
+#
+# So callers assemble the whole site with assemble_mosaic(), fill ONCE, and cut tiles back out
+# with mosaic_window(). A shared sample is then one cell of one array, filled from one nearest
+# valid neighbour, and the two tiles CANNOT disagree -- not "usually agree", cannot. The cost is
+# one float32 array of the site (Thanet: 13313 x 9729, 518 MB) and one distance transform over it
+# (measured 9.8 s on this machine), against a per-tile halo that would have to exceed the 1,379 px
+# worst-case reach to be equivalent.
+#
+# Proved by terrain_manifest.shared_edges (step 05) and landscape_manifest.seam_qa (the Unreal
+# adapter): both measure every shared sample of the product they just wrote and refuse a non-zero
+# count, so this cannot regress silently.
+
+def mosaic_geom(cfg):
+    """(H, W, gt, px) of the site's single-raster mosaic: every tile laid out at its grid position
+    with the row/column neighbours share written once. Row 0 is north, column 0 is west, and the
+    geotransform puts pixel CENTRES where cell_mask and the per-tile rasters put them."""
+    S = cfg["grid_res"] - 1
+    px = cfg["tile_m"] / float(S)
+    W, H = cfg["nx"] * S + 1, cfg["ny"] * S + 1
+    E0, N0 = cfg["origin"]["E"], cfg["origin"]["N"]
+    gt = (E0 - px / 2, px, 0.0, N0 + cfg["ny"] * cfg["tile_m"] + px / 2, 0.0, -px)
+    return H, W, gt, px
+
+
+def mosaic_window(cfg, i, j):
+    """(row slice, column slice) of tile (i, j) inside the mosaic. Tile (i, j+1) sits ABOVE
+    tile (i, j) because north is row 0, and the two share exactly one row of samples."""
+    S, R = cfg["grid_res"] - 1, cfg["grid_res"]
+    r0, c0 = (cfg["ny"] - 1 - j) * S, i * S
+    return slice(r0, r0 + R), slice(c0, c0 + R)
+
+
+def assemble_mosaic(cfg, read_tile, label="mosaic"):
+    """Lay every tile the caller offers into one site-wide float32 array; NaN where none was offered.
+
+    `read_tile(i, j)` returns that position's (grid_res, grid_res) array with NaN for NoData, or
+    None when there is no tile there. Neighbours SHARE their edge row/column, so a seam cell is
+    written twice: both writes must be identical or the tiles did not come from one source, and
+    every overlap is compared and counted rather than silently resolved by write order (the Thanet
+    raw tiles agree on all 483,309 overlapping cells, value and NoData pattern alike -- so a count
+    above zero means something upstream is wrong, not that this rule is too strict).
+
+    Returns (arr, info) with info: tiles, positions, overlap_cells, overlap_conflicts,
+    overlap_conflict_max, nodata_cells.
+    """
+    import numpy as np
+    H, W, _, _ = mosaic_geom(cfg)
+    arr = np.full((H, W), np.nan, np.float32)
+    seen = np.zeros((H, W), bool)
+    info = {"tiles": 0, "positions": [], "overlap_cells": 0, "overlap_conflicts": 0,
+            "overlap_conflict_max": 0.0, "shape": [H, W]}
+    for i in range(cfg["nx"]):
+        for j in range(cfg["ny"]):
+            t = read_tile(i, j)
+            if t is None:
+                continue
+            if t.shape != (cfg["grid_res"], cfg["grid_res"]):
+                sys.exit(f"{label}: tile ({i}, {j}) is {t.shape}, expected "
+                         f"{(cfg['grid_res'], cfg['grid_res'])}; grid_res and the tile disagree")
+            win = mosaic_window(cfg, i, j)
+            ov = seen[win]
+            if ov.any():
+                old, new = arr[win][ov], np.asarray(t, np.float32)[ov]
+                info["overlap_cells"] += int(ov.sum())
+                nan_o, nan_n = np.isnan(old), np.isnan(new)
+                both = ~nan_o & ~nan_n
+                d = np.abs(old[both] - new[both])
+                n_bad = int((nan_o != nan_n).sum()) + int((d != 0).sum())
+                info["overlap_conflicts"] += n_bad
+                if d.size:
+                    info["overlap_conflict_max"] = max(info["overlap_conflict_max"], float(d.max()))
+            # A cell written twice keeps the real value over NaN (a hole invented here would only
+            # have to be filled again); conflicting real values are counted above, and the tie is
+            # broken deterministically by grid order rather than left to whichever tile is on disk.
+            arr[win] = np.where(np.isnan(t) & seen[win], arr[win], np.asarray(t, np.float32))
+            seen[win] = True
+            info["tiles"] += 1
+            info["positions"].append([i, j])
+    if info["overlap_conflicts"]:
+        print(f"  WARNING {label}: {info['overlap_conflicts']:,} of {info['overlap_cells']:,} cells on a "
+              f"shared tile edge were written twice with DIFFERENT values (worst "
+              f"{info['overlap_conflict_max']:g}) -- the tiles did not come from one source raster.", flush=True)
+    info["nodata_cells"] = int(np.isnan(arr).sum())
+    return arr, info
+
+
+def fill_nodata(a, bad, label="", empty_fill=0.0, px_m=1.0, reach=None):
     """Nearest-valid fill for masked cells, in place. Returns the method used.
 
     The honest version of what this used to claim: scipy's distance transform gives a
     true nearest-valid fill. Without scipy we fall back to the median and say so out
     loud, because a median fill flattens real terrain and you should know it happened.
 
-    `empty_fill` is the value used when the tile has NO valid cell at all and there is
+    Hand this the whole site (assemble_mosaic) rather than one tile: see the note above.
+    Both methods are decided over the array they are given, so both are seam-free; the
+    degraded one is seam-free AND flat, which is why it still shouts.
+
+    `empty_fill` is the value used when the array has NO valid cell at all and there is
     therefore nothing to interpolate from -- every cell of the result is fabricated. The
-    caller passes the site's `water_level` where a tile beyond the survey's coverage is
+    caller passes the site's `water_level` where the ground beyond the survey's coverage is
     open sea, so the plate coincides with the water surface a consumer will draw instead
     of standing proud of it at 0 m ODN. It is shouted about for the same reason the median
-    fallback is: the whole tile is invention, and a silent 0 m plate reads as real ground.
+    fallback is: every one of those cells is invention, and a silent 0 m plate reads as real ground.
+
+    `reach`: an optional float array shaped like `a`. When given it receives, for every filled
+    cell, the distance in CRS metres (`px_m` per cell) to the valid cell whose value it took, and
+    0 elsewhere. That number is how far the invention had to travel to find something real, and a
+    product that publishes filled cells beside surveyed ones should publish it too -- on Thanet the
+    median is 320 m and the maximum 1,379 m, which is open sea, not a gap in a survey.
     """
     import numpy as np
+    if reach is not None:
+        reach[...] = 0.0
     if not bad.any():
         return "none"
     good = ~bad
     if not good.any():
         a[bad] = empty_fill
-        print(f"  WARNING{' ' + label if label else ''}: no valid cell at all -- the whole tile is "
+        print(f"  WARNING{' ' + label if label else ''}: no valid cell at all -- the whole of it is "
               f"fabricated as a flat plate at {empty_fill:g} m. Nothing here was surveyed.", flush=True)
         return f"all-nodata -> {empty_fill:g}"
     try:
         from scipy import ndimage
         idx = ndimage.distance_transform_edt(bad, return_distances=False, return_indices=True)
-        a[bad] = a[tuple(i[bad] for i in idx)]
+        sr, sc = idx[0][bad], idx[1][bad]
+        del idx
+        a[bad] = a[sr, sc]
+        if reach is not None:
+            rows, cols = np.nonzero(bad)
+            reach[rows, cols] = np.hypot(sr.astype(np.float64) - rows, sc.astype(np.float64) - cols) * float(px_m)
         return "nearest"
     except ImportError:
         a[bad] = float(np.median(a[good]))
         print(f"  WARNING{' ' + label if label else ''}: scipy absent -- {bad.sum():,} nodata cells "
               f"filled with the median, which flattens real terrain. pip install scipy.", flush=True)
         return "median (degraded)"
+
+
+def shared_edge_audit(edges, unit="m", scale=1.0):
+    """Compare every pair of neighbouring tiles on the row/column they share.
+
+    `edges` maps (i, j) -> {"n","s","w","e": 1-D array}: the tile's four border lines, north row
+    first, in whatever units the caller wants reported (`scale` converts a raw difference to
+    `unit`). Tile (i, j)'s east column IS tile (i+1, j)'s west column, and its north row IS tile
+    (i, j+1)'s south row -- one landscape vertex, so a difference there is a step the engine has to
+    resolve by picking a side. This is the permanent regression check for D1: the fill is decided
+    once over the site mosaic, so the answer must be zero.
+    """
+    import numpy as np
+    q = {"pairs": 0, "samples_compared": 0, "samples_disagreeing": 0,
+         f"max_disagreement_{unit}": 0.0, "max_at": None}
+    for (i, j), E in sorted(edges.items()):
+        for (di, dj), a_side, b_side, kind in (((1, 0), "e", "w", "h"), ((0, 1), "n", "s", "v")):
+            F = edges.get((i + di, j + dj))
+            if F is None:
+                continue
+            a, b = np.asarray(E[a_side], np.float64), np.asarray(F[b_side], np.float64)
+            q["pairs"] += 1
+            q["samples_compared"] += int(a.size)
+            d = np.abs(a - b)
+            n_bad = int((d != 0).sum())
+            if not n_bad:
+                continue
+            q["samples_disagreeing"] += n_bad
+            worst = float(d.max()) * float(scale)
+            if worst > q[f"max_disagreement_{unit}"]:
+                q[f"max_disagreement_{unit}"] = worst
+                q["max_at"] = {"tiles": [[i, j], [i + di, j + dj]], "kind": kind,
+                               "index": int(np.argmax(d)), "cells": n_bad}
+    return q
 
 
 def nodata_mask(a, nd):

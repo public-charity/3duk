@@ -166,6 +166,54 @@ def capture(world, cam, rt, out_png, source, ev, warm_s):
     return os.path.isfile(out_png)
 
 
+def apply_cvars(spec):
+    """--cvars "landscape.OverrideLOD=0;r.Foo=1" (no spaces: the arg parser splits on them) before the capture.
+
+    A commandlet has no view state, so the landscape picks a coarse LOD and its triangles no longer
+    lie where the data says: with the road sunk 0.03 m into the ground (docs/TERRAIN_ROADS.md 8) a
+    LOD-3 landscape triangle spans 8 m and rises straight through the carriageway, which LOOKS exactly
+    like the defect the conform fixed and is not it -- the numbers over the same ground say the ground
+    is 0.031 m below the road at the median and never above it. `landscape.OverrideLOD 0` pins LOD 0
+    (Runtime/Landscape/Private/LandscapeRender.cpp) so the capture shows the surface the data
+    describes."""
+    if not spec:
+        return []
+    world = unreal.get_editor_subsystem(unreal.UnrealEditorSubsystem).get_editor_world()
+    done = []
+    for cmd in [c.strip().replace("=", " ", 1) for c in spec.split(";") if c.strip()]:
+        unreal.SystemLibrary.execute_console_command(world, cmd)
+        done.append(cmd)
+    uc.log("console: %s" % "; ".join(done))
+    return done
+
+
+def pin_landscape_lod(screen_size):
+    """--landscape-lod0-screen-size 8: keep the landscape at LOD 0 out to a much larger distance.
+
+    The landscape's RENDER mesh at LOD > 0 is not the surface its own GetHeightAtLocation returns: the
+    LOD chain drops vertices and morphs between levels, so the drawn ground moves by decimetres at
+    20 m and more further out.  The road is only 0.03 m above it (the sink of
+    docs/TERRAIN_ROADS.md 8), so a coarse-LOD landscape draws straight through a carriageway that a
+    downward trace proves is above it -- measured on the same ground: 944 of 1141 traces hit the road
+    surface exactly and only 8 reached the landscape, while the queried clearance never fell below
+    0.0274 m.  Raising LOD0ScreenSize is the capture-side answer; `landscape.OverrideLOD` is not, it
+    does not reach a SceneCapture's view."""
+    if not screen_size:
+        return None
+    eas = unreal.get_editor_subsystem(unreal.EditorActorSubsystem)
+    n = 0
+    for a in eas.get_all_level_actors():
+        # LandscapeProxy, not Landscape: the 140 LandscapeStreamingProxy actors are what actually draw, and each
+        # carries its OWN LOD0ScreenSize. Setting it only on the parent ALandscape pinned nothing at all.
+        if isinstance(a, unreal.LandscapeProxy):
+            a.set_editor_property("lod0_screen_size", float(screen_size))
+            a.set_editor_property("lod_distribution_setting", 1.0)
+            a.set_editor_property("lod0_distribution_setting", 1.0)
+            n += 1
+    uc.log("landscape LOD0 screen size %s on %d landscape actor(s)" % (screen_size, n))
+    return n
+
+
 def guard(tag, distinct, lum, opts, audit=None):
     """A capture that rendered nothing, or rendered a black frame, or drew the engine default material, is a
     FAILURE - it must not be reported as a pass and then committed as evidence.
@@ -205,7 +253,8 @@ def main(argv):
         flags=("no_load_region",),
         options={"camera": "all", "actor": "", "out": "", "map": DEFAULT_MAP, "w": "1280", "h": "720", "radius_m": "400", "site_radius_m": "20000", "source": "final_ldr", "ev": "0", "warm_s": "0",
                  "x": "", "y": "", "z": "", "yaw": "0", "pitch": "-30", "roll": "0", "fov": "60",
-                 "min_distinct": "12", "min_lum": "6", "max_lum": "250", "near_x": "", "near_y": ""},
+                 "min_distinct": "12", "min_lum": "6", "max_lum": "250", "near_x": "", "near_y": "",
+                 "cvars": "", "landscape_lod0_screen_size": ""},
     )
     if not opts["out"]:
         uc.fail(NAME, "--out <dir or .png> is required")
@@ -219,6 +268,7 @@ def main(argv):
     les = unreal.get_editor_subsystem(unreal.LevelEditorSubsystem)
     if not les.load_level(opts["map"]):
         uc.fail(NAME, "load_level(%s) failed" % opts["map"])
+    apply_cvars(opts["cvars"])
 
     if free:
         return main_free(opts, les)
@@ -237,6 +287,7 @@ def main(argv):
             uc.log("streamed a %g m box around local (%g, %g)" % (float(opts["radius_m"]), cx, cy))
         else:
             unreal.StreetscapeEditorLibrary.load_region(unreal.Vector(0.0, 0.0, 0.0), float(opts["site_radius_m"]) * 100.0)
+    pin_landscape_lod(opts["landscape_lod0_screen_size"])   # after the stream, see main_free
 
     ids = [str(i) for i in unreal.StreetscapeEditorLibrary.streetscape_actor_ids()]
     if opts["actor"] not in ids:
@@ -289,6 +340,10 @@ def main_free(opts, les):
     eye = [100.0 * x, -100.0 * y, 100.0 * z]
     if not opts["no_load_region"]:
         unreal.StreetscapeEditorLibrary.load_region(unreal.Vector(eye[0], eye[1], eye[2]), float(opts["radius_m"]) * 100.0)
+    # AFTER the region load, never before: World Partition streams the landscape proxies in here, and a proxy that
+    # did not exist when the pin was applied keeps its default LOD0ScreenSize. Pinning first (which is what this
+    # script did) set the property on nothing and the coarse-LOD landscape kept drawing through the carriageway.
+    pin_landscape_lod(opts["landscape_lod0_screen_size"])
     cam = {"eye_ue": eye, "yaw": float(opts["yaw"]), "pitch": float(opts["pitch"]), "roll": float(opts["roll"]),
            "fov_deg": float(opts["fov"])}
     png = opts["out"].replace("\\", "/")
@@ -301,6 +356,7 @@ def main_free(opts, les):
     uc.log("free camera -> %s (%d bytes, %d distinct RGB, mean luminance %.2f)" % (png, nbytes, distinct, lum))
     guard("free", distinct, lum, opts, material_audit())
     uc.report(NAME, {"png": png, "bytes": nbytes, "distinct_rgb": distinct, "mean_luminance": round(lum, 2),
+                     "cvars": opts["cvars"],
                      "materials": material_audit(), "eye_ue": eye,
                      "local_m": [x, y, z], "yaw": cam["yaw"], "pitch": cam["pitch"], "fov_deg": cam["fov_deg"],
                      "size": [int(opts["w"]), int(opts["h"])], "source": opts["source"], "map": opts["map"]})

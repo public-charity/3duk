@@ -201,7 +201,14 @@ bool ReadManifest(const FString& ManifestPath, FManifest& M, FString& OutProblem
 	for (const TSharedPtr<FJsonValue>& V : *Tiles)
 	{
 		const TSharedPtr<FJsonObject>* T = nullptr;
-		if (!V->TryGetObject(T)) continue;
+		// a tiles[] entry that is not an object used to be skipped in silence: the manifest then declared 391 tiles,
+		// the importer read 390, and nothing anywhere said so (the count only reappears as `tiles_read`, which
+		// nothing compared). A malformed entry is a malformed manifest.
+		if (!V->TryGetObject(T))
+		{
+			OutProblem = FString::Printf(TEXT("tiles[%d] is not a JSON object"), M.Tiles.Num());
+			return false;
+		}
 		FTileEntry E;
 		double TX = 0, TY = 0;
 		(*T)->TryGetNumberField(TEXT("x"), TX);
@@ -667,7 +674,7 @@ bool BuildArrays(const FManifest& M, const FPlan& P, FAssembly& A)
 // (LandscapeEditorDetailCustomization_NewLandscape.cpp:1058)
 // ---------------------------------------------------------------------------------------------------------------
 
-void AddComponentsForBlock(ULandscapeInfo* Info, ULandscapeSubsystem* Subsystem, const TArray<FIntPoint>& Coords, TArray<ALandscapeProxy*>& OutProxies)
+bool AddComponentsForBlock(ULandscapeInfo* Info, ULandscapeSubsystem* Subsystem, const TArray<FIntPoint>& Coords, TArray<ALandscapeProxy*>& OutProxies, FString& OutProblem)
 {
 	TArray<ULandscapeComponent*> NewComponents;
 	Info->Modify();
@@ -676,7 +683,14 @@ void AddComponentsForBlock(ULandscapeInfo* Info, ULandscapeSubsystem* Subsystem,
 		if (Info->XYtoComponentMap.FindRef(Coord)) continue;
 		const FIntPoint ComponentBase = Coord * Info->ComponentSizeQuads;
 		ALandscapeProxy* Proxy = Subsystem->FindOrAddLandscapeProxy(Info, ComponentBase);
-		if (!Proxy) continue;
+		// FindOrAddLandscapeProxy returning null used to `continue`: the region simply came out with fewer
+		// components than it asked for and the import still reported ok. It is the one thing this function is
+		// for, so it fails the import.
+		if (!Proxy)
+		{
+			OutProblem = FString::Printf(TEXT("FindOrAddLandscapeProxy returned null for component (%d, %d)"), Coord.X, Coord.Y);
+			return false;
+		}
 		OutProxies.AddUnique(Proxy);
 		ULandscapeComponent* Component = NewObject<ULandscapeComponent>(Proxy, NAME_None, RF_Transactional);
 		NewComponents.Add(Component);
@@ -711,6 +725,7 @@ void AddComponentsForBlock(ULandscapeInfo* Info, ULandscapeSubsystem* Subsystem,
 		C->MarkRenderStateDirty();
 	}
 	if (Landscape && GEngine) GEngine->BroadcastOnActorMoved(Landscape);
+	return true;
 }
 
 template <typename T>
@@ -1111,9 +1126,15 @@ ALandscape* UStreetscapeLandscapeImporter::ImportSite(const FString& ManifestPat
 	if (!MaterialPath.IsEmpty())
 	{
 		UMaterialInterface* Mat = LoadObject<UMaterialInterface>(nullptr, *MaterialPath);
-		if (!Mat) UE_LOG(LogStreetscapeEditor, Warning, TEXT("ImportSite: landscape material %s not found - using the engine default"), *MaterialPath);
+		// this was a Warning and the import carried on: the caller ASKED for a material by path, and the whole
+		// isle silently drawing with the engine default checkerboard is not a successful import of it. Pass an
+		// empty --material to mean "the engine default, on purpose".
+		if (!Mat)
+		{
+			return Finish(nullptr, FString::Printf(TEXT("landscape material %s did not load (pass an empty --material to accept the engine default on purpose)"), *MaterialPath));
+		}
 		Landscape->LandscapeMaterial = Mat;
-		Report->SetStringField(TEXT("landscape_material"), Mat ? Mat->GetPathName() : TEXT(""));
+		Report->SetStringField(TEXT("landscape_material"), Mat->GetPathName());
 	}
 	Landscape->StaticLightingLOD = (int32)FMath::DivideAndRoundUp(FMath::CeilLogTwo(((uint32)P.Wp * (uint32)P.Hp) / (2048u * 2048u) + 1u), (uint32)2);
 
@@ -1227,7 +1248,11 @@ ALandscape* UStreetscapeLandscapeImporter::ImportSite(const FString& ManifestPat
 					for (int32 Cx = Cx0; Cx < Cx1; ++Cx) Coords.Add(FIntPoint(Cx, Cy));
 				}
 				TArray<ALandscapeProxy*> Created;
-				AddComponentsForBlock(Info, Subsystem, Coords, Created);
+				FString BlockProblem;
+				if (!AddComponentsForBlock(Info, Subsystem, Coords, Created, BlockProblem))
+				{
+					return Finish(nullptr, FString::Printf(TEXT("region (%d, %d): %s"), RegX, RegY, *BlockProblem));
+				}
 
 				const int32 X1 = Cx0 * P.Q;
 				const int32 Y1 = Cy0 * P.Q;

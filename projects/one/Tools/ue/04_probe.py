@@ -132,6 +132,11 @@ def mode_points(opts):
         elif land and not math.isnan(zh):
             max_dz = max(max_dz, abs(zh - zl))
         print("%.4f,%.4f,%s,%s,%s,%d,%s,%d" % (x, y, _n(zh), _n(zl), _n(zc), clipped, _n(zt), blocked))
+    if not rows:
+        uc.fail(NAME, "--points %s produced 0 usable rows: a probe of nothing is not a probe that passed" % opts["points"])
+    if land is not None and n_land_none:
+        uc.fail(NAME, "the landscape has no height at %d of %d probe points (--landscape was given, so every point "
+                      "inside the imported extent must have one)" % (n_land_none, len(rows)))
     return {"mode": "points", "points": len(rows), "clipped": n_clipped,
             "landscape": bool(land), "landscape_none": n_land_none, "regions_loaded": n_regions,
             "blocked": n_blocked, "unclipped": len(rows) - n_clipped,
@@ -193,6 +198,13 @@ def mode_landscape_info(opts):
             n_landscape_actors += 1
         elif cn == "LandscapeStreamingProxy":
             n_proxy_actors += 1
+    missing = layers.get("ground_layers_missing") or []
+    if missing:
+        uc.fail(NAME, "the landscape is missing ground layer(s) %s - the import did not write every weightmap" % missing)
+    if not layers.get("has_visibility_layer"):
+        uc.fail(NAME, "the landscape has no visibility layer, so the clip line is not cut (DESIGN.md 16)")
+    if not state.get("components"):
+        uc.fail(NAME, "the landscape reports %s components" % state.get("components"))
     out = {"mode": "landscape_info", "state": state, "layers": layers, "samples": samples,
            "regions_loaded": n_regions, "landscape_actors": n_landscape_actors,
            "landscape_streaming_proxy_actors": n_proxy_actors, "load_all": bool(opts["load_all"])}
@@ -219,6 +231,112 @@ def find_streetscape_actor(street_id):
         if str(a.get_editor_property("street_id")) == street_id or str(a.get_actor_label()) == street_id:
             return a
     return None
+
+
+def probe_one_actor(actor, imp, land, hf, step_m):
+    """Per-station: does a downward trace hit the street, and how far is the ALandscape below the road surface?
+
+    The corridor gate of docs/TERRAIN_ROADS.md is measured against the conformed heightfield in numpy; this is the
+    same question asked of the engine's own collision: the trace must land on the STREET (not the ground), and the
+    landscape must be below it.
+    """
+    spline = actor.get_editor_property("spline")
+    if spline is None:
+        return None
+    length_cm = spline.get_spline_length()
+    step_cm = max(10.0, float(step_m) * 100.0)
+    n = max(2, int(length_cm // step_cm) + 1)
+    top_m, bot_m = 300.0, -300.0
+    sid = str(actor.get_editor_property("street_id"))
+    stats = unreal.StreetscapeEditorLibrary.actor_stats_json(sid)
+    if stats:
+        bb = ((json.loads(stats).get("buffers") or {}).get("road") or {}).get("bbox")
+        if bb and len(bb) == 2:
+            bot_m, top_m = float(bb[0][2]) - 5.0, float(bb[1][2]) + 5.0
+    blocked = 0
+    on_terrain = 0
+    clear = []
+    land_none = 0
+    for i in range(n):
+        d = min(length_cm, i * step_cm)
+        p = spline.get_location_at_distance_along_spline(d, unreal.SplineCoordinateSpace.WORLD)
+        x, y = p.x / 100.0, -p.y / 100.0
+        zt = imp.trace_down_zm(x, y, top_m, bot_m)
+        hit = not (zt is None or math.isnan(zt))
+        blocked += int(hit)
+        zl = imp.probe_height_m(land, x, y, False) if land is not None else float("nan")
+        zh = hf.probe_m(x, y) if hf is not None else float("nan")
+        if hit and not math.isnan(zh) and abs(zt - zh) < 0.02:
+            on_terrain += 1
+        if hit and land is not None:
+            if math.isnan(zl):
+                land_none += 1
+            else:
+                clear.append(zt - zl)
+    clear.sort()
+    return {"id": sid, "length_m": round(length_cm / 100.0, 2), "stations": n, "blocked": blocked,
+            "stations_within_2cm_of_the_survey": on_terrain, "landscape_none": land_none,
+            "clearance_points": len(clear),
+            "clearance_min_m": round(clear[0], 4) if clear else None,
+            "clearance_p50_m": round(clear[len(clear) // 2], 4) if clear else None,
+            "clearance_max_m": round(clear[-1], 4) if clear else None,
+            "all_blocked": blocked == n}
+
+
+def mode_actor_sample(opts):
+    """A deterministic sample of ROAD actors, every one of which must be walkable and clear of the landscape."""
+    lib = unreal.StreetscapeEditorLibrary
+    imp = unreal.StreetscapeLandscapeImporter
+    lib.load_region(unreal.Vector(0, 0, 0), 2000000.0)
+    eas = unreal.get_editor_subsystem(unreal.EditorActorSubsystem)
+    by_id = {}
+    for a in eas.get_all_level_actors():
+        if a.get_class().get_name() == "StreetscapeActor":
+            sid = str(a.get_editor_property("street_id"))
+            if sid.startswith("roads:") and a.get_editor_property("road") is not None:
+                by_id[sid] = a
+    ids = sorted(by_id)
+    if not ids:
+        uc.fail(NAME, "no road AStreetscapeActor in the level to sample")
+    want = max(1, int(opts["actor_sample"]))
+    picked = [ids[(k * len(ids)) // want] for k in range(want)]
+    land = imp.find_landscape()
+    if land is None:
+        uc.fail(NAME, "the level has no ALandscape to measure the corridor clearance against")
+    hf = uc.heightfield(opts["landscape_dir"] or None)
+    rows = []
+    for sid in picked:
+        r = probe_one_actor(by_id[sid], imp, land, hf, float(opts["step_m"]))
+        if r is None:
+            uc.fail(NAME, "actor %s has no spline component" % sid)
+        rows.append(r)
+        uc.log("%s: %d/%d stations blocked, clearance %s .. %s m, %d station(s) within 2 cm of the survey"
+               % (sid, r["blocked"], r["stations"], r["clearance_min_m"], r["clearance_max_m"],
+                  r["stations_within_2cm_of_the_survey"]))
+    mins = [r["clearance_min_m"] for r in rows if r["clearance_min_m"] is not None]
+    out = {"mode": "actor_sample", "road_actors_in_level": len(ids), "sampled": len(rows),
+           "stations": sum(r["stations"] for r in rows),
+           "blocked": sum(r["blocked"] for r in rows),
+           "stations_within_2cm_of_the_survey": sum(r["stations_within_2cm_of_the_survey"] for r in rows),
+           "survey_note": ("the road is built on the SMOOTHED survey (BRIEF 1.1), so on flat ground its surface IS "
+                           "within 2 cm of the raw survey height - this count is a diagnostic, not a fault. The "
+                           "gate is the clearance below: the ALandscape must be strictly under the street."),
+           "clearance_min_m": min(mins) if mins else None,
+           "clearance_worst_actor": min(rows, key=lambda r: (r["clearance_min_m"] is None, r["clearance_min_m"]))["id"] if mins else None,
+           "actors_all_blocked": sum(1 for r in rows if r["all_blocked"]),
+           "rows": rows}
+    print(json.dumps(out, sort_keys=True))
+    bad = [r["id"] for r in rows if not r["all_blocked"]]
+    if bad:
+        uc.fail(NAME, "%d of %d sampled road(s) are not walkable at every station: %s" % (len(bad), len(rows), bad))
+    # The gate is the corridor clearance of docs/TERRAIN_ROADS.md, asked of the engine's own collision: the
+    # trace lands on the street and the ALandscape is strictly below it. 5 mm is that document's own --gate-m.
+    if not mins:
+        uc.fail(NAME, "no sampled station produced a clearance measurement")
+    if min(mins) <= 0.005:
+        uc.fail(NAME, "the landscape is within 5 mm of, or above, the road surface at some sampled station "
+                      "(min clearance %s m, worst %s)" % (min(mins), out["clearance_worst_actor"]))
+    return {k: v for k, v in out.items() if k != "rows"}
 
 
 def mode_actor(opts):
@@ -362,7 +480,56 @@ def mode_explorer(opts):
            "note": "Play In Editor cannot be driven from a commandlet; this proves the class wiring, the tuning "
                    "numbers, the input bindings and the spawn point - it does not walk the pawn."}
     print(json.dumps(out, sort_keys=True))
+    # this mode existed to prove the explorer is wired up, and it reported success on a level with no game mode,
+    # no pawn and no spawn point at all - three separate ways for "the explorer does not exist" to read as a pass.
+    problems = []
+    if gm_cls is None:
+        problems.append("no game mode (neither the map's World Settings nor the project default resolves)")
+    if pawn_cls is None:
+        problems.append("the game mode has no default pawn class")
+    if not starts:
+        problems.append("the level has no PlayerStart, so Play would spawn at the world origin")
+    if problems:
+        uc.fail(NAME, "explorer wiring: %s" % "; ".join(problems))
     return out
+
+
+def mode_census(opts):
+    """The size of the network the level holds (D5): actors, components, verts, tris, instances, RSS."""
+    lib = unreal.StreetscapeEditorLibrary
+    t0 = uc.elapsed_s()
+    if opts["census_at"]:
+        # census of ONE neighbourhood: the same region a screenshot loads, so "what does the capture actually see"
+        # can be answered without streaming the isle
+        a, b = (float(v) for v in opts["census_at"].split(","))
+        r = float(opts["load_radius_m"]) * 100.0
+        lib.load_region(unreal.Vector(100.0 * a, -100.0 * b, 0.0), r)
+        uc.log("census: loaded a %g m box at (%g, %g)" % (r / 100.0, a, b))
+    elif not opts["no_load_all"]:
+        lib.load_region(unreal.Vector(0, 0, 0), 2000000.0)
+    uc.log("census: world streamed in after %.1fs" % (uc.elapsed_s() - t0))
+    cen = json.loads(lib.streetscape_census_json())
+    cen["load_seconds"] = round(uc.elapsed_s() - t0, 1)
+    cen["mode"] = "census"
+    print(json.dumps(cen, sort_keys=True))
+    if opts["census_out"]:
+        out = opts["census_out"].replace("\\", "/")
+        d = os.path.dirname(out)
+        if d and not os.path.isdir(d):
+            os.makedirs(d)
+        with open(out, "w", newline="\n") as fh:
+            json.dump(cen, fh, indent=1, sort_keys=True)
+            fh.write("\n")
+        cen["census_out"] = out
+    # a census of an empty world is the World Partition trap again: say so instead of printing zeros as a result
+    if int(cen.get("actors") or 0) == 0:
+        uc.fail(NAME, "the level holds 0 AStreetscapeActor (streamed: %s)" % (not opts["no_load_all"]))
+    if int(cen.get("actors_without_samples") or 0) > 0:
+        uc.fail(NAME, "%d of %d streetscape actor(s) have no samples: their meshes were never built, so their "
+                      "vertices are missing from this census" % (cen["actors_without_samples"], cen["actors"]))
+    if opts["expect_actors"] and int(cen.get("actors") or 0) != int(opts["expect_actors"]):
+        uc.fail(NAME, "census found %s streetscape actor(s), --expect-actors %s" % (cen.get("actors"), opts["expect_actors"]))
+    return cen
 
 
 def mode_massing(opts):
@@ -453,6 +620,14 @@ def mode_materials(opts):
     print(json.dumps(audit, sort_keys=True))
     if audit.get("components", 0) == 0:
         uc.fail(NAME, "no streetscape or massing components in the level (use --load-all to stream them in)")
+    # a slot resolving to WorldGridMaterial or to nothing is a material table that did not resolve: the checkerboard
+    # in a capture. It was reported as a number and nothing failed on it.
+    bad = int(audit.get("slots_using_engine_default") or 0) + int(audit.get("slots_null") or 0)
+    if bad and not opts["allow_default_materials"]:
+        uc.fail(NAME, "%d of %d material slot(s) fall back to the engine default or are null (%s) - pass "
+                      "--allow-default-materials to accept that on purpose"
+                % (bad, audit.get("slots"), json.dumps({k: audit.get(k) for k in
+                   ("slots_using_engine_default", "slots_null", "shader_jobs_remaining")}, sort_keys=True)))
     return {"mode": "materials", "components": audit["components"], "slots": audit["slots"],
             "slots_using_engine_default": audit["slots_using_engine_default"], "slots_null": audit["slots_null"],
             "distinct_materials": audit["distinct_materials"], "shader_jobs_waited_on": waited,
@@ -461,12 +636,18 @@ def mode_materials(opts):
 
 def main(argv):
     opts = uc.parse_args(argv, flags=("landscape", "trace_from_above", "explorer", "landscape_info", "load_all", "massing",
-                                      "refresh_collision", "materials"), options={
+                                      "refresh_collision", "materials", "census", "no_load_all",
+                                      "allow_default_materials"), options={
         "points": "", "actor": "", "map": DEFAULT_MAP, "step_m": "1.0", "landscape_dir": "",
         "load_radius_m": "300", "weights_at": "", "massing_at": "", "sample_mode": "",
+        "census_out": "", "expect_actors": "", "actor_sample": "", "census_at": "",
     })
     load_map(opts["map"])
-    if opts["materials"]:
+    if opts["census"]:
+        payload = mode_census(opts)
+    elif opts["actor_sample"]:
+        payload = mode_actor_sample(opts)
+    elif opts["materials"]:
         payload = mode_materials(opts)
     elif opts["explorer"]:
         payload = mode_explorer(opts)
@@ -479,7 +660,7 @@ def main(argv):
     elif opts["points"]:
         payload = mode_points(opts)
     else:
-        uc.fail(NAME, "one of --points, --actor, --explorer, --landscape-info, --massing or --materials is required")
+        uc.fail(NAME, "one of --points, --actor, --actor-sample, --explorer, --landscape-info, --massing, --materials or --census is required")
     uc.report(NAME, payload)
 
 

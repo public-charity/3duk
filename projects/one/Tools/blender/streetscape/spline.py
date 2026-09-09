@@ -243,6 +243,26 @@ def apply_pins(z: np.ndarray, s: np.ndarray, pins, blend: float) -> np.ndarray:
 # 5.4.6 bank
 # --------------------------------------------------------------------------------------------
 
+def camber_h(kinds, w, cf, cm, d) -> np.ndarray:
+    """Camber height at signed lateral offset ``d`` (DESIGN.md 4.1), broadcast over its arguments.
+
+    The one definition of the road surface's cross-section: ``Spline.surface_h`` is this function
+    evaluated per station, and ``conform.py`` is this function evaluated per 1 m landscape cell at an
+    interpolated station -- so the ground burned under the carriageway is the carriageway, by
+    construction rather than by a second transcription of the formula.
+
+    ``kinds`` is an object array (or scalar) of "parabolic" | "planar" | "none"; ``w`` the surface
+    width, ``cf`` the crossfall percentage, ``cm`` an explicit camber height in metres (NaN = derive
+    it from ``cf``).
+    """
+    d = np.asarray(d, dtype=np.float64)
+    with np.errstate(divide="ignore", invalid="ignore"):
+        c = np.where(np.isfinite(cm), cm, (cf / 100.0) * w / 4.0)
+        para = np.where(w > 0, -c * (2.0 * d / np.where(w > 0, w, 1.0)) ** 2, 0.0)
+    planar = -(cf / 100.0) * np.abs(d)
+    return np.where(kinds == "parabolic", para, np.where(kinds == "planar", planar, 0.0))
+
+
 def rate_limit(beta: np.ndarray, s: np.ndarray, r: float) -> np.ndarray:
     """Forward then backward pass: |d beta / ds| <= r (deg/m)."""
     b = np.array(beta, dtype=np.float64, copy=True)
@@ -495,13 +515,7 @@ class Spline:
         kinds = np.array(self.camber_kind, dtype=object)
         if d.ndim == 2:
             kinds = kinds[:, None]
-        out = np.zeros(d.shape)
-        with np.errstate(divide="ignore", invalid="ignore"):
-            c = np.where(np.isfinite(cm), cm, (cf / 100.0) * w / 4.0)
-            para = np.where(w > 0, -c * (2.0 * d / np.where(w > 0, w, 1.0)) ** 2, 0.0)
-        planar = -(cf / 100.0) * np.abs(d)
-        out = np.where(kinds == "parabolic", para, np.where(kinds == "planar", planar, 0.0))
-        return out
+        return camber_h(kinds, w, cf, cm, d)
 
     # -- stats ------------------------------------------------------------------------------------
     def stats(self) -> dict:

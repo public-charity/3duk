@@ -21,16 +21,39 @@ checks below are written for the disk state §8 describes and say where a clean 
 
 | # | Stage | Owner(s) | Depends on | Status |
 |---|---|---|---|---|
-| 0 | Repo and toolchain scaffolding | pipeline, adapter, geometry, unreal | — | not started |
-| 1 | Cropped Thanet terrain | pipeline, adapter, unreal | 0 | not started |
-| 2 | OSM reference layer | pipeline, adapter, unreal | 0, 1 | not started |
-| 3 | Shared spline | geometry, unreal | 0 (real terrain: 1) | not started |
-| 4 | Renderer A — road surface | geometry, unreal | 3 | not started |
-| 5 | Renderer B — edge extrusion | geometry, unreal | 3, 4 | not started |
-| FD | **First deliverable** — stages 3–5 on the test stretch in Blender and Unreal | geometry, unreal, integration | 1, 3, 4, 5 | not started |
-| 6 | Renderer C — volumetric hedge | geometry, unreal | 5 | not started |
-| 7 | Rail profile | geometry, unreal, pipeline | 2, 4 | not started |
-| 8 | Explorer base | unreal, integration | 1, 2, FD | not started |
+| 0 | Repo and toolchain scaffolding | pipeline, adapter, geometry, unreal | — | **done** (`3e26561` + working tree) — `python sources/tests/dryrun.py` → `167 passed, 0 failed`; `python sources/tests/test_unreal_adapter.py` → `Ran 47 tests … OK`; `Tools/build.ps1` → `Result: Succeeded`. **One check does not pass:** 0.1's `regress_outputs.sh compare margate baseline_2026-09-08` prints `794 identical, 788 added (allowed), 1 problems` — see note (a) |
+| 1 | Cropped Thanet terrain | pipeline, adapter, unreal | 0 | **done** (`3e26561` + working tree) — `terrain_manifest.json` = `391 103 3861822 -9999.0 86.3 [[628512,169680],[635496,163609]] left 31`, `shared_edges` 0 of 378,081 differing; adapter → 391 `hm`, 391 `clip`, 31 `vis`; `Saved/Tests/landscape_import_conformed.json` → components 2067, proxies 140, extent [0,0,13462,9906], grid probe max \|dz\| 0.000645 m, cliff 81.56° vs the tile's 81.7°, clip probe 20 kept / 20 cut. **Changed since written:** the imported landscape is now the **conformed** product — note (b) |
+| 2 | OSM reference layer | pipeline, adapter, unreal | 0, 1 | **done** (`3e26561` + working tree) — 06: 14,468 segments / 1,173.19 km / 1,841 junctions; 11: rail 282 seg / 80.68 km, barriers 2,354 seg / 134.37 km; 07: 20,121 buildings, fit 1.385 + 2.646×levels (rmse 1.21 m); 09: 103 tiles clipped; adapter → 246 documents / 15,422 splines, `thin_max_dev_m` 0.10; the debug overlay is one component per actor in the level (15,423 of them, `full_import3.log` census) and is the magenta line in `Tools/ue/shots/conform_flat_margate.png` and `authored~trinity_square_cam2.png`. Margate byte-identity caveat: note (a) |
+| 3 | Shared spline | geometry, unreal | 0 (real terrain: 1) | **done** (`3e26561` + working tree) — `python -m unittest discover -s projects/one/Tools/blender/tests -p "test_*.py"` → `Ran 115 tests … OK` (includes `test_spline`, `test_terrain`, `test_noise`); `Tools/ue/run_ue_tests.ps1 -Filter Streetscape` → `Streetscape.Spline.{Stations,Smoothing,Bank,Frames,NumpyParity,TestStretch}` and `Streetscape.Terrain.{Bilinear,Triangulated}` all `Success` |
+| 4 | Renderer A — road surface | geometry, unreal | 3 | **done** (`3e26561` + working tree) — same numpy suite (`test_sweep_mesh`, `test_road_markings`); `Streetscape.{Sweep.Manifold, Geometry.ToDynamicMesh, Road.Markings, Road.DashPhase, Road.NullProfile}` `Success` |
+| 5 | Renderer B — edge extrusion | geometry, unreal | 3, 4 | **done** (`3e26561` + working tree) — same numpy suite (`test_edge`, `test_seam`, `test_examples`); `Streetscape.{Edge.Overlap, Edge.DropKerb, Edge.Barriers, Edge.SplitMaterials, Seam.Rules, Perf.Tile}` `Success`; overlap measured 0.040 min = max on both sides at every station, in numpy and in the engine |
+| FD | **First deliverable** — stages 3–5 on the test stretch in Blender and Unreal | geometry, unreal, integration | 1, 3, 4, 5 | **done** (`3e26561` + working tree) — `compare_stats.py` on `Saved/Tests/parity_trinity_square.json` → **81 rows, 0 mismatches**, and the same after save + reopen (`…_reopened.json`): L 171.405484 m, 116 stations, overlap 0.040/0.040, road 1794 v / 2756 t, 31 marking strips, 18+23 posts, 1650 leaf cards. Renders committed via LFS (`Tools/blender/renders/trinity_square_cam{1,2,3}.png` + `.stats.json`); Unreal captures in `Tools/ue/shots/` |
+| 6 | Renderer C — volumetric hedge | geometry, unreal | 5 | **done** (`3e26561` + working tree) — `test_hedge` in the 115; `Streetscape.Hedge.Volume` `Success`; the stretch carries `hedge_right` 55–90 m and it is in the FD parity above. **Known hole:** a hedge on the *left* scatters 4,486 leaf cards in numpy against 4,483 in C++ (0.07 %) — note (c) |
+| 7 | Rail profile | geometry, unreal, pipeline | 2, 4 | **done** (`3e26561` + working tree) — `test_rail` in the 115; `Streetscape.Rail.Gauge` `Success`; the real line is in the level: 282 rail actors, 49.63 km of built track, 76,715 sleeper instances (`Saved/Logs/full_import3.log` census); renders `Tools/blender/renders/rail_R300_600_cam2.png`, `rail_cutting_cam2.png`, engine capture `Tools/ue/shots/isle_rail_cutting_ramsgate.png` |
+| 8 | Explorer base | unreal, integration | 1, 2, FD | **in progress** — the level is complete and asserted headless (`Saved/Tests/d5_assert_final.json`: 15,423 streetscape + 216 massing + 140 proxies + `PlayerStart`, game mode and pawn set, `problems: []`), streaming proved (1,264 actors in a 1,400 m box), 881 of 881 traces blocked by the street. **Not done:** the GUI checks below (Play-In-Editor, the Tools > Streetscape menu, the MCP port) were not run in this round, and the landscape still draws through the carriageway at ordinary viewing distance — note (d) |
+
+Notes referenced above (each is an open defect recorded in BRIEF §9 with its severity):
+
+* **(a)** The Margate byte-identity gate can no longer return a clean pass. All **91 terrain rasters** are
+  byte-identical to `baseline_2026-09-08`; the single difference is `terrain/terrain_manifest.json`, which
+  gained the `shared_edges` key that stage 1's seam fix publishes. Against the later `before` snapshot the
+  same command prints `1497 identical, 86 problems`: four manifests plus 83 adapter documents whose
+  `generator` string embeds the current commit. The products are intact; the *gate* needs an allow-list or a
+  re-snapshot before it can catch a real regression again.
+* **(b)** The landscape the engine imports is `data/thanet/out/unreal/landscape_conformed`, not the survey
+  product this file was written against: the ground under the road corridor is the road (README §1.8). The
+  splines are still sampled from the **survey** heightfield, so it is not a feedback loop. The conformed
+  product is not listed in `unreal_manifest.json` or `sources/OUTPUT.md`, and its manifest still carries a
+  stale `heightmap.roundtrip_measured` block copied from the survey.
+* **(c)** Found while writing README §4.1: 89 of 90 parity rows match on a document with a left-hand hedge;
+  only the leaf-card instance count differs (4,486 numpy / 4,483 C++). Structure, buffers, materials, groups,
+  stations and overlaps are identical.
+* **(d)** Zero of 666,314 road stations have terrain above the built surface
+  (`Tools/road_fusion_audit.py` → `GATE PASS: worst penetration 0.000000 m`), but the 0.03 m corridor sink is
+  thinner than the landscape's rendered surface at range, so green wedges cut the carriageway in
+  `Saved/Diag/d5_top_margate_street.png` and the street is barely visible in
+  `Tools/ue/shots/isle_street_margate.png`. Roads also float where corridors cross: 5.43 % of stations
+  (42.7 km) more than 0.125 m clear, worst 13.08 m.
 
 Status vocabulary for the integration phase: `not started` → `in progress` → `done (commit <sha>)`, or
 `blocked: <reason>`. A stage is `done` only when every acceptance check below was run and its output

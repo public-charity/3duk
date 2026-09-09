@@ -471,3 +471,90 @@ Things done or discovered after the design closed. Implementers treat these as c
   `projects/one/Tools/blender/...` is fine.
 - Overpass: only `overpass-api.de` answers; keep the mirror list but expect the other two to fail.
 - The design docs were verified after synthesis; where a doc and BRIEF §4 disagree, §4 wins.
+
+---
+
+## 9. State at the end of the build
+
+Written 2026-09-09 by the documentation agent, after the round that closed the five defects Alex's
+walk-through and the audits exposed (D1 tile-boundary seams, D2 two terrain truths, D3 roads fusing with the
+landscape, D4 dishonest gates, D5 the network not in the level). Every number below was read out of the file
+named beside it or printed by a command that was run for this section; the long form, with the commands, is
+`projects/one/README.md`. Section 4 of this brief remains binding and nothing here amends it.
+
+### 9.1 What is true
+
+**The data is right, and it is measured, not asserted.**
+
+- **Terrain.** 391 tiles at 1 m, −3.08..59.62 m ODN, steepest cell 86.3°. The nodata fill is now decided
+  **once over the whole 13313 × 9729 site mosaic**, so the 737 neighbouring tile pairs agree on all
+  **378,081 shared samples, max disagreement 0.0 m** (`terrain/terrain_manifest.json` → `shared_edges`).
+  Before this round the same audit found 28,725 samples differing by up to 5.34 m — 10.95 m counting the
+  invented ground behind the cut. **D1 is closed**, and step 05 exits non-zero if it ever reopens.
+- **One terrain truth.** The 16-bit landscape tiles differ from the source GeoTIFF by at most
+  **0.00390625 m over 99,037,257 surveyed cells** — exactly half the 1/128 m quantum, the encoding floor
+  (`unreal/landscape/landscape_manifest.json` → `heightmap.roundtrip_measured`), and the imported
+  `ALandscape` agrees with the heightfield the splines sample to **0.000645 m over 13,452 lattice points**
+  (`Saved/Tests/landscape_import_conformed.json` → `grid`). What is left of D2 is not two truths but one
+  interpolation rule: the landscape triangulates each quad, an `f(x, y)` sampler does not, and the two differ
+  by up to |twist|/4 between posts. That is now written into the manifest's `sampling_note` and the plugin
+  offers both rules.
+- **The cut is the line.** 9,253.83 m from Minnis Bay to Pegwell Bay, 103 tile positions gone, 3,861,822
+  cells NoData inside kept tiles, a visibility ramp on the 31 straddle tiles; in-engine, 20 probes inside
+  return a height and 20 outside return none.
+- **Roads no longer fuse with the terrain, in the data.** Over every road and rail spline of the isle —
+  13,096 splines, 666,314 stations, 968.8 km — **0 stations** have terrain above the built surface, against
+  **565,545 (84.88 %) and 826.7 km, worst 13.826 m** before
+  (`Tools/road_fusion_audit.py`, re-run for this section: `GATE PASS: worst penetration 0.000000 m`). The fix
+  is a separate product, `unreal/landscape_conformed/`, with per-cell delta rasters that make it reversible;
+  the survey products are never written.
+- **The whole isle is in the level.** 15,423 `AStreetscapeActor` (12,815 roads, 2,325 barriers, 282 rail, 1
+  authored test stretch), 216 massing actors carrying 20,121 buildings, a 2,067-component landscape in 140
+  streaming proxies, 15,789 external-actor packages, 2.2 GB of `Content/`
+  (`Saved/Tests/d5_assert_final.json`, an assertion pass that re-opens the saved map and counts).
+  1,072.4 km of network, 29.0 M triangles, 575,381 instances. It streams: a 1,400 m box over Cliftonville
+  pulls 1,264 actors, 1,100 of them roads.
+- **The gates are honest.** Twelve failure modes of the editor scripts were each broken on purpose and each
+  produced a non-zero exit and a `THANET_FAIL` naming the gate, with three clean control runs passing
+  (`Saved/Tests/gate_proofs.json`). **D4 is closed.**
+- **The system is data-driven, as specified.** A new road type, kerb, fence and hedge were added to the test
+  stretch **by editing JSON only** and rebuilt through numpy, Blender and Unreal for README §4.1 — no code
+  was touched, and 89 of the 90 parity rows matched.
+- **The test estate is green** (all run 2026-09-09): `dryrun.py` 167 passed / 0 failed;
+  `test_unreal_adapter.py` 47 tests OK; the numpy suite 115 tests OK; `Tools/build.ps1` `Result: Succeeded`;
+  `run_ue_tests.ps1` 26 completed, 26 passed, 0 failed.
+- **Margate is intact.** Of the 795 output files snapshotted before the first edit to `sources/`, 794 are
+  byte-identical, including all 91 terrain rasters (re-hashed for this section).
+
+### 9.2 Open defects
+
+| # | severity | defect |
+|---|---|---|
+| 1 | **blocker** | **The landscape still draws through the carriageway.** The data has zero penetration, but the corridor is sunk only 0.03 m — thinner than the landscape's *rendered* surface at ordinary viewing distance — so green wedges cut the road in `Saved/Diag/d5_top_margate_street.png` and the street is barely visible at eye level in `Tools/ue/shots/isle_street_margate.png`. The one clean street capture was taken with the landscape's LOD pinned, which is not how the level runs. This is Alex's original report and it is **not closed**. |
+| 2 | major | **Roads float where corridors cross.** Corridor arbitration takes the minimum of two surfaces, so the higher road is left standing: 36,188 stations (5.43 %, 42.7 km) more than 0.125 m clear, worst 13.08 m, concentrated in steps, cycleways and rail; visible as black voids under the near kerb in `Tools/ue/shots/isle_seafront_westgate.png`. The 1,554 clamped runs that need embankments or retaining walls are recorded in `landscape_conformed/conform_clamped.json` and not built. Until they are, the 6 % float gate is a regression detector calibrated to today's defect, not an acceptance criterion. |
+| 3 | major | **The conformed landscape is invisible in the pipeline's own index.** `unreal/unreal_manifest.json` lists landscape, streetscape, massing and furniture and not `landscape_conformed`; `grep -c landscape_conformed sources/OUTPUT.md` returns 0. The product the engine imports is announced only by its own manifest. |
+| 4 | major | **That manifest carries a stale `heightmap.roundtrip_measured` block** copied from the survey product. Its note tells a consumer it may assert the ground matches the survey — false by up to 17.38 m in the corridor — and contradicts the honest `heightmap.semantics` line three keys later. |
+| 5 | major | **The Margate byte-identity gate cannot return a clean pass.** `regress_outputs.sh compare margate baseline_2026-09-08` → `794 identical, 788 added (allowed), 1 problems` (the manifest's new `shared_edges` key); against `before` → `1497 identical, 86 problems` (four manifests plus 83 adapter documents whose `generator` embeds the commit). The products are intact; the gate needs an allow-list or a re-snapshot or it can no longer catch a real regression. |
+| 6 | major | **The headless runner hides a crash.** `Tools/ue/run_ue_python.ps1` attributes every overridden non-zero exit to a VC++ redistributable advisory, but of the overrides recorded in `Saved/Logs/`, **43 were exit −1073741819 (0xC0000005, access violation)** and only 12 were the advisory's own exit 1. The scripts' work completed and the saved level asserts correct, but something faults on shutdown and the message says otherwise. |
+| 7 | minor | **A 0.07 % parity hole in leaf-card scatter.** A hedge on the *left* of a spline produced 4,486 cards in numpy and 4,483 in C++ (89 of 90 rows matched; the committed test stretch, which has a hedge only on the right, still matches on all 81). Found while writing README §4.1. |
+| 8 | minor | **Play-In-Editor was never exercised in this round.** Walkability rests on headless evidence: 881 of 881 downward traces blocked by the street mesh, and the `PlayerStart`, game mode and pawn class present in the saved level. The GUI checks of `STAGES.md` stage 8 were not run. |
+
+### 9.3 The three things to do next
+
+1. **Make the road visible.** Close defect 1: the picture is the deliverable. Measure the landscape's
+   rendered-versus-collision surface error at the distances the level is actually viewed from, then choose
+   the fix on evidence — a deeper corridor sink, a landscape hole under the carriageway, or an LOD /
+   screen-size setting shipped with the level — and prove it with headless captures at eye level and
+   top-down **at the level's default settings**, with `road_fusion_audit.py` still at `GATE PASS`. Owners:
+   road corridor (`Tools/blender/streetscape/conform.py`) with unreal (landscape material and LOD).
+2. **Build the earthworks and stop the roads floating.** Close defect 2: turn the 1,554 clamped runs into
+   Renderer B embankments and retaining walls on the same spline (section 1.1 already specifies exactly this
+   for "a road cutting through a steep bank"), arbitrate crossing corridors by class rather than by minimum
+   where a grade separation is not involved, and re-state the float gate as a distance a viewer would accept
+   rather than a fraction that happens to hold today. Owners: geometry and road corridor.
+3. **Make the record self-consistent.** Close defects 3–6, none of which is large alone and all of which
+   together mean a new team cannot trust what the repo says about itself: publish `landscape_conformed` in
+   `unreal_manifest.json` and `sources/OUTPUT.md`; delete or re-measure the stale roundtrip block in the
+   conformed manifest; re-baseline or allow-list the Margate gate so a pass is possible and a real change is
+   still caught; and make `run_ue_python.ps1` report an access violation as an access violation. Owners:
+   adapter, road corridor, pipeline, unreal respectively.

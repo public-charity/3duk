@@ -8,6 +8,8 @@
 #include "AssetRegistry/IAssetRegistry.h"
 #include "Dom/JsonObject.h"
 #include "Dom/JsonValue.h"
+#include "Serialization/JsonSerializer.h"
+#include "Serialization/JsonWriter.h"
 #include "Editor.h"
 #include "EngineUtils.h"
 #include "GameFramework/PlayerStart.h"
@@ -22,7 +24,9 @@
 #include "StreetOverlayComponent.h"
 #include "StreetSpline.h"
 #include "StreetTerrainSource.h"
+#include "Components/InstancedStaticMeshComponent.h"
 #include "StreetscapeActor.h"
+#include "StreetscapeMassingActor.h"
 #include "StreetscapeEditorModule.h"
 #include "StreetscapeJson.h"
 #include "StreetscapeSiteActor.h"
@@ -31,6 +35,14 @@
 
 namespace
 {
+FString JsonText(const TSharedRef<FJsonObject>& O)
+{
+	FString Out;
+	TSharedRef<TJsonWriter<>> W = TJsonWriterFactory<>::Create(&Out);
+	FJsonSerializer::Serialize(O, W);
+	return Out;
+}
+
 UWorld* EditorWorld()
 {
 	return GEditor ? GEditor->GetEditorWorldContext().World() : nullptr;
@@ -621,6 +633,128 @@ bool UStreetscapeEditorLibrary::LoadRegion(FVector CenterUE, float RadiusCm)
 	Ad->Load();
 	Adapters.Add(MoveTemp(Ad));
 	return true;
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// Census: the size of the network the level actually holds (D5). ActorStatsJson is the per-actor truth but it
+// recomputes station sets and lateral overlaps, which is minutes at 15,422 actors; this walks the built buffers
+// only.
+// ---------------------------------------------------------------------------------------------------------------
+
+FString UStreetscapeEditorLibrary::StreetscapeCensusJson()
+{
+	TSharedRef<FJsonObject> O = MakeShared<FJsonObject>();
+	UWorld* World = EditorWorld();
+	if (!World)
+	{
+		O->SetStringField(TEXT("error"), TEXT("no editor world"));
+		return JsonText(O);
+	}
+	const double T0 = FPlatformTime::Seconds();
+	int32 Actors = 0, WithoutSamples = 0, EmptyBuffers = 0, Components = 0, Overlays = 0, InstanceComps = 0;
+	int64 Verts = 0, Tris = 0, Instances = 0, MarkingStrips = 0, Stations = 0;
+	double LengthM = 0.0;
+	TMap<FString, int64> VertsByBuffer, TrisByBuffer;
+	TMap<FString, int32> ActorsByLayer;      // roads / rail / barriers, from the id prefix
+	TMap<FName, int64> InstancesByKind;
+	for (TActorIterator<AStreetscapeActor> It(World); It; ++It)
+	{
+		AStreetscapeActor* A = *It;
+		++Actors;
+		FString Layer, Rest;
+		ActorsByLayer.FindOrAdd(A->StreetId.Split(TEXT(":"), &Layer, &Rest) ? Layer : FString(TEXT("?")))++;
+		const FStreetSamples* Sm = A->GetSamples();
+		if (!Sm) { ++WithoutSamples; continue; }
+		Stations += Sm->S.Num();
+		LengthM += Sm->LengthM;
+		MarkingStrips += A->MarkingStrips();
+		const TMap<FString, const FStreetMeshBuilder*> Bufs = A->Buffers();
+		if (Bufs.Num() == 0) ++EmptyBuffers;
+		for (const TPair<FString, const FStreetMeshBuilder*>& Kv : Bufs)
+		{
+			const FStreetBuildStats St = Kv.Value->Stats();
+			Verts += St.Verts;
+			Tris += St.Tris;
+			VertsByBuffer.FindOrAdd(Kv.Key) += St.Verts;
+			TrisByBuffer.FindOrAdd(Kv.Key) += St.Tris;
+		}
+		for (const TPair<FName, int32>& Kv : A->InstanceCounts())
+		{
+			Instances += Kv.Value;
+			InstancesByKind.FindOrAdd(Kv.Key) += Kv.Value;
+		}
+		for (UActorComponent* C : A->GetComponents())
+		{
+			if (Cast<UStreetRendererBase>(C)) ++Components;
+			else if (Cast<UStreetOverlayComponent>(C)) ++Overlays;
+			else if (Cast<UInstancedStaticMeshComponent>(C)) ++InstanceComps;
+		}
+	}
+	int32 Massing = 0;
+	int64 MassingVerts = 0, MassingTris = 0, MassingBuildings = 0;
+	for (TActorIterator<AStreetscapeMassingActor> It(World); It; ++It)
+	{
+		++Massing;
+		MassingVerts += It->Stats.Verts;
+		MassingTris += It->Stats.Tris;
+		MassingBuildings += It->Stats.Buildings;
+	}
+	O->SetNumberField(TEXT("actors"), Actors);
+	O->SetNumberField(TEXT("actors_without_samples"), WithoutSamples);
+	O->SetNumberField(TEXT("actors_with_no_buffer"), EmptyBuffers);
+	O->SetNumberField(TEXT("renderer_components"), Components);
+	O->SetNumberField(TEXT("overlay_components"), Overlays);
+	O->SetNumberField(TEXT("instanced_mesh_components"), InstanceComps);
+	O->SetNumberField(TEXT("verts"), (double)Verts);
+	O->SetNumberField(TEXT("tris"), (double)Tris);
+	O->SetNumberField(TEXT("instances"), (double)Instances);
+	O->SetNumberField(TEXT("marking_strips"), (double)MarkingStrips);
+	O->SetNumberField(TEXT("stations"), (double)Stations);
+	O->SetNumberField(TEXT("length_m"), LengthM);
+	O->SetNumberField(TEXT("massing_actors"), Massing);
+	O->SetNumberField(TEXT("massing_verts"), (double)MassingVerts);
+	O->SetNumberField(TEXT("massing_tris"), (double)MassingTris);
+	O->SetNumberField(TEXT("massing_buildings"), (double)MassingBuildings);
+	O->SetNumberField(TEXT("rss_mb"), (double)FPlatformMemory::GetStats().UsedPhysical / (1024.0 * 1024.0));
+	O->SetNumberField(TEXT("peak_rss_mb"), (double)FPlatformMemory::GetStats().PeakUsedPhysical / (1024.0 * 1024.0));
+	O->SetNumberField(TEXT("seconds"), FPlatformTime::Seconds() - T0);
+	{
+		TSharedRef<FJsonObject> B = MakeShared<FJsonObject>();
+		for (const TPair<FString, int64>& Kv : VertsByBuffer)
+		{
+			TSharedRef<FJsonObject> E = MakeShared<FJsonObject>();
+			E->SetNumberField(TEXT("verts"), (double)Kv.Value);
+			E->SetNumberField(TEXT("tris"), (double)TrisByBuffer.FindRef(Kv.Key));
+			B->SetObjectField(Kv.Key, E);
+		}
+		O->SetObjectField(TEXT("by_buffer"), B);
+	}
+	{
+		TSharedRef<FJsonObject> B = MakeShared<FJsonObject>();
+		for (const TPair<FString, int32>& Kv : ActorsByLayer) B->SetNumberField(Kv.Key, Kv.Value);
+		O->SetObjectField(TEXT("actors_by_layer"), B);
+	}
+	{
+		TSharedRef<FJsonObject> B = MakeShared<FJsonObject>();
+		for (const TPair<FName, int64>& Kv : InstancesByKind) B->SetNumberField(Kv.Key.ToString(), (double)Kv.Value);
+		O->SetObjectField(TEXT("instances_by_kind"), B);
+	}
+	return JsonText(O);
+}
+
+int32 UStreetscapeEditorLibrary::PurgeStreetscapeActors()
+{
+	UWorld* World = EditorWorld();
+	if (!World) return 0;
+	// a commandlet has nothing loaded, and an actor that is not loaded is not destroyed - it comes straight back
+	// the next time the map is opened, which is exactly how a "fresh" import ends up doubled.
+	LoadRegion(FVector::ZeroVector, 2000000.f);
+	TArray<AActor*> All;
+	for (TActorIterator<AStreetscapeActor> It(World); It; ++It) All.Add(*It);
+	const int32 N = All.Num();
+	const int32 Packages = DeleteActorsAndPackages(All);
+	UE_LOG(LogStreetscapeEditor, Display, TEXT("PurgeStreetscapeActors: destroyed %d actor(s), deleted %d package(s)"), N, Packages);
+	return N;
 }
 
 FString UStreetscapeEditorLibrary::ExportSiteJson(const FString& Path)

@@ -141,6 +141,14 @@ np.sum's pairwise summation and float32 heightfield tiles on purpose; see Street
 | the whole site imported: 15,423 `AStreetscapeActor` external-actor packages | 15,787 packages in the level |
 | `07_assert_level.py --no-load-all` (counts from the asset registry, nothing streamed) | 1 s |
 | `07_assert_level.py` streaming the WHOLE isle (15,423 streetscape + 216 massing + 140 proxies, every mesh rebuilt on load) | **384 s, RSS 19.5 GB** |
+| `03_import_streetscape.py --verify --census --expect-actors 15423` on the finished level (fresh commandlet, 20 km `load_region`, every mesh rebuilt from its saved definition) | **307.8 s**, 15,423 actors, 0 without samples, 0 with no buffer, peak RSS **21.77 GB** |
+| `04_probe.py --actor-sample 16 --step-m 2.0` (16 of 12,815 road actors, 881 stations, a downward trace and an `ALandscape` height query at each) | 220 s |
+| **D5, 2026-09-09: the whole network in one commandlet** — `03_import_streetscape.py --purge --json <DATA>/streetscape --first site_x16_y15.json --census --save --expect-actors 15422 --player-start --allow-no-terrain 1` | first run **606.8 s** (map 0.1 s, purge of an empty level 6.5 s, 246 documents -> 15,422 actors **236.1 s**, census 4.0 s, save **366.6 s**); the final run, which purged a full level first, **914.9 s** (purge of 15,423 actors **275.8 s**, import **261.0 s**, census 4.1 s, save **374.0 s**) |
+| the same import, measured first on 1 document and then on 10 (819 actors) before committing to it | 10 documents: 4.3 s build + 21.5 s save (38 packages/s); the whole site extrapolated to 81 s + 400 s and came in at 236 s + 367 s |
+| RSS during that import | 1.65 GB after `load_level`, **18.54 GB peak** at 15,422 actors on the first run (0.95 MB per actor, linear from 518 actors / 4.45 GB), 19.71 GB after the save; the final run peaked at **21.39 GB** because the purge held the previous 15,423 actors before it built the new ones |
+| what those 15,422 actors are | 12,815 roads + 2,325 barriers + 282 rail, **1,072.4 km**, 745,642 stations, 30,624 renderer components + 15,422 overlays + 1,697 ISM components, **19,705,600 verts / 29,006,476 tris**, 575,381 instances (464,753 leaf cards, 76,715 sleepers, 30,164 round posts, 3,749 square posts), 20,700 marking strips |
+| on disk | 15,788 external-actor packages in the level (15,423 streetscape + 216 massing + 140 landscape proxies + 9), `Content/` **2.1 GB**; a streetscape package is 65 KB median |
+| `06_import_massing.py --no-preload` on a level that already holds the whole network | `ImportMassing` itself 2.4 s (216 actors, 20,121 buildings, 222,440 verts / 364,007 tris); 281.7 s total, of which the Python-side `load_region` that `--no-preload` was meant to skip cost ~180 s and 21 GB before it was removed |
 
 Commandlets run with the null RHI (no `-AllowCommandletRendering`), so no shader compilation happened; expect the
 first `-Render` run of the landscape phase to be the slow one.
@@ -365,6 +373,189 @@ a verification mode which finds nothing FAILS, and a probe whose verdict is Fals
 | the massing reader dropped an unparsable JSONL line and defaulted a missing `skirt` silently | `FStreetMassingStats::SkippedLines` / `SkirtDefaulted` / `SkippedBuildings`, warned about per tile and summed in the import report |
 | no `AStreetscapeActor` component was ever attached to its root: the root spline was left Movable while every child is Static, so `AttachToComponent` refused all ~16 per street | `AStreetscapeActor` sets the root spline to `EComponentMobility::Static` |
 | the `PlayerStart` stood 1.5 m above the first waypoint while BRIEF/STAGES FD.4 and this file all said 2 m | 2 m, as documented |
+
+## Gates that were proved to fail (D4, 2026-09-09)
+
+The 2026-09-08 pass above made the verdicts branch. It did not make any of them *fail on purpose*, and a gate
+nobody has watched fail is a line of code that has always been true. This round finished the job in two halves:
+the gates that were still missing, and a driver that breaks one thing at a time and requires the failure.
+
+### What was still soft
+
+| was | is |
+|---|---|
+| `02_import_landscape.py` reported `components`, `proxies` and `extent` and compared none of them: an import that built 1,700 of 2,067 components printed `THANET_OK` with the shortfall inside the JSON | a `counts` probe compares components / proxies / extent / `tiles_read` against the plan the same manifest produced, and `counts.ok` is a gate |
+| a probe that could not run reported `{"skipped": ...}` and `check()` logged one line and returned - `--no-load-all` and a clip-less manifest both silently removed a gate | a skipped gate is a **failure** unless `--allow-skipped-gates` is passed, and the summary carries `gates_skipped` |
+| `06_import_massing.py` computed `matches_manifest` and `buildings_match_manifest`, printed them, and exited 0 whatever they said - including on 0 actors | actors <= 0, `ImportMassing.failed > 0`, and either mismatch are `THANET_FAIL`; `--allow-mismatch` accepts them loudly and records `accepted_problems` |
+| `04_probe.py --explorer` printed the wiring of a level with no game mode, no pawn and no `PlayerStart` as a success | all three are failures |
+| `04_probe.py --points` reported success on a CSV that produced 0 rows, and on points the landscape has no height for | both are failures |
+| `04_probe.py --materials` counted `slots_using_engine_default` and `slots_null` and passed anyway - the checkerboard in a capture | any such slot fails unless `--allow-default-materials` |
+| `04_probe.py --landscape-info` reported `ground_layers_missing` and `has_visibility_layer: false` as data | both are failures |
+| a `tiles[]` entry that was not a JSON object was `continue`d in `ReadManifest`: the manifest declared 391 tiles, the importer read 390, and only `tiles_read` (which nothing compared) knew | `OutProblem`, and the import stops |
+| `FindOrAddLandscapeProxy` returning null was `continue`d in `AddComponentsForBlock`: the region came out with fewer components and the import still said `ok` | the block fails and names the component coordinate |
+| a landscape material that did not load was a `Warning` and the whole isle drew with the engine default | it fails; pass an empty `--material` to mean "the engine default, on purpose" |
+| `ImportMassing` streamed the whole world unconditionally - at site scale that is 15,422 streetscape actors and every one of their meshes rebuilt (19 GB) just to replace 216 boxes | `bPreloadWorld` (default true, `06 --no-preload` to switch it off) with the same loud warning the streetscape path has, recorded as `report.preloaded` |
+
+### Each gate, broken on purpose
+
+`Tools/ue/gate_proofs.py` (pipeline python, not editor python) builds a 2 x 2-tile cutout of the Margate window
+with `make_cutout_manifest.py`, then for each gate breaks exactly one thing, runs the real command against a
+scratch map `/Game/Thanet/Maps/GateProof`, and requires a **non-zero exit AND a `THANET_FAIL` naming that gate**.
+The clean cases run the same commands on the same un-broken cutout and require `THANET_OK`, so a case that
+"fails" because the whole path is broken does not count as proof. Run 2026-09-09:
+`C:/Users/Shadow/code/3duk-env/env/python.exe projects/one/Tools/ue/gate_proofs.py`
+-> **12 of 12 proved, 3 of 3 clean runs pass** (`Saved/Tests/gate_proofs.json`, per-case logs
+`Saved/Logs/gate_<id>.log`).
+
+| case | gate | script | verdict | the failure it printed |
+|---|---|---|---|---|
+| `corrupt_r16` | importer: a heightmap tile that is the wrong size | `02_import_landscape.py` | exit -1 | 02_import_landscape import_site failed: assembly: hm_x0_y0.r16: 526330 bytes, expected 526338 |
+| `missing_tile_file` | importer: a manifest tile whose file is not on disk | `02_import_landscape.py` | exit -1 | 02_import_landscape import_site failed: assembly: cannot read hm_x1_y1.r16 |
+| `malformed_tile_entry` | importer: a tiles[] entry that is not an object | `02_import_landscape.py` | exit -1 | 02_import_landscape manifest rejected: tiles[4] is not a JSON object |
+| `missing_material` | importer: the landscape material does not load | `02_import_landscape.py` | exit -1 | 02_import_landscape import_site failed: landscape material /Game/Thanet/Materials/M_Does_Not_Exist.M_Does_Not_Exist did not load (pass an empty --material to accept the engine default on purpose) |
+| `grid_probe_mismatch` | 02 gate grid.within_0_01_m | `02_import_landscape.py` | exit -1073741819 | 02_import_landscape gate(s) failed: grid.within_0_01_m is False |
+| `component_count` | 02 gate counts.ok (components / proxies / extent / tiles_read vs the plan) | `02_import_landscape.py` | exit -1073741819 | 02_import_landscape gate(s) failed: counts.ok is False |
+| `skipped_gate` | 02: a gate that did not run is not a gate that passed | `02_import_landscape.py` | exit -1 | 02_import_landscape gate(s) failed: grid.within_0_01_m did not run: --no-load-all streams only the cliff tile and the clip line; probe_grid walks every tile (pass --allow-skipped-gates to accept that on purpose); counts.ok did not |
+| `verify_zero_actors` | 03 --verify on a level with no streetscape actor | `03_import_streetscape.py` | exit -1073741819 | 03_import_streetscape verify found 0 AStreetscapeActor in /Game/Thanet/Maps/GateProof after streaming a 20000 m radius - 'nothing streamed in' and 'nothing there' look identical, so this is a failure, not a pass |
+| `census_zero_actors` | 04 --census on a level with no streetscape actor | `04_probe.py` | exit -1 | 04_probe the level holds 0 AStreetscapeActor (streamed: True) |
+| `explorer_no_player_start` | 04 --explorer with no PlayerStart | `04_probe.py` | exit -1073741819 | 04_probe explorer wiring: the level has no PlayerStart, so Play would spawn at the world origin |
+| `materials_no_components` | 04 --materials with nothing to audit | `04_probe.py` | exit -1073741819 | 04_probe no streetscape or massing components in the level (use --load-all to stream them in) |
+| `massing_count` | 06 actors != massing_manifest.files | `06_import_massing.py` | exit -1073741819 | 06_import_massing massing import gate(s) failed: actors 3 != massing_manifest.files 10; buildings 233 != massing_manifest.buildings 20121 |
+| `clean_import` / `clean_import_final` | the same import of the same un-broken cutout | `02_import_landscape.py` | exit 0 | `THANET_OK` - 25 of 25 components, `counts.ok` true |
+| `clean_probes` | the same probes against the landscape that was just imported | `02_import_landscape.py --probes-only` | exit 0 | `THANET_OK` - `grid.within_0_01_m` true over 1,058 lattice points |
+
+Two notes on the exit codes. `-1` is the Python failure the runner refuses to override; `-1073741819` is an
+access violation while the editor tears down a level holding the whole isle, which the runner also refuses to
+override because there is no clean `Warning/Error Summary` to read. Both are non-zero, which is the contract.
+And the ordering matters: the four cases that recreate the map and then fail leave it with no landscape, so the
+driver re-imports the clean cutout before the `--probes-only` cases - without that they failed with "no
+ALandscape", which is a failure for the wrong reason and the driver scored them NOT PROVED (run 1,
+`Saved/Tests/gate_proofs_run1.json`).
+
+## The whole network in the level (D5, 2026-09-09)
+
+Alex's report was that the roads fuse with the landscape; the round before this one fixed that in the data. The
+other half of "the isle is not in the level" was simpler and worse: **only the authored test stretch was in it.**
+The site import had been run once (the row above records its 15,423 packages), and the terrain round's
+`02_import_landscape.py --recreate-map` deleted the map to re-import the conformed landscape, taking every
+streetscape and massing actor with it. Nothing noticed, because nothing compared the level against the manifests
+until `07_assert_level.py` was run by hand.
+
+### Granularity: measured, then chosen
+
+DESIGN.md 10 says one `AStreetscapeActor` per spline. That is 15,422 actors, so it was measured before it was
+believed - one document, then ten (819 actors), then the whole site:
+
+| | 10 documents / 819 actors | 246 documents / 15,422 actors |
+|---|---|---|
+| build (spline + every renderer) | 4.3 s | 236.1 s (65 actors/s) |
+| save (one external-actor package each) | 21.5 s (38 packages/s) | 366.6 s (42 packages/s) |
+| RSS | +0.11 GB over a 4.45 GB base | **18.54 GB peak**, 0.95 MB per actor, linear |
+| on disk | 53 MB | 1.9 GB (65 KB median per package) |
+
+So the per-spline choice costs about **1 MB of editor memory and 65 KB of disk per street**, and both scale
+linearly. 18.5 GB fits in 28 GB with the landscape and the massing already resident, which is why the whole site
+imports in **one** commandlet (606.8 s end to end) rather than the twelve slices `00_build_level.ps1` still uses
+by default. The slices remain the supported route because they bound the peak at about 6 GB; the single run is
+faster and was used here so that one census covers the whole network at once.
+
+The alternative - one actor per 512 m tile, 246 actors - was not taken. It gives the same component and vertex
+count with a 512 m streaming cell instead of a per-street one, and it makes "replace the street with this OSM id"
+a rebuild of the whole tile. Nothing measured here argues for it.
+
+**Meshes are not serialised and there is no HLOD.** Each renderer's `PreSave` stashes and empties its
+`UDynamicMesh` and the actor's `PostSaveRoot` puts it back, so a package holds the spline and its profiles, not
+its triangles - that is what keeps a 19.7-million-vertex network inside 1.9 GB and why a re-open rebuilds every
+mesh (measured: 384 s to stream and rebuild the whole isle). It is also why `AStreetscapeActor` sets
+`bEnableAutoLODGeneration = false` (`StreetscapeActor.cpp:42`): an HLOD build runs over what is in the package,
+and at save time that is an empty mesh. HLOD for the streets needs a static-mesh bake first, which is a later
+round.
+
+### One spline in 15,422 has no ground
+
+`roads:132194822:0` in `site_x7_y7.json` is five waypoints spanning 0.2 m at local (3908.6, 3925.6), which is
+**1.2 cm inside the clip line** - every terrain cell around it is NoData, so it sampled no ground at any station
+and would have been built flat at z = 0. The import refused it (`--allow-no-terrain 0`, the honest default) and
+named it; this level was then built with `--allow-no-terrain 1`, which logs it as `ACCEPTED` and counts it. The
+fix belongs upstream in `sources/adapters/unreal.py` - a run of 5 points spanning 0.2 m is degenerate whether or
+not it has terrain.
+### The defect that only shows up at site scale: roads that do not stream
+
+The first full import produced a level whose counts were all correct - 15,423 actors on disk, 15,423 streamed and
+rebuilt on re-open, 19.7 M vertices - and whose **street-level captures had no streets in them.** The massing
+boxes were there, the landscape was there, the ground was bare green where a road should be. The material audit
+in the same capture reported 1,793 loaded components resolving to `MI_tarmac`, `MI_concrete_kerb`,
+`MI_white_paint` and the rest, so the geometry was not un-materialled; it was not *there*.
+
+`04_probe.py --census --census-at 8352,7861 --load-radius-m 700` (added for this) named it in one line: a
+1,400 m box over the densest terraced streets in Cliftonville streamed in **124 actors - 113 barriers, 10 rail,
+1 authored test stretch from 5.8 km away - and zero roads**, out of 12,815 roads in the level.
+
+The cause is the interaction of two decisions that are each right on their own:
+
+- **meshes are not serialised** (DESIGN.md 10): `PreSave` stashes and empties every renderer's `UDynamicMesh`;
+- **World Partition places a spatially-loaded actor from `AActor::GetStreamingBounds`**, which returns
+  "a valid origin and an empty extent if this actor doesn't have primitive components"
+  (`UE/Runtime/Engine/Classes/GameFramework/Actor.h:2538-2546`).
+
+At save time a road actor's only geometry is an empty mesh, so its streaming bounds were a degenerate box at the
+actor transform - the identity, i.e. UE (0, 0, 0) - and every road in Thanet was filed in the one World Partition
+cell at the site's south-west corner. Barriers, hedges and rail escaped because they also carry
+`UInstancedStaticMeshComponent`s whose instance transforms *are* serialised, so those actors had real bounds.
+The isle looked right only when the whole isle was streamed, which is exactly the condition every check so far had
+been run under.
+
+The fix is `AStreetscapeActor::StreamingBoundsUE`: a serialised `FBox`, recomputed at the end of every
+`RebuildAllChecked` from `CalcBounds` over the actor's primitive components (plus 1 m of XY and 10 m of Z slack),
+returned from a `GetStreamingBounds` override. `UpdateStreamingBounds()` is public so a resave pass can refresh
+it. After a re-import with the fix, the same 700 m census at Cliftonville streams **1,264 actors of which 1,100 are roads**, 69.5 km of network, 1,227 marking strips (`Saved/Tests/d5_census_cliftonville.json`).
+
+### Still open: the landscape draws through the carriageway at close range
+
+With the whole network in the level, a capture straight down over Margate
+(`Saved/Diag/d5_top_margate_street.png`, 130 m, 300 m across) shows the streets as tarmac ribbons with kerbs and
+pavements - **and green wedges of landscape punching through them**, metres across. At eye height those wedges
+dominate and the carriageway disappears into green
+(`Tools/ue/shots/isle_street_margate.png`, kept as the record of it).
+
+What it is not:
+
+- not the data: `Tools/road_fusion_audit.py` reports zero of 666,314 stations with terrain above the built
+  surface, and 0.0025 m worst penetration even when the landscape is sampled as triangles;
+- not the collision: `04_probe.py --actor-sample 16` traces down at 881 stations, all 881 land on the street, and
+  the `ALandscape` height query is between 0.0269 m and 0.196 m below it at every one of them;
+- not the material: the same capture's material audit resolves every slot (`MI_tarmac`, `MI_concrete_kerb`,
+  `MI_white_paint`, ...), none to the engine default;
+- not streaming: 1,264 actors including 1,100 roads are loaded in that frame.
+
+It is the **render** margin. The carriageway sits `corridor_sink_m = 0.03` above the conformed ground
+(docs/TERRAIN_ROADS.md 8) and the landscape's drawn mesh is not its own `GetHeightAtLocation` surface. Two things
+were tried and neither closed it: pinning `LOD0ScreenSize` on the landscape **after** the World Partition stream
+rather than before (a real bug - before the fix the pin was applied to 1 actor and reached none of the 140
+streaming proxies; after it, 5 of 5 in frame) changed the frame not at all, and raising the pin from 8 to 100
+made it worse (`Saved/Diag/d5_top_margate_lod100.png`). The next thing to try is the sink itself: 3 cm of
+clearance is thinner than the landscape's own vertical quantum times its LOD morph, and the corridor pass that
+owns it (`Tools/blender/streetscape/conform.py`, road-corridor track) is where a bigger figure belongs.
+
+### The four captures of the finished world (D5, 2026-09-09)
+
+All taken headless with `05_screenshot.py`'s free camera against `/Game/Thanet/Maps/Thanet` as it now stands
+(15,423 streetscape actors, 216 massing actors, the conformed 2,067-component landscape). Camera choices come
+from `Tools/ue/pick_captures.py`, which picks each site by a measured criterion rather than by eye
+(`Saved/Diag/d5_capture_sites.json`).
+
+| file | what it shows | camera (document metres / UE degrees) |
+|---|---|---|
+| `shots/isle_from_the_south_west.png` | the whole isle: the road network as a web across it, Margate / Broadstairs / Ramsgate as dense coastal clusters, and the **straight south-west edge where the Minnis Bay - Pegwell Bay clip cuts the land** | (-554.62, 1764.75, 3400) yaw -20.25 pitch -19.59 fov 60, 30 km region |
+| `shots/isle_seafront_westgate.png` | the Westgate promenade: tarmac, both kerbs, pavement, dashed centre line, the beach and the sea; picked as the road above 3 m ODN with all 7 lateral probes below 0 m ODN | (3148.36, 6819.68, 13.11) yaw -42.31 pitch -0.28 fov 80 |
+| `shots/isle_rail_cutting_ramsgate.png` | the Kent Coast line in its cutting through Ramsgate - the deepest on the isle, 10.1 m below ground on both sides at 25 m lateral - with the town's roads and massing around it | (11401.43, 3877.77, 76.71) yaw -81.96 pitch -15.64 fov 60 |
+| `shots/isle_street_cliftonville.png` | the Cliftonville terraces: roads, kerbs and pavements threading between 52-footprints-within-40 m of massing, the densest built street on the isle | (8380, 7833, 44) yaw -147.2 pitch -22 fov 70 |
+| `shots/isle_street_margate.png` | kept deliberately: eye height on a Margate tertiary road, where the landscape draws through the carriageway (see the section above) | (8301.76, 7730.00, 10.09) yaw -165.41 pitch -3.12 fov 75 |
+
+Every capture is guarded (`distinct_rgb`, mean luminance, and a material audit of the level in the report), and
+one attempt was rejected by that guard rather than committed: a camera placed 7 m off the centreline landed
+inside a terraced house and came back with 2 distinct colours, which `05_screenshot.py` failed instead of saving.
+
 
 ## Rebuilding the level (and why there is one command for it)
 

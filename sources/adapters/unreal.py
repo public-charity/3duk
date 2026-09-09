@@ -526,15 +526,28 @@ def check_georef(path, gt, want, proj, epsg, tol_m=1e-6):
 def _seam_qa(edges, per_unit):
     """Neighbouring tiles share an edge of samples (513 verts per 512 m tile, the last column of one
     IS the first column of the next), and the landscape has one vertex there: if the two tiles carry
-    different heights the importer must silently pick one. Compare every shared edge where BOTH tiles
-    mark the sample keep, and separate the samples on edges where NEITHER tile needed a NoData fill --
-    those come from one mosaic and MUST agree; a difference there means the terrain product was
-    written by more than one run. The rest is step 05 filling each tile from its own neighbourhood."""
+    different heights the importer must silently pick one.
+
+    Three counts, because they fail for three different reasons:
+      * `_all`      -- EVERY shared sample, kept or clipped. Both fills that reach this product are
+                       now decided once over the site mosaic (step 05's coverage gaps, this adapter's
+                       clipped cells), so this must be 0. It was 35,951 samples and 10.95 m on the
+                       Thanet product built the old per-tile way (TERRAIN_ROADS.md 2.4).
+      * plain       -- samples both tiles mark keep: the ones a player can stand on. 28,725 and 5.34 m.
+      * `fill_free` -- samples on an edge where NEITHER tile needed a fill at all. Those are copied
+                       straight from one source composite and cannot legitimately differ by any rule:
+                       a difference there means the terrain product was written by more than one run.
+    """
     q = {"edges_compared": 0, "samples_compared": 0, "samples_disagreeing": 0,
          "samples_disagreeing_on_fill_free_edges": 0, "max_disagreement_m": 0.0, "max_at": None,
-         "note": "shared-edge samples where both clip masks say keep. Disagreement is possible only where "
-                 "step 05 invented ground (per-tile NoData fill, or a fabricated tile): each tile fills from "
-                 "its own neighbourhood. fill_free counts the samples that cannot legitimately differ."}
+         "samples_compared_all": 0, "samples_disagreeing_all": 0, "max_disagreement_all_m": 0.0,
+         "max_at_all": None,
+         "note": "Shared-edge samples of the h16 tiles. `samples_compared`/`samples_disagreeing` count only "
+                 "the samples both clip masks mark keep; the `_all` pair counts every shared sample "
+                 "including the invented ground behind the clip. Both must be 0: step 05 fills coverage "
+                 "gaps once over the site mosaic and this adapter fills the clipped cells the same way, so "
+                 "no shared sample is decided twice. Non-zero means a stale or torn terrain product -- "
+                 "re-run step 05 for the whole site, then this adapter."}
     for (i, j), E in edges.items():
         for (di, dj), a_side, b_side in (((1, 0), "e", "w"), ((0, 1), "n", "s")):
             F = edges.get((i + di, j + dj))
@@ -545,7 +558,16 @@ def _seam_qa(edges, per_unit):
             both = ka & kb
             q["edges_compared"] += 1
             q["samples_compared"] += int(both.sum())
-            d = (a.astype(np.int64) - b.astype(np.int64))[both]
+            d_all = a.astype(np.int64) - b.astype(np.int64)
+            q["samples_compared_all"] += int(d_all.size)
+            n_all = int((d_all != 0).sum())
+            if n_all:
+                q["samples_disagreeing_all"] += n_all
+                worst_all = float(np.abs(d_all).max()) / per_unit
+                if worst_all > q["max_disagreement_all_m"]:
+                    q["max_disagreement_all_m"] = round(worst_all, 4)
+                    q["max_at_all"] = {"tiles": [[i, j], [i + di, j + dj]], "cells": n_all}
+            d = d_all[both]
             n_bad = int((d != 0).sum())
             if not n_bad:
                 continue
@@ -618,6 +640,46 @@ def landscape(cfg, adp, src, out, clip, warnings, strict=False):
     n_hm = n_vis = n_wt = n_null = 0
     no_ground_raster, degraded, invented = [], 0, []
     edges = {}                                       # (i, j) -> the four border rows/columns, for seam QA
+    rt_cells, rt_sq, rt_max, rt_at = 0, 0.0, 0.0, None    # measured h16 <-> GeoTIFF agreement (D2)
+
+    # ---- decide the clipped-cell fill ONCE, over the site mosaic ------------------------------
+    # Step 05 writes the cells outside the clip as NoData on purpose; the h16 cannot carry a hole, so
+    # they are filled here. Filling them per tile is the same defect as filling coverage gaps per
+    # tile: two neighbours invent different heights for the row they SHARE and the importer has to
+    # pick a side -- 35,951 shared samples of the Thanet product differed, the worst by 10.95 m
+    # (projects/one/docs/TERRAIN_ROADS.md 2.4). So the fill comes from one mosaic filled once.
+    # ONLY the invention comes from the mosaic: every surveyed cell below is still read from its own
+    # tile, so a terrain product torn across two runs still shows up in seam_qa instead of being
+    # quietly smoothed over here. A site without a clip has no NoData at all and skips all of this.
+    mcfg = {"nx": NX, "ny": NY, "grid_res": RES, "tile_m": T, "origin": {"E": E0, "N": N0}}
+    by_pos = {(t["x"], t["y"]): t for t in tm["tiles"]}
+    fill_mos, fill_method = None, "none"
+    if clip is not None and any(int(t.get("clipped_cells", 0)) for t in tm["tiles"]):
+        def _read_for_fill(i, j):
+            t = by_pos.get((i, j))
+            if t is None:
+                return None
+            p = os.path.join(d, t["file"])
+            if not os.path.exists(p):
+                return None                          # the loop below refuses with the proper message
+            ds_ = gdal.Open(p)
+            b_ = ds_.GetRasterBand(1)
+            arr = b_.ReadAsArray().astype(np.float32)
+            if arr.shape != (RES, RES):
+                return None
+            return np.where(lib.nodata_mask(arr, b_.GetNoDataValue()), np.nan, arr)
+
+        fill_mos, minfo = lib.assemble_mosaic(mcfg, _read_for_fill, label="unreal adapter clip fill")
+        mbad = ~np.isfinite(fill_mos)
+        n_fill = int(mbad.sum())
+        if n_fill:
+            fill_method = lib.fill_nodata(fill_mos, mbad, label="site mosaic (cells outside the clip)", px_m=px_m)
+        n_clipped = sum(int(t.get("clipped_cells", 0)) for t in tm["tiles"])
+        print(f"landscape : clipped-cell fill '{fill_method}' decided once over a {minfo['shape'][1]} x "
+              f"{minfo['shape'][0]} mosaic of {minfo['tiles']} tiles: {n_clipped:,} clipped cells inside those "
+              f"tiles, {n_fill - n_clipped:,} more at grid positions that hold no tile at all (filled with them "
+              f"and never exported); {minfo['overlap_conflicts']} shared-cell conflicts", flush=True)
+        del mbad
     for t in tm["tiles"]:
         i, j = t["x"], t["y"]
         path = need(os.path.join(d, t["file"]), f"terrain tile {t['file']}")
@@ -639,10 +701,24 @@ def landscape(cfg, adp, src, out, clip, warnings, strict=False):
                          f"{t.get('clipped_cells')} -- the terrain product and its manifest disagree; re-run step 05")
         elif n_bad:
             sys.exit(f"unreal adapter: {t['file']} has {n_bad} NoData cells on a site without a clip -- step 05 should have filled them")
-        clip_fill = lib.fill_nodata(a, bad, t["file"]) if n_bad else "none"
-        if clip_fill.startswith("median"):
-            degraded += 1
+        clip_fill = "none"
+        if n_bad:
+            # from the site mosaic, so the two tiles that share a clipped sample agree to the bit
+            a[bad] = fill_mos[lib.mosaic_window(mcfg, i, j)][bad]
+            clip_fill = fill_method
+            if clip_fill.startswith("median"):
+                degraded += 1
         h16 = encode_h16(a, per_unit, offset)
+        # D2, measured rather than asserted: how far the 16-bit landscape height is from the
+        # metre-true GeoTIFF it was encoded from. Surveyed cells only -- a clipped cell's "source"
+        # is the sentinel, not a height. The encoding bounds this by half a quantum; the manifest
+        # publishes the number actually reached so the engine side can assert against it.
+        if n_bad < RES * RES:
+            err = np.abs(decode_h16(h16, per_unit, offset) - a)[~bad]
+            rt_cells += int(err.size)
+            rt_sq += float(np.square(err).sum())
+            if err.size and float(err.max()) > rt_max:
+                rt_max, rt_at = float(err.max()), [i, j]
         hm_name = L["heightmap_name"].format(i=i, j=j)
         h16.astype("<u2").tofile(os.path.join(o, hm_name)); n_hm += 1
         clip_name = L["clip_name"].format(i=i, j=j)
@@ -714,9 +790,10 @@ def landscape(cfg, adp, src, out, clip, warnings, strict=False):
     if n_invented:
         water = set(tuple(t) for t in (cm.get("water_tiles", []) if cm else []))
         outside = [t for t in invented if tuple(t) not in water]
-        warnings.append(f"{n_invented} tile(s) had NO surveyed cell at all: step 05 exported them as a flat plate at "
-                        f"{empty_fill if empty_fill is not None else 0.0} m ODN (terrain_manifest fill 'all-nodata -> ...'), "
-                        f"so {n_invented * T * T / 1e6:.1f} km2 of this landscape is fabricated, not survey; "
+        warnings.append(f"{n_invented} tile(s) had NO surveyed cell at all: step 05 filled every one of their "
+                        f"cells from the nearest surveyed cell in the site mosaic, which may be hundreds of metres "
+                        f"away (terrain_manifest fill_reach_max_m per tile), so "
+                        f"{n_invented * T * T / 1e6:.1f} km2 of this landscape is fabricated, not survey; "
                         + (f"all {n_invented} are in coast water_tiles -- mask or water-fill them in the importer"
                            if not outside else f"{len(outside)} of them are NOT in coast water_tiles: {outside[:8]}")
                         + "; the list is landscape_manifest.tiles_fabricated")
@@ -726,11 +803,14 @@ def landscape(cfg, adp, src, out, clip, warnings, strict=False):
                         "neighbouring tiles that BOTH had full source coverage -- two tiles cut from one mosaic cannot "
                         "disagree about a shared vertex: the terrain product was written by more than one run; re-run "
                         "step 05 for the whole site (landscape_manifest.seam_qa carries the worst case)")
-    elif seam_qa["samples_disagreeing"]:
-        warnings.append(f"{seam_qa['samples_disagreeing']} of {seam_qa['samples_compared']} shared-edge samples differ "
-                        f"between neighbouring tiles (max {seam_qa['max_disagreement_m']} m), every one of them on an "
-                        "edge of a tile whose source had NoData: step 05 fills each tile from its OWN neighbourhood, so "
-                        "invented ground does not match across a seam. Surveyed ground does. See landscape_manifest.seam_qa")
+    elif seam_qa["samples_disagreeing_all"]:
+        warnings.append(f"{seam_qa['samples_disagreeing_all']} of {seam_qa['samples_compared_all']} shared-edge samples "
+                        f"differ between neighbouring tiles (max {seam_qa['max_disagreement_all_m']} m; "
+                        f"{seam_qa['samples_disagreeing']} of them on ground both tiles keep). This must be 0: step 05 "
+                        "fills coverage gaps once over the site mosaic and this adapter fills the clipped cells the "
+                        "same way, so no shared sample is decided twice. A non-zero count means the terrain product on "
+                        "disk predates that fix or was written by more than one run -- re-run step 05 for the whole "
+                        "site, then this adapter. See landscape_manifest.seam_qa")
     pad_h16 = int(encode_h16(water_level if water_level is not None else 0.0, per_unit, offset))
     no_ground = sorted(set(map(tuple, list(no_dtm) + [tuple(t) for t in no_ground_raster])))
     man = {"site": cfg["site"], "crs": tm["crs"], "origin": {"E": E0, "N": N0}, "vertical_datum": tm.get("vertical_datum"),
@@ -741,8 +821,42 @@ def landscape(cfg, adp, src, out, clip, warnings, strict=False):
                          "z_encoding": {"formula": f"h16 = round(z_m * {per_unit}) + {offset}", "per_unit": per_unit, "offset": offset,
                                         "scale_z_cm": L["z_scale_cm"], "decode": f"z_m = (h16 - {offset}) / {per_unit}",
                                         "quantum_m": 1.0 / per_unit, "max_roundtrip_error_m": 0.5 / per_unit},
+                         "roundtrip_measured": {
+                             "cells": rt_cells, "max_m": rt_max,
+                             "rms_m": (rt_sq / rt_cells) ** 0.5 if rt_cells else 0.0,
+                             "bound_m": 0.5 / per_unit, "worst_tile": rt_at,
+                             "note": "max |(h16 - offset)/per_unit - z| over every SURVEYED cell of every tile, "
+                                     "measured on this run, not asserted. Cells outside the clip are excluded: their "
+                                     "source value is the NoData sentinel, not a height. This is the whole distance "
+                                     "between the landscape's heights and the step-05 GeoTIFF they came from, so a "
+                                     "consumer comparing an in-engine height against the survey may assert against "
+                                     "this number and attribute anything larger to its own sampling rule (the "
+                                     "landscape interpolates a quad as two triangles, an f(x,y) bilinear sampler "
+                                     "does not; that difference is bounded by |twist|/4 of the quad and is much "
+                                     "larger than this -- projects/one/docs/TERRAIN_ROADS.md 3)."},
                          "range_limit_m": L["range_limit_m"], "window_m": [-offset / per_unit, round((65535 - offset) / per_unit, 3)]},
-           "clip_mask": {"file": L["clip_name"], "semantics": "255 keep, 0 clipped-or-nodata after step 05; verification only"},
+           # What this product does NOT settle. The bytes are one surface sampled at the grid posts;
+           # between the posts two consumers can still disagree, and the whole of the "two terrain
+           # truths" defect turned out to be exactly that (TERRAIN_ROADS.md 3: agreement at the posts
+           # 0.53 mm, off-post disagreement up to 1.9 m on steep ground). Stated here so nobody has to
+           # rediscover it: roundtrip_measured is the distance to the survey, this is the distance
+           # between two readers of the same bytes.
+           "sampling_note": {
+               "at_grid_posts": "one value, no ambiguity: heightmap row r, col c IS the landscape vertex; "
+                                "roundtrip_measured bounds how far it is from the step-05 GeoTIFF",
+               "between_grid_posts": "the ALandscape interpolates each quad as TWO TRIANGLES (Chaos "
+                                     "FHeightField::GetHeightAt); a plain f(x, y) heightfield sampler "
+                                     "usually interpolates it BILINEARLY. For a quad z00, z10, z01, z11 "
+                                     "with twist T = z00 + z11 - z10 - z01 the two rules differ by at most "
+                                     "|T|/4, at the quad centre -- nothing to do with the encoding, and far "
+                                     "larger than the quantum. A consumer that must sit ON the landscape "
+                                     "(a road, a probe, a pawn) has to use the landscape's rule."},
+           "clip_mask": {"file": L["clip_name"], "semantics": "255 keep, 0 clipped-or-nodata after step 05; verification only",
+                         "fill": fill_method, "fill_scope": "the whole site mosaic, once",
+                         "fill_note": "The h16 cannot carry a hole, so the cells this mask marks 0 are filled with the "
+                                      "nearest kept height. That nearest neighbour is found over the WHOLE SITE, not "
+                                      "inside one tile, so two tiles sharing a clipped sample fill it identically "
+                                      "(seam_qa proves it). The mask is the truth about which cells those are."},
            "visibility": {"file": L["vis_name"], "present_for": "straddle tiles",
                           "semantics": "landscape visibility weight: 255 = hole, 0 = visible; absent file = 0 for kept tiles and 255 for tiles_clipped/tiles_missing/padding",
                           "formula": "w = round(clamp(2/3 + d / (3 * px_m), 0, 1) * 255), d = signed metres into the clipped half-plane from clip.line (keep semantics of clip); the 2/3 iso-line is the clip line"},
@@ -765,9 +879,10 @@ def landscape(cfg, adp, src, out, clip, warnings, strict=False):
            "tiles_without_ground_raster": [list(t) for t in no_ground],
            "seam_qa": seam_qa,
            "tiles_fabricated": invented, "empty_fill_m": empty_fill,
-           "tiles_fabricated_note": ("every cell of these tiles was NoData in the source DTM: step 05 exported a flat plate at "
-                                     "empty_fill_m (terrain_manifest tiles_fabricated / fill 'all-nodata -> ...'). Nothing there "
-                                     "was surveyed, and the clip mask marks them keep -- mask or water-fill them in the importer"),
+           "tiles_fabricated_note": ("every cell of these tiles was NoData in the source DTM: step 05 filled them from the "
+                                     "nearest surveyed cell in the site mosaic (terrain_manifest tiles_fabricated, and "
+                                     "fill_reach_max_m for how far that was). Nothing there was surveyed, and the clip mask "
+                                     "marks them keep -- mask or water-fill them in the importer"),
            "weights_note": ("step 09 has not run: weights null on every tile; re-run the adapter after step 09" if cm is None else
                             "weights null only for tiles_without_ground_raster (coast tiles_without_dtm or no ground raster)"),
            "warnings": list(warnings),

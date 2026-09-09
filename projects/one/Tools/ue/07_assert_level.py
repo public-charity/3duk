@@ -66,7 +66,7 @@ def main(argv):
     opts = uc.parse_args(argv, flags=("census_only", "no_load_all"), options={
         "data": "", "map": DEFAULT_MAP, "out": "",
         "expect_streetscape_actors": "", "expect_landscape_components": "",
-        "expect_massing_actors": "", "expect_buildings": "",
+        "expect_massing_actors": "", "expect_buildings": "", "landscape_dir": "landscape_conformed",
     })
     data = (opts["data"] or uc.data_dir()).replace("\\", "/").rstrip("/")
 
@@ -95,7 +95,8 @@ def main(argv):
         with open(p) as fh:
             return json.load(fh)
 
-    lm = manifest("landscape/landscape_manifest.json")
+    ldir = opts["landscape_dir"] or "landscape"
+    lm = manifest("%s/landscape_manifest.json" % ldir)
     sm = manifest("streetscape/streetscape_manifest.json")
     mm = manifest("massing/massing_manifest.json")
     if sm:
@@ -105,7 +106,7 @@ def main(argv):
         expect["buildings"] = int(mm.get("buildings") or 0)
     if lm:
         imp = unreal.StreetscapeLandscapeImporter
-        plan = json.loads(imp.plan_site_json("%s/landscape/landscape_manifest.json" % data, 127, 2, 4))
+        plan = json.loads(imp.plan_site_json("%s/%s/landscape_manifest.json" % (data, ldir), 127, 2, 4))
         if not plan.get("error"):
             expect["landscape_components"] = int(plan.get("components_planned") or 0)
             expect["landscape_proxies"] = int(plan.get("proxies_expected") or 0)

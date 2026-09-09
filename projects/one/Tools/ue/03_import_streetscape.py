@@ -59,9 +59,10 @@ def actor_summary(stats_text):
 def main(argv):
     opts = uc.parse_args(
         argv,
-        flags=("player_start", "save", "verify", "no_preload"),
+        flags=("player_start", "save", "verify", "no_preload", "purge", "census"),
         options={"json": "", "map": DEFAULT_MAP, "stats_out": "", "site": "", "origin_e": "", "origin_n": "",
-                 "region_radius_m": "20000", "set_game_mode": "", "expect_actors": "", "stats_limit": "0", "slice": "", "allow_no_terrain": "0", "files": ""},
+                 "region_radius_m": "20000", "set_game_mode": "", "expect_actors": "", "stats_limit": "0", "slice": "", "allow_no_terrain": "0", "files": "",
+                 "first": ""},
     )
     src = ""
     if not opts["verify"] and not opts["files"]:
@@ -71,10 +72,18 @@ def main(argv):
         if not (os.path.isfile(src) or os.path.isdir(src)):
             uc.fail(NAME, "no such file or directory: %s" % src)
 
+    timing = {}
+    imp = unreal.StreetscapeLandscapeImporter
+
+    def rss():
+        return round(imp.rss_mb(), 1)
+
     les = unreal.get_editor_subsystem(unreal.LevelEditorSubsystem)
     if not les.load_level(opts["map"]):
         uc.fail(NAME, "load_level(%s) failed" % opts["map"])
-    uc.log("map %s loaded after %.1fs" % (opts["map"], uc.elapsed_s()))
+    uc.log("map %s loaded after %.1fs (rss %.1f MB)" % (opts["map"], uc.elapsed_s(), rss()))
+    timing["map_loaded_s"] = uc.elapsed_s()
+    timing["rss_mb_after_load"] = rss()
 
     site_name = opts["site"] or uc.site_name()
     origin_e = float(opts["origin_e"]) if opts["origin_e"] else DEFAULT_ORIGIN_E
@@ -101,6 +110,13 @@ def main(argv):
                           "'nothing streamed in' and 'nothing there' look identical, so this is a failure, not a pass"
                     % (opts["map"], r / 100.0))
     else:
+        if opts["purge"]:
+            # a full-site import must start from nothing: whatever a previous partial run or an audit left in the
+            # level keeps its id, and an id this import does not carry is never replaced - it just stays.
+            gone = unreal.StreetscapeEditorLibrary.purge_streetscape_actors()
+            uc.log("--purge: destroyed %d existing AStreetscapeActor after %.1fs" % (gone, uc.elapsed_s()))
+            timing["purge_s"] = uc.elapsed_s()
+            timing["purged_actors"] = gone
         files = [src]
         if opts["files"]:
             # exact document list: --slice boundaries move when the directory listing changes, and re-running a
@@ -123,6 +139,15 @@ def main(argv):
                           os.path.basename(files[-1]) if files else "-"))
             if not files:
                 uc.fail(NAME, "no .json documents under %s for this slice" % src)
+            if opts["first"]:
+                # --player-start lands on the FIRST spline of the FIRST document, and the alphabetical first
+                # document of the site is an arbitrary one-barrier tile. Name the document the spawn should be on.
+                want = opts["first"].replace("\\", "/")
+                match = [f for f in files if f == want or os.path.basename(f) == os.path.basename(want)]
+                if not match:
+                    uc.fail(NAME, "--first %s is not one of the %d documents being imported" % (want, len(files)))
+                files = match + [f for f in files if f not in match]
+                uc.log("--first: %s moved to the front of %d document(s)" % (os.path.basename(match[0]), len(files)))
         # Site scale is 15,422 actors. Preloading the whole world before EVERY document would hold the entire isle
         # in memory for the run; a slice of a fresh build knows the level holds none of its ids, so it preloads
         # once at most. --no-preload turns it off entirely (only correct on a level with no streetscape actors).
@@ -136,9 +161,13 @@ def main(argv):
             n += got
             preload = False
             if len(files) > 1:
-                uc.log("[%d/%d] %s -> %d actor(s) (total %d) after %.1fs"
-                       % (k + 1, len(files), os.path.basename(f), got, n, uc.elapsed_s()))
-        uc.log("import_streetscape_json -> %d actor(s) from %d document(s) after %.1fs" % (n, len(files), uc.elapsed_s()))
+                uc.log("[%d/%d] %s -> %d actor(s) (total %d) after %.1fs (rss %.0f MB)"
+                       % (k + 1, len(files), os.path.basename(f), got, n, uc.elapsed_s(), rss()))
+        uc.log("import_streetscape_json -> %d actor(s) from %d document(s) after %.1fs (rss %.1f MB)"
+               % (n, len(files), uc.elapsed_s(), rss()))
+        timing["import_done_s"] = uc.elapsed_s()
+        timing["rss_mb_after_import"] = rss()
+        timing["documents"] = len(files)
 
     ids = [str(i) for i in unreal.StreetscapeEditorLibrary.streetscape_actor_ids()]
     eas = unreal.get_editor_subsystem(unreal.EditorActorSubsystem)
@@ -192,9 +221,19 @@ def main(argv):
         game_mode_set = str(gm.get_path_name())
         uc.log("world settings default_game_mode = %s" % game_mode_set)
 
+    census = None
+    if opts["census"]:
+        census = json.loads(unreal.StreetscapeEditorLibrary.streetscape_census_json())
+        uc.log("census: %s" % json.dumps({k: v for k, v in census.items() if not isinstance(v, dict)}, sort_keys=True))
+        if int(census.get("actors_without_samples") or 0) > 0:
+            uc.fail(NAME, "%d of %d streetscape actor(s) have no built samples" %
+                    (census["actors_without_samples"], census["actors"]))
+        timing["census_done_s"] = uc.elapsed_s()
+
     saved = False
     after_save = {}
     if opts["save"]:
+        timing["save_start_s"] = uc.elapsed_s()
         if not les.save_current_level():
             uc.fail(NAME, "save_current_level failed")
         saved = uc.save_all()
@@ -208,8 +247,14 @@ def main(argv):
             if after_save[sid] != before:
                 uc.fail(NAME, "%s: buffers changed across the save: %s -> %s" % (sid, before, after_save[sid]))
         uc.log("buffers unchanged across the save: %s" % json.dumps(after_save, sort_keys=True))
+        timing["save_done_s"] = uc.elapsed_s()
+        timing["save_s"] = round(timing["save_done_s"] - timing["save_start_s"], 1)
+        timing["rss_mb_after_save"] = rss()
 
     uc.report(NAME, {
+        "timing": timing,
+        "census": census,
+        "rss_mb_end": rss(),
         "mode": "verify" if opts["verify"] else "import",
         "json": src,
         "map": opts["map"],

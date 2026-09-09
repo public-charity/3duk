@@ -29,6 +29,10 @@
 # claim, not a check.
 param(
 	[string]$Data = "C:/Users/Shadow/code/3duk/data/thanet/out/unreal",
+	# The LANDSCAPE comes from the conformed product (docs/TERRAIN_ROADS.md 8): the survey erupts through the
+	# carriageway, the conformed heightmap does not. The streets are still built on the SURVEY heightfield the
+	# site actor points at - 02_import_landscape.py restores that after its probes - so this is not a feedback loop.
+	[string]$LandscapeDir = "landscape_conformed",
 	[string]$Map = "/Game/Thanet/Maps/Thanet",
 	[switch]$Recreate,
 	[switch]$SkipLandscape,
@@ -39,7 +43,11 @@ param(
 	[int]$StreetscapeSlices = 12,
 	[int]$MaxComponents = 256,
 	[int]$AllowNoTerrain = 0,
-	[switch]$AssertOnly
+	[switch]$AssertOnly,
+	# purge every AStreetscapeActor before importing. On -Recreate the map is new and there is nothing to purge;
+	# on a rebuild over an existing level it is the difference between "the isle" and "the isle plus whatever a
+	# previous partial run left behind under ids this run does not carry".
+	[switch]$Purge
 )
 $ErrorActionPreference = "Stop"
 $ToolsDir = ((Resolve-Path "$PSScriptRoot").Path -replace "\\", "/")
@@ -67,7 +75,7 @@ function Step([string]$Name, [string]$Script, [string]$ScriptArgs, [switch]$Rend
 }
 
 # ---- how many of everything the adapter says there should be ----------------------------------------------------
-$lm = Get-Content -Raw "$Data/landscape/landscape_manifest.json" | ConvertFrom-Json
+$lm = Get-Content -Raw "$Data/$LandscapeDir/landscape_manifest.json" | ConvertFrom-Json
 $sm = Get-Content -Raw "$Data/streetscape/streetscape_manifest.json" | ConvertFrom-Json
 $mm = Get-Content -Raw "$Data/massing/massing_manifest.json" | ConvertFrom-Json
 $expectSplines = 0
@@ -82,7 +90,10 @@ if (-not $AssertOnly) {
 	Step "1_bootstrap" "01_bootstrap.py" $bootArgs
 
 	if (-not $SkipLandscape) {
-		Step "2_landscape" "02_import_landscape.py" "--manifest $Data/landscape/landscape_manifest.json --max-components $MaxComponents --max-shared-edge-h16 $AllowSeamH16 --report $ProjDir/Saved/Tests/build_level_landscape.json" -Render
+		Step "2_landscape" "02_import_landscape.py" "--manifest $Data/$LandscapeDir/landscape_manifest.json --max-components $MaxComponents --max-shared-edge-h16 $AllowSeamH16 --report $ProjDir/Saved/Tests/build_level_landscape.json" -Render
+	}
+	if ($Purge -and -not $SkipStreetscape) {
+		Step "2b_purge" "03_import_streetscape.py" "--purge --files $ProjDir/schema/examples/test_stretch.json --save --stats-limit 1"
 	}
 	if (-not $SkipTestStretch) {
 		Step "3_test_stretch" "03_import_streetscape.py" "--json $ProjDir/schema/examples/test_stretch.json --player-start --save --stats-limit 1 --stats-out $ProjDir/Saved/Tests/build_level_trinity.stats.json --set-game-mode /Script/Thanet.ThanetGameMode"
@@ -95,7 +106,9 @@ if (-not $AssertOnly) {
 		# UDynamicMeshComponents at once does not fit in 28 GB. Each slice preloads nothing (the level holds no
 		# actor for its ids on a fresh build) and saves before it exits.
 		for ($i = 1; $i -le $StreetscapeSlices; $i++) {
-			Step "5_streetscape_$i" "03_import_streetscape.py" "--json $Data/streetscape --slice $i/$StreetscapeSlices --no-preload --save --stats-limit 1 --allow-no-terrain $AllowNoTerrain"
+			$census = ""
+			if ($i -eq $StreetscapeSlices) { $census = " --census" }
+			Step "5_streetscape_$i" "03_import_streetscape.py" "--json $Data/streetscape --slice $i/$StreetscapeSlices --no-preload --save --stats-limit 1 --allow-no-terrain $AllowNoTerrain$census"
 		}
 	}
 }

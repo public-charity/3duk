@@ -30,6 +30,23 @@ from dataclasses import dataclass, field
 import numpy as np
 
 
+def _interp(a, b, c, d, tx, ty, rule: str):
+    """One quad, two rules (docs/TERRAIN_ROADS.md 3.3).
+
+    ``a`` is the NW sample, ``b`` NE, ``c`` SW, ``d`` SE; ``tx`` grows east and ``ty`` south, which is
+    the landscape's own +Y.  ``bilinear`` is the numpy/plugin contract (DESIGN.md 8) and the default;
+    ``landscape_triangulated`` is what ALandscape's Chaos heightfield returns between the posts, so a
+    measurement made with it is a measurement of the surface the pawn walks on and the camera sees.
+    Bit-for-bit the same expression as FStreetHeightfield::Sample
+    (Plugins/Streetscape/Source/Streetscape/Private/StreetTerrainSource.cpp:169-173)."""
+    if rule == "landscape_triangulated":
+        return np.where(tx < ty, a * (1.0 - ty) + d * tx + c * (ty - tx),
+                        a * (1.0 - tx) + b * (tx - ty) + d * ty)
+    if rule != "bilinear":
+        raise ValueError("unknown sampling rule %r" % rule)
+    return (a * (1 - tx) + b * tx) * (1 - ty) + (c * (1 - tx) + d * tx) * ty
+
+
 @dataclass
 class Heightfield:
     tile_m: float
@@ -42,6 +59,7 @@ class Heightfield:
     xy0: tuple = (0.0, 0.0)                         # heightfield-frame coordinates of tile (0, 0)'s SW corner
     source: str = ""                                # human-readable provenance for stats.json
     manifest: dict = field(default_factory=dict)
+    sampling: str = "bilinear"                      # "bilinear" | "landscape_triangulated" (see sample())
 
     # -- construction --------------------------------------------------------------------------
     @classmethod
@@ -180,7 +198,8 @@ class Heightfield:
         return Heightfield(tile_m=self.tile_m, res=self.res, px_m=self.px_m, tiles=self.tiles,
                            origin_E=self.origin_E, origin_N=self.origin_N,
                            shift_xy=(float(doc_E) - self.origin_E, float(doc_N) - self.origin_N),
-                           xy0=self.xy0, source=self.source, manifest=self.manifest)
+                           xy0=self.xy0, source=self.source, manifest=self.manifest,
+                           sampling=self.sampling)
 
     # -- sampling ------------------------------------------------------------------------------
     def sample(self, x, y) -> np.ndarray:
@@ -223,8 +242,7 @@ class Heightfield:
             b = T[y0, x0 + 1].astype(np.float64)
             c = T[y0 + 1, x0].astype(np.float64)
             d = T[y0 + 1, x0 + 1].astype(np.float64)
-            v = (a * (1 - tx) + b * tx) * (1 - ty) + (c * (1 - tx) + d * tx) * ty
-            out[sel] = v
+            out[sel] = _interp(a, b, c, d, tx, ty, self.sampling)
         # ground() treats the mosaic as [0, W-1] x [0, H-1] INCLUSIVE: a point exactly on the far edge of the
         # coverage belongs to the last tile (its last column / top row) when the next tile does not exist
         miss = finite & ~np.isfinite(out)
@@ -250,7 +268,8 @@ class Heightfield:
                     y0 = min(int(np.floor(ry)), r1 - 1)
                     tx, ty = cx - x0, ry - y0
                     a, b, c, d = (float(T[y0, x0]), float(T[y0, x0 + 1]), float(T[y0 + 1, x0]), float(T[y0 + 1, x0 + 1]))
-                    out[idx] = (a * (1 - tx) + b * tx) * (1 - ty) + (c * (1 - tx) + d * tx) * ty
+                    out[idx] = float(_interp(np.float64(a), np.float64(b), np.float64(c), np.float64(d),
+                                             np.float64(tx), np.float64(ty), self.sampling))
         out[~np.isfinite(out)] = np.nan
         return float(out[0]) if scalar else out
 

@@ -102,15 +102,41 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Streetscape")
 	static FString ExportSiteJson(const FString& Path);
 
+	/**
+	 * What the level's streetscape actually amounts to: actor count, component count by renderer, and the summed
+	 * vertices / triangles / instances of every built buffer, plus this process's RSS. At site scale the per-actor
+	 * ActorStatsJson is far too slow to call 15,422 times (it recomputes station sets and overlaps), and without
+	 * this there is no way to state the size of the network that was built. Only actors that are streamed in are
+	 * counted - LoadRegion first - and `actors_without_samples` says how many were seen but never built, so an
+	 * empty census cannot be mistaken for a small one.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Streetscape")
+	static FString StreetscapeCensusJson();
+
+	/**
+	 * Destroy every AStreetscapeActor in the level AND delete its World Partition package, so a full site import
+	 * starts from nothing instead of layering on whatever a previous partial run left behind. Streams the world in
+	 * first (a commandlet has nothing loaded, and an invisible actor is not deleted, it survives). Returns the
+	 * number of actors destroyed.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Streetscape")
+	static int32 PurgeStreetscapeActors();
+
 	// -- phase 4: massing (DESIGN.md 15) --------------------------------------------------------------------------
 
 	/**
 	 * One AStreetscapeMassingActor per <Dir>/buildings_x{i}_y{j}.jsonl (grey extruded footprints). An actor that
 	 * already covers a tile is rebuilt in place and any surplus one is deleted, so re-importing keeps the level at
 	 * exactly one actor per tile. Returns the actor count (-1 on error) and fills OutReportJson with the totals.
+	 *
+	 * bPreloadWorld streams the whole world in first so an existing massing actor is found and rebuilt in place
+	 * instead of doubled. It is the safe default and was unconditional; at site scale it also streams in every
+	 * one of the 15,422 streetscape actors and rebuilds their meshes (measured 19 GB), so a caller that KNOWS the
+	 * level holds no massing actor can pass false. Passing false when it does hold some doubles them, and the
+	 * report says so under "preloaded".
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Streetscape")
-	static int32 ImportMassing(const FString& Dir, const FString& MaterialPath, FString& OutReportJson);
+	static int32 ImportMassing(const FString& Dir, const FString& MaterialPath, FString& OutReportJson, bool bPreloadWorld = true);
 
 	// -- phase 5: what the renderer actually got -------------------------------------------------------------------
 

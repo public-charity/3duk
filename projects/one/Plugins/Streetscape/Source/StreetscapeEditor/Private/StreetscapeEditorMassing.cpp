@@ -19,7 +19,7 @@
 #include "ShaderCompiler.h"
 #include "RenderingThread.h"
 
-int32 UStreetscapeEditorLibrary::ImportMassing(const FString& Dir, const FString& MaterialPath, FString& OutReportJson)
+int32 UStreetscapeEditorLibrary::ImportMassing(const FString& Dir, const FString& MaterialPath, FString& OutReportJson, bool bPreloadWorld)
 {
 	const double T0 = FPlatformTime::Seconds();
 	TSharedRef<FJsonObject> Report = MakeShared<FJsonObject>();
@@ -59,7 +59,18 @@ int32 UStreetscapeEditorLibrary::ImportMassing(const FString& Dir, const FString
 
 	// World Partition: nothing is loaded after load_level in a commandlet, so an actor from a previous run is
 	// invisible here unless the region is pulled in first - and an invisible actor is not replaced, it is doubled.
-	UStreetscapeEditorLibrary::LoadRegion(FVector::ZeroVector, 2000000.f);
+	// At site scale that also streams in 15,422 streetscape actors and rebuilds every one of their meshes, so the
+	// caller may switch it off when it knows the level holds no massing actor. Recorded either way.
+	Report->SetBoolField(TEXT("preloaded"), bPreloadWorld);
+	if (bPreloadWorld)
+	{
+		UStreetscapeEditorLibrary::LoadRegion(FVector::ZeroVector, 2000000.f);
+	}
+	else
+	{
+		UE_LOG(LogStreetscapeEditor, Warning, TEXT("ImportMassing: bPreloadWorld=false - an existing massing actor "
+			"that is not streamed in is not replaced, it is doubled. Only correct on a level with no massing actor."));
+	}
 
 	// Re-use one actor per tile (keeps its external package, so the level does not grow) and delete every surplus.
 	TMap<FIntPoint, AStreetscapeMassingActor*> ByTile;

@@ -45,6 +45,21 @@ public:
 	/** The document's inline profiles: they win over the site actor's assets (SCHEMA.md 4.1). */
 	UPROPERTY() FStreetSiteProfiles DocProfiles;
 
+	/**
+	 * World-space UE bounds of the last build, SERIALISED, and what GetStreamingBounds returns.
+	 *
+	 * World Partition places a spatially-loaded actor in a grid cell from AActor::GetStreamingBounds, which is
+	 * "a valid origin and an EMPTY EXTENT if this actor doesn't have primitive components" (Actor.h:2538-2546).
+	 * Our meshes are deliberately not serialised (PreSave stashes and empties them, DESIGN.md 10), so on load the
+	 * DynamicMesh components have no geometry and every street whose only geometry is a mesh - i.e. every ROAD -
+	 * got a degenerate box at the actor transform, which is the identity, which is UE (0, 0, 0). Measured
+	 * 2026-09-09 on a level holding all 15,422 streets: a 1,400 m box loaded at Cliftonville streamed in 124
+	 * actors - 113 barriers, 10 rail, the authored test stretch from 5.8 km away - and NOT ONE ROAD, because the
+	 * barriers and rail have instanced-mesh components whose instance transforms ARE serialised and therefore
+	 * have real bounds. The whole isle looked right only when the whole isle was streamed.
+	 */
+	UPROPERTY() FBox StreamingBoundsUE = FBox(ForceInit);
+
 	/** Create the components the profile_ids ask for, store the definition, densify the overlay. Does not build. */
 	void ApplyDefinition(const FStreetSplineDef& Def, const FStreetSiteProfiles& Profiles, const FVector2D& OriginEN);
 
@@ -70,6 +85,12 @@ public:
 
 	virtual void PostSaveRoot(FObjectPostSaveRootContext ObjectSaveContext) override;
 	virtual void PostRegisterAllComponents() override;
+#if WITH_EDITOR
+	virtual void GetStreamingBounds(FBox& OutRuntimeBounds, FBox& OutEditorBounds) const override;
+#endif
+
+	/** Recompute StreamingBoundsUE from the components that exist right now; returns false if there is nothing to measure. */
+	bool UpdateStreamingBounds();
 
 private:
 	UStreetRendererBase* MakeRenderer(UClass* Class, FName Name);

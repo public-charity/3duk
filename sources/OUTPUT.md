@@ -35,16 +35,36 @@ clipless site no tile declares a NoData value and none of these keys exist.
 
 `terrain_manifest.json` — `range_m` is the true site-wide elevation range. A consumer
 encoding into a fixed window must compare against it; the pipeline will not clip for you.
-`fill` per tile is `none`, `nearest` (scipy present), `median (degraded)` — treat that as
-provisional — or `all-nodata -> <v>`, which means the source had **no valid cell anywhere in
-that tile** and the whole 513×513 plate is fabricated at `v`: the site's `water_level` where
-it has one, else 0 m. Those positions are listed as `tiles_fabricated` with `empty_fill_m`
-(keys present only when it happened) and the step prints a WARNING naming them. Nothing in
-such a tile was surveyed — a consumer that cares about real ground should treat them like
-`tiles_missing`. `tiles_missing` lists grid positions that have **no tile at all**
-(the source returned nothing there — beyond its coverage); do not assume they are sea.
+`fill` per tile is `none`, `mosaic nearest` (scipy present), `mosaic median (degraded)` —
+treat that as provisional — or `all-nodata -> mosaic nearest`, which means the source had
+**no valid cell anywhere in that tile**: every one of its 513×513 cells came from the
+nearest surveyed cell elsewhere in the site. Those positions are listed as
+`tiles_fabricated` (key present only when it happened) and the step prints a WARNING naming
+them. Nothing in such a tile was surveyed — a consumer that cares about real ground should
+treat them like `tiles_missing`. `empty_fill_m` is the value used if the **whole site** had
+no valid cell at all (the site's `water_level` where it has one, else 0 m).
+`tiles_missing` lists grid positions that have **no tile at all** (the source returned
+nothing there — beyond its coverage); do not assume they are sea.
 For a clipped site `range_m` and `slope_qa` describe kept cells only (the gradient itself
 is taken on the filled, unclipped array, so the edge cells carry their true slope).
+
+`shared_edges` — **the seam guarantee, measured on the files just written.** Neighbours
+share a row of samples, so `grid_res − 1` metres of tile plus one shared line; that line is
+one vertex in any consumer that assembles the tiles. `pairs`, `samples_compared`,
+`samples_disagreeing`, `max_disagreement_m`, `max_at`. It is **0**, and step 05 exits
+non-zero if it is not. It is 0 because the NoData fill is decided **once over the whole
+site mosaic** and the tiles are cut out of the result — filling per tile made each of two
+neighbours invent that line from its own cells and they disagreed (Thanet, 2026-09-09:
+28,725 of 370,797 shared samples, worst 5.34 m, carried into the engine as a 512 m false
+cliff). A consumer may rely on `hm[i][:, -1] == hm[i+1][:, 0]` to the bit.
+
+`fill` (site level, present only when the source had NoData) — how much of the product is
+invention and how far it had to reach for it: `method`, `nodata_cells`, the `mosaic` it was
+decided over and its `shared_cell_conflicts` (raw tiles that disagree where they overlap;
+must be 0), `reach_m` percentiles and `cells_by_reach_m`. Per tile, `fill_reach_max_m` and
+`fill_reach_p50_m`. **Reach is the honesty number**: a few metres is a gap in a survey; on
+Thanet the median is 320 m and the maximum 1,379 m, which is open sea being filled from the
+coast. The filled values carry no marker of their own — this is the record.
 
 `slope_qa` — `max_deg` and `pct_cells_over_45deg` site-wide, plus `slope_max_deg`,
 `slope_p99_deg` and `cells_over_45deg` per tile, all at native resolution. **This is how you

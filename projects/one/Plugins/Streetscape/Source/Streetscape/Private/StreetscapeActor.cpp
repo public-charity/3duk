@@ -1,5 +1,7 @@
 #include "StreetscapeActor.h"
 
+#include "Components/PrimitiveComponent.h"
+
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
 #include "Components/InstancedStaticMeshComponent.h"
 #include "Engine/StaticMesh.h"
@@ -211,8 +213,43 @@ bool AStreetscapeActor::RebuildAllChecked(FString* Error)
 	}
 	RebuildInstanceMeshComponents();
 	if (Overlay) Overlay->Redraw();
+	UpdateStreamingBounds();
 	return true;
 }
+
+bool AStreetscapeActor::UpdateStreamingBounds()
+{
+	FBox B(ForceInit);
+	for (UActorComponent* C : GetComponents())
+	{
+		if (const UPrimitiveComponent* P = Cast<UPrimitiveComponent>(C))
+		{
+			// CalcBounds, not the cached Bounds: this runs immediately after Commit() replaced the mesh, and the
+			// cached bounds are only refreshed when the render state is next updated.
+			const FBoxSphereBounds Bs = P->CalcBounds(P->GetComponentTransform());
+			if (Bs.SphereRadius <= 0.0) continue;
+			B += Bs.GetBox();
+		}
+	}
+	if (!B.IsValid) return false;
+	// A metre of slack in XY and ten in Z: the box only has to put the actor in the right World Partition cell,
+	// and being generous costs nothing while being short by a centimetre loses the street.
+	StreamingBoundsUE = B.ExpandBy(FVector(100.0, 100.0, 1000.0));
+	return true;
+}
+
+#if WITH_EDITOR
+void AStreetscapeActor::GetStreamingBounds(FBox& OutRuntimeBounds, FBox& OutEditorBounds) const
+{
+	if (StreamingBoundsUE.IsValid)
+	{
+		OutRuntimeBounds = StreamingBoundsUE;
+		OutEditorBounds = StreamingBoundsUE;
+		return;
+	}
+	Super::GetStreamingBounds(OutRuntimeBounds, OutEditorBounds);
+}
+#endif
 
 void AStreetscapeActor::RebuildInstanceMeshComponents()
 {
