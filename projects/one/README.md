@@ -12,14 +12,17 @@ a manifest or printed by a command that is quoted next to it.
 **Read this too.** `docs/BRIEF.md` is what was asked and what is binding (section 4); its section 9 is the
 state at the end of this build, including the open defects. `docs/STAGES.md` §0 is the only status record.
 `docs/DESIGN.md` says why each thing is the way it is; `docs/SCHEMA.md` + `schema/` is the interchange format;
-`docs/TERRAIN_ROADS.md` is the terrain/road-fusion diagnosis and the fix that came out of it.
+`docs/TERRAIN_ROADS.md` is the terrain/road-fusion diagnosis and the fix that came out of it;
+`docs/RESUME.md` is the session handover for whoever is driving the build on this machine.
 
 ---
 
 ## 1. What exists today
 
 Numbers are quoted from the file or command named beside them. Paths are relative to the repo root
-`C:/Users/Shadow/code/3duk`. `<DATA>` = `data/thanet/out/unreal`.
+`C:/Users/Shadow/code/3duk`. `<DATA>` = `data/thanet/out/unreal`. Anything under `projects/one/Saved/` or
+`data/` is a **run artefact and is not committed** — on this machine it is on disk from the runs quoted here;
+on a fresh clone you regenerate it with section 2.
 
 ### 1.1 Terrain — the survey
 
@@ -237,6 +240,10 @@ disappears and numpy's LAPACK dies **silently**.
 | 8 | **conform the landscape to the roads** | `$PY projects/one/Tools/conform_landscape.py --landscape <DATA>/landscape --streetscape <DATA>/streetscape --out <DATA>/landscape_conformed` | **811.6 s (13.5 min)** |
 | 9 | compile the C++ | `powershell.exe -NoProfile -ExecutionPolicy Bypass -File projects/one/Tools/build.ps1` | minutes (incremental: seconds) |
 | 10 | **build the whole level, one command** | `powershell.exe -NoProfile -ExecutionPolicy Bypass -File projects/one/Tools/ue/00_build_level.ps1 -Recreate` | **the long one — allow an hour** |
+
+End to end that is a couple of hours of wall time and about **7.3 GB** of disk (raw LIDAR + OSM 3.9 GB,
+pipeline output 1.2 GB, generated `Content/` 2.2 GB). Steps 1–7 are minutes each; the two that are not are
+**step 8 (13.5 min)** and **step 10 (allow an hour)**, and step 10 is the one to start before lunch.
 
 Step 10 is six commandlets in the only order that works, and it ends by re-opening the saved map in a fresh
 process and counting what is actually in it against the adapter's own manifests. Measured pieces:
