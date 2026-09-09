@@ -1,0 +1,2711 @@
+{
+    "schema_version":  1,
+    "what":  "One snapshot of projects/one/Tools/ue/render_set.json rendered at one commit. Compare two of these, never two loose directories of PNGs: identical spec sha256 plus identical camera blocks is the only proof that a visual difference is the MODEL changing rather than the camera. Per-image sha256 is a one-way filter - equal means the frame did not change, different does NOT mean it did, because the renderer is only nearly deterministic (measured 2026-09-09: an eye-level frame was byte-identical across two runs, an aerial differed in 9 of 1,440,000 pixels). See renders/README.md.",
+    "commit":  "b1cd3e5",
+    "commit_full":  "b1cd3e52be8ae5244af38babb03812fc9f7e615c",
+    "commit_subject":  "Conform the ground to the roads, close the seams, harden the gates, and put the whole isle in the level",
+    "commit_date_iso":  "2026-09-09T17:34:44+01:00",
+    "branch":  "thanet-explorer",
+    "worktree_dirty":  true,
+    "worktree_changes":  [
+                             " M .gitignore",
+                             " M README.md",
+                             " M projects/one/Tools/ue/05_screenshot.py",
+                             "?? geo/",
+                             "?? images/",
+                             "?? projects/one/Tools/render_set.ps1",
+                             "?? projects/one/Tools/ue/07_render_set.py",
+                             "?? projects/one/Tools/ue/render_set.json",
+                             "?? renders/",
+                             "?? sources/config/thanet_towns.json",
+                             "?? sources/fetch/geo.py",
+                             "?? sources/fetch/photos.py"
+                         ],
+    "rendered_utc":  "2026-09-09T19:30:57Z",
+    "render_seconds":  1149,
+    "host":  "SHADOW-TE289NFG",
+    "engine_version":  "5.8.2-56702186+++UE5+Release-5.8",
+    "map":  "/Game/Thanet/Maps/Thanet",
+    "renderer":  "projects/one/Tools/ue/07_render_set.py",
+    "driver":  "projects/one/Tools/render_set.ps1",
+    "spec":  {
+                 "path":  "projects/one/Tools/ue/render_set.json",
+                 "sha256":  "d8a8bc6702e77e3c62bc9633c8655acb87d582501e3c9a055223fc5372f8c676",
+                 "schema_version":  1,
+                 "locations":  45,
+                 "towns":  [
+                               "margate",
+                               "cliftonville",
+                               "broadstairs",
+                               "ramsgate",
+                               "westgate-on-sea",
+                               "birchington",
+                               "westwood",
+                               "manston",
+                               "acol"
+                           ]
+             },
+    "landscape_dir":  "C:/Users/Shadow/code/3duk/data/thanet/out/unreal/landscape_conformed",
+    "capture":  {
+                    "width":  1600,
+                    "height":  900,
+                    "aspect":  "16:9",
+                    "source":  "final_ldr",
+                    "exposure_ev":  0.0,
+                    "landscape_lod0_screen_size":  8.0,
+                    "landscape_lod_note":  "The landscape\u0027s LOD chain drops vertices, so a coarse-LOD ground draws decimetres away from the data and cuts through carriageways that the numbers say it is below (Tools/ue/05_screenshot.py pin_landscape_lod). Pinning LOD0 out to a large screen size makes the capture show the surface the data describes; `landscape.OverrideLOD` does not reach a SceneCapture\u0027s view and must not be used instead.",
+                    "guards":  {
+                                   "min_distinct_rgb":  24,
+                                   "min_mean_luminance":  4.0,
+                                   "max_mean_luminance":  250.0
+                               },
+                    "guards_note":  "A capture below min_distinct_rgb or min_mean_luminance is a black or empty frame and FAILS the run; above max_mean_luminance it is blown out and FAILS. A failed frame is never reported as a snapshot."
+                },
+    "origin":  {
+                   "E":  627680,
+                   "N":  163080
+               },
+    "batches":  [
+                    {
+                        "name":  "margate",
+                        "only":  "margate",
+                        "ue_log":  "Saved/Logs/render_set_margate.log",
+                        "exit_code":  0,
+                        "engine_exit_code_raw":  -1073741819,
+                        "exit_overridden_by_runner":  true,
+                        "thanet_ok_in_log":  true,
+                        "crash_markers":  [
+
+                                          ]
+                    },
+                    {
+                        "name":  "cliftonville",
+                        "only":  "cliftonville",
+                        "ue_log":  "Saved/Logs/render_set_cliftonville.log",
+                        "exit_code":  0,
+                        "engine_exit_code_raw":  -1073741819,
+                        "exit_overridden_by_runner":  true,
+                        "thanet_ok_in_log":  true,
+                        "crash_markers":  [
+
+                                          ]
+                    },
+                    {
+                        "name":  "broadstairs",
+                        "only":  "broadstairs",
+                        "ue_log":  "Saved/Logs/render_set_broadstairs.log",
+                        "exit_code":  0,
+                        "engine_exit_code_raw":  -1073741819,
+                        "exit_overridden_by_runner":  true,
+                        "thanet_ok_in_log":  true,
+                        "crash_markers":  [
+
+                                          ]
+                    },
+                    {
+                        "name":  "ramsgate",
+                        "only":  "ramsgate",
+                        "ue_log":  "Saved/Logs/render_set_ramsgate.log",
+                        "exit_code":  0,
+                        "engine_exit_code_raw":  -1073741819,
+                        "exit_overridden_by_runner":  true,
+                        "thanet_ok_in_log":  true,
+                        "crash_markers":  [
+
+                                          ]
+                    },
+                    {
+                        "name":  "westgate-on-sea",
+                        "only":  "westgate-on-sea",
+                        "ue_log":  "Saved/Logs/render_set_westgate-on-sea.log",
+                        "exit_code":  0,
+                        "engine_exit_code_raw":  -1073741819,
+                        "exit_overridden_by_runner":  true,
+                        "thanet_ok_in_log":  true,
+                        "crash_markers":  [
+
+                                          ]
+                    },
+                    {
+                        "name":  "birchington",
+                        "only":  "birchington",
+                        "ue_log":  "Saved/Logs/render_set_birchington.log",
+                        "exit_code":  0,
+                        "engine_exit_code_raw":  -1073741819,
+                        "exit_overridden_by_runner":  true,
+                        "thanet_ok_in_log":  true,
+                        "crash_markers":  [
+
+                                          ]
+                    },
+                    {
+                        "name":  "westwood",
+                        "only":  "westwood",
+                        "ue_log":  "Saved/Logs/render_set_westwood.log",
+                        "exit_code":  0,
+                        "engine_exit_code_raw":  -1073741819,
+                        "exit_overridden_by_runner":  true,
+                        "thanet_ok_in_log":  true,
+                        "crash_markers":  [
+
+                                          ]
+                    },
+                    {
+                        "name":  "manston",
+                        "only":  "manston",
+                        "ue_log":  "Saved/Logs/render_set_manston.log",
+                        "exit_code":  0,
+                        "engine_exit_code_raw":  -1073741819,
+                        "exit_overridden_by_runner":  true,
+                        "thanet_ok_in_log":  true,
+                        "crash_markers":  [
+
+                                          ]
+                    },
+                    {
+                        "name":  "acol",
+                        "only":  "acol",
+                        "ue_log":  "Saved/Logs/render_set_acol.log",
+                        "exit_code":  0,
+                        "engine_exit_code_raw":  -1073741819,
+                        "exit_overridden_by_runner":  true,
+                        "thanet_ok_in_log":  true,
+                        "crash_markers":  [
+
+                                          ]
+                    }
+                ],
+    "batches_note":  "engine_exit_code_raw is the code UnrealEditor-Cmd actually returned; run_ue_python.ps1 rewrites it to 0 when the Python script succeeded and the only counted engine error is this machine\u0027s VC++ redistributable advisory. A non-zero raw code on a batch whose thanet_ok_in_log is true, whose crash_markers are empty and all of whose images passed the checks below is a teardown crash after the work finished. It is recorded here so nobody has to rediscover it.",
+    "only":  "",
+    "counts":  {
+                   "expected_in_spec":  45,
+                   "requested":  45,
+                   "rendered":  45,
+                   "missing":  [
+
+                               ],
+                   "partial":  false
+               },
+    "images":  [
+                   {
+                       "id":  "margate/margate_bay_from_the_north_west",
+                       "town":  "margate",
+                       "slug":  "margate_bay_from_the_north_west",
+                       "kind":  "aerial",
+                       "title":  "Margate bay and the town from the north-west",
+                       "png":  "margate/margate_bay_from_the_north_west.png",
+                       "bytes":  1857773,
+                       "sha256":  "459c744de6a4f57d62a1d9d78bcf590d368f30552e85395847bc8b1d53796608",
+                       "camera":  {
+                                      "camera_en":  [
+                                                        634644.0,
+                                                        171285.0
+                                                    ],
+                                      "subject_en":  [
+                                                         635174.0,
+                                                         170755.0
+                                                     ],
+                                      "camera_height_m":  300.0,
+                                      "local_m":  [
+                                                      6964.0,
+                                                      8205.0
+                                                  ],
+                                      "ground_z_m":  -2.273,
+                                      "ground_source":  "landscape",
+                                      "eye_z_m":  297.727,
+                                      "eye_ue_cm":  [
+                                                        696400.0,
+                                                        -820500.0,
+                                                        29772.7
+                                                    ],
+                                      "bearing_deg":  135.0,
+                                      "yaw_deg":  45.0,
+                                      "pitch_deg":  -21.23,
+                                      "roll_deg":  0.0,
+                                      "fov_deg":  80.0,
+                                      "subject_distance_m":  749.53
+                                  },
+                       "ground":  {
+                                      "landscape_m":  -2.273,
+                                      "heightfield_conformed_m":  -2.273,
+                                      "trace_down_m":  -2.273,
+                                      "landscape_minus_heightfield_m":  0.0
+                                  },
+                       "load":  {
+                                    "centre_en":  [
+                                                      634909.0,
+                                                      171020.0
+                                                  ],
+                                    "radius_m":  1500.0
+                                },
+                       "guards":  {
+                                      "distinct_rgb":  90385,
+                                      "mean_luminance":  113.4
+                                  }
+                   },
+                   {
+                       "id":  "margate/marine_terrace_west_past_dreamland",
+                       "town":  "margate",
+                       "slug":  "marine_terrace_west_past_dreamland",
+                       "kind":  "street",
+                       "title":  "Marine Terrace looking west past Dreamland to Arlington House",
+                       "png":  "margate/marine_terrace_west_past_dreamland.png",
+                       "bytes":  1526279,
+                       "sha256":  "87d73aac017db8a6e5906dbfd118297be11d946125dbc8faba7ad039256e213d",
+                       "camera":  {
+                                      "camera_en":  [
+                                                        635098.89,
+                                                        170722.19
+                                                    ],
+                                      "subject_en":  [
+                                                         634877.98,
+                                                         170706.5
+                                                     ],
+                                      "camera_height_m":  1.7,
+                                      "local_m":  [
+                                                      7418.89,
+                                                      7642.19
+                                                  ],
+                                      "ground_z_m":  5.858,
+                                      "ground_source":  "landscape",
+                                      "eye_z_m":  7.558,
+                                      "eye_ue_cm":  [
+                                                        741889.0,
+                                                        -764219.0,
+                                                        755.8
+                                                    ],
+                                      "bearing_deg":  265.937424,
+                                      "yaw_deg":  175.937424,
+                                      "pitch_deg":  -0.32,
+                                      "roll_deg":  0.0,
+                                      "fov_deg":  75.0,
+                                      "subject_distance_m":  221.47
+                                  },
+                       "ground":  {
+                                      "landscape_m":  5.858,
+                                      "heightfield_conformed_m":  5.858,
+                                      "trace_down_m":  5.898,
+                                      "landscape_minus_heightfield_m":  0.0
+                                  },
+                       "load":  {
+                                    "centre_en":  [
+                                                      634988.44,
+                                                      170714.35
+                                                  ],
+                                    "radius_m":  600.0
+                                },
+                       "guards":  {
+                                      "distinct_rgb":  39455,
+                                      "mean_luminance":  108.28
+                                  }
+                   },
+                   {
+                       "id":  "margate/canterbury_road_east_at_garlinge",
+                       "town":  "margate",
+                       "slug":  "canterbury_road_east_at_garlinge",
+                       "kind":  "street",
+                       "title":  "Canterbury Road at Garlinge, looking north-east into Margate",
+                       "png":  "margate/canterbury_road_east_at_garlinge.png",
+                       "bytes":  1486153,
+                       "sha256":  "14273a566fb29e4b0563ffd1a105caf10d149d622ca0386a4e8bcb7823bffc00",
+                       "camera":  {
+                                      "camera_en":  [
+                                                        633839.77,
+                                                        170009.45
+                                                    ],
+                                      "subject_en":  [
+                                                         633982.15,
+                                                         170087.53
+                                                     ],
+                                      "camera_height_m":  1.7,
+                                      "local_m":  [
+                                                      6159.77,
+                                                      6929.45
+                                                  ],
+                                      "ground_z_m":  18.18,
+                                      "ground_source":  "landscape",
+                                      "eye_z_m":  19.88,
+                                      "eye_ue_cm":  [
+                                                        615977.0,
+                                                        -692945.0,
+                                                        1988.0
+                                                    ],
+                                      "bearing_deg":  61.260005,
+                                      "yaw_deg":  -28.739995,
+                                      "pitch_deg":  -1.12,
+                                      "roll_deg":  0.0,
+                                      "fov_deg":  75.0,
+                                      "subject_distance_m":  162.38
+                                  },
+                       "ground":  {
+                                      "landscape_m":  18.18,
+                                      "heightfield_conformed_m":  18.18,
+                                      "trace_down_m":  18.235,
+                                      "landscape_minus_heightfield_m":  0.0
+                                  },
+                       "load":  {
+                                    "centre_en":  [
+                                                      633910.96,
+                                                      170048.49
+                                                  ],
+                                    "radius_m":  600.0
+                                },
+                       "guards":  {
+                                      "distinct_rgb":  41488,
+                                      "mean_luminance":  115.12
+                                  }
+                   },
+                   {
+                       "id":  "margate/turner_contemporary_from_the_sands",
+                       "town":  "margate",
+                       "slug":  "turner_contemporary_from_the_sands",
+                       "kind":  "seafront",
+                       "title":  "The Turner Contemporary and the harbour arm from the Main Sands",
+                       "png":  "margate/turner_contemporary_from_the_sands.png",
+                       "bytes":  1492642,
+                       "sha256":  "de9edc7dd6aa6ebddb1d286119a7512bd48cf6864af008f14d4f27a155b78025",
+                       "camera":  {
+                                      "camera_en":  [
+                                                        635270.0,
+                                                        171120.0
+                                                    ],
+                                      "subject_en":  [
+                                                         635390.3,
+                                                         171231.5
+                                                     ],
+                                      "camera_height_m":  1.7,
+                                      "local_m":  [
+                                                      7590.0,
+                                                      8040.0
+                                                  ],
+                                      "ground_z_m":  0.867,
+                                      "ground_source":  "landscape",
+                                      "eye_z_m":  2.567,
+                                      "eye_ue_cm":  [
+                                                        759000.0,
+                                                        -804000.0,
+                                                        256.7
+                                                    ],
+                                      "bearing_deg":  47.174119,
+                                      "yaw_deg":  -42.825881,
+                                      "pitch_deg":  2.89,
+                                      "roll_deg":  0.0,
+                                      "fov_deg":  75.0,
+                                      "subject_distance_m":  164.03
+                                  },
+                       "ground":  {
+                                      "landscape_m":  0.867,
+                                      "heightfield_conformed_m":  0.867,
+                                      "trace_down_m":  0.867,
+                                      "landscape_minus_heightfield_m":  0.0
+                                  },
+                       "load":  {
+                                    "centre_en":  [
+                                                      635330.15,
+                                                      171175.75
+                                                  ],
+                                    "radius_m":  600.0
+                                },
+                       "guards":  {
+                                      "distinct_rgb":  38567,
+                                      "mean_luminance":  63.03
+                                  }
+                   },
+                   {
+                       "id":  "margate/millmead_road_east_up_the_hill",
+                       "town":  "margate",
+                       "slug":  "millmead_road_east_up_the_hill",
+                       "kind":  "street",
+                       "title":  "Millmead Road climbing east through the Millmead estate",
+                       "png":  "margate/millmead_road_east_up_the_hill.png",
+                       "bytes":  1362351,
+                       "sha256":  "e155a9019ded7c532032be11a1b2d88ca2501909ada605a74c63b5d9d9cdf1a8",
+                       "camera":  {
+                                      "camera_en":  [
+                                                        637001.02,
+                                                        170099.19
+                                                    ],
+                                      "subject_en":  [
+                                                         637276.75,
+                                                         170014.85
+                                                     ],
+                                      "camera_height_m":  1.7,
+                                      "local_m":  [
+                                                      9321.02,
+                                                      7019.19
+                                                  ],
+                                      "ground_z_m":  35.905,
+                                      "ground_source":  "landscape",
+                                      "eye_z_m":  37.605,
+                                      "eye_ue_cm":  [
+                                                        932102.0,
+                                                        -701919.0,
+                                                        3760.5
+                                                    ],
+                                      "bearing_deg":  107.007768,
+                                      "yaw_deg":  17.007768,
+                                      "pitch_deg":  0.78,
+                                      "roll_deg":  0.0,
+                                      "fov_deg":  75.0,
+                                      "subject_distance_m":  288.34
+                                  },
+                       "ground":  {
+                                      "landscape_m":  35.905,
+                                      "heightfield_conformed_m":  35.905,
+                                      "trace_down_m":  35.935,
+                                      "landscape_minus_heightfield_m":  0.0
+                                  },
+                       "load":  {
+                                    "centre_en":  [
+                                                      637138.89,
+                                                      170057.02
+                                                  ],
+                                    "radius_m":  600.0
+                                },
+                       "guards":  {
+                                      "distinct_rgb":  36416,
+                                      "mean_luminance":  97.11
+                                  }
+                   },
+                   {
+                       "id":  "cliftonville/cliftonville_from_over_walpole_bay",
+                       "town":  "cliftonville",
+                       "slug":  "cliftonville_from_over_walpole_bay",
+                       "kind":  "aerial",
+                       "title":  "Cliftonville from over Walpole Bay",
+                       "png":  "cliftonville/cliftonville_from_over_walpole_bay.png",
+                       "bytes":  2085243,
+                       "sha256":  "2a48a372a0f8afd1f2b42a6c1255243cc00fbb70a630e83e4be3590aedd3d038",
+                       "camera":  {
+                                      "camera_en":  [
+                                                        637150.0,
+                                                        171650.0
+                                                    ],
+                                      "subject_en":  [
+                                                         636600.0,
+                                                         171000.0
+                                                     ],
+                                      "camera_height_m":  320.0,
+                                      "local_m":  [
+                                                      9470.0,
+                                                      8570.0
+                                                  ],
+                                      "ground_z_m":  -0.031,
+                                      "ground_source":  "landscape",
+                                      "eye_z_m":  319.969,
+                                      "eye_ue_cm":  [
+                                                        947000.0,
+                                                        -857000.0,
+                                                        31996.9
+                                                    ],
+                                      "bearing_deg":  220.236358,
+                                      "yaw_deg":  130.236358,
+                                      "pitch_deg":  -19.07,
+                                      "roll_deg":  0.0,
+                                      "fov_deg":  80.0,
+                                      "subject_distance_m":  851.47
+                                  },
+                       "ground":  {
+                                      "landscape_m":  -0.031,
+                                      "heightfield_conformed_m":  -0.031,
+                                      "trace_down_m":  -0.031,
+                                      "landscape_minus_heightfield_m":  0.0
+                                  },
+                       "load":  {
+                                    "centre_en":  [
+                                                      636875.0,
+                                                      171325.0
+                                                  ],
+                                    "radius_m":  1500.0
+                                },
+                       "guards":  {
+                                      "distinct_rgb":  95881,
+                                      "mean_luminance":  107.6
+                                  }
+                   },
+                   {
+                       "id":  "cliftonville/northdown_road_east_through_the_shops",
+                       "town":  "cliftonville",
+                       "slug":  "northdown_road_east_through_the_shops",
+                       "kind":  "street",
+                       "title":  "Northdown Road looking east through the shopping street",
+                       "png":  "cliftonville/northdown_road_east_through_the_shops.png",
+                       "bytes":  1108381,
+                       "sha256":  "3c465caf0270591b7e1fcb0aa99997de6ed5160bfe7052f44a43c204fb033042",
+                       "camera":  {
+                                      "camera_en":  [
+                                                        636415.99,
+                                                        170907.63
+                                                    ],
+                                      "subject_en":  [
+                                                         636613.42,
+                                                         170848.71
+                                                     ],
+                                      "camera_height_m":  1.7,
+                                      "local_m":  [
+                                                      8735.99,
+                                                      7827.63
+                                                  ],
+                                      "ground_z_m":  28.75,
+                                      "ground_source":  "landscape",
+                                      "eye_z_m":  30.45,
+                                      "eye_ue_cm":  [
+                                                        873599.0,
+                                                        -782763.0,
+                                                        3045.0
+                                                    ],
+                                      "bearing_deg":  106.616939,
+                                      "yaw_deg":  16.616939,
+                                      "pitch_deg":  -0.22,
+                                      "roll_deg":  0.0,
+                                      "fov_deg":  75.0,
+                                      "subject_distance_m":  206.03
+                                  },
+                       "ground":  {
+                                      "landscape_m":  28.75,
+                                      "heightfield_conformed_m":  28.75,
+                                      "trace_down_m":  28.787,
+                                      "landscape_minus_heightfield_m":  0.0
+                                  },
+                       "load":  {
+                                    "centre_en":  [
+                                                      636514.71,
+                                                      170878.17
+                                                  ],
+                                    "radius_m":  600.0
+                                },
+                       "guards":  {
+                                      "distinct_rgb":  20706,
+                                      "mean_luminance":  72.4
+                                  }
+                   },
+                   {
+                       "id":  "cliftonville/eastern_esplanade_seafront_terrace",
+                       "town":  "cliftonville",
+                       "slug":  "eastern_esplanade_seafront_terrace",
+                       "kind":  "street",
+                       "title":  "Eastern Esplanade along the seafront terrace",
+                       "png":  "cliftonville/eastern_esplanade_seafront_terrace.png",
+                       "bytes":  1412701,
+                       "sha256":  "c92f1b6b81d8cfaf18301d94eed8c825c66e48929830092f3d48e51b655c1f5a",
+                       "camera":  {
+                                      "camera_en":  [
+                                                        636394.64,
+                                                        171248.38
+                                                    ],
+                                      "subject_en":  [
+                                                         636639.1,
+                                                         171243.32
+                                                     ],
+                                      "camera_height_m":  1.7,
+                                      "local_m":  [
+                                                      8714.64,
+                                                      8168.38
+                                                  ],
+                                      "ground_z_m":  20.57,
+                                      "ground_source":  "landscape",
+                                      "eye_z_m":  22.27,
+                                      "eye_ue_cm":  [
+                                                        871464.0,
+                                                        -816838.0,
+                                                        2227.0
+                                                    ],
+                                      "bearing_deg":  91.185778,
+                                      "yaw_deg":  1.185778,
+                                      "pitch_deg":  -0.67,
+                                      "roll_deg":  0.0,
+                                      "fov_deg":  75.0,
+                                      "subject_distance_m":  244.51
+                                  },
+                       "ground":  {
+                                      "landscape_m":  20.57,
+                                      "heightfield_conformed_m":  20.57,
+                                      "trace_down_m":  20.606,
+                                      "landscape_minus_heightfield_m":  0.0
+                                  },
+                       "load":  {
+                                    "centre_en":  [
+                                                      636516.87,
+                                                      171245.85
+                                                  ],
+                                    "radius_m":  600.0
+                                },
+                       "guards":  {
+                                      "distinct_rgb":  44541,
+                                      "mean_luminance":  85.08
+                                  }
+                   },
+                   {
+                       "id":  "cliftonville/walpole_bay_chalk_cliff_from_the_sands",
+                       "town":  "cliftonville",
+                       "slug":  "walpole_bay_chalk_cliff_from_the_sands",
+                       "kind":  "seafront",
+                       "title":  "The Walpole Bay chalk cliff from the sands",
+                       "png":  "cliftonville/walpole_bay_chalk_cliff_from_the_sands.png",
+                       "bytes":  1444606,
+                       "sha256":  "7c3fd6e0a5325c35ca15524b296ae38c28349aadc5fcf7607e190d1f43dac738",
+                       "camera":  {
+                                      "camera_en":  [
+                                                        636900.0,
+                                                        171480.0
+                                                    ],
+                                      "subject_en":  [
+                                                         636914.1,
+                                                         171393.1
+                                                     ],
+                                      "camera_height_m":  1.7,
+                                      "local_m":  [
+                                                      9220.0,
+                                                      8400.0
+                                                  ],
+                                      "ground_z_m":  0.781,
+                                      "ground_source":  "landscape",
+                                      "eye_z_m":  2.481,
+                                      "eye_ue_cm":  [
+                                                        922000.0,
+                                                        -840000.0,
+                                                        248.1
+                                                    ],
+                                      "bearing_deg":  170.783765,
+                                      "yaw_deg":  80.783765,
+                                      "pitch_deg":  8.4,
+                                      "roll_deg":  0.0,
+                                      "fov_deg":  75.0,
+                                      "subject_distance_m":  88.04
+                                  },
+                       "ground":  {
+                                      "landscape_m":  0.781,
+                                      "heightfield_conformed_m":  0.781,
+                                      "trace_down_m":  0.781,
+                                      "landscape_minus_heightfield_m":  0.0
+                                  },
+                       "load":  {
+                                    "centre_en":  [
+                                                      636907.05,
+                                                      171436.55
+                                                  ],
+                                    "radius_m":  600.0
+                                },
+                       "guards":  {
+                                      "distinct_rgb":  44275,
+                                      "mean_luminance":  126.49
+                                  }
+                   },
+                   {
+                       "id":  "cliftonville/princess_margaret_avenue_at_northdown",
+                       "town":  "cliftonville",
+                       "slug":  "princess_margaret_avenue_at_northdown",
+                       "kind":  "street",
+                       "title":  "Princess Margaret Avenue running downhill at Northdown",
+                       "png":  "cliftonville/princess_margaret_avenue_at_northdown.png",
+                       "bytes":  1472018,
+                       "sha256":  "45c0e409dc271ad93684a10053065731558ffa6928585a73ca069612ee954731",
+                       "camera":  {
+                                      "camera_en":  [
+                                                        637978.7,
+                                                        170806.57
+                                                    ],
+                                      "subject_en":  [
+                                                         638040.91,
+                                                         171010.12
+                                                     ],
+                                      "camera_height_m":  1.7,
+                                      "local_m":  [
+                                                      10298.7,
+                                                      7726.57
+                                                  ],
+                                      "ground_z_m":  25.521,
+                                      "ground_source":  "landscape",
+                                      "eye_z_m":  27.221,
+                                      "eye_ue_cm":  [
+                                                        1029870.0,
+                                                        -772657.0,
+                                                        2722.1
+                                                    ],
+                                      "bearing_deg":  16.99447,
+                                      "yaw_deg":  -73.00553,
+                                      "pitch_deg":  -1.41,
+                                      "roll_deg":  0.0,
+                                      "fov_deg":  75.0,
+                                      "subject_distance_m":  212.84
+                                  },
+                       "ground":  {
+                                      "landscape_m":  25.521,
+                                      "heightfield_conformed_m":  25.521,
+                                      "trace_down_m":  25.552,
+                                      "landscape_minus_heightfield_m":  0.0
+                                  },
+                       "load":  {
+                                    "centre_en":  [
+                                                      638009.8,
+                                                      170908.35
+                                                  ],
+                                    "radius_m":  600.0
+                                },
+                       "guards":  {
+                                      "distinct_rgb":  41432,
+                                      "mean_luminance":  95.06
+                                  }
+                   },
+                   {
+                       "id":  "broadstairs/the_town_and_viking_bay_from_the_sea",
+                       "town":  "broadstairs",
+                       "slug":  "the_town_and_viking_bay_from_the_sea",
+                       "kind":  "aerial",
+                       "title":  "Broadstairs and Viking Bay from over the sea",
+                       "png":  "broadstairs/the_town_and_viking_bay_from_the_sea.png",
+                       "bytes":  2131848,
+                       "sha256":  "deab70c051c6143e166e4f47e9954ad134fa40b3c9fdb255781b46fbe5a87aa5",
+                       "camera":  {
+                                      "camera_en":  [
+                                                        640650.0,
+                                                        167300.0
+                                                    ],
+                                      "subject_en":  [
+                                                         639700.0,
+                                                         167850.0
+                                                     ],
+                                      "camera_height_m":  520.0,
+                                      "local_m":  [
+                                                      12970.0,
+                                                      4220.0
+                                                  ],
+                                      "ground_z_m":  -1.43,
+                                      "ground_source":  "landscape",
+                                      "eye_z_m":  518.57,
+                                      "eye_ue_cm":  [
+                                                        1297000.0,
+                                                        -422000.0,
+                                                        51857.0
+                                                    ],
+                                      "bearing_deg":  300.068583,
+                                      "yaw_deg":  210.068583,
+                                      "pitch_deg":  -24.0,
+                                      "roll_deg":  0.0,
+                                      "fov_deg":  75.0,
+                                      "subject_distance_m":  1097.72
+                                  },
+                       "ground":  {
+                                      "landscape_m":  -1.43,
+                                      "heightfield_conformed_m":  -1.43,
+                                      "trace_down_m":  -1.43,
+                                      "landscape_minus_heightfield_m":  0.0
+                                  },
+                       "load":  {
+                                    "centre_en":  [
+                                                      640175.0,
+                                                      167575.0
+                                                  ],
+                                    "radius_m":  1500.0
+                                },
+                       "guards":  {
+                                      "distinct_rgb":  77338,
+                                      "mean_luminance":  120.52
+                                  }
+                   },
+                   {
+                       "id":  "broadstairs/broadstairs_high_street",
+                       "town":  "broadstairs",
+                       "slug":  "broadstairs_high_street",
+                       "kind":  "street",
+                       "title":  "Broadstairs High Street looking down to the sea",
+                       "png":  "broadstairs/broadstairs_high_street.png",
+                       "bytes":  1167711,
+                       "sha256":  "45bf8f60e8ac787ca0daa85f9244ef998f55c333d93e5967d3b62d5946f7172a",
+                       "camera":  {
+                                      "camera_en":  [
+                                                        639264.1,
+                                                        167913.21
+                                                    ],
+                                      "subject_en":  [
+                                                         639457.11,
+                                                         167861.3
+                                                     ],
+                                      "camera_height_m":  1.7,
+                                      "local_m":  [
+                                                      11584.1,
+                                                      4833.21
+                                                  ],
+                                      "ground_z_m":  40.24,
+                                      "ground_source":  "landscape",
+                                      "eye_z_m":  41.94,
+                                      "eye_ue_cm":  [
+                                                        1158410.0,
+                                                        -483321.0,
+                                                        4194.0
+                                                    ],
+                                      "bearing_deg":  105.053477,
+                                      "yaw_deg":  15.053477,
+                                      "pitch_deg":  -0.8,
+                                      "roll_deg":  0.0,
+                                      "fov_deg":  75.0,
+                                      "subject_distance_m":  199.87
+                                  },
+                       "ground":  {
+                                      "landscape_m":  40.24,
+                                      "heightfield_conformed_m":  40.241,
+                                      "trace_down_m":  40.279,
+                                      "landscape_minus_heightfield_m":  -0.001
+                                  },
+                       "load":  {
+                                    "centre_en":  [
+                                                      639360.6,
+                                                      167887.26
+                                                  ],
+                                    "radius_m":  600.0
+                                },
+                       "guards":  {
+                                      "distinct_rgb":  23963,
+                                      "mean_luminance":  84.32
+                                  }
+                   },
+                   {
+                       "id":  "broadstairs/st_peters_high_street",
+                       "town":  "broadstairs",
+                       "slug":  "st_peters_high_street",
+                       "kind":  "street",
+                       "title":  "St Peter\u0027s High Street looking east",
+                       "png":  "broadstairs/st_peters_high_street.png",
+                       "bytes":  1474297,
+                       "sha256":  "5af58b8e1bb33988fd030fe6365310e326f731809cef15174930ee62d633a127",
+                       "camera":  {
+                                      "camera_en":  [
+                                                        638131.94,
+                                                        168423.55
+                                                    ],
+                                      "subject_en":  [
+                                                         638369.46,
+                                                         168314.13
+                                                     ],
+                                      "camera_height_m":  1.7,
+                                      "local_m":  [
+                                                      10451.94,
+                                                      5343.55
+                                                  ],
+                                      "ground_z_m":  43.962,
+                                      "ground_source":  "landscape",
+                                      "eye_z_m":  45.662,
+                                      "eye_ue_cm":  [
+                                                        1045194.0,
+                                                        -534355.0,
+                                                        4566.2
+                                                    ],
+                                      "bearing_deg":  114.734437,
+                                      "yaw_deg":  24.734437,
+                                      "pitch_deg":  -0.2,
+                                      "roll_deg":  0.0,
+                                      "fov_deg":  75.0,
+                                      "subject_distance_m":  261.51
+                                  },
+                       "ground":  {
+                                      "landscape_m":  43.962,
+                                      "heightfield_conformed_m":  43.962,
+                                      "trace_down_m":  44.009,
+                                      "landscape_minus_heightfield_m":  0.0
+                                  },
+                       "load":  {
+                                    "centre_en":  [
+                                                      638250.7,
+                                                      168368.84
+                                                  ],
+                                    "radius_m":  600.0
+                                },
+                       "guards":  {
+                                      "distinct_rgb":  43011,
+                                      "mean_luminance":  121.51
+                                  }
+                   },
+                   {
+                       "id":  "broadstairs/viking_bay_sands_and_the_cliff_town",
+                       "town":  "broadstairs",
+                       "slug":  "viking_bay_sands_and_the_cliff_town",
+                       "kind":  "seafront",
+                       "title":  "Viking Bay sands looking up at the cliff town",
+                       "png":  "broadstairs/viking_bay_sands_and_the_cliff_town.png",
+                       "bytes":  1430053,
+                       "sha256":  "cf115ab26f6316b2d1b360f02203f62f5249e2c94161b53d3d3201c89216326d",
+                       "camera":  {
+                                      "camera_en":  [
+                                                        639900.0,
+                                                        167800.0
+                                                    ],
+                                      "subject_en":  [
+                                                         639786.24,
+                                                         167871.18
+                                                     ],
+                                      "camera_height_m":  1.7,
+                                      "local_m":  [
+                                                      12220.0,
+                                                      4720.0
+                                                  ],
+                                      "ground_z_m":  0.617,
+                                      "ground_source":  "landscape",
+                                      "eye_z_m":  2.317,
+                                      "eye_ue_cm":  [
+                                                        1222000.0,
+                                                        -472000.0,
+                                                        231.7
+                                                    ],
+                                      "bearing_deg":  302.034348,
+                                      "yaw_deg":  212.034348,
+                                      "pitch_deg":  8.6,
+                                      "roll_deg":  0.0,
+                                      "fov_deg":  70.0,
+                                      "subject_distance_m":  134.19
+                                  },
+                       "ground":  {
+                                      "landscape_m":  0.617,
+                                      "heightfield_conformed_m":  0.617,
+                                      "trace_down_m":  0.617,
+                                      "landscape_minus_heightfield_m":  0.0
+                                  },
+                       "load":  {
+                                    "centre_en":  [
+                                                      639843.12,
+                                                      167835.59
+                                                  ],
+                                    "radius_m":  600.0
+                                },
+                       "guards":  {
+                                      "distinct_rgb":  37164,
+                                      "mean_luminance":  86.78
+                                  }
+                   },
+                   {
+                       "id":  "broadstairs/north_foreland_lighthouse",
+                       "town":  "broadstairs",
+                       "slug":  "north_foreland_lighthouse",
+                       "kind":  "landmark",
+                       "title":  "North Foreland lighthouse from North Foreland Road",
+                       "png":  "broadstairs/north_foreland_lighthouse.png",
+                       "bytes":  1599384,
+                       "sha256":  "84ebb48331cc8f12ad300e617cf83a5c6c49852cf09bdd9658bc71cfafdc7e4d",
+                       "camera":  {
+                                      "camera_en":  [
+                                                        639900.71,
+                                                        169735.06
+                                                    ],
+                                      "subject_en":  [
+                                                         639858.0,
+                                                         169612.9
+                                                     ],
+                                      "camera_height_m":  1.7,
+                                      "local_m":  [
+                                                      12220.71,
+                                                      6655.06
+                                                  ],
+                                      "ground_z_m":  31.283,
+                                      "ground_source":  "landscape",
+                                      "eye_z_m":  32.983,
+                                      "eye_ue_cm":  [
+                                                        1222071.0,
+                                                        -665506.0,
+                                                        3298.3
+                                                    ],
+                                      "bearing_deg":  199.270823,
+                                      "yaw_deg":  109.270823,
+                                      "pitch_deg":  7.9,
+                                      "roll_deg":  0.0,
+                                      "fov_deg":  55.0,
+                                      "subject_distance_m":  129.41
+                                  },
+                       "ground":  {
+                                      "landscape_m":  31.283,
+                                      "heightfield_conformed_m":  31.283,
+                                      "trace_down_m":  31.381,
+                                      "landscape_minus_heightfield_m":  0.0
+                                  },
+                       "load":  {
+                                    "centre_en":  [
+                                                      639879.35,
+                                                      169673.98
+                                                  ],
+                                    "radius_m":  600.0
+                                },
+                       "guards":  {
+                                      "distinct_rgb":  37818,
+                                      "mean_luminance":  94.05
+                                  }
+                   },
+                   {
+                       "id":  "ramsgate/royal_harbour_and_town_from_the_sea",
+                       "town":  "ramsgate",
+                       "slug":  "royal_harbour_and_town_from_the_sea",
+                       "kind":  "aerial",
+                       "title":  "Ramsgate: the Royal Harbour and the town from the sea",
+                       "png":  "ramsgate/royal_harbour_and_town_from_the_sea.png",
+                       "bytes":  1902885,
+                       "sha256":  "24b998b59d0d73b7231c75f64d1658dc5333edacd718a74bf206f7deb14cbed9",
+                       "camera":  {
+                                      "camera_en":  [
+                                                        638400.0,
+                                                        163800.0
+                                                    ],
+                                      "subject_en":  [
+                                                         638499.6,
+                                                         164717.1
+                                                     ],
+                                      "camera_height_m":  430.0,
+                                      "local_m":  [
+                                                      10720.0,
+                                                      720.0
+                                                  ],
+                                      "ground_z_m":  -2.625,
+                                      "ground_source":  "landscape",
+                                      "eye_z_m":  427.375,
+                                      "eye_ue_cm":  [
+                                                        1072000.0,
+                                                        -72000.0,
+                                                        42737.5
+                                                    ],
+                                      "bearing_deg":  6.198213,
+                                      "yaw_deg":  -83.801787,
+                                      "pitch_deg":  -24.6,
+                                      "roll_deg":  0.0,
+                                      "fov_deg":  90.0,
+                                      "subject_distance_m":  922.49
+                                  },
+                       "ground":  {
+                                      "landscape_m":  -2.625,
+                                      "heightfield_conformed_m":  -2.625,
+                                      "trace_down_m":  -2.625,
+                                      "landscape_minus_heightfield_m":  0.0
+                                  },
+                       "load":  {
+                                    "centre_en":  [
+                                                      638449.8,
+                                                      164258.55
+                                                  ],
+                                    "radius_m":  1500.0
+                                },
+                       "guards":  {
+                                      "distinct_rgb":  88595,
+                                      "mean_luminance":  96.69
+                                  }
+                   },
+                   {
+                       "id":  "ramsgate/military_road_at_the_royal_harbour",
+                       "town":  "ramsgate",
+                       "slug":  "military_road_at_the_royal_harbour",
+                       "kind":  "street",
+                       "title":  "Ramsgate: Military Road east along the Royal Harbour",
+                       "png":  "ramsgate/military_road_at_the_royal_harbour.png",
+                       "bytes":  1414907,
+                       "sha256":  "d4c75c49636f56ce964392f57739d5eae71e70a55b4c68f1a0ac23934ec46f1b",
+                       "camera":  {
+                                      "camera_en":  [
+                                                        638319.1,
+                                                        164770.6
+                                                    ],
+                                      "subject_en":  [
+                                                         638605.1,
+                                                         164767.1
+                                                     ],
+                                      "camera_height_m":  1.7,
+                                      "local_m":  [
+                                                      10639.1,
+                                                      1690.6
+                                                  ],
+                                      "ground_z_m":  5.979,
+                                      "ground_source":  "landscape",
+                                      "eye_z_m":  7.679,
+                                      "eye_ue_cm":  [
+                                                        1063910.0,
+                                                        -169060.0,
+                                                        767.9
+                                                    ],
+                                      "bearing_deg":  90.701137,
+                                      "yaw_deg":  0.701137,
+                                      "pitch_deg":  -0.4,
+                                      "roll_deg":  0.0,
+                                      "fov_deg":  75.0,
+                                      "subject_distance_m":  286.02
+                                  },
+                       "ground":  {
+                                      "landscape_m":  5.979,
+                                      "heightfield_conformed_m":  5.979,
+                                      "trace_down_m":  6.025,
+                                      "landscape_minus_heightfield_m":  0.0
+                                  },
+                       "load":  {
+                                    "centre_en":  [
+                                                      638462.1,
+                                                      164768.85
+                                                  ],
+                                    "radius_m":  600.0
+                                },
+                       "guards":  {
+                                      "distinct_rgb":  47095,
+                                      "mean_luminance":  101.84
+                                  }
+                   },
+                   {
+                       "id":  "ramsgate/high_street_down_to_the_harbour",
+                       "town":  "ramsgate",
+                       "slug":  "high_street_down_to_the_harbour",
+                       "kind":  "street",
+                       "title":  "Ramsgate: High Street falling south-east towards the harbour",
+                       "png":  "ramsgate/high_street_down_to_the_harbour.png",
+                       "bytes":  1020182,
+                       "sha256":  "edd59bde8bee39321afb32f2474f04707b6923c22cb5822997d2d7e027a101ec",
+                       "camera":  {
+                                      "camera_en":  [
+                                                        638044.3,
+                                                        165177.7
+                                                    ],
+                                      "subject_en":  [
+                                                         638175.3,
+                                                         165062.7
+                                                     ],
+                                      "camera_height_m":  1.7,
+                                      "local_m":  [
+                                                      10364.3,
+                                                      2097.7
+                                                  ],
+                                      "ground_z_m":  19.712,
+                                      "ground_source":  "landscape",
+                                      "eye_z_m":  21.412,
+                                      "eye_ue_cm":  [
+                                                        1036430.0,
+                                                        -209770.0,
+                                                        2141.2
+                                                    ],
+                                      "bearing_deg":  131.278687,
+                                      "yaw_deg":  41.278687,
+                                      "pitch_deg":  -2.6,
+                                      "roll_deg":  0.0,
+                                      "fov_deg":  75.0,
+                                      "subject_distance_m":  174.32
+                                  },
+                       "ground":  {
+                                      "landscape_m":  19.712,
+                                      "heightfield_conformed_m":  19.712,
+                                      "trace_down_m":  19.773,
+                                      "landscape_minus_heightfield_m":  0.0
+                                  },
+                       "load":  {
+                                    "centre_en":  [
+                                                      638109.8,
+                                                      165120.2
+                                                  ],
+                                    "radius_m":  600.0
+                                },
+                       "guards":  {
+                                      "distinct_rgb":  21283,
+                                      "mean_luminance":  87.0
+                                  }
+                   },
+                   {
+                       "id":  "ramsgate/ramsgate_station_from_the_approach",
+                       "town":  "ramsgate",
+                       "slug":  "ramsgate_station_from_the_approach",
+                       "kind":  "landmark",
+                       "title":  "Ramsgate station from Station Approach Road",
+                       "png":  "ramsgate/ramsgate_station_from_the_approach.png",
+                       "bytes":  1464873,
+                       "sha256":  "bfe5200056540f40104426f1326bfa9c827c40673ef506615ee5d8bd2ba0ed61",
+                       "camera":  {
+                                      "camera_en":  [
+                                                        637406.8,
+                                                        165659.8
+                                                    ],
+                                      "subject_en":  [
+                                                         637314.2,
+                                                         165708.8
+                                                     ],
+                                      "camera_height_m":  1.7,
+                                      "local_m":  [
+                                                      9726.8,
+                                                      2579.8
+                                                  ],
+                                      "ground_z_m":  42.619,
+                                      "ground_source":  "landscape",
+                                      "eye_z_m":  44.319,
+                                      "eye_ue_cm":  [
+                                                        972680.0,
+                                                        -257980.0,
+                                                        4431.9
+                                                    ],
+                                      "bearing_deg":  297.885898,
+                                      "yaw_deg":  207.885898,
+                                      "pitch_deg":  -0.7,
+                                      "roll_deg":  0.0,
+                                      "fov_deg":  65.0,
+                                      "subject_distance_m":  104.77
+                                  },
+                       "ground":  {
+                                      "landscape_m":  42.619,
+                                      "heightfield_conformed_m":  42.619,
+                                      "trace_down_m":  42.657,
+                                      "landscape_minus_heightfield_m":  0.0
+                                  },
+                       "load":  {
+                                    "centre_en":  [
+                                                      637360.5,
+                                                      165684.3
+                                                  ],
+                                    "radius_m":  600.0
+                                },
+                       "guards":  {
+                                      "distinct_rgb":  33019,
+                                      "mean_luminance":  141.19
+                                  }
+                   },
+                   {
+                       "id":  "ramsgate/ramsgate_sands_and_the_east_cliff",
+                       "town":  "ramsgate",
+                       "slug":  "ramsgate_sands_and_the_east_cliff",
+                       "kind":  "seafront",
+                       "title":  "Ramsgate: the East Cliff from the sands",
+                       "png":  "ramsgate/ramsgate_sands_and_the_east_cliff.png",
+                       "bytes":  1559357,
+                       "sha256":  "b9d051995ee94944f0aa9815c5f55cda5eb67558f279ccd13fc10c340cae6026",
+                       "camera":  {
+                                      "camera_en":  [
+                                                        639035.0,
+                                                        165281.0
+                                                    ],
+                                      "subject_en":  [
+                                                         638928.8,
+                                                         165252.3
+                                                     ],
+                                      "camera_height_m":  1.7,
+                                      "local_m":  [
+                                                      11355.0,
+                                                      2201.0
+                                                  ],
+                                      "ground_z_m":  0.14,
+                                      "ground_source":  "landscape",
+                                      "eye_z_m":  1.84,
+                                      "eye_ue_cm":  [
+                                                        1135500.0,
+                                                        -220100.0,
+                                                        184.0
+                                                    ],
+                                      "bearing_deg":  254.877352,
+                                      "yaw_deg":  164.877352,
+                                      "pitch_deg":  11.6,
+                                      "roll_deg":  0.0,
+                                      "fov_deg":  75.0,
+                                      "subject_distance_m":  110.01
+                                  },
+                       "ground":  {
+                                      "landscape_m":  0.14,
+                                      "heightfield_conformed_m":  0.141,
+                                      "trace_down_m":  0.14,
+                                      "landscape_minus_heightfield_m":  -0.001
+                                  },
+                       "load":  {
+                                    "centre_en":  [
+                                                      638981.9,
+                                                      165266.65
+                                                  ],
+                                    "radius_m":  600.0
+                                },
+                       "guards":  {
+                                      "distinct_rgb":  58073,
+                                      "mean_luminance":  76.19
+                                  }
+                   },
+                   {
+                       "id":  "westgate-on-sea/westgate_from_over_st_mildreds_bay",
+                       "town":  "westgate-on-sea",
+                       "slug":  "westgate_from_over_st_mildreds_bay",
+                       "kind":  "aerial",
+                       "title":  "Westgate-on-Sea from over St Mildred\u0027s Bay",
+                       "png":  "westgate-on-sea/westgate_from_over_st_mildreds_bay.png",
+                       "bytes":  1959403,
+                       "sha256":  "19ec7e8d56e25321a8dbc8c542f2eb7c33dbe9318c01c2886c96dd86b653dab7",
+                       "camera":  {
+                                      "camera_en":  [
+                                                        632120.0,
+                                                        170800.0
+                                                    ],
+                                      "subject_en":  [
+                                                         632330.0,
+                                                         170060.0
+                                                     ],
+                                      "camera_height_m":  300.0,
+                                      "local_m":  [
+                                                      4440.0,
+                                                      7720.0
+                                                  ],
+                                      "ground_z_m":  -2.328,
+                                      "ground_source":  "landscape",
+                                      "eye_z_m":  297.672,
+                                      "eye_ue_cm":  [
+                                                        444000.0,
+                                                        -772000.0,
+                                                        29767.2
+                                                    ],
+                                      "bearing_deg":  164.156918,
+                                      "yaw_deg":  74.156918,
+                                      "pitch_deg":  -20.17,
+                                      "roll_deg":  0.0,
+                                      "fov_deg":  80.0,
+                                      "subject_distance_m":  769.22
+                                  },
+                       "ground":  {
+                                      "landscape_m":  -2.328,
+                                      "heightfield_conformed_m":  -2.328,
+                                      "trace_down_m":  -2.328,
+                                      "landscape_minus_heightfield_m":  0.0
+                                  },
+                       "load":  {
+                                    "centre_en":  [
+                                                      632225.0,
+                                                      170430.0
+                                                  ],
+                                    "radius_m":  1500.0
+                                },
+                       "guards":  {
+                                      "distinct_rgb":  86353,
+                                      "mean_luminance":  113.76
+                                  }
+                   },
+                   {
+                       "id":  "westgate-on-sea/westgate_bay_avenue_east_to_the_town",
+                       "town":  "westgate-on-sea",
+                       "slug":  "westgate_bay_avenue_east_to_the_town",
+                       "kind":  "street",
+                       "title":  "Westgate Bay Avenue looking east into the town",
+                       "png":  "westgate-on-sea/westgate_bay_avenue_east_to_the_town.png",
+                       "bytes":  1504882,
+                       "sha256":  "45e1866f3ea43cbf27447f80acd82468707c23735d6f76c90036366b09293aae",
+                       "camera":  {
+                                      "camera_en":  [
+                                                        631943.3,
+                                                        170043.69
+                                                    ],
+                                      "subject_en":  [
+                                                         632159.08,
+                                                         170102.93
+                                                     ],
+                                      "camera_height_m":  1.7,
+                                      "local_m":  [
+                                                      4263.3,
+                                                      6963.69
+                                                  ],
+                                      "ground_z_m":  10.531,
+                                      "ground_source":  "landscape",
+                                      "eye_z_m":  12.231,
+                                      "eye_ue_cm":  [
+                                                        426330.0,
+                                                        -696369.0,
+                                                        1223.1
+                                                    ],
+                                      "bearing_deg":  74.648314,
+                                      "yaw_deg":  -15.351686,
+                                      "pitch_deg":  -0.49,
+                                      "roll_deg":  0.0,
+                                      "fov_deg":  75.0,
+                                      "subject_distance_m":  223.76
+                                  },
+                       "ground":  {
+                                      "landscape_m":  10.531,
+                                      "heightfield_conformed_m":  10.531,
+                                      "trace_down_m":  10.568,
+                                      "landscape_minus_heightfield_m":  0.0
+                                  },
+                       "load":  {
+                                    "centre_en":  [
+                                                      632051.19,
+                                                      170073.31
+                                                  ],
+                                    "radius_m":  600.0
+                                },
+                       "guards":  {
+                                      "distinct_rgb":  41047,
+                                      "mean_luminance":  96.14
+                                  }
+                   },
+                   {
+                       "id":  "westgate-on-sea/canterbury_road_west_at_westgate",
+                       "town":  "westgate-on-sea",
+                       "slug":  "canterbury_road_west_at_westgate",
+                       "kind":  "street",
+                       "title":  "Canterbury Road looking west out of Westgate",
+                       "png":  "westgate-on-sea/canterbury_road_west_at_westgate.png",
+                       "bytes":  1458847,
+                       "sha256":  "79f928cbbf756f1f5e41a736ac0cb5c2550766bd916a6df84b36dc4e166e6bd5",
+                       "camera":  {
+                                      "camera_en":  [
+                                                        632285.63,
+                                                        169735.16
+                                                    ],
+                                      "subject_en":  [
+                                                         632071.91,
+                                                         169692.84
+                                                     ],
+                                      "camera_height_m":  1.7,
+                                      "local_m":  [
+                                                      4605.63,
+                                                      6655.16
+                                                  ],
+                                      "ground_z_m":  14.167,
+                                      "ground_source":  "landscape",
+                                      "eye_z_m":  15.867,
+                                      "eye_ue_cm":  [
+                                                        460563.0,
+                                                        -665516.0,
+                                                        1586.7
+                                                    ],
+                                      "bearing_deg":  258.799407,
+                                      "yaw_deg":  168.799407,
+                                      "pitch_deg":  -0.08,
+                                      "roll_deg":  0.0,
+                                      "fov_deg":  75.0,
+                                      "subject_distance_m":  217.87
+                                  },
+                       "ground":  {
+                                      "landscape_m":  14.167,
+                                      "heightfield_conformed_m":  14.167,
+                                      "trace_down_m":  14.199,
+                                      "landscape_minus_heightfield_m":  0.0
+                                  },
+                       "load":  {
+                                    "centre_en":  [
+                                                      632178.77,
+                                                      169714.0
+                                                  ],
+                                    "radius_m":  600.0
+                                },
+                       "guards":  {
+                                      "distinct_rgb":  39292,
+                                      "mean_luminance":  106.66
+                                  }
+                   },
+                   {
+                       "id":  "westgate-on-sea/st_mildreds_bay_from_the_sands",
+                       "town":  "westgate-on-sea",
+                       "slug":  "st_mildreds_bay_from_the_sands",
+                       "kind":  "seafront",
+                       "title":  "St Mildred\u0027s Bay from the sands, looking at the sea wall",
+                       "png":  "westgate-on-sea/st_mildreds_bay_from_the_sands.png",
+                       "bytes":  1756158,
+                       "sha256":  "420dbcba5a6a90dc4b579453980d99dc89467d3c07f5b78bb0b5ca0c0c08bfdb",
+                       "camera":  {
+                                      "camera_en":  [
+                                                        632150.0,
+                                                        170600.0
+                                                    ],
+                                      "subject_en":  [
+                                                         632150.0,
+                                                         170512.0
+                                                     ],
+                                      "camera_height_m":  1.7,
+                                      "local_m":  [
+                                                      4470.0,
+                                                      7520.0
+                                                  ],
+                                      "ground_z_m":  -0.524,
+                                      "ground_source":  "landscape",
+                                      "eye_z_m":  1.176,
+                                      "eye_ue_cm":  [
+                                                        447000.0,
+                                                        -752000.0,
+                                                        117.6
+                                                    ],
+                                      "bearing_deg":  180.0,
+                                      "yaw_deg":  90.0,
+                                      "pitch_deg":  7.0,
+                                      "roll_deg":  0.0,
+                                      "fov_deg":  70.0,
+                                      "subject_distance_m":  88.0
+                                  },
+                       "ground":  {
+                                      "landscape_m":  -0.524,
+                                      "heightfield_conformed_m":  -0.523,
+                                      "trace_down_m":  -0.524,
+                                      "landscape_minus_heightfield_m":  -0.001
+                                  },
+                       "load":  {
+                                    "centre_en":  [
+                                                      632150.0,
+                                                      170556.0
+                                                  ],
+                                    "radius_m":  600.0
+                                },
+                       "guards":  {
+                                      "distinct_rgb":  60511,
+                                      "mean_luminance":  104.18
+                                  }
+                   },
+                   {
+                       "id":  "westgate-on-sea/westgate_station_from_station_road",
+                       "town":  "westgate-on-sea",
+                       "slug":  "westgate_station_from_station_road",
+                       "kind":  "landmark",
+                       "title":  "Westgate-on-Sea station from Station Road",
+                       "png":  "westgate-on-sea/westgate_station_from_station_road.png",
+                       "bytes":  1172221,
+                       "sha256":  "cff89da1592ef78e2b3395467185ddc4e41521cf0af2437ce934a0726e9a272a",
+                       "camera":  {
+                                      "camera_en":  [
+                                                        632505.1,
+                                                        170019.97
+                                                    ],
+                                      "subject_en":  [
+                                                         632378.5,
+                                                         169989.4
+                                                     ],
+                                      "camera_height_m":  1.7,
+                                      "local_m":  [
+                                                      4825.1,
+                                                      6939.97
+                                                  ],
+                                      "ground_z_m":  14.076,
+                                      "ground_source":  "landscape",
+                                      "eye_z_m":  15.776,
+                                      "eye_ue_cm":  [
+                                                        482510.0,
+                                                        -693997.0,
+                                                        1577.6
+                                                    ],
+                                      "bearing_deg":  256.424699,
+                                      "yaw_deg":  166.424699,
+                                      "pitch_deg":  0.46,
+                                      "roll_deg":  0.0,
+                                      "fov_deg":  75.0,
+                                      "subject_distance_m":  130.24
+                                  },
+                       "ground":  {
+                                      "landscape_m":  14.076,
+                                      "heightfield_conformed_m":  14.076,
+                                      "trace_down_m":  14.107,
+                                      "landscape_minus_heightfield_m":  0.0
+                                  },
+                       "load":  {
+                                    "centre_en":  [
+                                                      632441.8,
+                                                      170004.68
+                                                  ],
+                                    "radius_m":  600.0
+                                },
+                       "guards":  {
+                                      "distinct_rgb":  41662,
+                                      "mean_luminance":  71.65
+                                  }
+                   },
+                   {
+                       "id":  "birchington/birchington_and_the_wantsum_edge",
+                       "town":  "birchington",
+                       "slug":  "birchington_and_the_wantsum_edge",
+                       "kind":  "aerial",
+                       "title":  "Birchington and the western edge of the model from the sea",
+                       "png":  "birchington/birchington_and_the_wantsum_edge.png",
+                       "bytes":  1797087,
+                       "sha256":  "9c8eed8675f62b767afecfeddd78e855d047c36c00d31828e43225326cc075ab",
+                       "camera":  {
+                                      "camera_en":  [
+                                                        630900.0,
+                                                        170050.0
+                                                    ],
+                                      "subject_en":  [
+                                                         629900.0,
+                                                         169500.0
+                                                     ],
+                                      "camera_height_m":  480.0,
+                                      "local_m":  [
+                                                      3220.0,
+                                                      6970.0
+                                                  ],
+                                      "ground_z_m":  0.07,
+                                      "ground_source":  "landscape",
+                                      "eye_z_m":  480.07,
+                                      "eye_ue_cm":  [
+                                                        322000.0,
+                                                        -697000.0,
+                                                        48007.0
+                                                    ],
+                                      "bearing_deg":  241.189206,
+                                      "yaw_deg":  151.189206,
+                                      "pitch_deg":  -21.6,
+                                      "roll_deg":  0.0,
+                                      "fov_deg":  75.0,
+                                      "subject_distance_m":  1141.27
+                                  },
+                       "ground":  {
+                                      "landscape_m":  0.07,
+                                      "heightfield_conformed_m":  0.07,
+                                      "trace_down_m":  0.07,
+                                      "landscape_minus_heightfield_m":  0.0
+                                  },
+                       "load":  {
+                                    "centre_en":  [
+                                                      630400.0,
+                                                      169775.0
+                                                  ],
+                                    "radius_m":  1500.0
+                                },
+                       "guards":  {
+                                      "distinct_rgb":  68348,
+                                      "mean_luminance":  102.66
+                                  }
+                   },
+                   {
+                       "id":  "birchington/canterbury_road_a28",
+                       "town":  "birchington",
+                       "slug":  "canterbury_road_a28",
+                       "kind":  "street",
+                       "title":  "Canterbury Road, the A28 through Birchington",
+                       "png":  "birchington/canterbury_road_a28.png",
+                       "bytes":  1456910,
+                       "sha256":  "c453c00e5787ae8269a753a9f11092b08a11bc18b3aa5a2f6ee3e75ceb22adcb",
+                       "camera":  {
+                                      "camera_en":  [
+                                                        630488.55,
+                                                        169147.64
+                                                    ],
+                                      "subject_en":  [
+                                                         630635.88,
+                                                         169290.36
+                                                     ],
+                                      "camera_height_m":  1.7,
+                                      "local_m":  [
+                                                      2808.55,
+                                                      6067.64
+                                                  ],
+                                      "ground_z_m":  25.143,
+                                      "ground_source":  "landscape",
+                                      "eye_z_m":  26.843,
+                                      "eye_ue_cm":  [
+                                                        280855.0,
+                                                        -606764.0,
+                                                        2684.3
+                                                    ],
+                                      "bearing_deg":  45.910572,
+                                      "yaw_deg":  -44.089428,
+                                      "pitch_deg":  -0.7,
+                                      "roll_deg":  0.0,
+                                      "fov_deg":  75.0,
+                                      "subject_distance_m":  205.12
+                                  },
+                       "ground":  {
+                                      "landscape_m":  25.143,
+                                      "heightfield_conformed_m":  25.143,
+                                      "trace_down_m":  25.174,
+                                      "landscape_minus_heightfield_m":  0.0
+                                  },
+                       "load":  {
+                                    "centre_en":  [
+                                                      630562.22,
+                                                      169219.0
+                                                  ],
+                                    "radius_m":  600.0
+                                },
+                       "guards":  {
+                                      "distinct_rgb":  35881,
+                                      "mean_luminance":  115.69
+                                  }
+                   },
+                   {
+                       "id":  "birchington/station_road_to_the_square",
+                       "town":  "birchington",
+                       "slug":  "station_road_to_the_square",
+                       "kind":  "street",
+                       "title":  "Station Road looking north-west to The Square",
+                       "png":  "birchington/station_road_to_the_square.png",
+                       "bytes":  1171685,
+                       "sha256":  "0729f5421db0a4265b62c670634c5235f664d7fe2219bfa7c8d24a13302757de",
+                       "camera":  {
+                                      "camera_en":  [
+                                                        630213.34,
+                                                        169090.74
+                                                    ],
+                                      "subject_en":  [
+                                                         629981.07,
+                                                         169360.88
+                                                     ],
+                                      "camera_height_m":  1.7,
+                                      "local_m":  [
+                                                      2533.34,
+                                                      6010.74
+                                                  ],
+                                      "ground_z_m":  23.653,
+                                      "ground_source":  "landscape",
+                                      "eye_z_m":  25.353,
+                                      "eye_ue_cm":  [
+                                                        253334.0,
+                                                        -601074.0,
+                                                        2535.3
+                                                    ],
+                                      "bearing_deg":  319.310614,
+                                      "yaw_deg":  229.310614,
+                                      "pitch_deg":  -0.4,
+                                      "roll_deg":  0.0,
+                                      "fov_deg":  75.0,
+                                      "subject_distance_m":  356.27
+                                  },
+                       "ground":  {
+                                      "landscape_m":  23.653,
+                                      "heightfield_conformed_m":  23.653,
+                                      "trace_down_m":  23.695,
+                                      "landscape_minus_heightfield_m":  0.0
+                                  },
+                       "load":  {
+                                    "centre_en":  [
+                                                      630097.2,
+                                                      169225.81
+                                                  ],
+                                    "radius_m":  600.0
+                                },
+                       "guards":  {
+                                      "distinct_rgb":  17860,
+                                      "mean_luminance":  102.98
+                                  }
+                   },
+                   {
+                       "id":  "birchington/minnis_bay_where_the_model_ends",
+                       "town":  "birchington",
+                       "slug":  "minnis_bay_where_the_model_ends",
+                       "kind":  "seafront",
+                       "title":  "Minnis Bay looking west to where the model stops",
+                       "png":  "birchington/minnis_bay_where_the_model_ends.png",
+                       "bytes":  1502260,
+                       "sha256":  "15d0f9cac0f2ac4a339598774b5b88a9814d23bb884a2af51ee374c72ea56093",
+                       "camera":  {
+                                      "camera_en":  [
+                                                        628768.34,
+                                                        169712.2
+                                                    ],
+                                      "subject_en":  [
+                                                         628603.9,
+                                                         169652.3
+                                                     ],
+                                      "camera_height_m":  1.7,
+                                      "local_m":  [
+                                                      1088.34,
+                                                      6632.2
+                                                  ],
+                                      "ground_z_m":  5.771,
+                                      "ground_source":  "landscape",
+                                      "eye_z_m":  7.471,
+                                      "eye_ue_cm":  [
+                                                        108834.0,
+                                                        -663220.0,
+                                                        747.1
+                                                    ],
+                                      "bearing_deg":  249.985007,
+                                      "yaw_deg":  159.985007,
+                                      "pitch_deg":  -2.6,
+                                      "roll_deg":  0.0,
+                                      "fov_deg":  70.0,
+                                      "subject_distance_m":  175.01
+                                  },
+                       "ground":  {
+                                      "landscape_m":  5.771,
+                                      "heightfield_conformed_m":  5.771,
+                                      "trace_down_m":  5.84,
+                                      "landscape_minus_heightfield_m":  0.0
+                                  },
+                       "load":  {
+                                    "centre_en":  [
+                                                      628686.12,
+                                                      169682.25
+                                                  ],
+                                    "radius_m":  600.0
+                                },
+                       "guards":  {
+                                      "distinct_rgb":  45708,
+                                      "mean_luminance":  106.22
+                                  }
+                   },
+                   {
+                       "id":  "birchington/railway_bridge_over_minnis_road",
+                       "town":  "birchington",
+                       "slug":  "railway_bridge_over_minnis_road",
+                       "kind":  "landmark",
+                       "title":  "The Chatham Main Line bridge over Minnis Road",
+                       "png":  "birchington/railway_bridge_over_minnis_road.png",
+                       "bytes":  1528199,
+                       "sha256":  "eece5855c808fabb39ca67e58bc3def3dbd55dda1d743e9e35401feb83f6a7ac",
+                       "camera":  {
+                                      "camera_en":  [
+                                                        629340.6,
+                                                        169395.7
+                                                    ],
+                                      "subject_en":  [
+                                                         629377.4,
+                                                         169380.6
+                                                     ],
+                                      "camera_height_m":  1.7,
+                                      "local_m":  [
+                                                      1660.6,
+                                                      6315.7
+                                                  ],
+                                      "ground_z_m":  8.016,
+                                      "ground_source":  "landscape",
+                                      "eye_z_m":  9.716,
+                                      "eye_ue_cm":  [
+                                                        166060.0,
+                                                        -631570.0,
+                                                        971.6
+                                                    ],
+                                      "bearing_deg":  112.309622,
+                                      "yaw_deg":  22.309622,
+                                      "pitch_deg":  2.1,
+                                      "roll_deg":  0.0,
+                                      "fov_deg":  65.0,
+                                      "subject_distance_m":  39.78
+                                  },
+                       "ground":  {
+                                      "landscape_m":  8.016,
+                                      "heightfield_conformed_m":  8.016,
+                                      "trace_down_m":  8.064,
+                                      "landscape_minus_heightfield_m":  0.0
+                                  },
+                       "load":  {
+                                    "centre_en":  [
+                                                      629359.0,
+                                                      169388.15
+                                                  ],
+                                    "radius_m":  600.0
+                                },
+                       "guards":  {
+                                      "distinct_rgb":  49184,
+                                      "mean_luminance":  117.62
+                                  }
+                   },
+                   {
+                       "id":  "westwood/westwood_cross_and_the_retail_grid",
+                       "town":  "westwood",
+                       "slug":  "westwood_cross_and_the_retail_grid",
+                       "kind":  "aerial",
+                       "title":  "Westwood Cross and the inland band from the east",
+                       "png":  "westwood/westwood_cross_and_the_retail_grid.png",
+                       "bytes":  1875524,
+                       "sha256":  "4a636fd82bcf8fb497544e225ed20aa6771637b71134f02344007da9905b2747",
+                       "camera":  {
+                                      "camera_en":  [
+                                                        637300.0,
+                                                        167200.0
+                                                    ],
+                                      "subject_en":  [
+                                                         636400.0,
+                                                         167650.0
+                                                     ],
+                                      "camera_height_m":  520.0,
+                                      "local_m":  [
+                                                      9620.0,
+                                                      4120.0
+                                                  ],
+                                      "ground_z_m":  50.0,
+                                      "ground_source":  "landscape",
+                                      "eye_z_m":  570.0,
+                                      "eye_ue_cm":  [
+                                                        962000.0,
+                                                        -412000.0,
+                                                        57000.0
+                                                    ],
+                                      "bearing_deg":  296.565051,
+                                      "yaw_deg":  206.565051,
+                                      "pitch_deg":  -26.9,
+                                      "roll_deg":  0.0,
+                                      "fov_deg":  75.0,
+                                      "subject_distance_m":  1006.23
+                                  },
+                       "ground":  {
+                                      "landscape_m":  50.0,
+                                      "heightfield_conformed_m":  50.0,
+                                      "trace_down_m":  56.53,
+                                      "landscape_minus_heightfield_m":  0.0
+                                  },
+                       "load":  {
+                                    "centre_en":  [
+                                                      636850.0,
+                                                      167425.0
+                                                  ],
+                                    "radius_m":  1500.0
+                                },
+                       "guards":  {
+                                      "distinct_rgb":  53895,
+                                      "mean_luminance":  129.77
+                                  }
+                   },
+                   {
+                       "id":  "westwood/haine_road_past_westwood_cross",
+                       "town":  "westwood",
+                       "slug":  "haine_road_past_westwood_cross",
+                       "kind":  "street",
+                       "title":  "Haine Road past Westwood Cross",
+                       "png":  "westwood/haine_road_past_westwood_cross.png",
+                       "bytes":  1436194,
+                       "sha256":  "eb537691478874068d97f5322075b50f2099d6a639de7faf133793d9d9db5d73",
+                       "camera":  {
+                                      "camera_en":  [
+                                                        636249.15,
+                                                        167841.28
+                                                    ],
+                                      "subject_en":  [
+                                                         636110.33,
+                                                         167730.64
+                                                     ],
+                                      "camera_height_m":  1.7,
+                                      "local_m":  [
+                                                      8569.15,
+                                                      4761.28
+                                                  ],
+                                      "ground_z_m":  46.742,
+                                      "ground_source":  "landscape",
+                                      "eye_z_m":  48.442,
+                                      "eye_ue_cm":  [
+                                                        856915.0,
+                                                        -476128.0,
+                                                        4844.2
+                                                    ],
+                                      "bearing_deg":  231.445038,
+                                      "yaw_deg":  141.445038,
+                                      "pitch_deg":  0.7,
+                                      "roll_deg":  0.0,
+                                      "fov_deg":  75.0,
+                                      "subject_distance_m":  177.52
+                                  },
+                       "ground":  {
+                                      "landscape_m":  46.742,
+                                      "heightfield_conformed_m":  46.742,
+                                      "trace_down_m":  46.786,
+                                      "landscape_minus_heightfield_m":  0.0
+                                  },
+                       "load":  {
+                                    "centre_en":  [
+                                                      636179.74,
+                                                      167785.96
+                                                  ],
+                                    "radius_m":  600.0
+                                },
+                       "guards":  {
+                                      "distinct_rgb":  37533,
+                                      "mean_luminance":  91.87
+                                  }
+                   },
+                   {
+                       "id":  "westwood/new_haine_road_at_haine",
+                       "town":  "westwood",
+                       "slug":  "new_haine_road_at_haine",
+                       "kind":  "street",
+                       "title":  "New Haine Road looking south to Haine",
+                       "png":  "westwood/new_haine_road_at_haine.png",
+                       "bytes":  1516611,
+                       "sha256":  "7e05c618332b04a1557baf722f6835e543e6767aa5932640011b164ecd661a11",
+                       "camera":  {
+                                      "camera_en":  [
+                                                        636183.13,
+                                                        167083.69
+                                                    ],
+                                      "subject_en":  [
+                                                         636141.65,
+                                                         166949.0
+                                                     ],
+                                      "camera_height_m":  1.7,
+                                      "local_m":  [
+                                                      8503.13,
+                                                      4003.69
+                                                  ],
+                                      "ground_z_m":  49.573,
+                                      "ground_source":  "landscape",
+                                      "eye_z_m":  51.273,
+                                      "eye_ue_cm":  [
+                                                        850313.0,
+                                                        -400369.0,
+                                                        5127.3
+                                                    ],
+                                      "bearing_deg":  197.117076,
+                                      "yaw_deg":  107.117076,
+                                      "pitch_deg":  0.3,
+                                      "roll_deg":  0.0,
+                                      "fov_deg":  75.0,
+                                      "subject_distance_m":  140.93
+                                  },
+                       "ground":  {
+                                      "landscape_m":  49.573,
+                                      "heightfield_conformed_m":  49.573,
+                                      "trace_down_m":  49.627,
+                                      "landscape_minus_heightfield_m":  0.0
+                                  },
+                       "load":  {
+                                    "centre_en":  [
+                                                      636162.39,
+                                                      167016.35
+                                                  ],
+                                    "radius_m":  600.0
+                                },
+                       "guards":  {
+                                      "distinct_rgb":  45392,
+                                      "mean_luminance":  113.89
+                                  }
+                   },
+                   {
+                       "id":  "westwood/westwood_cross_sheds_from_the_carpark",
+                       "town":  "westwood",
+                       "slug":  "westwood_cross_sheds_from_the_carpark",
+                       "kind":  "landmark",
+                       "title":  "The Westwood Cross sheds from the car park",
+                       "png":  "westwood/westwood_cross_sheds_from_the_carpark.png",
+                       "bytes":  1444676,
+                       "sha256":  "1d4071227ae36c42f8c6ff7d81827ae62b3941ab25838d8aa5964f0db55c5d1b",
+                       "camera":  {
+                                      "camera_en":  [
+                                                        636300.0,
+                                                        167620.0
+                                                    ],
+                                      "subject_en":  [
+                                                         636201.0,
+                                                         167743.0
+                                                     ],
+                                      "camera_height_m":  1.7,
+                                      "local_m":  [
+                                                      8620.0,
+                                                      4540.0
+                                                  ],
+                                      "ground_z_m":  50.109,
+                                      "ground_source":  "landscape",
+                                      "eye_z_m":  51.809,
+                                      "eye_ue_cm":  [
+                                                        862000.0,
+                                                        -454000.0,
+                                                        5180.9
+                                                    ],
+                                      "bearing_deg":  321.170175,
+                                      "yaw_deg":  231.170175,
+                                      "pitch_deg":  0.8,
+                                      "roll_deg":  0.0,
+                                      "fov_deg":  65.0,
+                                      "subject_distance_m":  157.89
+                                  },
+                       "ground":  {
+                                      "landscape_m":  50.109,
+                                      "heightfield_conformed_m":  50.109,
+                                      "trace_down_m":  50.109,
+                                      "landscape_minus_heightfield_m":  0.0
+                                  },
+                       "load":  {
+                                    "centre_en":  [
+                                                      636250.5,
+                                                      167681.5
+                                                  ],
+                                    "radius_m":  600.0
+                                },
+                       "guards":  {
+                                      "distinct_rgb":  42393,
+                                      "mean_luminance":  120.52
+                                  }
+                   },
+                   {
+                       "id":  "westwood/manston_court_road_and_the_farmland",
+                       "town":  "westwood",
+                       "slug":  "manston_court_road_and_the_farmland",
+                       "kind":  "street",
+                       "title":  "Manston Court Road and the farmland west of Westwood",
+                       "png":  "westwood/manston_court_road_and_the_farmland.png",
+                       "bytes":  1499807,
+                       "sha256":  "7849908f64cc2342a032191408ffa3a2074ab563afb621b76cb0e6692956374d",
+                       "camera":  {
+                                      "camera_en":  [
+                                                        635358.22,
+                                                        167633.63
+                                                    ],
+                                      "subject_en":  [
+                                                         635231.47,
+                                                         167589.91
+                                                     ],
+                                      "camera_height_m":  1.7,
+                                      "local_m":  [
+                                                      7678.22,
+                                                      4553.63
+                                                  ],
+                                      "ground_z_m":  36.685,
+                                      "ground_source":  "landscape",
+                                      "eye_z_m":  38.385,
+                                      "eye_ue_cm":  [
+                                                        767822.0,
+                                                        -455363.0,
+                                                        3838.5
+                                                    ],
+                                      "bearing_deg":  250.9691,
+                                      "yaw_deg":  160.9691,
+                                      "pitch_deg":  0.8,
+                                      "roll_deg":  0.0,
+                                      "fov_deg":  75.0,
+                                      "subject_distance_m":  134.08
+                                  },
+                       "ground":  {
+                                      "landscape_m":  36.685,
+                                      "heightfield_conformed_m":  36.685,
+                                      "trace_down_m":  36.724,
+                                      "landscape_minus_heightfield_m":  0.0
+                                  },
+                       "load":  {
+                                    "centre_en":  [
+                                                      635294.84,
+                                                      167611.77
+                                                  ],
+                                    "radius_m":  600.0
+                                },
+                       "guards":  {
+                                      "distinct_rgb":  44499,
+                                      "mean_luminance":  111.49
+                                  }
+                   },
+                   {
+                       "id":  "manston/manston_airfield_from_the_east",
+                       "town":  "manston",
+                       "slug":  "manston_airfield_from_the_east",
+                       "kind":  "aerial",
+                       "title":  "Manston: the airfield from the east",
+                       "png":  "manston/manston_airfield_from_the_east.png",
+                       "bytes":  1604034,
+                       "sha256":  "d43ddff0c808363c7b4d85cae02e9d9e19f80e74160b7304a4ba3d2d9a915ae3",
+                       "camera":  {
+                                      "camera_en":  [
+                                                        634500.0,
+                                                        166750.0
+                                                    ],
+                                      "subject_en":  [
+                                                         633600.0,
+                                                         166500.0
+                                                     ],
+                                      "camera_height_m":  330.0,
+                                      "local_m":  [
+                                                      6820.0,
+                                                      3670.0
+                                                  ],
+                                      "ground_z_m":  48.094,
+                                      "ground_source":  "landscape",
+                                      "eye_z_m":  378.094,
+                                      "eye_ue_cm":  [
+                                                        682000.0,
+                                                        -367000.0,
+                                                        37809.4
+                                                    ],
+                                      "bearing_deg":  254.475889,
+                                      "yaw_deg":  164.475889,
+                                      "pitch_deg":  -19.7,
+                                      "roll_deg":  0.0,
+                                      "fov_deg":  90.0,
+                                      "subject_distance_m":  934.08
+                                  },
+                       "ground":  {
+                                      "landscape_m":  48.094,
+                                      "heightfield_conformed_m":  48.094,
+                                      "trace_down_m":  48.094,
+                                      "landscape_minus_heightfield_m":  0.0
+                                  },
+                       "load":  {
+                                    "centre_en":  [
+                                                      634050.0,
+                                                      166625.0
+                                                  ],
+                                    "radius_m":  1500.0
+                                },
+                       "guards":  {
+                                      "distinct_rgb":  62449,
+                                      "mean_luminance":  132.71
+                                  }
+                   },
+                   {
+                       "id":  "manston/spitfire_way_along_the_airfield",
+                       "town":  "manston",
+                       "slug":  "spitfire_way_along_the_airfield",
+                       "kind":  "street",
+                       "title":  "Manston: Spitfire Way north-east along the airfield",
+                       "png":  "manston/spitfire_way_along_the_airfield.png",
+                       "bytes":  1505802,
+                       "sha256":  "9831b9ad31729765f42575c94c85f6dd5a9e8418a0a6505fbc107dd8075a2d78",
+                       "camera":  {
+                                      "camera_en":  [
+                                                        632899.8,
+                                                        166308.1
+                                                    ],
+                                      "subject_en":  [
+                                                         633132.9,
+                                                         166433.4
+                                                     ],
+                                      "camera_height_m":  1.7,
+                                      "local_m":  [
+                                                      5219.8,
+                                                      3228.1
+                                                  ],
+                                      "ground_z_m":  44.584,
+                                      "ground_source":  "landscape",
+                                      "eye_z_m":  46.284,
+                                      "eye_ue_cm":  [
+                                                        521980.0,
+                                                        -322810.0,
+                                                        4628.4
+                                                    ],
+                                      "bearing_deg":  61.740302,
+                                      "yaw_deg":  -28.259698,
+                                      "pitch_deg":  -1.3,
+                                      "roll_deg":  0.0,
+                                      "fov_deg":  75.0,
+                                      "subject_distance_m":  264.64
+                                  },
+                       "ground":  {
+                                      "landscape_m":  44.584,
+                                      "heightfield_conformed_m":  44.584,
+                                      "trace_down_m":  44.618,
+                                      "landscape_minus_heightfield_m":  0.0
+                                  },
+                       "load":  {
+                                    "centre_en":  [
+                                                      633016.35,
+                                                      166370.75
+                                                  ],
+                                    "radius_m":  600.0
+                                },
+                       "guards":  {
+                                      "distinct_rgb":  44558,
+                                      "mean_luminance":  119.66
+                                  }
+                   },
+                   {
+                       "id":  "manston/manston_high_street_by_the_green",
+                       "town":  "manston",
+                       "slug":  "manston_high_street_by_the_green",
+                       "kind":  "street",
+                       "title":  "Manston High Street south-west from The Green",
+                       "png":  "manston/manston_high_street_by_the_green.png",
+                       "bytes":  1445351,
+                       "sha256":  "e9e4077853999a615c91e126a5392c06754a3803b8ee8f7eed96be817065d38d",
+                       "camera":  {
+                                      "camera_en":  [
+                                                        634748.9,
+                                                        166150.8
+                                                    ],
+                                      "subject_en":  [
+                                                         634678.3,
+                                                         166051.8
+                                                     ],
+                                      "camera_height_m":  1.7,
+                                      "local_m":  [
+                                                      7068.9,
+                                                      3070.8
+                                                  ],
+                                      "ground_z_m":  47.871,
+                                      "ground_source":  "landscape",
+                                      "eye_z_m":  49.571,
+                                      "eye_ue_cm":  [
+                                                        706890.0,
+                                                        -307080.0,
+                                                        4957.1
+                                                    ],
+                                      "bearing_deg":  215.493857,
+                                      "yaw_deg":  125.493857,
+                                      "pitch_deg":  -1.5,
+                                      "roll_deg":  0.0,
+                                      "fov_deg":  75.0,
+                                      "subject_distance_m":  121.6
+                                  },
+                       "ground":  {
+                                      "landscape_m":  47.871,
+                                      "heightfield_conformed_m":  47.871,
+                                      "trace_down_m":  47.934,
+                                      "landscape_minus_heightfield_m":  0.0
+                                  },
+                       "load":  {
+                                    "centre_en":  [
+                                                      634713.6,
+                                                      166101.3
+                                                  ],
+                                    "radius_m":  600.0
+                                },
+                       "guards":  {
+                                      "distinct_rgb":  38851,
+                                      "mean_luminance":  121.03
+                                  }
+                   },
+                   {
+                       "id":  "manston/manston_hangars_and_control_tower",
+                       "town":  "manston",
+                       "slug":  "manston_hangars_and_control_tower",
+                       "kind":  "landmark",
+                       "title":  "Manston: the control tower from the apron road",
+                       "png":  "manston/manston_hangars_and_control_tower.png",
+                       "bytes":  1604119,
+                       "sha256":  "6c7a76d30fe77e25bd0278aead9a7a5b7ae2528d48a2e4615f6c594353fac6f8",
+                       "camera":  {
+                                      "camera_en":  [
+                                                        633706.0,
+                                                        166406.0
+                                                    ],
+                                      "subject_en":  [
+                                                         633503.0,
+                                                         166563.0
+                                                     ],
+                                      "camera_height_m":  1.7,
+                                      "local_m":  [
+                                                      6026.0,
+                                                      3326.0
+                                                  ],
+                                      "ground_z_m":  41.844,
+                                      "ground_source":  "landscape",
+                                      "eye_z_m":  43.544,
+                                      "eye_ue_cm":  [
+                                                        602600.0,
+                                                        -332600.0,
+                                                        4354.4
+                                                    ],
+                                      "bearing_deg":  307.718331,
+                                      "yaw_deg":  217.718331,
+                                      "pitch_deg":  0.0,
+                                      "roll_deg":  0.0,
+                                      "fov_deg":  70.0,
+                                      "subject_distance_m":  256.63
+                                  },
+                       "ground":  {
+                                      "landscape_m":  41.844,
+                                      "heightfield_conformed_m":  41.844,
+                                      "trace_down_m":  41.885,
+                                      "landscape_minus_heightfield_m":  0.0
+                                  },
+                       "load":  {
+                                    "centre_en":  [
+                                                      633604.5,
+                                                      166484.5
+                                                  ],
+                                    "radius_m":  600.0
+                                },
+                       "guards":  {
+                                      "distinct_rgb":  40660,
+                                      "mean_luminance":  149.39
+                                  }
+                   },
+                   {
+                       "id":  "manston/preston_road_north_east_of_the_village",
+                       "town":  "manston",
+                       "slug":  "preston_road_north_east_of_the_village",
+                       "kind":  "street",
+                       "title":  "Preston Road north-east out of Manston village",
+                       "png":  "manston/preston_road_north_east_of_the_village.png",
+                       "bytes":  1331529,
+                       "sha256":  "2dde883c2dc6d0c2100546e4c2f2b296ae2edcc59ba3271cbe724a358bc3834b",
+                       "camera":  {
+                                      "camera_en":  [
+                                                        635048.7,
+                                                        166664.2
+                                                    ],
+                                      "subject_en":  [
+                                                         635102.7,
+                                                         166794.5
+                                                     ],
+                                      "camera_height_m":  1.7,
+                                      "local_m":  [
+                                                      7368.7,
+                                                      3584.2
+                                                  ],
+                                      "ground_z_m":  50.9,
+                                      "ground_source":  "landscape",
+                                      "eye_z_m":  52.6,
+                                      "eye_ue_cm":  [
+                                                        736870.0,
+                                                        -358420.0,
+                                                        5260.0
+                                                    ],
+                                      "bearing_deg":  22.510498,
+                                      "yaw_deg":  -67.489502,
+                                      "pitch_deg":  -1.0,
+                                      "roll_deg":  0.0,
+                                      "fov_deg":  75.0,
+                                      "subject_distance_m":  141.05
+                                  },
+                       "ground":  {
+                                      "landscape_m":  50.9,
+                                      "heightfield_conformed_m":  50.9,
+                                      "trace_down_m":  50.933,
+                                      "landscape_minus_heightfield_m":  0.0
+                                  },
+                       "load":  {
+                                    "centre_en":  [
+                                                      635075.7,
+                                                      166729.35
+                                                  ],
+                                    "radius_m":  600.0
+                                },
+                       "guards":  {
+                                      "distinct_rgb":  40719,
+                                      "mean_luminance":  77.24
+                                  }
+                   },
+                   {
+                       "id":  "acol/acol_fields_and_the_isle_edge",
+                       "town":  "acol",
+                       "slug":  "acol_fields_and_the_isle_edge",
+                       "kind":  "aerial",
+                       "title":  "Acol: the fields and the edge of the isle",
+                       "png":  "acol/acol_fields_and_the_isle_edge.png",
+                       "bytes":  1386815,
+                       "sha256":  "52f7a45bf171131fa47d2dd643a8dda1cd28276c9fdd680d20757461926b56b0",
+                       "camera":  {
+                                      "camera_en":  [
+                                                        631700.0,
+                                                        168150.0
+                                                    ],
+                                      "subject_en":  [
+                                                         631061.3,
+                                                         167539.6
+                                                     ],
+                                      "camera_height_m":  300.0,
+                                      "local_m":  [
+                                                      4020.0,
+                                                      5070.0
+                                                  ],
+                                      "ground_z_m":  32.867,
+                                      "ground_source":  "landscape",
+                                      "eye_z_m":  332.867,
+                                      "eye_ue_cm":  [
+                                                        402000.0,
+                                                        -507000.0,
+                                                        33286.7
+                                                    ],
+                                      "bearing_deg":  226.297889,
+                                      "yaw_deg":  136.297889,
+                                      "pitch_deg":  -19.2,
+                                      "roll_deg":  0.0,
+                                      "fov_deg":  90.0,
+                                      "subject_distance_m":  883.47
+                                  },
+                       "ground":  {
+                                      "landscape_m":  32.867,
+                                      "heightfield_conformed_m":  32.867,
+                                      "trace_down_m":  32.867,
+                                      "landscape_minus_heightfield_m":  0.0
+                                  },
+                       "load":  {
+                                    "centre_en":  [
+                                                      631380.65,
+                                                      167844.8
+                                                  ],
+                                    "radius_m":  1500.0
+                                },
+                       "guards":  {
+                                      "distinct_rgb":  38331,
+                                      "mean_luminance":  109.67
+                                  }
+                   },
+                   {
+                       "id":  "acol/manston_road_west_towards_acol",
+                       "town":  "acol",
+                       "slug":  "manston_road_west_towards_acol",
+                       "kind":  "street",
+                       "title":  "Manston Road west towards Acol",
+                       "png":  "acol/manston_road_west_towards_acol.png",
+                       "bytes":  1605079,
+                       "sha256":  "58760179a998e204ed2d011314583e87ac0eba9bba09a68e8dfb48c0b6430088",
+                       "camera":  {
+                                      "camera_en":  [
+                                                        631054.6,
+                                                        167888.4
+                                                    ],
+                                      "subject_en":  [
+                                                         630752.0,
+                                                         167917.1
+                                                     ],
+                                      "camera_height_m":  1.7,
+                                      "local_m":  [
+                                                      3374.6,
+                                                      4808.4
+                                                  ],
+                                      "ground_z_m":  29.612,
+                                      "ground_source":  "landscape",
+                                      "eye_z_m":  31.312,
+                                      "eye_ue_cm":  [
+                                                        337460.0,
+                                                        -480840.0,
+                                                        3131.2
+                                                    ],
+                                      "bearing_deg":  275.417993,
+                                      "yaw_deg":  185.417993,
+                                      "pitch_deg":  -0.2,
+                                      "roll_deg":  0.0,
+                                      "fov_deg":  75.0,
+                                      "subject_distance_m":  303.96
+                                  },
+                       "ground":  {
+                                      "landscape_m":  29.612,
+                                      "heightfield_conformed_m":  29.612,
+                                      "trace_down_m":  29.64,
+                                      "landscape_minus_heightfield_m":  0.0
+                                  },
+                       "load":  {
+                                    "centre_en":  [
+                                                      630903.3,
+                                                      167902.75
+                                                  ],
+                                    "radius_m":  600.0
+                                },
+                       "guards":  {
+                                      "distinct_rgb":  42670,
+                                      "mean_luminance":  144.78
+                                  }
+                   },
+                   {
+                       "id":  "acol/shottendane_road_between_the_fields",
+                       "town":  "acol",
+                       "slug":  "shottendane_road_between_the_fields",
+                       "kind":  "street",
+                       "title":  "Shottendane Road north-east between the fields",
+                       "png":  "acol/shottendane_road_between_the_fields.png",
+                       "bytes":  1517111,
+                       "sha256":  "b00b357cff733fa8d82db52b9f7d9652ab1c6fc326ac8e256cb72453e7578d64",
+                       "camera":  {
+                                      "camera_en":  [
+                                                        631487.8,
+                                                        167936.4
+                                                    ],
+                                      "subject_en":  [
+                                                         631671.2,
+                                                         168091.1
+                                                     ],
+                                      "camera_height_m":  1.7,
+                                      "local_m":  [
+                                                      3807.8,
+                                                      4856.4
+                                                  ],
+                                      "ground_z_m":  30.687,
+                                      "ground_source":  "landscape",
+                                      "eye_z_m":  32.387,
+                                      "eye_ue_cm":  [
+                                                        380780.0,
+                                                        -485640.0,
+                                                        3238.7
+                                                    ],
+                                      "bearing_deg":  49.851985,
+                                      "yaw_deg":  -40.148015,
+                                      "pitch_deg":  0.0,
+                                      "roll_deg":  0.0,
+                                      "fov_deg":  75.0,
+                                      "subject_distance_m":  239.93
+                                  },
+                       "ground":  {
+                                      "landscape_m":  30.687,
+                                      "heightfield_conformed_m":  30.688,
+                                      "trace_down_m":  30.716,
+                                      "landscape_minus_heightfield_m":  -0.001
+                                  },
+                       "load":  {
+                                    "centre_en":  [
+                                                      631579.5,
+                                                      168013.75
+                                                  ],
+                                    "radius_m":  600.0
+                                },
+                       "guards":  {
+                                      "distinct_rgb":  43279,
+                                      "mean_luminance":  119.28
+                                  }
+                   },
+                   {
+                       "id":  "acol/margate_hill_at_the_isle_edge",
+                       "town":  "acol",
+                       "slug":  "margate_hill_at_the_isle_edge",
+                       "kind":  "street",
+                       "title":  "Margate Hill south-west to the Wantsum cut",
+                       "png":  "acol/margate_hill_at_the_isle_edge.png",
+                       "bytes":  1502875,
+                       "sha256":  "c950232e6213669eab0bc6a03ff2d3db90144268c6f0005acd2bd1ce6d6fe216",
+                       "camera":  {
+                                      "camera_en":  [
+                                                        631227.8,
+                                                        167687.6
+                                                    ],
+                                      "subject_en":  [
+                                                         631035.2,
+                                                         167520.1
+                                                     ],
+                                      "camera_height_m":  1.7,
+                                      "local_m":  [
+                                                      3547.8,
+                                                      4607.6
+                                                  ],
+                                      "ground_z_m":  27.998,
+                                      "ground_source":  "landscape",
+                                      "eye_z_m":  29.698,
+                                      "eye_ue_cm":  [
+                                                        354780.0,
+                                                        -460760.0,
+                                                        2969.8
+                                                    ],
+                                      "bearing_deg":  228.987231,
+                                      "yaw_deg":  138.987231,
+                                      "pitch_deg":  -1.1,
+                                      "roll_deg":  0.0,
+                                      "fov_deg":  75.0,
+                                      "subject_distance_m":  255.25
+                                  },
+                       "ground":  {
+                                      "landscape_m":  27.998,
+                                      "heightfield_conformed_m":  27.998,
+                                      "trace_down_m":  28.047,
+                                      "landscape_minus_heightfield_m":  0.0
+                                  },
+                       "load":  {
+                                    "centre_en":  [
+                                                      631131.5,
+                                                      167603.85
+                                                  ],
+                                    "radius_m":  600.0
+                                },
+                       "guards":  {
+                                      "distinct_rgb":  39248,
+                                      "mean_luminance":  121.36
+                                  }
+                   },
+                   {
+                       "id":  "acol/cheesemans_farm_from_manston_road",
+                       "town":  "acol",
+                       "slug":  "cheesemans_farm_from_manston_road",
+                       "kind":  "street",
+                       "title":  "Cheesemans Farm from Manston Road",
+                       "png":  "acol/cheesemans_farm_from_manston_road.png",
+                       "bytes":  1473699,
+                       "sha256":  "8cda88949e098672b99db10737e19bfa7b1e96b4f8d9b433836e4b11a901a916",
+                       "camera":  {
+                                      "camera_en":  [
+                                                        632341.9,
+                                                        167079.9
+                                                    ],
+                                      "subject_en":  [
+                                                         632384.0,
+                                                         166952.0
+                                                     ],
+                                      "camera_height_m":  1.7,
+                                      "local_m":  [
+                                                      4661.9,
+                                                      3999.9
+                                                  ],
+                                      "ground_z_m":  35.638,
+                                      "ground_source":  "landscape",
+                                      "eye_z_m":  37.338,
+                                      "eye_ue_cm":  [
+                                                        466190.0,
+                                                        -399990.0,
+                                                        3733.8
+                                                    ],
+                                      "bearing_deg":  161.780347,
+                                      "yaw_deg":  71.780347,
+                                      "pitch_deg":  -1.0,
+                                      "roll_deg":  0.0,
+                                      "fov_deg":  70.0,
+                                      "subject_distance_m":  134.65
+                                  },
+                       "ground":  {
+                                      "landscape_m":  35.638,
+                                      "heightfield_conformed_m":  35.638,
+                                      "trace_down_m":  35.669,
+                                      "landscape_minus_heightfield_m":  0.0
+                                  },
+                       "load":  {
+                                    "centre_en":  [
+                                                      632362.95,
+                                                      167015.95
+                                                  ],
+                                    "radius_m":  600.0
+                                },
+                       "guards":  {
+                                      "distinct_rgb":  43443,
+                                      "mean_luminance":  124.52
+                                  }
+                   }
+               ]
+}

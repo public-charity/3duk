@@ -287,7 +287,6 @@ def main(argv):
             uc.log("streamed a %g m box around local (%g, %g)" % (float(opts["radius_m"]), cx, cy))
         else:
             unreal.StreetscapeEditorLibrary.load_region(unreal.Vector(0.0, 0.0, 0.0), float(opts["site_radius_m"]) * 100.0)
-    pin_landscape_lod(opts["landscape_lod0_screen_size"])   # after the stream, see main_free
 
     ids = [str(i) for i in unreal.StreetscapeEditorLibrary.streetscape_actor_ids()]
     if opts["actor"] not in ids:
@@ -299,6 +298,11 @@ def main(argv):
     if not opts["no_load_region"]:
         eye = defs[cams[0]]["eye_ue"]
         unreal.StreetscapeEditorLibrary.load_region(unreal.Vector(eye[0], eye[1], eye[2]), float(opts["radius_m"]) * 100.0)
+    # AFTER the last region load, never before. main_free already learned this: a LandscapeStreamingProxy that was
+    # not resident when the pin ran keeps its default LOD0ScreenSize, and a coarse-LOD landscape draws through the
+    # carriageway. This path pinned BEFORE the camera-centred load above, so the proxies that actually appear in
+    # the frame were never pinned - the same defect, one call site later.
+    pin_landscape_lod(opts["landscape_lod0_screen_size"])
 
     out = opts["out"].replace("\\", "/")
     single_png = out.lower().endswith(".png")

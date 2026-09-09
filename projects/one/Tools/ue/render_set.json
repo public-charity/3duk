@@ -1,0 +1,1043 @@
+{
+  "schema_version": 1,
+  "site": "thanet",
+  "map": "/Game/Thanet/Maps/Thanet",
+  "crs": "EPSG:27700",
+  "vertical_datum": "ODN",
+  "origin": {
+    "E": 627680,
+    "N": 163080
+  },
+  "purpose": "A FIXED set of viewpoints, re-rendered at every commit into renders/<commit>/<town>/<slug>.png, so the same 45 frames can be compared as the land geometry and the visuals change. The value of the set is that the cameras never move: edit this file only to ADD locations or to replace one that is proven broken, and record the replacement under 'replaced' when you do.",
+  "honesty": "These frames are evidence of what the model looks like today, defects included, and no camera here was placed, aimed or exposed to flatter it. What the first two captures actually showed (margate, 2026-09-09, the smoke test of Tools/render_set.ps1): the carriageway renders cleanly at eye level - the conform of docs/TERRAIN_ROADS.md 8 sank the corridor 0.03 m and a downward trace at the Marine Terrace camera hit the road at 5.898 m ODN against a landscape at 5.858 m, so the road is 0.040 m ABOVE the ground there - but only because the capture pins the landscape at LOD 0. At the engine's default LOD the ground draws through the tarmac, which is why capture.landscape_lod0_screen_size is part of this spec and not a command-line knob. Plainly wrong in the same frames, and what a future commit should fix: every building is an untextured grey prism, the OSM debug overlay is drawn in magenta over every road and pavement (StreetscapeSettings.overlay_lift_m - deliberate, but it is in every frame), and the offshore tiles are a flat fabricated plate at -0.6 m ODN. The D1 tile-boundary seams (85 of 737 adjacent tile pairs, worst 5.34 m) run through the aerials. Nothing is post-processed. A baseline that flatters is worthless for comparison - and so is one that asserts a defect its own pictures disprove.",
+  "frame_rule": "camera_en and subject_en are EPSG:27700 eastings/northings in metres. Local metres from the site origin are x = E - 627680 (east), y = N - 163080 (north), z = ODN metres. Unreal is centimetres and left-handed: X_ue = 100*x, Y_ue = -100*y (so +Y points SOUTH), Z_ue = 100*z. The camera's YAW IS NOT STORED: it is derived, every run, as yaw_ue = bearing(camera -> subject) - 90, where bearing is degrees clockwise from grid north = atan2(dE, dN). Roll is always 0. pitch_deg is the UE pitch in degrees, negative looking down. fov_deg is the HORIZONTAL field of view (SceneCaptureComponent2D.FOVAngle), so the vertical field follows from capture.width/height and changing the capture size re-crops every frame.",
+  "camera_height_rule": "camera_height_m is metres ABOVE THE GROUND AT camera_en, not an absolute elevation. The renderer samples the ground from the imported landscape product (data/thanet/out/unreal/landscape_conformed, which is what Tools/ue/00_build_level.ps1 imports) with the landscape's own triangulated rule, and sets Z_ue = 100 * (ground_z + camera_height_m). This is deliberate: an eye-level camera must stand ON the ground, so as the terrain is corrected the camera follows it. It also means the camera's absolute Z can move between commits - authoring_ground_z_m below records the ground this set was authored against, and every renders/<commit>/manifest.json records the ground and the absolute Z actually used, so any vertical drift between two snapshots is measurable rather than invisible.",
+  "capture": {
+    "width": 1600,
+    "height": 900,
+    "aspect": "16:9",
+    "source": "final_ldr",
+    "exposure_ev": 0.0,
+    "landscape_lod0_screen_size": 8.0,
+    "landscape_lod_note": "The landscape's LOD chain drops vertices, so a coarse-LOD ground draws decimetres away from the data and cuts through carriageways that the numbers say it is below (Tools/ue/05_screenshot.py pin_landscape_lod). Pinning LOD0 out to a large screen size makes the capture show the surface the data describes; `landscape.OverrideLOD` does not reach a SceneCapture's view and must not be used instead.",
+    "guards": {
+      "min_distinct_rgb": 24,
+      "min_mean_luminance": 4.0,
+      "max_mean_luminance": 250.0
+    },
+    "guards_note": "A capture below min_distinct_rgb or min_mean_luminance is a black or empty frame and FAILS the run; above max_mean_luminance it is blown out and FAILS. A failed frame is never reported as a snapshot."
+  },
+  "region_load_rule": "World Partition loads nothing in a commandlet, so a capture without a load streams empty space. The renderer calls StreetscapeEditorLibrary.load_region centred on the MIDPOINT of camera_en and subject_en - not the camera, because two aerials stand over open sea whose tiles carry terrain but no streetscape or massing - with radius = max(kind_floor, dist/2 + margin), kind_floor 1500 m and margin 900 m for aerial, 600 m and 400 m otherwise. Deterministic from the stored numbers, so two commits load the same region.",
+  "provenance": "Scouted in three parallel passes that wrote Tools/ue/render_locations_{a,b,c}.json - a: margate, cliftonville, westgate-on-sea; b: broadstairs, birchington, westwood; c: ramsgate, manston, acol - and merged into this one file, after which those three were deleted so there is exactly one place a camera can be defined. Every position came out of the pipeline products rather than being invented: eye-level cameras stand on road-centreline vertices from data/thanet/out/networks/roads_*.jsonl, landmark subjects are footprint centroids from data/thanet/out/massing/buildings_*.jsonl with their own base_z and height, beach cameras stand on cells the coast rasters class as sand, and town anchors were reprojected from thanet_towns.json through the OSTN15 grid (PROJ_NETWORK=ON cs2cs EPSG:4326 EPSG:27700), confirmed by reproducing the clip endpoints 628512.049/169679.539 and 635496.568/163608.977 that sources/config/sites/thanet.json stores.",
+  "towns_included": [
+    "margate",
+    "cliftonville",
+    "broadstairs",
+    "ramsgate",
+    "westgate-on-sea",
+    "birchington",
+    "westwood",
+    "manston",
+    "acol"
+  ],
+  "towns_excluded": {
+    "slugs": [
+      "minster",
+      "monkton",
+      "cliffsend"
+    ],
+    "why": "thanet_towns.json marks these three on_isle false: they are in Thanet DISTRICT but lie south-west of the Wantsum clip line in sources/config/sites/thanet.json, outside the cut the model builds. There is no landscape under them - step 02 does not even fetch tiles wholly outside the clip - so a camera there would photograph nothing. They are excluded on purpose, not forgotten; if the clip line moves, add them and re-authorise the set."
+  },
+  "known_soft_spot": {
+    "acol": "thanet_towns.json marks Acol on_isle true, but its anchor (630663.70, 167282.04) is 398 m OUTSIDE the clip and its tile x5_y8 was never fetched, so the village itself has no terrain. The five Acol locations cover the isle-side wedge of Acol's nearest-anchor cell. Either the on_isle flag or the clip line is wrong and somebody should decide which; until then these frames are of Acol's surroundings, and this file says so rather than pretending."
+  },
+  "validation": {
+    "run_by": "projects/one/Tools/ue/render_set.json's merge pass (harness agent), against data/thanet/out/unreal/landscape_conformed and data/thanet/out/massing",
+    "gates": [
+      "camera and subject inside the 26x19 x 512 m tile grid",
+      "camera and subject on the kept (north-east) side of the Wantsum clip half-plane",
+      "a heightmap tile exists at both, the clip mask marks the cell 255 (surveyed and kept), and the ground is inside -10..120 m ODN",
+      "camera-subject distance 15..1250 m",
+      "aerial camera_height_m 200..700, eye-level 1.5..2.0",
+      "fov_deg 30..100, pitch_deg -70..30, eye-level |pitch| <= 20",
+      "the subject is inside the vertical frame at the stored pitch, allowing an aim anywhere from the subject's ground to 40 m above it",
+      "the camera is not inside a massing extrusion (footprint containment plus the skirt..ridge height band)",
+      "terrain does not rise more than 1.5 m through the camera->aim sight line, sampled every 4 m",
+      "per town: exactly 5 locations, exactly 1 aerial, at least 4 eye-level cameras, no two cameras closer than 150 m",
+      "location ids unique across the whole set"
+    ],
+    "result": "45 of 45 locations pass every gate; 2 were replaced first (see 'replaced')."
+  },
+  "replaced": [
+    {
+      "id": "cliftonville/walpole_bay_chalk_cliff_from_the_sands",
+      "scout": "a",
+      "old": {
+        "camera_en": [
+          636900.0,
+          171480.0
+        ],
+        "subject_en": [
+          636929.3,
+          171298.3
+        ],
+        "pitch_deg": 6.57,
+        "fov_deg": 75.0
+      },
+      "new": {
+        "camera_en": [
+          636900.0,
+          171480.0
+        ],
+        "subject_en": [
+          636914.1,
+          171393.1
+        ],
+        "pitch_deg": 8.4,
+        "fov_deg": 75.0
+      }
+    },
+    {
+      "id": "westgate-on-sea/st_mildreds_bay_from_the_sands",
+      "scout": "a",
+      "old": {
+        "camera_en": [
+          632150.0,
+          170545.0
+        ],
+        "subject_en": [
+          632124.8,
+          170323.2
+        ],
+        "pitch_deg": 4.3,
+        "fov_deg": 75.0
+      },
+      "new": {
+        "camera_en": [
+          632150.0,
+          170600.0
+        ],
+        "subject_en": [
+          632150.0,
+          170512.0
+        ],
+        "pitch_deg": 7.0,
+        "fov_deg": 70.0
+      }
+    }
+  ],
+  "authoring_ground_z_m": {
+    "margate/margate_bay_from_the_north_west": -2.273,
+    "margate/marine_terrace_west_past_dreamland": 5.858,
+    "margate/canterbury_road_east_at_garlinge": 18.182,
+    "margate/turner_contemporary_from_the_sands": 0.867,
+    "margate/millmead_road_east_up_the_hill": 35.905,
+    "cliftonville/cliftonville_from_over_walpole_bay": -0.031,
+    "cliftonville/northdown_road_east_through_the_shops": 28.75,
+    "cliftonville/eastern_esplanade_seafront_terrace": 20.57,
+    "cliftonville/walpole_bay_chalk_cliff_from_the_sands": 0.781,
+    "cliftonville/princess_margaret_avenue_at_northdown": 25.521,
+    "broadstairs/the_town_and_viking_bay_from_the_sea": -1.43,
+    "broadstairs/broadstairs_high_street": 40.24,
+    "broadstairs/st_peters_high_street": 43.961,
+    "broadstairs/viking_bay_sands_and_the_cliff_town": 0.617,
+    "broadstairs/north_foreland_lighthouse": 31.286,
+    "ramsgate/royal_harbour_and_town_from_the_sea": -2.625,
+    "ramsgate/military_road_at_the_royal_harbour": 5.98,
+    "ramsgate/high_street_down_to_the_harbour": 19.712,
+    "ramsgate/ramsgate_station_from_the_approach": 42.619,
+    "ramsgate/ramsgate_sands_and_the_east_cliff": 0.141,
+    "westgate-on-sea/westgate_from_over_st_mildreds_bay": -2.328,
+    "westgate-on-sea/westgate_bay_avenue_east_to_the_town": 10.534,
+    "westgate-on-sea/canterbury_road_west_at_westgate": 14.167,
+    "westgate-on-sea/st_mildreds_bay_from_the_sands": -0.523,
+    "westgate-on-sea/westgate_station_from_station_road": 14.077,
+    "birchington/birchington_and_the_wantsum_edge": 0.07,
+    "birchington/canterbury_road_a28": 25.143,
+    "birchington/station_road_to_the_square": 23.651,
+    "birchington/minnis_bay_where_the_model_ends": 5.776,
+    "birchington/railway_bridge_over_minnis_road": 8.012,
+    "westwood/westwood_cross_and_the_retail_grid": 50.0,
+    "westwood/haine_road_past_westwood_cross": 46.743,
+    "westwood/new_haine_road_at_haine": 49.57,
+    "westwood/westwood_cross_sheds_from_the_carpark": 50.109,
+    "westwood/manston_court_road_and_the_farmland": 36.686,
+    "manston/manston_airfield_from_the_east": 48.094,
+    "manston/spitfire_way_along_the_airfield": 44.584,
+    "manston/manston_high_street_by_the_green": 47.87,
+    "manston/manston_hangars_and_control_tower": 41.844,
+    "manston/preston_road_north_east_of_the_village": 50.9,
+    "acol/acol_fields_and_the_isle_edge": 32.867,
+    "acol/manston_road_west_towards_acol": 29.609,
+    "acol/shottendane_road_between_the_fields": 30.688,
+    "acol/margate_hill_at_the_isle_edge": 28.002,
+    "acol/cheesemans_farm_from_manston_road": 35.638
+  },
+  "authoring_ground_note": "Ground at camera_en in ODN metres, sampled from data/thanet/out/unreal/landscape_conformed with the landscape's triangulated rule at the commit this set was authored on. Advisory: the renderer re-samples it every run and the manifest records what it got. A large difference between the two is a real change in the terrain, which is the point of the set.",
+  "towns": [
+    {
+      "slug": "margate",
+      "name": "Margate",
+      "locations": [
+        {
+          "id": "margate/margate_bay_from_the_north_west",
+          "slug": "margate_bay_from_the_north_west",
+          "title": "Margate bay and the town from the north-west",
+          "kind": "aerial",
+          "camera_en": [
+            634644.0,
+            171285.0
+          ],
+          "subject_en": [
+            635174.0,
+            170755.0
+          ],
+          "camera_height_m": 300.0,
+          "pitch_deg": -21.23,
+          "fov_deg": 80.0,
+          "why": "The whole seafront crescent, the street grid behind it and the sand/water edge in one oblique; a future commit should straighten the coastline, remove the tile-boundary steps in the ground and let the road network read as a network from the air."
+        },
+        {
+          "id": "margate/marine_terrace_west_past_dreamland",
+          "slug": "marine_terrace_west_past_dreamland",
+          "title": "Marine Terrace looking west past Dreamland to Arlington House",
+          "kind": "street",
+          "camera_en": [
+            635098.89,
+            170722.19
+          ],
+          "subject_en": [
+            634877.98,
+            170706.5
+          ],
+          "camera_height_m": 1.7,
+          "pitch_deg": -0.32,
+          "fov_deg": 75.0,
+          "why": "Standing in the middle of a 12 m trunk carriageway on the seafront: today the road is buried in the landscape, so this frame should gain kerbs, markings and pavements, and Arlington House (57 m; bearing 243.2 against the street's 265.9, so 22.7 deg left of centre) should stop growing out of a lumpy podium."
+        },
+        {
+          "id": "margate/canterbury_road_east_at_garlinge",
+          "slug": "canterbury_road_east_at_garlinge",
+          "title": "Canterbury Road at Garlinge, looking north-east into Margate",
+          "kind": "street",
+          "camera_en": [
+            633839.77,
+            170009.45
+          ],
+          "subject_en": [
+            633982.15,
+            170087.53
+          ],
+          "camera_height_m": 1.7,
+          "pitch_deg": -1.12,
+          "fov_deg": 75.0,
+          "why": "The western arterial on a measured 1.54 m fall over 162 m, the case docs/TERRAIN_ROADS.md D3 says is worst: a cambered ribbon on a cross-sloping DTM. If the corridor conform works, this is where the carriageway should first appear above the ground."
+        },
+        {
+          "id": "margate/turner_contemporary_from_the_sands",
+          "slug": "turner_contemporary_from_the_sands",
+          "title": "The Turner Contemporary and the harbour arm from the Main Sands",
+          "kind": "seafront",
+          "camera_en": [
+            635270.0,
+            171120.0
+          ],
+          "subject_en": [
+            635390.3,
+            171231.5
+          ],
+          "camera_height_m": 1.7,
+          "pitch_deg": 2.89,
+          "fov_deg": 75.0,
+          "why": "Low on the intertidal sand looking up at the gallery and the harbour arm: the shot that shows whether the sand/rock/water classes, the harbour wall and the buildings at the water's edge sit at the heights the survey measured."
+        },
+        {
+          "id": "margate/millmead_road_east_up_the_hill",
+          "slug": "millmead_road_east_up_the_hill",
+          "title": "Millmead Road climbing east through the Millmead estate",
+          "kind": "street",
+          "camera_en": [
+            637001.02,
+            170099.19
+          ],
+          "subject_en": [
+            637276.75,
+            170014.85
+          ],
+          "camera_height_m": 1.7,
+          "pitch_deg": 0.78,
+          "fov_deg": 75.0,
+          "why": "Inland Margate on the steepest thing in town: 5.64 m of climb in 288 m of secondary road through post-war housing. The longitudinal profile of the carriageway against the hill is the clearest read on whether the road corridor follows the ground or fights it."
+        }
+      ]
+    },
+    {
+      "slug": "cliftonville",
+      "name": "Cliftonville",
+      "locations": [
+        {
+          "id": "cliftonville/cliftonville_from_over_walpole_bay",
+          "slug": "cliftonville_from_over_walpole_bay",
+          "title": "Cliftonville from over Walpole Bay",
+          "kind": "aerial",
+          "camera_en": [
+            637150.0,
+            171650.0
+          ],
+          "subject_en": [
+            636600.0,
+            171000.0
+          ],
+          "camera_height_m": 320.0,
+          "pitch_deg": -19.07,
+          "fov_deg": 80.0,
+          "why": "The Victorian grid, the unbroken seafront terrace and the chalk cliff line in one oblique from the north-east; the frame that will show land-geometry improvements at scale, including the seams docs/TERRAIN_ROADS.md D1 measured between tiles."
+        },
+        {
+          "id": "cliftonville/northdown_road_east_through_the_shops",
+          "slug": "northdown_road_east_through_the_shops",
+          "title": "Northdown Road looking east through the shopping street",
+          "kind": "street",
+          "camera_en": [
+            636415.99,
+            170907.63
+          ],
+          "subject_en": [
+            636613.42,
+            170848.71
+          ],
+          "camera_height_m": 1.7,
+          "pitch_deg": -0.22,
+          "fov_deg": 75.0,
+          "why": "Cliftonville's high street, 206 m of 8.5 m secondary carriageway rising 0.89 m between continuous frontage. Shop fronts both sides make the pavement width and the kerb line readable, which is exactly what the road corridor fix has to restore."
+        },
+        {
+          "id": "cliftonville/eastern_esplanade_seafront_terrace",
+          "slug": "eastern_esplanade_seafront_terrace",
+          "title": "Eastern Esplanade along the seafront terrace",
+          "kind": "street",
+          "camera_en": [
+            636394.64,
+            171248.38
+          ],
+          "subject_en": [
+            636639.1,
+            171243.32
+          ],
+          "camera_height_m": 1.7,
+          "pitch_deg": -0.67,
+          "fov_deg": 75.0,
+          "why": "The straight run of the clifftop terrace, the town's defining subject: 244 m of carriageway that falls only 1.17 m (20.60 to 19.43 m ODN) with the sea off the left shoulder. Nearly flat ground, so any wobble in the road surface here is the renderer's, not the hill's."
+        },
+        {
+          "id": "cliftonville/walpole_bay_chalk_cliff_from_the_sands",
+          "slug": "walpole_bay_chalk_cliff_from_the_sands",
+          "title": "The Walpole Bay chalk cliff from the sands",
+          "kind": "seafront",
+          "camera_en": [
+            636900.0,
+            171480.0
+          ],
+          "subject_en": [
+            636914.1,
+            171393.1
+          ],
+          "camera_height_m": 1.7,
+          "pitch_deg": 8.4,
+          "fov_deg": 75.0,
+          "why": "From the sand at 0.78 m ODN up the chalk cliff to its brow 88 m away and 15.5 m up: the 22-40 deg rock ramp the coast classifier fits, and the beach-to-cliff junction. The scout aimed this at the Victorian terrace 184 m inland, which the measured profile shows is hidden behind the brow (crest 8.41 deg, terrace ground 4.79 deg) - the subject was moved to the brow so the frame states what it actually holds. The terrace roofs appear above the brow or they do not; either way it is evidence."
+        },
+        {
+          "id": "cliftonville/princess_margaret_avenue_at_northdown",
+          "slug": "princess_margaret_avenue_at_northdown",
+          "title": "Princess Margaret Avenue running downhill at Northdown",
+          "kind": "street",
+          "camera_en": [
+            637978.7,
+            170806.57
+          ],
+          "subject_en": [
+            638040.91,
+            171010.12
+          ],
+          "camera_height_m": 1.7,
+          "pitch_deg": -1.41,
+          "fov_deg": 75.0,
+          "why": "Inter-war suburbia at the eastern end of the town, 213 m of avenue falling 3.55 m. Wide verges and set-back houses, so this is where pavement, verge and carriageway should separate once the corridor no longer fuses with the ground."
+        }
+      ]
+    },
+    {
+      "slug": "broadstairs",
+      "name": "Broadstairs and St Peter's",
+      "locations": [
+        {
+          "id": "broadstairs/the_town_and_viking_bay_from_the_sea",
+          "slug": "the_town_and_viking_bay_from_the_sea",
+          "title": "Broadstairs and Viking Bay from over the sea",
+          "kind": "aerial",
+          "camera_en": [
+            640650.0,
+            167300.0
+          ],
+          "subject_en": [
+            639700.0,
+            167850.0
+          ],
+          "camera_height_m": 520.0,
+          "pitch_deg": -24.0,
+          "fov_deg": 75.0,
+          "why": "Broadstairs' whole shape in one oblique -- the harbour, the High Street ridge, St Peter's and Kingsgate are all measured to fall inside this frustum, against the chalk coastline and the sea. The scale view for land geometry: the D1 tile-boundary seams (85 of 737 adjacent pairs, worst 5.34 m) and the 28 fabricated offshore tiles held flat at -0.6 m ODN are what a future commit should remove from this frame."
+        },
+        {
+          "id": "broadstairs/broadstairs_high_street",
+          "slug": "broadstairs_high_street",
+          "title": "Broadstairs High Street looking down to the sea",
+          "kind": "street",
+          "camera_en": [
+            639264.1,
+            167913.21
+          ],
+          "subject_en": [
+            639457.11,
+            167861.3
+          ],
+          "camera_height_m": 1.7,
+          "pitch_deg": -0.8,
+          "fov_deg": 75.0,
+          "why": "Standing on the centreline of the 10 m primary High Street, looking 200 m downhill between the shopfronts. The conform put the road above the ground in the DATA (zero penetration, README 1.8) but sank the corridor only 0.03 m, which is thinner than the landscape's rendered surface at this range, so green wedges still cut across the tarmac -- that open blocker is what this frame is for."
+        },
+        {
+          "id": "broadstairs/st_peters_high_street",
+          "slug": "st_peters_high_street",
+          "title": "St Peter's High Street looking east",
+          "kind": "street",
+          "camera_en": [
+            638131.94,
+            168423.55
+          ],
+          "subject_en": [
+            638369.46,
+            168314.13
+          ],
+          "camera_height_m": 1.7,
+          "pitch_deg": -0.2,
+          "fov_deg": 75.0,
+          "why": "261 m of the village street at St Peter's, a 6 m residential carriageway with 1.5 m pavements between terraces; the same 0.03 m corridor on a narrow road, where the kerb line and the pavement should be the first things to appear when the render-side blocker is closed."
+        },
+        {
+          "id": "broadstairs/viking_bay_sands_and_the_cliff_town",
+          "slug": "viking_bay_sands_and_the_cliff_town",
+          "title": "Viking Bay sands looking up at the cliff town",
+          "kind": "seafront",
+          "camera_en": [
+            639900.0,
+            167800.0
+          ],
+          "subject_en": [
+            639786.24,
+            167871.18
+          ],
+          "camera_height_m": 1.7,
+          "pitch_deg": 8.6,
+          "fov_deg": 70.0,
+          "why": "From the sand at 0.6 m ODN looking up 16 m of chalk cliff to the harbour and Albion Street: the coast classifier's sand/rock split and the 22-40 deg rock ramp meet the massing here, so a future commit should sharpen the cliff face and the beach-to-cliff junction."
+        },
+        {
+          "id": "broadstairs/north_foreland_lighthouse",
+          "slug": "north_foreland_lighthouse",
+          "title": "North Foreland lighthouse from North Foreland Road",
+          "kind": "landmark",
+          "camera_en": [
+            639900.71,
+            169735.06
+          ],
+          "subject_en": [
+            639858.0,
+            169612.9
+          ],
+          "camera_height_m": 1.7,
+          "pitch_deg": 7.9,
+          "fov_deg": 55.0,
+          "why": "The North Foreland lighthouse 129 m along North Foreland Road: massing id 562020647 carries h 26.0 m from the OSM seamark height but roof=gabled with eaves at 11.4 m, so today a round tower is drawn as a 17-sided prism under a 14.6 m pitched roof -- a defect a future commit can be judged on from this exact frame."
+        }
+      ]
+    },
+    {
+      "slug": "ramsgate",
+      "name": "Ramsgate",
+      "locations": [
+        {
+          "id": "ramsgate/royal_harbour_and_town_from_the_sea",
+          "slug": "royal_harbour_and_town_from_the_sea",
+          "title": "Ramsgate: the Royal Harbour and the town from the sea",
+          "kind": "aerial",
+          "camera_en": [
+            638400.0,
+            163800.0
+          ],
+          "subject_en": [
+            638499.6,
+            164717.1
+          ],
+          "camera_height_m": 430.0,
+          "pitch_deg": -24.6,
+          "fov_deg": 90.0,
+          "why": "The one establishing shot: from 430 m over the water south of the harbour mouth. Checked against the massing product, the 90 degree frame holds the West Pier lighthouse at 494 m, the Royal Victoria Pavilion at 988 m, Kennedy House at 1,379 m, the Granville at 1,456 m, Victoria Parade on the East Cliff at 1,518 m and Ramsgate station at 2,196 m; the West Cliff past the Paragon falls outside it, which is why this is not claimed as a view of the whole town. A future commit should improve the cliff line, the step between the harbour floor and the cliff top, and the offshore water surface - the -0.6 m ODN plate sits about 2 m above the surveyed sea its neighbours carry, so the ledge at the tile edges is a defect this frame will show."
+        },
+        {
+          "id": "ramsgate/military_road_at_the_royal_harbour",
+          "slug": "military_road_at_the_royal_harbour",
+          "title": "Ramsgate: Military Road east along the Royal Harbour",
+          "kind": "street",
+          "camera_en": [
+            638319.1,
+            164770.6
+          ],
+          "subject_en": [
+            638605.1,
+            164767.1
+          ],
+          "camera_height_m": 1.7,
+          "pitch_deg": -0.4,
+          "fov_deg": 75.0,
+          "why": "Standing on the Military Road centreline (secondary, 8.5 m wide with a 2.0 m pavement each side) looking east along the harbour to the Royal Victoria Pavilion 286 m away, with the Maritime Museum on the left at 188 m. At this vertex the road crown is 6.02 m ODN and the conformed ground under it is 5.98 m - a 4 cm clearance, the whole of the corridor conform - so this near-level, wide, kerbed stretch is where a road still fused with the landscape shows first, and where kerbs, a carriageway edge and markings should appear once it is not."
+        },
+        {
+          "id": "ramsgate/high_street_down_to_the_harbour",
+          "slug": "high_street_down_to_the_harbour",
+          "title": "Ramsgate: High Street falling south-east towards the harbour",
+          "kind": "street",
+          "camera_en": [
+            638044.3,
+            165177.7
+          ],
+          "subject_en": [
+            638175.3,
+            165062.7
+          ],
+          "camera_height_m": 1.7,
+          "pitch_deg": -2.6,
+          "fov_deg": 75.0,
+          "why": "Eye level in the High Street carriageway (tertiary, 7.0 m with 1.8 m pavements) on the 6.4 m drop from 19.7 m to 13.4 m ODN over 174 m. A road on a cross-sloping hill is the case docs/TERRAIN_ROADS.md 8 measured as the driver of the fusion (94.4 % of stations negative on the cross-section term), so this is the frame where the corridor conform has to prove itself, and where pavements and kerb returns at the side streets should appear."
+        },
+        {
+          "id": "ramsgate/ramsgate_station_from_the_approach",
+          "slug": "ramsgate_station_from_the_approach",
+          "title": "Ramsgate station from Station Approach Road",
+          "kind": "landmark",
+          "camera_en": [
+            637406.8,
+            165659.8
+          ],
+          "subject_en": [
+            637314.2,
+            165708.8
+          ],
+          "camera_height_m": 1.7,
+          "pitch_deg": -0.7,
+          "fov_deg": 65.0,
+          "why": "The station building (OSM train_station, footprint centre 637314.2/165708.8, base 43.04 m ODN, massing height 5.47 m) seen from the approach road 105 m away. The massing here is a LIDAR p50 extrusion of a long low shed, so this frame is the honest record of what generic massing looks like today and the place to judge any later roof, facade or station-canopy work; it also puts the north-west quarter of the town in the set."
+        },
+        {
+          "id": "ramsgate/ramsgate_sands_and_the_east_cliff",
+          "slug": "ramsgate_sands_and_the_east_cliff",
+          "title": "Ramsgate: the East Cliff from the sands",
+          "kind": "seafront",
+          "camera_en": [
+            639035.0,
+            165281.0
+          ],
+          "subject_en": [
+            638928.8,
+            165252.3
+          ],
+          "camera_height_m": 1.7,
+          "pitch_deg": 11.6,
+          "fov_deg": 75.0,
+          "why": "Standing on Ramsgate Sands at 0.14 m ODN (coast class sand 255, water 20 m behind the camera) looking west-south-west up the whole chalk section the pipeline classifies: sand to 20 m, the rock band at 30-40 m, the undercliff terrace at 6-8 m, then the cliff face rising to 24.5 m and, on top, the Granville at 210 m and the Kennedy House and Trove Court towers at about 520 m. It is the single best test of the coast thresholds (foreshore_max_odn 1.2, rock_slope_deg 22-40) and of whether the cliff is a clean break or a smeared ramp. Taken from the road above, the cliff top hides its own face - measured, the terrain stands 5.6 m above that sight line - so this stands on the beach instead."
+        }
+      ]
+    },
+    {
+      "slug": "westgate-on-sea",
+      "name": "Westgate-on-Sea",
+      "locations": [
+        {
+          "id": "westgate-on-sea/westgate_from_over_st_mildreds_bay",
+          "slug": "westgate_from_over_st_mildreds_bay",
+          "title": "Westgate-on-Sea from over St Mildred's Bay",
+          "kind": "aerial",
+          "camera_en": [
+            632120.0,
+            170800.0
+          ],
+          "subject_en": [
+            632330.0,
+            170060.0
+          ],
+          "camera_height_m": 300.0,
+          "pitch_deg": -20.17,
+          "fov_deg": 80.0,
+          "why": "The whole planned resort in one oblique: the bay, the sea wall, the grid of avenues and the Chatham main line cutting across the bottom of the town. The frame that shows whether the small-town street network survives at scale."
+        },
+        {
+          "id": "westgate-on-sea/westgate_bay_avenue_east_to_the_town",
+          "slug": "westgate_bay_avenue_east_to_the_town",
+          "title": "Westgate Bay Avenue looking east into the town",
+          "kind": "street",
+          "camera_en": [
+            631943.3,
+            170043.69
+          ],
+          "subject_en": [
+            632159.08,
+            170102.93
+          ],
+          "camera_height_m": 1.7,
+          "pitch_deg": -0.49,
+          "fov_deg": 75.0,
+          "why": "224 m of tertiary road that dips 2.90 m into a dry valley and climbs out again. A road on a concave profile is the hardest case for the corridor conform, so this is the frame that will say whether the fix generalises off the flat."
+        },
+        {
+          "id": "westgate-on-sea/canterbury_road_west_at_westgate",
+          "slug": "canterbury_road_west_at_westgate",
+          "title": "Canterbury Road looking west out of Westgate",
+          "kind": "street",
+          "camera_en": [
+            632285.63,
+            169735.16
+          ],
+          "subject_en": [
+            632071.91,
+            169692.84
+          ],
+          "camera_height_m": 1.7,
+          "pitch_deg": -0.08,
+          "fov_deg": 75.0,
+          "why": "The 12 m trunk road on the southern edge of the town, climbing 1.41 m over 218 m. The widest carriageway in Westgate, so the buried-road defect and its repair are both most visible here."
+        },
+        {
+          "id": "westgate-on-sea/st_mildreds_bay_from_the_sands",
+          "slug": "st_mildreds_bay_from_the_sands",
+          "title": "St Mildred's Bay from the sands, looking at the sea wall",
+          "kind": "seafront",
+          "camera_en": [
+            632150.0,
+            170600.0
+          ],
+          "subject_en": [
+            632150.0,
+            170512.0
+          ],
+          "camera_height_m": 1.7,
+          "pitch_deg": 7.0,
+          "fov_deg": 70.0,
+          "why": "Due south across the wet sand of the bay at the sea wall and the town on top of it. The original scout camera stood 24 m from a 13.1 m wall, which put the wall at 25.8 deg elevation and filled the frame with chalk; this one stands 88 m off, so the sand runs to 60 m, the wall rises from 2.6 to 7.3 deg and the buildings above it are in frame. The beach-to-wall junction and the coast classifier's sand/rock split are what a future commit should sharpen here."
+        },
+        {
+          "id": "westgate-on-sea/westgate_station_from_station_road",
+          "slug": "westgate_station_from_station_road",
+          "title": "Westgate-on-Sea station from Station Road",
+          "kind": "landmark",
+          "camera_en": [
+            632505.1,
+            170019.97
+          ],
+          "subject_en": [
+            632378.5,
+            169989.4
+          ],
+          "camera_height_m": 1.7,
+          "pitch_deg": 0.46,
+          "fov_deg": 75.0,
+          "why": "Down the middle of Station Road at the station that the resort was planned around, with the Chatham main line 8 m beyond it and 17 m off the camera's left. Shows the road, the railway corridor together - three subsystems that must agree on one ground."
+        }
+      ]
+    },
+    {
+      "slug": "birchington",
+      "name": "Birchington-on-Sea",
+      "locations": [
+        {
+          "id": "birchington/birchington_and_the_wantsum_edge",
+          "slug": "birchington_and_the_wantsum_edge",
+          "title": "Birchington and the western edge of the model from the sea",
+          "kind": "aerial",
+          "camera_en": [
+            630900.0,
+            170050.0
+          ],
+          "subject_en": [
+            629900.0,
+            169500.0
+          ],
+          "camera_height_m": 480.0,
+          "pitch_deg": -21.6,
+          "fov_deg": 75.0,
+          "why": "The whole of Birchington: Minnis Bay, the station, Epple Bay and the centre are all measured to fall inside this frustum, and so is the clip line's endpoint A 2.4 km down the view, where the landscape stops dead against the fabricated water plate. The scale view for both the town's land geometry and how the model presents its own edge."
+        },
+        {
+          "id": "birchington/canterbury_road_a28",
+          "slug": "canterbury_road_a28",
+          "title": "Canterbury Road, the A28 through Birchington",
+          "kind": "street",
+          "camera_en": [
+            630488.55,
+            169147.64
+          ],
+          "subject_en": [
+            630635.88,
+            169290.36
+          ],
+          "camera_height_m": 1.7,
+          "pitch_deg": -0.7,
+          "fov_deg": 75.0,
+          "why": "205 m along the widest carriageway in this set -- a 12 m trunk road with 2 m pavements, and therefore the largest area of road surface in any of these frames; the first place to read whether the rendered landscape still draws across tarmac at eye level."
+        },
+        {
+          "id": "birchington/station_road_to_the_square",
+          "slug": "station_road_to_the_square",
+          "title": "Station Road looking north-west to The Square",
+          "kind": "street",
+          "camera_en": [
+            630213.34,
+            169090.74
+          ],
+          "subject_en": [
+            629981.07,
+            169360.88
+          ],
+          "camera_height_m": 1.7,
+          "pitch_deg": -0.4,
+          "fov_deg": 75.0,
+          "why": "356 m of the village high street from Canterbury Road to The Square, shops both sides of a 5.5 m carriageway; a narrow street where kerbs, pavements and the road edge should become legible when the render-side blocker is closed."
+        },
+        {
+          "id": "birchington/minnis_bay_where_the_model_ends",
+          "slug": "minnis_bay_where_the_model_ends",
+          "title": "Minnis Bay looking west to where the model stops",
+          "kind": "seafront",
+          "camera_en": [
+            628768.34,
+            169712.2
+          ],
+          "subject_en": [
+            628603.9,
+            169652.3
+          ],
+          "camera_height_m": 1.7,
+          "pitch_deg": -2.6,
+          "fov_deg": 70.0,
+          "why": "From the seaward end of The Parade looking 175 m WSW across the sands: the clip line's endpoint A is 40 m beyond the subject, so this frame holds the hard edge of the modelled isle, the visibility hole and the water surface the coast manifest itself calls fabricated. A future commit should make that edge honest, not hide it."
+        },
+        {
+          "id": "birchington/railway_bridge_over_minnis_road",
+          "slug": "railway_bridge_over_minnis_road",
+          "title": "The Chatham Main Line bridge over Minnis Road",
+          "kind": "landmark",
+          "camera_en": [
+            629340.6,
+            169395.7
+          ],
+          "subject_en": [
+            629377.4,
+            169380.6
+          ],
+          "camera_height_m": 1.7,
+          "pitch_deg": 2.1,
+          "fov_deg": 65.0,
+          "why": "The only rail view in this group: the Ramsgate branch crossing Minnis Road, bridge deck at 11.15 m ODN over a carriageway at 7.70 m -- about 3.4 m of clearance where the real bridge has more. Rail also carries the worst float in the audit after steps and cycleways (18 % of its stations more than 0.125 m clear), so the black voids under the formation should close here."
+        }
+      ]
+    },
+    {
+      "slug": "westwood",
+      "name": "Westwood",
+      "locations": [
+        {
+          "id": "westwood/westwood_cross_and_the_retail_grid",
+          "slug": "westwood_cross_and_the_retail_grid",
+          "title": "Westwood Cross and the inland band from the east",
+          "kind": "aerial",
+          "camera_en": [
+            637300.0,
+            167200.0
+          ],
+          "subject_en": [
+            636400.0,
+            167650.0
+          ],
+          "camera_height_m": 520.0,
+          "pitch_deg": -26.9,
+          "fov_deg": 75.0,
+          "why": "Looking WNW along Westwood's long axis: the flat-roofed retail sheds and their car parks in the near field, with Lydden, Flete, Haine and Manston Court Road beyond and the Margate coast on the horizon -- measured to contain all four of the town's anchors. The scale view for a third of the modelled built area, which today is grey prisms standing on grass."
+        },
+        {
+          "id": "westwood/haine_road_past_westwood_cross",
+          "slug": "haine_road_past_westwood_cross",
+          "title": "Haine Road past Westwood Cross",
+          "kind": "street",
+          "camera_en": [
+            636249.15,
+            167841.28
+          ],
+          "subject_en": [
+            636110.33,
+            167730.64
+          ],
+          "camera_height_m": 1.7,
+          "pitch_deg": 0.7,
+          "fov_deg": 75.0,
+          "why": "178 m of 10 m primary carriageway between the retail sheds and their car parks: the busiest road in Westwood and one of the densest crossings of corridors, which is where the audit's float defect (5.43 % of stations more than 0.125 m clear, worst 13.08 m) leaves voids under the kerbs."
+        },
+        {
+          "id": "westwood/new_haine_road_at_haine",
+          "slug": "new_haine_road_at_haine",
+          "title": "New Haine Road looking south to Haine",
+          "kind": "street",
+          "camera_en": [
+            636183.13,
+            167083.69
+          ],
+          "subject_en": [
+            636141.65,
+            166949.0
+          ],
+          "camera_height_m": 1.7,
+          "pitch_deg": 0.3,
+          "fov_deg": 75.0,
+          "why": "141 m of the 10 m primary spine south of Westwood Cross, on open ground with nothing to hide the carriageway: the cleanest read in this group of whether the rendered landscape and the road surface agree."
+        },
+        {
+          "id": "westwood/westwood_cross_sheds_from_the_carpark",
+          "slug": "westwood_cross_sheds_from_the_carpark",
+          "title": "The Westwood Cross sheds from the car park",
+          "kind": "landmark",
+          "camera_en": [
+            636300.0,
+            167620.0
+          ],
+          "subject_en": [
+            636201.0,
+            167743.0
+          ],
+          "camera_height_m": 1.7,
+          "pitch_deg": 0.8,
+          "fov_deg": 65.0,
+          "why": "Looking 158 m across the car park at the 12.1 m Marks & Spencer shed (roof=flat, 3 levels, 3,372 LIDAR pixels) and its neighbours -- the big flat-roofed massing this town exists to test; a future commit should show a car-park surface and shed detail rather than a prism on grass."
+        },
+        {
+          "id": "westwood/manston_court_road_and_the_farmland",
+          "slug": "manston_court_road_and_the_farmland",
+          "title": "Manston Court Road and the farmland west of Westwood",
+          "kind": "street",
+          "camera_en": [
+            635358.22,
+            167633.63
+          ],
+          "subject_en": [
+            635231.47,
+            167589.91
+          ],
+          "camera_height_m": 1.7,
+          "pitch_deg": 0.8,
+          "fov_deg": 75.0,
+          "why": "A 5.5 m country lane at the Lydden end of Westwood with bare farmland either side, the opposite extreme from the retail park: the narrowest carriageway in this group and the one most easily lost in the ground."
+        }
+      ]
+    },
+    {
+      "slug": "manston",
+      "name": "Manston",
+      "locations": [
+        {
+          "id": "manston/manston_airfield_from_the_east",
+          "slug": "manston_airfield_from_the_east",
+          "title": "Manston: the airfield from the east",
+          "kind": "aerial",
+          "camera_en": [
+            634500.0,
+            166750.0
+          ],
+          "subject_en": [
+            633600.0,
+            166500.0
+          ],
+          "camera_height_m": 330.0,
+          "pitch_deg": -19.7,
+          "fov_deg": 90.0,
+          "why": "From 330 m over the village's western fields, west-south-west across the whole airfield; the aim point is the open ground in the middle of it at 934 m, with the control tower, the museum sheds, the hangars and the fire training tower all in frame beyond. The airfield is the biggest flat surface on the isle (measured on the DTM mosaic: 15 m windows hold a standard deviation under 0.12 m right across the 3.4 x 1.5 km block), so this is the frame where terrain seams, LOD banding and any slope invented in flat ground show at scale. The camera is inside Manston's own nearest-anchor cell by 645 m; the whole north side of the field belongs to Westwood's Flete anchor and was rejected for that reason."
+        },
+        {
+          "id": "manston/spitfire_way_along_the_airfield",
+          "slug": "spitfire_way_along_the_airfield",
+          "title": "Manston: Spitfire Way north-east along the airfield",
+          "kind": "street",
+          "camera_en": [
+            632899.8,
+            166308.1
+          ],
+          "subject_en": [
+            633132.9,
+            166433.4
+          ],
+          "camera_height_m": 1.7,
+          "pitch_deg": -1.3,
+          "fov_deg": 75.0,
+          "why": "Eye level on the Spitfire Way centreline (secondary, 8.5 m with 2.0 m pavements) at the airfield's south edge, looking north-east down a 4.3 m fall over 265 m with Hangar 10 at 202 m, the RAF Manston Museum at 384 m and the control tower at 655 m all in frame. Straight, wide and on the flattest ground modelled, it is the cleanest place on the isle to see whether the carriageway sits on the landscape or in it, and later to read lane markings and kerb lines. Note the west end of this road crosses the clip line: 1 m inside it, so the camera is deliberately 334 m further east."
+        },
+        {
+          "id": "manston/manston_high_street_by_the_green",
+          "slug": "manston_high_street_by_the_green",
+          "title": "Manston High Street south-west from The Green",
+          "kind": "street",
+          "camera_en": [
+            634748.9,
+            166150.8
+          ],
+          "subject_en": [
+            634678.3,
+            166051.8
+          ],
+          "camera_height_m": 1.7,
+          "pitch_deg": -1.5,
+          "fov_deg": 75.0,
+          "why": "The village street itself (unclassified, 5.5 m with 1.5 m pavements). The camera stands on its centreline at the north end by The Green, with St. Catherine's Church 43 m behind it, and looks south-west along the terrace past the pub, Living Waters Church and Rowan Cottage. A narrow lane with buildings tight to the pavement is the opposite case to Spitfire Way: here the pavement width, the kerb and the gap between the road edge and the massing footprints are what a later commit has to get right."
+        },
+        {
+          "id": "manston/manston_hangars_and_control_tower",
+          "slug": "manston_hangars_and_control_tower",
+          "title": "Manston: the control tower from the apron road",
+          "kind": "landmark",
+          "camera_en": [
+            633706.0,
+            166406.0
+          ],
+          "subject_en": [
+            633503.0,
+            166563.0
+          ],
+          "camera_height_m": 1.7,
+          "pitch_deg": 0.0,
+          "fov_deg": 70.0,
+          "why": "From the apron service road north-west to the Air Traffic Control building (base 43.57 m ODN, massing height 6.03 m) with the museum sheds behind. Airfield buildings are the worst case for the LIDAR p50 height estimator - big flat roofs over big footprints - so this frame is the record of how badly the hangars and the tower are under-built today and the check on any later height or roof-form work."
+        },
+        {
+          "id": "manston/preston_road_north_east_of_the_village",
+          "slug": "preston_road_north_east_of_the_village",
+          "title": "Preston Road north-east out of Manston village",
+          "kind": "street",
+          "camera_en": [
+            635048.7,
+            166664.2
+          ],
+          "subject_en": [
+            635102.7,
+            166794.5
+          ],
+          "camera_height_m": 1.7,
+          "pitch_deg": -1.0,
+          "fov_deg": 75.0,
+          "why": "A country lane (unclassified, 5.5 m with 1.5 m pavements) running north-east between arable fields towards Preston Farm, level within 0.7 m over 141 m at about 50.7 m ODN. It is the pure terrain frame for this town - field surface, hedge and barrier lines along the lane, and how the 1 m DTM reads where there is no corridor conform to flatten it - and it puts the fifth camera 555 m clear of its nearest neighbour in this set. Manston Court Road, the obvious alternative, was rejected: at every vertex north of 166800 the nearest thanet_towns.json anchor is Westwood's Flete, not Manston."
+        }
+      ]
+    },
+    {
+      "slug": "acol",
+      "name": "Acol",
+      "locations": [
+        {
+          "id": "acol/acol_fields_and_the_isle_edge",
+          "slug": "acol_fields_and_the_isle_edge",
+          "title": "Acol: the fields and the edge of the isle",
+          "kind": "aerial",
+          "camera_en": [
+            631700.0,
+            168150.0
+          ],
+          "subject_en": [
+            631061.3,
+            167539.6
+          ],
+          "camera_height_m": 300.0,
+          "pitch_deg": -19.2,
+          "fov_deg": 90.0,
+          "why": "From 300 m over the farmland between Shottendane Road and Manston Road, south-west along Margate Hill to where the Wantsum clip cuts the model off 25 m past the aim point. Acol village is 398 m outside the clip - its tile x5_y8 was never fetched, so it has no terrain at all - and it sits at 1,352 m and +3.8 degrees off the aim, i.e. inside this frame, as a hole. That is deliberate: this is the record of where the isle stops. Sparrow Castle Farm at 409 m and Ladds Cottages at 907 m give the modelled side its field pattern and lanes. If the clip ever moves, this is the frame that shows it."
+        },
+        {
+          "id": "acol/manston_road_west_towards_acol",
+          "slug": "manston_road_west_towards_acol",
+          "title": "Manston Road west towards Acol",
+          "kind": "street",
+          "camera_en": [
+            631054.6,
+            167888.4
+          ],
+          "subject_en": [
+            630752.0,
+            167917.1
+          ],
+          "camera_height_m": 1.7,
+          "pitch_deg": -0.2,
+          "fov_deg": 75.0,
+          "why": "Eye level in the Manston Road carriageway (secondary, 8.5 m with 2.0 m pavements) on the near-level run at 30 m ODN, looking west towards Acol village. It is the main road through the modelled part of this parish and it runs 139 to 316 m inside the clip, so it is both the town's best carriageway test and a measure of how close the road network gets to the cut before it disappears."
+        },
+        {
+          "id": "acol/shottendane_road_between_the_fields",
+          "slug": "shottendane_road_between_the_fields",
+          "title": "Shottendane Road north-east between the fields",
+          "kind": "street",
+          "camera_en": [
+            631487.8,
+            167936.4
+          ],
+          "subject_en": [
+            631671.2,
+            168091.1
+          ],
+          "camera_height_m": 1.7,
+          "pitch_deg": 0.0,
+          "fov_deg": 75.0,
+          "why": "Eye level in Shottendane Road (tertiary, 7.0 m with 1.8 m pavements) climbing north-east from 30.7 to 32.6 m ODN with open fields on both sides - checked against the massing product, not one building footprint comes within 60 m of the 240 m corridor. An unobstructed straight road across bare terrain is the clearest possible read on whether the carriageway floats, sinks, or lies flat on the ground, and on how the hedge and barrier renderers look in open country."
+        },
+        {
+          "id": "acol/margate_hill_at_the_isle_edge",
+          "slug": "margate_hill_at_the_isle_edge",
+          "title": "Margate Hill south-west to the Wantsum cut",
+          "kind": "street",
+          "camera_en": [
+            631227.8,
+            167687.6
+          ],
+          "subject_en": [
+            631035.2,
+            167520.1
+          ],
+          "camera_height_m": 1.7,
+          "pitch_deg": -1.1,
+          "fov_deg": 75.0,
+          "why": "Standing in Margate Hill (tertiary, 7.0 m with 1.8 m pavements) 278 m inside the clip and looking south-west down the hill to the last modelled 25 m of it. This is the closest a modelled road gets to Acol village, and the frame is aimed straight at the cut, so it records both the road corridor on a 3.2 m fall and the quality of the model's own boundary."
+        },
+        {
+          "id": "acol/cheesemans_farm_from_manston_road",
+          "slug": "cheesemans_farm_from_manston_road",
+          "title": "Cheesemans Farm from Manston Road",
+          "kind": "street",
+          "camera_en": [
+            632341.9,
+            167079.9
+          ],
+          "subject_en": [
+            632384.0,
+            166952.0
+          ],
+          "camera_height_m": 1.7,
+          "pitch_deg": -1.0,
+          "fov_deg": 70.0,
+          "why": "The south-east corner of the parish: the farmhouse and stables (base 34.96 m ODN, massing height 6.18 m) seen from the Manston Road carriageway 135 m away, on the climb from 32 to 38 m ODN. Isolated rural massing on sloping ground is where the LIDAR p50 heights and the flat building skirts are hardest to hide, and it spreads the set 1.2 km away from the other four."
+        }
+      ]
+    }
+  ]
+}

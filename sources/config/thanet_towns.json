@@ -1,0 +1,199 @@
+{
+  "site": "thanet",
+  "purpose": "Assigns every fetched photo to exactly one town folder under images/<slug>/. Read by sources/fetch/photos.py and sources/fetch/geo.py.",
+
+  "bbox_wgs84": [51.29, 1.26, 51.42, 1.47],
+  "bbox_note": "S,W,N,E -- Overpass order, as sources/config/sites/thanet.json. WIDER than the site's own bbox (51.305,1.275,51.405,1.465) on purpose: photo positions are GPS fixes and a strict edge would drop images of a subject that IS in frame from a camera just outside. Nothing here feeds the terrain pipeline, so the looser box costs only disk.",
+
+  "assignment": "nearest-anchor",
+  "assignment_note": "Each photo is assigned to the town owning the nearest anchor point, then rejected if that distance exceeds max_km. Anchors -- not a single centre -- because these towns are not discs: Margate reaches Garlinge and Westbrook, Ramsgate reaches Pegwell and Newington. Every anchor is an OSM place node (place=town|suburb|village), read from Overpass on 2026-09-09 over the bbox above; the name and lat/lon here are that node's, rounded to 5 dp (~1 m). Anchors are config, not code: add one and re-run `photos.py assign` to re-file existing images without re-downloading.",
+  "max_km": 2.5,
+  "max_km_note": "A photo further than this from every anchor lands in _unassigned/ rather than being forced into the nearest town. Thanet's built-up areas are close-packed, so 2.5 km reaches farmland between settlements without letting Margate claim Manston airfield.",
+
+  "on_isle_note": "on_isle records whether the town sits north-east of the Wantsum line in sources/config/sites/thanet.json (clip.line), i.e. inside the landscape the Unreal map actually builds. Towns with on_isle false are in Thanet DISTRICT but outside the modelled isle -- fetched anyway, because they are cheap and the clip may move, but they have no terrain to sit on yet.",
+
+  "towns": [
+    {
+      "slug": "margate",
+      "commons_categories": [
+        "Category:Margate, Kent",
+        "Category:Garlinge",
+        "Category:Westbrook, Kent"
+      ],
+      "name": "Margate",
+      "on_isle": true,
+      "population": 58465,
+      "anchors": [
+        { "name": "Margate",   "lat": 51.38782, "lon": 1.38197, "place": "town" },
+        { "name": "Westbrook", "lat": 51.38383, "lon": 1.36472, "place": "suburb" },
+        { "name": "Garlinge",  "lat": 51.37831, "lon": 1.35638, "place": "suburb" },
+        { "name": "Millmead",  "lat": 51.37783, "lon": 1.40605, "place": "suburb" }
+      ],
+      "why": "The largest town and the one the pipeline already models in detail (data/margate is the frozen byte-identity baseline). Arlington House, Dreamland, the Turner Contemporary and the harbour arm are the landmark targets."
+    },
+    {
+      "slug": "cliftonville",
+      "commons_categories": [
+        "Category:Cliftonville",
+        "Category:Northdown"
+      ],
+      "name": "Cliftonville",
+      "on_isle": true,
+      "anchors": [
+        { "name": "Cliftonville", "lat": 51.38783, "lon": 1.39838, "place": "suburb" },
+        { "name": "Northdown",    "lat": 51.38598, "lon": 1.41996, "place": "suburb" }
+      ],
+      "why": "Administratively part of Margate, given its own folder because it is a distinct subject: an unbroken Victorian seafront terrace along Palm Bay and Walpole Bay, and the chalk cliffs that coast.rock_slope_deg was tuned against."
+    },
+    {
+      "slug": "broadstairs",
+      "commons_categories": [
+        "Category:Broadstairs",
+        "Category:St Peter's, Kent",
+        "Category:Kingsgate, Kent"
+      ],
+      "name": "Broadstairs and St Peter's",
+      "on_isle": true,
+      "population": 24903,
+      "anchors": [
+        { "name": "Broadstairs",  "lat": 51.35868, "lon": 1.44079, "place": "town" },
+        { "name": "St. Peter's",  "lat": 51.36554, "lon": 1.41938, "place": "suburb" },
+        { "name": "Dumpton",      "lat": 51.34837, "lon": 1.42637, "place": "suburb" },
+        { "name": "Kingsgate",    "lat": 51.38220, "lon": 1.43589, "place": "suburb" },
+        { "name": "Bromstone",    "lat": 51.35693, "lon": 1.41959, "place": "suburb" },
+        { "name": "Upton",        "lat": 51.35641, "lon": 1.42536, "place": "suburb" },
+        { "name": "Northwood",    "lat": 51.35426, "lon": 1.40361, "place": "suburb" }
+      ],
+      "why": "Viking Bay, Bleak House and the North Foreland lighthouse. Kingsgate is included here rather than in Cliftonville because the OSM node sits east of the Botany Bay cliffs, on the Broadstairs side."
+    },
+    {
+      "slug": "ramsgate",
+      "commons_categories": [
+        "Category:Ramsgate"
+      ],
+      "name": "Ramsgate",
+      "on_isle": true,
+      "population": 37967,
+      "anchors": [
+        { "name": "Ramsgate",     "lat": 51.33347, "lon": 1.41965, "place": "town" },
+        { "name": "East Cliff",   "lat": 51.33613, "lon": 1.42851, "place": "suburb" },
+        { "name": "West Cliff",   "lat": 51.32743, "lon": 1.40264, "place": "suburb" },
+        { "name": "Nethercourt",  "lat": 51.33529, "lon": 1.39277, "place": "suburb" },
+        { "name": "Newington",    "lat": 51.34606, "lon": 1.39180, "place": "suburb" },
+        { "name": "St. Lawrence", "lat": 51.33726, "lon": 1.40212, "place": "suburb" },
+        { "name": "Whitehall",    "lat": 51.34720, "lon": 1.40603, "place": "suburb" },
+        { "name": "Pegwell",      "lat": 51.32741, "lon": 1.39217, "place": "village" },
+        { "name": "Chilton",      "lat": 51.33079, "lon": 1.39143, "place": "village" }
+      ],
+      "why": "The Royal Harbour -- the only one in the UK -- plus the Granville, the Grade II* listed seafront arches and the tunnels. Dense listed-building stock, so the heritage layer in geo/ matters most here."
+    },
+    {
+      "slug": "westgate-on-sea",
+      "commons_categories": [
+        "Category:Westgate-on-Sea"
+      ],
+      "name": "Westgate-on-Sea",
+      "on_isle": true,
+      "population": 6996,
+      "anchors": [
+        { "name": "Westgate-on-Sea", "lat": 51.38158, "lon": 1.33721, "place": "town" }
+      ],
+      "why": "Small planned Victorian resort between Margate and Birchington; St Mildred's Bay and the sea wall."
+    },
+    {
+      "slug": "birchington",
+      "commons_categories": [
+        "Category:Birchington",
+        "Category:Birchington-on-Sea",
+        "Category:Minnis Bay"
+      ],
+      "name": "Birchington-on-Sea",
+      "on_isle": true,
+      "population": 9961,
+      "anchors": [
+        { "name": "Birchington", "lat": 51.37388, "lon": 1.30707, "place": "town" },
+        { "name": "Minnis Bay",  "lat": 51.38020, "lon": 1.28560, "place": "village" }
+      ],
+      "why": "Western end of the isle. Minnis Bay is endpoint A of the Wantsum clip line in sources/config/sites/thanet.json, so imagery here is the visual check on where the model stops."
+    },
+    {
+      "slug": "westwood",
+      "commons_categories": [
+        "Category:Westwood, Thanet"
+      ],
+      "name": "Westwood",
+      "on_isle": true,
+      "anchors": [
+        { "name": "Westwood", "lat": 51.36117, "lon": 1.39453, "place": "village" },
+        { "name": "Haine",    "lat": 51.35254, "lon": 1.38608, "place": "hamlet" },
+        { "name": "Lydden",   "lat": 51.35938, "lon": 1.37801, "place": "hamlet" },
+        { "name": "Flete",    "lat": 51.35825, "lon": 1.36835, "place": "hamlet" }
+      ],
+      "why": "The retail and light-industrial middle of the isle -- big flat-roofed sheds and car parks. Ugly, but it is a third of the modelled built area and the massing step needs it as much as the seafronts."
+    },
+    {
+      "slug": "manston",
+      "commons_categories": [
+        "Category:Manston, Kent",
+        "Category:Manston Airport"
+      ],
+      "name": "Manston",
+      "on_isle": true,
+      "anchors": [
+        { "name": "Manston", "lat": 51.34600, "lon": 1.36967, "place": "village" }
+      ],
+      "why": "The village and the former airport. Large hangars and a 2.7 km runway: the biggest single flat surface on the isle and a good conform test."
+    },
+    {
+      "slug": "acol",
+      "commons_categories": [
+        "Category:Acol, Kent"
+      ],
+      "name": "Acol",
+      "on_isle": true,
+      "anchors": [
+        { "name": "Acol", "lat": 51.35776, "lon": 1.31172, "place": "village" }
+      ],
+      "why": "Hamlet-sized village inland of Birchington. Expect a thin catalogue."
+    },
+    {
+      "slug": "minster",
+      "commons_categories": [
+        "Category:Minster in Thanet"
+      ],
+      "name": "Minster",
+      "on_isle": false,
+      "population": 3569,
+      "anchors": [
+        { "name": "Minster", "lat": 51.33425, "lon": 1.31598, "place": "village" }
+      ],
+      "why": "Largest Thanet settlement OUTSIDE the Wantsum clip -- verified excluded in sources/config/sites/thanet.json. Minster Abbey is the draw."
+    },
+    {
+      "slug": "monkton",
+      "commons_categories": [
+        "Category:Monkton, Kent"
+      ],
+      "name": "Monkton",
+      "on_isle": false,
+      "population": 611,
+      "anchors": [
+        { "name": "Monkton", "lat": 51.33890, "lon": 1.28113, "place": "village" }
+      ],
+      "why": "Outside the clip. Fetched for completeness of the district."
+    },
+    {
+      "slug": "cliffsend",
+      "commons_categories": [
+        "Category:Cliffsend"
+      ],
+      "name": "Cliffsend",
+      "on_isle": false,
+      "anchors": [
+        { "name": "Cliffsend",  "lat": 51.32901, "lon": 1.36576, "place": "village" },
+        { "name": "Ebbsfleet",  "lat": 51.31352, "lon": 1.35114, "place": "village" }
+      ],
+      "why": "Outside the clip -- verified excluded in sources/config/sites/thanet.json. Sits against Pegwell Bay and endpoint B of the Wantsum line."
+    }
+  ]
+}

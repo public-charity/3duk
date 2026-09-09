@@ -229,12 +229,41 @@ survey flight, not universal constants, and `tuning.json`'s `type_priors_m` reco
 site it was measured at. Step 07 warns when more than 5% of buildings fall back to those
 priors, because that means the model is being described by another place's vernacular.
 
+## The photo warchest
+
+Separate from the terrain pipeline and not part of `run.sh`: a corpus of open-licensed
+photography and reference geodata for reconstructing individual Thanet buildings
+photogrammetrically (RealityScan, headless Blender) and dropping the meshes into the Unreal
+map. Two fetchers, both stdlib-only and resumable:
+
+```bash
+python sources/fetch/photos.py catalogue     # what exists, per town per source (JSON, no image bytes)
+python sources/fetch/photos.py clusters      # which photo groups are dense enough to reconstruct
+python sources/fetch/photos.py download --town margate --source panoramax
+python sources/fetch/geo.py fetch            # OSM, Historic England, EA survey indexes, OS OpenData
+```
+
+Output lands in `images/<town>/<source>/` and `geo/`, neither of which is committed — like
+`data/`, all of it is re-fetchable. **[images/README.md](images/README.md)** covers the photo
+sources, how to feed them to RealityScan, and the attribution obligations that come with
+CC-BY-SA; **[geo/README.md](geo/README.md)** covers the geodata layers.
+
+Towns come from [sources/config/thanet_towns.json](sources/config/thanet_towns.json), which
+files each photo under the nearest OSM place anchor.
+
+Two things worth knowing before trusting a catalogue: most of these APIs cap a result set
+silently rather than paging, so Panoramax and Commons are enumerated with an adaptive
+quadtree that subdivides any cell coming back at the cap; and roughly half of Wikimedia
+Commons over Thanet is Geograph re-uploaded, deduplicated on the Geograph id in the filename.
+
 ## Sources and licensing
 
 | | |
 |---|---|
 | Buildings, highways, amenities | OpenStreetMap via Overpass API — **ODbL** |
 | Terrain and surface heights | Environment Agency LIDAR Composite 1 m DTM + first-return DSM — **OGL v3** |
+| Warchest photography | Panoramax **CC-BY-SA-4.0**, Geograph **CC-BY-SA-2.0**, Wikimedia Commons **mixed CC/PD** |
+| Warchest geodata | Historic England **OGL v3**, EA survey indexes **OGL v3**, OS OpenData **OGL v3** |
 
 OSM is live data: re-running `01` later will not reproduce the earlier model, because
 footprints get added, retagged and split. `sources/provenance/<site>.osm.json` records the

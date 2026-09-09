@@ -39,3 +39,16 @@ projects/*/Tools/blender/out/
 # from data/<site>/out/unreal/ (gigabytes once the landscape lands). The scripts are the source of
 # truth -- a fresh clone runs them rather than checking out a derivative that goes stale silently.
 projects/one/Content/
+
+# The photo warchest (sources/fetch/photos.py) and the open geodata that frames it
+# (sources/fetch/geo.py). Both are re-fetchable from public endpoints, and images/ runs to
+# tens of GB at full resolution, so neither is committed -- same rule as data/. The source of
+# truth is the two fetchers plus sources/config/thanet_towns.json.
+#   images/_catalogue/  what each source holds over Thanet (regenerate: photos.py catalogue)
+#   images/<town>/      the image files and their MANIFEST.jsonl
+#   geo/                OSM, Historic England, Environment Agency and OS OpenData layers
+# The READMEs are the exception: they are written by hand and describe how to rebuild the rest.
+images/*
+!images/README.md
+geo/*
+!geo/README.md
