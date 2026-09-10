@@ -35,6 +35,7 @@ import shutil
 import subprocess
 import sys
 import time
+from pathlib import Path
 
 import numpy as np
 
@@ -160,8 +161,23 @@ def main():
                          "through Renderer A's junction patch -- 814 of 87,969 patch vertices did, "
                          "worst 2.890 m.  For A/B measurement only.")
     ap.add_argument("--report", default=None, help="where to write the run report (default <out>/conform_report.json)")
+    ap.add_argument("--checkpoint-dir", default=None, help="persist sparse stamping state, keyed by source bytes and parameters")
+    ap.add_argument("--checkpoint-every", type=int, default=4)
+    ap.add_argument("--max-docs", type=int, default=0, help="process at most this many new documents, then exit 2; requires checkpoint-dir")
     args = ap.parse_args()
+    if args.max_docs < 0 or args.checkpoint_every <= 0:
+        ap.error("max-docs must be nonnegative and checkpoint-every positive")
+    if args.max_docs and not args.checkpoint_dir:
+        ap.error("max-docs requires checkpoint-dir")
+    if args.checkpoint_dir:
+        from phase1_qc import run_lock
+        Path(args.checkpoint_dir).mkdir(parents=True, exist_ok=True)
+        with run_lock(Path(args.checkpoint_dir)/"run.lock"):
+            return run(args, ap)
+    return run(args, ap)
 
+
+def run(args, ap):
     files = sorted(glob.glob(os.path.join(args.streetscape, "site_x*_y*.json")))
     for token in args.only_doc:
         if not any(token in os.path.basename(f) for f in files):
@@ -210,7 +226,21 @@ def main():
     earth_all = []
     jstats = {"junctions_seen": 0, "junctions_burned": 0, "junctions_no_patch": 0,
               "junctions_missing_arm": 0, "cells_stamped": 0}
-    for path in files:
+    checkpoint = None
+    resumed_docs = 0
+    if args.checkpoint_dir:
+        from conform_checkpoint import ConformCheckpoint, checkpoint_inputs
+        inputs, config = checkpoint_inputs(args, files, HERE)
+        checkpoint = ConformCheckpoint(args.checkpoint_dir, inputs, config)
+        prior = checkpoint.load(acc)
+        if prior:
+            n_docs = resumed_docs = prior["n_docs"]
+            if prior["completed_documents"] != files[:n_docs]:
+                raise ValueError("checkpoint document coverage does not match input order")
+            clamped, per_class, skipped, structures = (prior[k] for k in ("clamped", "per_class", "skipped", "structures"))
+            earth_all, jstats = prior["earth_all"], prior["jstats"]
+        print("checkpoint: %s, resumed %d/%d documents" % (checkpoint.path, resumed_docs, len(files)), flush=True)
+    for path in files[resumed_docs:]:
         site = io_json.load_site(path)
         ok_for_junction = {}                 # spline id -> the def, for the arms worth building
         for sdef in site.splines:
@@ -237,9 +267,7 @@ def main():
             try:
                 sp = Spline(sdef, site, hf)
             except Exception as e:                                      # noqa: BLE001
-                skipped.append([os.path.basename(path), sdef.id, repr(e)[:160]])
-                acc.stats["splines_skipped"] += 1
-                continue
+                raise RuntimeError("%s: %s failed to build; refusing conformed product" % (path, sdef.id)) from e
             if getattr(sp, "trimmed", False):
                 # The burn must claim the ground under the junction disc, and only the UNTRIMMED
                 # extent does (conform.py's JUNCTIONS note).  Spline() trims only when a trim is
@@ -307,8 +335,8 @@ def main():
                     # the untrimmed extent; both are the same surface, they differ only in which
                     # stations are active.
                     tsp[sid] = Spline(sdef, site, hf, trim=plan.trim_for(sid))
-                except Exception:                                       # noqa: BLE001
-                    continue
+                except Exception as e:                                  # noqa: BLE001
+                    raise RuntimeError("%s: junction arm %s failed to build" % (path, sid)) from e
             for jid in sorted(plan.arms):
                 jstats["junctions_seen"] += 1
                 if any(a.spline_id not in tsp for a in plan.arms[jid]):
@@ -326,10 +354,21 @@ def main():
                 jstats["junctions_burned"] += 1
                 jstats["cells_stamped"] += int(ok.sum())
         n_docs += 1
+        budget_done = bool(args.max_docs and n_docs-resumed_docs >= args.max_docs)
+        if checkpoint and (n_docs % args.checkpoint_every == 0 or budget_done or n_docs == len(files)):
+            state_path = checkpoint.save(acc, {"n_docs": n_docs, "completed_documents": files[:n_docs],
+                                              "clamped": clamped, "per_class": per_class, "skipped": skipped,
+                                              "structures": structures, "jstats": jstats}, earth_all)
+            print("CHECKPOINT %d/%d docs: %s" % (n_docs, len(files), state_path), flush=True)
+        if budget_done and n_docs < len(files):
+            print("CONFORM_PENDING: no product written; repeat command to resume", flush=True)
+            return 2
         if n_docs % 10 == 0:
             print("  %d/%d docs, %d splines, %.0f s" % (n_docs, len(files), acc.stats["splines"],
                                                         time.time() - t0), flush=True)
     stats = acc.finish()
+    if checkpoint:
+        checkpoint.verify_inputs()
     print("stamped: %s, %.0f s" % (json.dumps(stats), time.time() - t0), flush=True)
 
     # ---- write the product ---------------------------------------------------------------
@@ -572,6 +611,7 @@ def main():
         except Exception as e:                                          # noqa: BLE001
             print("WARNING: could not update %s: %r" % (root_index, e), flush=True)
     report = {"ok": True, "elapsed_s": round(time.time() - t0, 1), "docs": n_docs,
+              "resumed_docs": resumed_docs, "processed_docs_this_run": n_docs-resumed_docs,
               "root_index_updated": index_updated, "root_index": root_index,
               "structures_not_burned": len(structures),
               "out": dst, "conform": conform_block, "by_class": per_class,
@@ -584,7 +624,8 @@ def main():
         fh.write("\n")
     print(json.dumps({k: v for k, v in report.items() if k not in ("skipped", "by_class")}, indent=1))
     print("CONFORM_OK %s" % rpath)
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

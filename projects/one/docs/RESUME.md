@@ -2,6 +2,37 @@
 
 ## Current checkpoint — 2026-09-10, Phase 1 completion
 
+### Seventh milestone in progress: resumable corrected terrain conform
+
+- Source checkpoint before this milestone: **`78a81ff`** (connected rail profiles,
+  safe preview, restored baseline). Working tree adds sparse conformance checkpoints.
+- `conform_landscape.py --checkpoint-dir <dir> --max-docs 4` stamps at most four
+  NEW documents and returns pending (exit 2) until all documents are processed.
+  Checkpoint includes exact accumulator key/float32 targets, class/run/structure
+  diagnostics, raw earthwork samples, input hashes and document coverage. An OS lock
+  serializes writers. No output product is emitted for a pending invocation.
+  Resume uses the same command; `--max-docs 0` completes remaining documents,
+  still checkpointing every four. Interrupted final raster output can be rewritten
+  from the completed stamping state without recomputing splines.
+- Former silent spline/junction-arm construction exceptions now stop conformance.
+  Intentional structure and no-terrain exclusions remain named in the report.
+- **46/46 tool tests pass**, `Saved/phase1_tools_46.log`. Tests prove exact
+  float-bit/rank arbitration after resume, changed-source rejection and damaged-cache
+  rejection. Real two-document interrupted/resumed conform compared against uninterrupted:
+  **398/398 heightmap/delta rasters byte-identical**, zero differences.
+  Proof folders `Saved/Phase1/conform_resume_proof/`, `conform_uninterrupted_proof/`;
+  state `conform_resume_state/4d615f2fe8b2051ea3e7/state.json`.
+  First one-document checkpoint is only **1.44 MB**, not a full landscape copy.
+- Starting full-site corrected (triangulated) baseline conform into
+  `Saved/Phase1/ground_conformed_triangulated/`, with state under
+  `Saved/Phase1/ground_conform_state/`; first four-document run log:
+  `Saved/phase1_ground_conform_batch1.log`. This is a candidate product. Do NOT
+  import before auditing it. Bridge-profile candidate overrides are still separate.
+- Current baseline ground sample completed again: **10 pass / 2 fail** at
+  `sample/6a0b0866f116a8cb1337/state.json`, same max 13.644/23.116 mm penetration.
+  Next: complete resumable conform, audit the resulting sample, then full census.
+  Structure/support, junction editing/export and visual acceptance remain open.
+
 ### Preview importer side effect recovered and verified
 
 - The full Margate preview failed because an original actor was absent on the next

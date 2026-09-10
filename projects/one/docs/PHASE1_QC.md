@@ -47,6 +47,14 @@ use connected alignments across those segments before claiming continuity.
 
 ## Working strategy
 
+Terrain conform now supports sparse atomic checkpoints and bounded document runs:
+`conform_landscape.py --checkpoint-dir <dir> --max-docs 4`. Interrupted work loses
+at most the current small chunk. Cache identity covers source pixels, documents,
+parameters and geometry code. Pending runs do not emit products. A two-document
+resume proof matches all 398 heightmap/delta rasters byte-for-byte against an
+uninterrupted run; 46 tool tests pass. The corrected full candidate is being written
+separately under `Saved/Phase1/ground_conformed_triangulated/`.
+
 1. Inspect current source and saved evidence before accepting historical status.
 2. Inventory **every** road/rail way, junction and bridge/tunnel. Keep measured,
    excluded, unsupported and failed counts separate. An empty selection is failure.
