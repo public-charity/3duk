@@ -66,6 +66,29 @@ from streetscape.spline import Spline         # noqa: E402
 from streetscape.terrain import Heightfield   # noqa: E402
 
 
+def _structure_summary(rows) -> dict:
+    """How big is the structure problem, in one block: counts, length, and the distribution of the
+    deck's dive below its own chord.  A bridge with a 3 m sag is a bridge that is not there."""
+    out = {"count": len(rows), "by_kind": {}, "measured": 0}
+    for k in ("bridge", "tunnel"):
+        sel = [r for r in rows if r.get("kind") == k]
+        m = [r for r in sel if "chord_sag_m" in r]
+        out["by_kind"][k] = {"count": len(sel),
+                             "length_km": round(sum(r.get("length_m", 0.0) for r in m) / 1000.0, 3)}
+        if m:
+            sag = np.array([r["chord_sag_m"] for r in m], dtype=np.float64)
+            gr = np.array([r["max_grade_pct"] for r in m], dtype=np.float64)
+            out["by_kind"][k].update({
+                "chord_sag_m": {"max": float(sag.max()), "p95": float(np.percentile(sag, 95)),
+                                "p50": float(np.percentile(sag, 50)), "mean": float(sag.mean())},
+                "max_grade_pct": {"max": float(gr.max()), "p95": float(np.percentile(gr, 95)),
+                                  "p50": float(np.percentile(gr, 50))},
+                "over_0_5m_sag": int((sag > 0.5).sum()), "over_1m_sag": int((sag > 1.0).sum()),
+                "over_25pct_grade": int((gr > 25.0).sum())})
+        out["measured"] += len(m)
+    return out
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--landscape", default="data/thanet/out/unreal/landscape_conformed",
@@ -165,8 +188,30 @@ def main():
         sdef = site.splines[i]
         cls = (sdef.source.cls if sdef.source is not None else None) or "?"
         if args.structures == "skip" and sdef.flags is not None and (sdef.flags.bridge or sdef.flags.tunnel):
-            structures.append([os.path.basename(path), sdef.id, cls,
-                               "bridge" if sdef.flags.bridge else "tunnel"])
+            # Named and MEASURED, not merely skipped.  "The deck is the ground under the structure"
+            # is the pipeline's contract, and it is the one place where the honest answer to Alex's
+            # "above ground as necessary" is *above*: a bridge that follows the ground beneath it
+            # dives into the cutting it spans.  `chord_sag_m` is how far the deck falls below the
+            # straight line between its own two ends -- both of which are measured LIDAR on this very
+            # way -- so it is the size of the missing structure, stated without inventing a deck
+            # height.  This list is what the geometry track needs to fix z_ref on a structure run.
+            row = {"doc": os.path.basename(path), "spline_id": sdef.id, "cls": cls,
+                   "kind": "bridge" if sdef.flags.bridge else "tunnel"}
+            try:
+                sp = Spline(sdef, site, hf_survey)
+                z = np.asarray(sp.z_ref, dtype=np.float64)
+                s = np.asarray(sp.s, dtype=np.float64)
+                if z.size >= 2 and np.isfinite(z).all() and s[-1] > 0:
+                    chord = z[0] + (z[-1] - z[0]) * (s - s[0]) / (s[-1] - s[0])
+                    grade = np.abs(np.diff(z) / np.maximum(np.diff(s), 1e-6)) * 100.0
+                    row.update({"length_m": round(float(s[-1]), 3),
+                                "z_min_m": round(float(z.min()), 3), "z_max_m": round(float(z.max()), 3),
+                                "chord_sag_m": round(float(np.max(chord - z)), 3),
+                                "chord_rise_m": round(float(np.max(z - chord)), 3),
+                                "max_grade_pct": round(float(grade.max()) if grade.size else 0.0, 1)})
+            except Exception as e:                                      # noqa: BLE001
+                row["error"] = repr(e)[:120]
+            structures.append(row)
             continue
         try:
             sp = Spline(sdef, site, hf_survey)
@@ -207,10 +252,18 @@ def main():
                       "layers": sorted(layers), "n": len(chosen), "extra_docs": args.extra_doc,
                       "elapsed_s": round(time.time() - t0, 1)},
            "summary": agg, "skipped": skipped, "skipped_count": len(skipped),
-           "structures_not_gated": structures[:400], "structures_not_gated_count": len(structures),
-           "structures_note": ("bridge/tunnel ways are excluded from the gate: their elevation is the "
-                               "ground under the structure, unadjusted, and the conform does not burn "
-                               "them.  Pass --structures include to measure them anyway."),
+           "structures_not_gated": sorted(structures, key=lambda r: -abs(r.get("chord_sag_m") or 0.0))[:400],
+           "structures_not_gated_count": len(structures),
+           "structures_summary": _structure_summary(structures),
+           "structures_note": ("bridge/tunnel ways are excluded from the GATE: their elevation is the "
+                               "ground under the structure, unadjusted (sources/derive/"
+                               "06_build_networks.py 15-16), and the corridor conform does not burn "
+                               "them, so 'is the ground above this way' is the wrong question to ask "
+                               "of them.  They are measured instead: chord_sag_m is how far the deck "
+                               "falls below the straight line between its own two ends, i.e. how deep "
+                               "into the obstacle it spans the way currently dives.  Fixing that is a "
+                               "z_ref question in the shared spline layer, not a conform one.  Pass "
+                               "--structures include to gate them anyway."),
            "worst_stations": [{"penetration_m": w[0], "float_m": w[1], "spline_id": w[2], "cls": w[3],
                                "doc": w[4], "station": w[5], "s_m": w[6], "local_xy_m": [w[7], w[8]]}
                               for w in worst[:args.worst]]}

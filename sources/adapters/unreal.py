@@ -1412,6 +1412,12 @@ def derived_products(out):
             entry["sink_note"] = (c.get("corridor") or {}).get("sink_note")
             entry["structures_not_burned"] = c.get("splines_structure")
             entry["structure_note"] = c.get("structure_note")
+            # The junction discs are the third thing a consumer has to know: this product's heights
+            # under a junction come from Renderer A's own patch surface, not from the arms' bands, so
+            # a tool that rebuilds the patch and finds the ground under it has the right explanation
+            # for why it fits.  `junctions_missing_arm` are the ones left to their arms' corridors.
+            entry["junctions"] = {k: v for k, v in (c.get("junctions") or {}).items() if k != "note"}
+            entry["junction_note"] = (c.get("junctions") or {}).get("note")
         out_block[name] = entry
     return out_block
 

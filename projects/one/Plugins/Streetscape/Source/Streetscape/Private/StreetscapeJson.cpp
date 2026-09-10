@@ -1276,15 +1276,17 @@ void ReadJunctionEnd(const FJsonObject& O, const FString& Path, FStreetJunctionE
 }
 void ReadJunction(const FJsonObject& O, const FString& Path, FStreetJunction& X, TArray<FString>& E)
 {
-	FObj R(O, Path, E, &X, { TEXT("id"), TEXT("x"), TEXT("y"), TEXT("z"), TEXT("radius_m"), TEXT("kind"), TEXT("ends") });
+	FObj R(O, Path, E, &X, { TEXT("id"), TEXT("x"), TEXT("y"), TEXT("z"), TEXT("radius_m"), TEXT("trim_radius_m"), TEXT("kind"), TEXT("ends") });
 	R.Id(TEXT("id"), X.Id, true); R.Num(TEXT("x"), X.X, true); R.Num(TEXT("y"), X.Y, true); R.OptNum(TEXT("z"), X.Z, false, true); R.OptNum(TEXT("radius_m"), X.RadiusM, false, false, 0.0);
+	R.OptNum(TEXT("trim_radius_m"), X.TrimRadiusM, false, true, 0.0);
 	R.Enum(TEXT("kind"), X.Kind, false);
 	ReadObjList(R, TEXT("ends"), X.Ends, true, [](const FJsonObject& SO, const FString& SP, FStreetJunctionEnd& D, TArray<FString>& SE) { ReadJunctionEnd(SO, SP, D, SE); });
 }
 TSharedRef<FJsonObject> WriteJunction(const FStreetJunction& X)
 {
 	FW W(X);
-	W.Str(TEXT("id"), X.Id); W.Num(TEXT("x"), X.X); W.Num(TEXT("y"), X.Y); W.Opt(TEXT("z"), X.Z); W.Opt(TEXT("radius_m"), X.RadiusM); W.EnumD(TEXT("kind"), X.Kind, EStreetJunctionKind::Disc);
+	W.Str(TEXT("id"), X.Id); W.Num(TEXT("x"), X.X); W.Num(TEXT("y"), X.Y); W.Opt(TEXT("z"), X.Z); W.Opt(TEXT("radius_m"), X.RadiusM);
+	W.Opt(TEXT("trim_radius_m"), X.TrimRadiusM); W.EnumD(TEXT("kind"), X.Kind, EStreetJunctionKind::Disc);
 	TArray<TSharedPtr<FJsonValue>> A;
 	for (const FStreetJunctionEnd& En : X.Ends)
 	{

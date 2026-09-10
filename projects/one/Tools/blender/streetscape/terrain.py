@@ -38,7 +38,22 @@ def _interp(a, b, c, d, tx, ty, rule: str):
     ``landscape_triangulated`` is what ALandscape's Chaos heightfield returns between the posts, so a
     measurement made with it is a measurement of the surface the pawn walks on and the camera sees.
     Bit-for-bit the same expression as FStreetHeightfield::Sample
-    (Plugins/Streetscape/Source/Streetscape/Private/StreetTerrainSource.cpp:169-173)."""
+    (Plugins/Streetscape/Source/Streetscape/Private/StreetTerrainSource.cpp:169-173).
+
+    THE DIAGONAL, DETERMINED RATHER THAN ASSUMED.  Both branches share ``a`` and ``d``, so the quad
+    is split on the **NW-SE diagonal**: ``tx < ty`` is the south-west triangle (a, c, d) and
+    ``tx >= ty`` the north-east one (a, b, d).  A quad can be split either way and the two choices
+    differ by the full ``|twist|/4`` at the quad centre -- up to 6.12 m at the Thanet maximum -- so
+    getting it backwards would be worse than using bilinear.  It was settled by measurement against
+    the running engine, not by reading a header: predicting ``z_heightfield - z_landscape`` at 6,958
+    probe points with nothing but this expression minus the bilinear one leaves a residual of
+    **0.000587 m maximum, 0.0000983 m rms, over the 6,866 points further than 1 m from a tile
+    boundary** (docs/TERRAIN_ROADS.md 3.4, ``Saved/Diag/d2_interp_vs_engine.json``; the 92 excluded
+    points are the D1 seam, where the numpy field holds two copies of a shared row and the landscape
+    one).  Flipping the comparison to ``tx > 1 - ty`` would have to leave a residual of the same size
+    as the term itself, and does not.  The engine side of that comparison is
+    ``ALandscapeProxy::GetHeightAtLocation`` -> ``FHeightField::GetHeightAt``
+    (Chaos/Private/Chaos/HeightField.cpp:937-969)."""
     if rule == "landscape_triangulated":
         return np.where(tx < ty, a * (1.0 - ty) + d * tx + c * (ty - tx),
                         a * (1.0 - tx) + b * (tx - ty) + d * ty)

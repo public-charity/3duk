@@ -35,10 +35,30 @@ class ALandscapeProxy;
  *   Fx <  Fy:  P00*(1 - Fy) + P11*Fx        + P01*(Fy - Fx)
  *   Fx >= Fy:  P00*(1 - Fx) + P10*(Fx - Fy) + P11*Fy
  *
+ * THE DIAGONAL, DETERMINED RATHER THAN ASSUMED. Both branches share P00 and P11, so the quad is split on the
+ * NW-SE diagonal: Fx < Fy is the south-west triangle and Fx >= Fy the north-east one. A quad can be split either
+ * way and the two choices differ by the full |twist|/4 at the quad centre - up to 6.12 m at the Thanet maximum -
+ * so getting it backwards would be worse than using bilinear. It was settled by MEASUREMENT against the running
+ * engine, not by reading a header: predicting z_heightfield - z_landscape at 6,958 probe points with nothing but
+ * this expression minus the bilinear one leaves a residual of 0.000587 m maximum and 0.0000983 m rms over the
+ * 6,866 points further than 1 m from a tile boundary (docs/TERRAIN_ROADS.md 3.4,
+ * Saved/Diag/d2_interp_vs_engine.json). Flipping the comparison to Fx > 1 - Fy would have to leave a residual the
+ * size of the term itself, and does not. Tools/blender/streetscape/terrain.py:_interp is the same expression.
+ *
  * The two rules differ by up to 0.52 m on Thanet's steepest ground (measured over 1200 gradient-rich points),
  * which is four times the 0.125 m kerb Renderer B exists to model, so a street draped with one sits above or
- * below the ground the pawn walks on. Bilinear stays the DEFAULT until the numpy core switches with it - the
- * geometry track owns fixtures/expected.json - but the rule is implemented, tested and measurable now.
+ * below the ground the pawn walks on.
+ *
+ * WHICH IS THE DEFAULT, AND WHY THERE ARE TWO ANSWERS. FStreetHeightfield - the pure struct the numpy-parity
+ * fixtures drive - keeps Bilinear, because that is the default of the numpy Heightfield dataclass
+ * (Tools/blender/streetscape/terrain.py:77) and every frozen number in fixtures/expected.json was computed with
+ * it. UStreetHeightfieldTerrain - the terrain source that decides where a REAL road sits in the level - defaults
+ * to LandscapeTriangulated, because a consumer that must sit ON the landscape has to use the landscape's own
+ * rule (landscape_manifest.json:sampling_note), and the numpy tools that decide the same thing already do:
+ * Tools/road_fusion_audit.py --sampling defaults to landscape_triangulated and the corridor conform is measured
+ * with it. On the synthetic fixtures the choice is invisible - they are planar, and a triangulation of a plane is
+ * that plane - which is why Streetscape.Terrain.SamplerAgreement measures that as an equality rather than
+ * assuming it.
  */
 UENUM(BlueprintType)
 enum class EStreetHeightSampling : uint8
@@ -50,6 +70,8 @@ enum class EStreetHeightSampling : uint8
 /** Pure C++ heightfield (no UObject), so the tests and the numpy-parity checks can use it directly. */
 struct STREETSCAPE_API FStreetHeightfield
 {
+	/** Bilinear: the numpy Heightfield dataclass's default (terrain.py:77) and the contract every frozen parity
+	    number was computed with. UStreetHeightfieldTerrain::Load overwrites it with that source's own setting. */
 	EStreetHeightSampling Sampling = EStreetHeightSampling::Bilinear;
 	double TileM = 512.0;
 	int32 Res = 513;
@@ -130,12 +152,12 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Streetscape") FVector2D DocumentOriginEN = FVector2D::ZeroVector;
 	UPROPERTY(EditAnywhere, Category = "Streetscape") bool bDocumentOriginSet = false;
 	/**
-	 * Interpolation between grid posts. Bilinear is the numpy contract and the default; LandscapeTriangulated is
-	 * what ALandscape::GetHeightAtLocation returns, so a street draped with it sits exactly on the ground the
-	 * pawn collides with. See EStreetHeightSampling. Switching the default is a coordinated change with the
-	 * numpy core (Tools/blender/streetscape/terrain.py) because it moves every parity number.
+	 * Interpolation between grid posts, defaulting to LandscapeTriangulated: this is the source a real street is
+	 * draped from, and what ALandscape::GetHeightAtLocation returns between the posts is what the pawn collides
+	 * with and the camera sees. See EStreetHeightSampling for the diagonal, the measurement that settled it, and
+	 * why the pure FStreetHeightfield keeps the numpy contract's Bilinear instead.
 	 */
-	UPROPERTY(EditAnywhere, Category = "Streetscape") EStreetHeightSampling Sampling = EStreetHeightSampling::Bilinear;
+	UPROPERTY(EditAnywhere, Category = "Streetscape") EStreetHeightSampling Sampling = EStreetHeightSampling::LandscapeTriangulated;
 
 	/** Python-facing setter (the UPROPERTY alone is enough for Blueprint, not for a running commandlet's cache). */
 	UFUNCTION(BlueprintCallable, Category = "Streetscape") void SetSampling(EStreetHeightSampling In) { Sampling = In; Field.Sampling = In; }

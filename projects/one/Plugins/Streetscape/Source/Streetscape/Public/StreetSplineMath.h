@@ -74,7 +74,22 @@ struct STREETSCAPE_API FStreetSamples
 	FStreetSideSpec SideSpec[2];
 	TArray<FString> Warnings;
 
+	/**
+	 * The junction trim (SCHEMA.md 4.18; spline.Spline.__init__'s trim argument), resolved once per document by
+	 * FStreetJunctionPlan and handed to Build, so Renderer A and Renderer B read ONE trimmed extent and cannot drift.
+	 *
+	 * It is a MASK on s, never a re-basing: LengthM stays the document's arc length, S still spans [0, L], every
+	 * Segment.S0M / marking interval / drop kerb / barrier run keeps its meaning, and the two trim stations are added
+	 * to MandatorySet so they exist EXACTLY in every renderer's station list (S[first active] == STrim[0]).
+	 */
+	double TrimM[2] = { 0.0, 0.0 };    // metres cut off the start / the end
+	double STrim[2] = { 0.0, 0.0 };    // the two trim stations: (TrimM[0], L - TrimM[1])
+	bool bTrimmed = false;
+	TArray<bool> Active;               // (N) stations inside [STrim[0], STrim[1]]; all true when untrimmed
+
 	int32 Num() const { return S.Num(); }
+	/** Index in S of the trim station of that end: the first / last active station (spline.arm_station_index). */
+	int32 ArmStationIndex(EStreetSplineEnd End) const;
 	const TArray<double>& ExtraOf(EStreetSide Side) const { return Extra[StreetSideIndex(Side)]; }
 	/** THE edge contract: outward distance of the kerb line from the centreline on that side: w/2 + extra(side). */
 	TArray<double> EdgeOffset(EStreetSide Side) const;
@@ -117,6 +132,16 @@ struct STREETSCAPE_API FStreetSplineMath
 	static TArray<double> ApplyPins(const TArray<double>& Z, const TArray<double>& S, const TArray<TPair<double, double>>& Pins, double Blend);
 	static TArray<double> RateLimitBank(const TArray<double>& Beta, const TArray<double>& S, double R);
 
-	/** The whole build (spline.Spline.__init__). Terrain may be null (heights 0 + warning). False on a structural error. */
-	static bool Build(const FStreetSplineDef& Def, const FStreetSiteProfiles& Profiles, const IStreetTerrainSource* Terrain, FStreetSamples& Out, FString* Error);
+	/**
+	 * spline.resolve_widths - the ONE definition of half-width, extracted so FStreetJunctionPlan can ask for it at a
+	 * candidate trim station without building the whole FStreetSamples (which needs terrain).
+	 * Points are the MERGED points; OutW / OutExtra[2] come back with one entry per query station.
+	 */
+	static void ResolveWidths(const TArray<FStreetPoint>& Points, const TArray<double>& SKnots, const FRoadProfileData* RoadProf,
+		const FStreetRoadTimeline& RoadTl, TConstArrayView<double> S, TArray<double>& OutW, TArray<double> OutExtra[2]);
+
+	/** The whole build (spline.Spline.__init__). Terrain may be null (heights 0 + warning). False on a structural error.
+	    Trim, when given, is {t_start, t_end} in metres from FStreetJunctionPlan::TrimFor. */
+	static bool Build(const FStreetSplineDef& Def, const FStreetSiteProfiles& Profiles, const IStreetTerrainSource* Terrain, FStreetSamples& Out, FString* Error,
+		const double* Trim = nullptr);
 };

@@ -18,6 +18,8 @@
 #include "StreetSplineMath.h"
 #include "StreetTerrainSource.h"
 #include "StreetGeometry.h"
+#include "StreetJunctions.h"
+#include "StreetRenderers.h"
 #include <cmath>
 
 namespace StreetTest
@@ -342,4 +344,235 @@ inline bool BuildFixture(FAutomationTestBase& T, const FString& Name, const FStr
 }
 
 inline FString Fmt(double V) { return FStreetscapeJson::FormatNumber(V); }
+
+// -- junction fixtures (tests/synthetic.py "junction fixtures", SCHEMA.md 4.18) ----------------------------------
+//
+// Six shapes, each of which breaks a different naive implementation: the symmetric crossroads (the control), a T (an
+// odd arm count and two collinear arms whose corner is a straight kerb), a five-arm (more arms than a quad patch could
+// hold), a 30/150 skew (where a notch appears if the trim ignores width), the crossroads on a 6 % grade (where a flat
+// disc would float or bury), and a 12 m trunk crossing 4 m lanes (where the wide arm must be pushed back further).
+//
+// Every arm is a STRAIGHT spline running OUT of the node, so End == Start for all of them and the trim distance along
+// the spline is exactly the trim radius - which is what makes the assertions exact rather than approximate.
+
+inline const FVector2d& JunctionNode() { static const FVector2d N(200.0, 100.0); return N; }
+
+/** synthetic.junction_doc */
+inline TSharedPtr<FJsonObject> JunctionDoc(FAutomationTestBase& T, const FString& Name, const TArray<double>& BearingsDeg,
+	const TArray<double>& Widths, double Length = 60.0, double RadiusM = 4.0)
+{
+	TSharedPtr<FJsonObject> Straight;
+	if (!LoadJson(T, ExamplesDir() / TEXT("synthetic_straight.json"), Straight)) return nullptr;
+	TSharedPtr<FJsonObject> EdgeProf = LibraryProfile(T, TEXT("edge_uk_kerb"));
+	if (!EdgeProf.IsValid()) return nullptr;
+	TSharedRef<FJsonObject> D = MakeShared<FJsonObject>();
+	D->SetStringField(TEXT("schema_version"), TEXT("1.0.0"));
+	D->SetStringField(TEXT("site"), Name);
+	D->SetStringField(TEXT("crs"), TEXT("EPSG:27700"));
+	TSharedRef<FJsonObject> Or = MakeShared<FJsonObject>();
+	Or->SetNumberField(TEXT("E"), 0); Or->SetNumberField(TEXT("N"), 0);
+	D->SetObjectField(TEXT("origin"), Or);
+	D->SetStringField(TEXT("vertical_datum"), TEXT("ODN"));
+	D->SetStringField(TEXT("frame"), FStreetEnums::FrameConst());
+	D->SetStringField(TEXT("generator"), TEXT("hand-authored (Tools/blender/tests/synthetic.py)"));
+	D->SetObjectField(TEXT("materials"), Straight->GetObjectField(TEXT("materials")));
+	TSharedRef<FJsonObject> RoadProfiles = MakeShared<FJsonObject>();
+	RoadProfiles->SetObjectField(TEXT("road_test_marked"), Straight->GetObjectField(TEXT("profiles"))->GetObjectField(TEXT("road"))->GetObjectField(TEXT("road_test_marked")));
+	TSharedRef<FJsonObject> EdgeProfiles = MakeShared<FJsonObject>();
+	EdgeProfiles->SetObjectField(TEXT("edge_uk_kerb"), EdgeProf);
+	TSharedRef<FJsonObject> Profiles = MakeShared<FJsonObject>();
+	Profiles->SetObjectField(TEXT("road"), RoadProfiles);
+	Profiles->SetObjectField(TEXT("edge"), EdgeProfiles);
+	Profiles->SetObjectField(TEXT("hedge"), MakeShared<FJsonObject>());
+	D->SetObjectField(TEXT("profiles"), Profiles);
+
+	const FVector2d Node = JunctionNode();
+	TArray<TSharedPtr<FJsonValue>> Splines, Ends;
+	for (int32 K = 0; K < BearingsDeg.Num(); ++K)
+	{
+		const double Th = BearingsDeg[K] * (UE_DOUBLE_PI / 180.0);
+		const double W = Widths.IsValidIndex(K) ? Widths[K] : 6.0;
+		const FString Sid = FString::Printf(TEXT("authored:arm%d"), K);
+		TArray<TSharedPtr<FJsonValue>> Pts, Ov;
+		const double Ts[3] = { 0.0, Length * 0.5, Length };
+		for (int32 Q = 0; Q < 3; ++Q)
+		{
+			const double X = Round6(Node.X + std::cos(Th) * Ts[Q]);
+			const double Y = Round6(Node.Y + std::sin(Th) * Ts[Q]);
+			Pts.Add(PointVal(X, Y, W));
+			Ov.Add(XYVal(X, Y));
+		}
+		TSharedRef<FJsonObject> Sp = MakeShared<FJsonObject>();
+		Sp->SetStringField(TEXT("id"), Sid);
+		TSharedRef<FJsonObject> Src = MakeShared<FJsonObject>();
+		Src->SetStringField(TEXT("layer"), TEXT("authored"));
+		Src->SetField(TEXT("osm_id"), MakeShared<FJsonValueNull>());
+		Src->SetStringField(TEXT("name"), Sid);
+		Src->SetField(TEXT("cls"), MakeShared<FJsonValueNull>());
+		Sp->SetObjectField(TEXT("source"), Src);
+		Sp->SetObjectField(TEXT("profile_ids"), ProfileIdsObj(TEXT("road_test_marked"), TEXT("edge_uk_kerb")));
+		Sp->SetArrayField(TEXT("points"), Pts);
+		Sp->SetObjectField(TEXT("sampling"), RoadSampling());
+		Sp->SetArrayField(TEXT("segments"), {});
+		Sp->SetArrayField(TEXT("drop_kerbs"), {});
+		Sp->SetStringField(TEXT("junction_start"), TEXT("j0"));
+		Sp->SetField(TEXT("junction_end"), MakeShared<FJsonValueNull>());
+		TSharedRef<FJsonObject> Ovl = MakeShared<FJsonObject>();
+		Ovl->SetStringField(TEXT("kind"), TEXT("other"));
+		Ovl->SetArrayField(TEXT("pts"), Ov);
+		Ovl->SetField(TEXT("osm_id"), MakeShared<FJsonValueNull>());
+		Sp->SetObjectField(TEXT("overlay"), Ovl);
+		Splines.Add(MakeShared<FJsonValueObject>(Sp));
+		TSharedRef<FJsonObject> En = MakeShared<FJsonObject>();
+		En->SetStringField(TEXT("spline_id"), Sid);
+		En->SetStringField(TEXT("end"), TEXT("start"));
+		Ends.Add(MakeShared<FJsonValueObject>(En));
+	}
+	D->SetArrayField(TEXT("splines"), Splines);
+	TSharedRef<FJsonObject> J = MakeShared<FJsonObject>();
+	J->SetStringField(TEXT("id"), TEXT("j0"));
+	J->SetNumberField(TEXT("x"), Node.X);
+	J->SetNumberField(TEXT("y"), Node.Y);
+	J->SetField(TEXT("z"), MakeShared<FJsonValueNull>());
+	J->SetNumberField(TEXT("radius_m"), RadiusM);
+	J->SetStringField(TEXT("kind"), TEXT("disc"));
+	J->SetArrayField(TEXT("ends"), Ends);
+	D->SetArrayField(TEXT("junctions"), { MakeShared<FJsonValueObject>(J) });
+	return D;
+}
+
+/** synthetic.JUNCTION_BUILDERS - the six names, in the order fixtures/expected.json lists them. */
+inline const TArray<FString>& JunctionFixtureNames()
+{
+	static const TArray<FString> Names = { TEXT("junction_crossroads"), TEXT("junction_tee"), TEXT("junction_five_arm"),
+		TEXT("junction_skew"), TEXT("junction_slope"), TEXT("junction_widths") };
+	return Names;
+}
+
+inline TSharedPtr<FJsonObject> JunctionFixture(FAutomationTestBase& T, const FString& Name)
+{
+	const FString Path = FixturesDir() / (Name + TEXT(".json"));
+	if (FPaths::FileExists(Path))
+	{
+		TSharedPtr<FJsonObject> O;
+		if (LoadJson(T, Path, O)) return O;
+	}
+	if (Name == TEXT("junction_crossroads")) return JunctionDoc(T, Name, { 0, 90, 180, 270 }, { 6, 6, 6, 6 });
+	if (Name == TEXT("junction_tee")) return JunctionDoc(T, Name, { 0, 90, 180 }, { 6, 6, 6 });
+	if (Name == TEXT("junction_five_arm")) return JunctionDoc(T, Name, { 0, 72, 144, 216, 288 }, { 6, 6, 6, 6, 6 });
+	if (Name == TEXT("junction_skew")) return JunctionDoc(T, Name, { 0, 30, 180, 210 }, { 6, 6, 6, 6 });
+	if (Name == TEXT("junction_slope")) return JunctionDoc(T, Name, { 0, 90, 180, 270 }, { 6, 6, 6, 6 });
+	if (Name == TEXT("junction_widths")) return JunctionDoc(T, Name, { 0, 90, 180, 270 }, { 12, 4, 12, 6 });
+	T.AddError(TEXT("unknown junction fixture ") + Name);
+	return nullptr;
+}
+
+/** synthetic.junction_terrain_for: the slope fixture stands on a 6 % east / 3 % north grade, the rest on flat 10 m. */
+inline FStreetHeightfield JunctionTerrainFor(const FString& Name)
+{
+	if (Name == TEXT("junction_slope"))
+	{
+		return FStreetHeightfield::FromFunction([](double X, double Y) { return 10.0 + 0.06 * (X - 200.0) + 0.03 * (Y - 100.0); },
+			FVector2d(512.0, 512.0), 1.0, 512.0, FVector2d::ZeroVector, FVector2d(0.0, -256.0));
+	}
+	return FlatTerrain(10.0);
+}
+
+/** One spline's five buffers, as build.BuildResult.buffers() keys them. */
+struct FJunctionSplineBuild
+{
+	FStreetRenderResult Road, EdgeL, EdgeR, HedgeL, HedgeR;
+};
+
+/**
+ * build.build_all for one junction document: solve the plan first (in plan geometry only), build every spline exactly
+ * once with its trim already known, then merge each junction's patch into its OWNING spline's ROAD buffer and its
+ * corners into that spline's LEFT EDGE buffer - no fourth renderer, no fourth buffer, no new material.
+ */
+struct FJunctionSiteBuild
+{
+	FStreetJunctionPlan Plan;
+	TMap<FString, FStreetSamples> Samples;
+	TMap<FString, const FStreetSamples*> SamplePtrs;
+	TMap<FString, FJunctionSplineBuild> Builds;
+	TMap<FString, FStreetJunctionInfo> Junctions;   // by junction id
+	TMap<FString, FString> Owner;                   // junction id -> owning spline id
+
+	int32 TotalVerts() const
+	{
+		int32 N = 0;
+		for (const TPair<FString, FJunctionSplineBuild>& KV : Builds)
+		{
+			for (const FStreetRenderResult* B : { &KV.Value.Road, &KV.Value.EdgeL, &KV.Value.EdgeR, &KV.Value.HedgeL, &KV.Value.HedgeR }) N += B->Buffer.V.Num();
+		}
+		return N;
+	}
+	int32 TotalTris() const
+	{
+		int32 N = 0;
+		for (const TPair<FString, FJunctionSplineBuild>& KV : Builds)
+		{
+			for (const FStreetRenderResult* B : { &KV.Value.Road, &KV.Value.EdgeL, &KV.Value.EdgeR, &KV.Value.HedgeL, &KV.Value.HedgeR }) N += B->Buffer.F.Num();
+		}
+		return N;
+	}
+};
+
+inline bool BuildJunctionSite(FAutomationTestBase& T, const FString& Name, FStreetSiteDoc& Doc, FJunctionSiteBuild& Out)
+{
+	TSharedPtr<FJsonObject> O = JunctionFixture(T, Name);
+	if (!O.IsValid()) return false;
+	TArray<FString> Problems;
+	if (!FStreetscapeJson::ReadSite(O.ToSharedRef(), Doc, Problems))
+	{
+		T.AddError(Name + TEXT(": ") + FString::Join(Problems, TEXT(" | ")));
+		return false;
+	}
+	const FStreetHeightfield Field = JunctionTerrainFor(Name);
+	FStreetHeightfieldSource Src(Field);
+	Src.SetDocumentOrigin(Doc.Origin.E, Doc.Origin.N);
+	Out.Plan.Build(Doc);
+	for (const FStreetSplineDef& Def : Doc.Splines)
+	{
+		double Trim[2] = { 0.0, 0.0 };
+		Out.Plan.TrimFor(Def.Id, Trim);
+		FStreetSamples Sp;
+		FString Err;
+		if (!FStreetSplineMath::Build(Def, Doc.Profiles, &Src, Sp, &Err, Trim))
+		{
+			T.AddError(Name + TEXT(": build ") + Def.Id + TEXT(": ") + Err);
+			return false;
+		}
+		Out.Samples.Add(Def.Id, MoveTemp(Sp));
+	}
+	for (TPair<FString, FStreetSamples>& KV : Out.Samples) Out.SamplePtrs.Add(KV.Key, &KV.Value);
+	for (const FStreetSplineDef& Def : Doc.Splines)
+	{
+		FJunctionSplineBuild B;
+		const FStreetSamples& Sp = Out.Samples[Def.Id];
+		FStreetRenderBuild::BuildRoad(Sp, B.Road);
+		FStreetRenderBuild::BuildEdge(Sp, EStreetSide::Left, &Src, B.EdgeL);
+		FStreetRenderBuild::BuildEdge(Sp, EStreetSide::Right, &Src, B.EdgeR);
+		FStreetRenderBuild::BuildHedge(Sp, EStreetSide::Left, B.HedgeL);
+		FStreetRenderBuild::BuildHedge(Sp, EStreetSide::Right, B.HedgeR);
+		Out.Builds.Add(Def.Id, MoveTemp(B));
+	}
+	for (const FString& Jid : Out.Plan.BuiltJunctionIds())
+	{
+		const FString OwnerId = Out.Plan.Owner(Jid);
+		FJunctionSplineBuild* Ob = Out.Builds.Find(OwnerId);
+		if (!Ob) continue;
+		const FStreetJunctionSpec Spec = Out.Plan.SpecFor(Jid);
+		FStreetJunctionInfo Info = FStreetRenderBuild::BuildJunctionPatch(Spec, Out.SamplePtrs, Ob->Road.Buffer);
+		const FStreetJunctionInfo Corner = FStreetRenderBuild::BuildJunctionCorners(Spec, Out.SamplePtrs, Ob->EdgeL.Buffer);
+		Info.Corners = Corner.Corners;
+		Info.CornersSkippedNoKerb = Corner.CornersSkippedNoKerb;
+		Info.CornersSkippedIncompatible = Corner.CornersSkippedIncompatible;
+		Info.CornerVerts = Corner.CornerVerts;
+		Info.CornerTris = Corner.CornerTris;
+		Out.Junctions.Add(Jid, Info);
+		Out.Owner.Add(Jid, OwnerId);
+	}
+	return true;
+}
 }

@@ -280,6 +280,118 @@ class TestRealThanetSample(unittest.TestCase):
         self.assertLessEqual(after, 0.005, "real roads still fuse after the conform")
 
 
+class TestJunctionDiscs(unittest.TestCase):
+    """The ground under Renderer A's junction patch is the patch.
+
+    A corridor is a band along ONE spline, so between two arms, close to the node, there are wedges
+    that no band covers as built surface -- only as the feathered blend, which is allowed to rise
+    back to the survey.  The patch lays tarmac across exactly those wedges, and before
+    ``conform.junction_targets`` existed 814 of 87,969 patch vertices over the isle sat below the
+    conformed ground, worst 2.890 m (``Saved/Diag/junction_isle.json``) -- terrain standing up
+    through the middle of a crossroads.  This is that measurement, on one real Thanet site, with the
+    landscape read the way it draws.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        cls.hf = syn.thanet_landscape()
+        # x21_y3 on purpose: it holds `roads:4591162:0`, the worst patch-below-ground vertex on the
+        # isle before the disc burn existed (-2.890 m, Saved/Diag/junction_isle.json:worst).
+        cls.doc = syn.thanet_site("x21_y3")
+        if cls.hf is None or cls.doc is None:
+            raise unittest.SkipTest("data/thanet/out/unreal is not on disk")
+
+    def _stamp(self, site, plan, untrimmed, trimmed, params, grid, junctions: bool):
+        acc = C.ConformAccumulator(grid)
+
+        def z_raw_at(x, y):
+            return self.hf.sample(np.asarray(x, dtype=np.float64), np.asarray(y, dtype=np.float64))
+
+        def put(cx, cy, z, rank, u):
+            col = cx.astype(np.int64)
+            row = (grid.H - 1) - cy.astype(np.int64)
+            ok = (col >= 0) & (col < grid.W) & (row >= 0) & (row < grid.H)
+            acc.add(col[ok], row[ok], z[ok], rank[ok], u[ok])
+
+        for sp in untrimmed.values():
+            for batch in C.spline_targets(sp, params, z_raw_at, acc.stats):
+                put(*batch)
+        if junctions:
+            for jid in sorted(plan.arms):
+                if any(a.spline_id not in trimmed for a in plan.arms[jid]):
+                    continue
+                out = C.junction_targets(plan, jid, trimmed, params)
+                if out is not None:
+                    put(*out)
+        acc.finish()
+        return C.burn_heightfield(self.hf, grid, acc)
+
+    def test_the_ground_under_a_junction_patch_is_the_patch(self):
+        from streetscape.road import junction_surface, junction_target_z
+        from streetscape.spline import JunctionPlan
+        site = io_json.site_from_dict(self.doc)
+        plan = JunctionPlan(site)
+        if not plan.arms:
+            self.skipTest("no junctions in this site document")
+        params = C.CorridorParams()
+        grid = C.MosaicGrid.from_manifest(self.hf.manifest)
+        untrimmed, trimmed = {}, {}
+        arm_ids = {a.spline_id for arms in plan.arms.values() for a in arms}
+        for sdef in site.splines:
+            if sdef.profile_ids.road is None or sdef.source is None:
+                continue
+            if sdef.source.layer not in ("roads", "rail"):
+                continue
+            if sdef.flags is not None and (sdef.flags.bridge or sdef.flags.tunnel):
+                continue
+            sp = Spline(sdef, site, self.hf)
+            if any("no terrain under any station" in w for w in sp.warnings):
+                continue
+            untrimmed[sdef.id] = sp
+            if sdef.id in arm_ids:
+                trimmed[sdef.id] = Spline(sdef, site, self.hf, trim=plan.trim_for(sdef.id))
+        self.assertGreater(len(trimmed), 5)
+
+        def worst(hfb):
+            """Deepest ground-above-patch over a 0.25 m scatter inside every patch, read with the
+            landscape's own triangulation -- the surface the camera sees."""
+            hfb.sampling = "landscape_triangulated"
+            deepest = 0.0
+            n = 0
+            for jid in sorted(plan.arms):
+                if any(a.spline_id not in trimmed for a in plan.arms[jid]):
+                    continue
+                res = junction_surface(plan, jid, trimmed)
+                if res is None:
+                    continue
+                loop, apex = res
+                gx = np.arange(loop[:, 0].min(), loop[:, 0].max() + 0.25, 0.25)
+                gy = np.arange(loop[:, 1].min(), loop[:, 1].max() + 0.25, 0.25)
+                X, Y = np.meshgrid(gx, gy)
+                X, Y = X.ravel(), Y.ravel()
+                pz = junction_target_z(loop, apex, X, Y)
+                m = np.isfinite(pz)
+                if not m.any():
+                    continue
+                gz = hfb.sample(X[m], Y[m])
+                d = gz - pz[m]
+                d = d[np.isfinite(d)]
+                n += int(d.size)
+                if d.size:
+                    deepest = max(deepest, float(d.max()))
+            return deepest, n
+
+        bands_only = self._stamp(site, plan, untrimmed, trimmed, params, grid, junctions=False)
+        with_discs = self._stamp(site, plan, untrimmed, trimmed, params, grid, junctions=True)
+        before, n = worst(bands_only)
+        after, _ = worst(with_discs)
+        self.assertGreater(n, 5000, "the scatter is too small to prove anything")
+        self.assertGreater(before, 0.05,
+                           "the corridor bands alone already covered every patch here: the test "
+                           "proves nothing and needs a site with real junction wedges")
+        self.assertLessEqual(after, 0.0, "ground still stands through a junction patch after the burn")
+
+
 class TestConformedProduct(unittest.TestCase):
     """What a consumer of ``landscape_conformed`` is entitled to assume."""
 

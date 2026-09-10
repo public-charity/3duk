@@ -187,6 +187,11 @@ foreach ($r in $reports) {
 			ground  = $loc.ground
 			load    = [ordered]@{ centre_en = $loc.load_centre_en; radius_m = $loc.load_radius_m }
 			guards  = [ordered]@{ distinct_rgb = $loc.distinct_rgb; mean_luminance = $loc.mean_luminance }
+			# What the landscape's LOD chain was actually doing when this frame was drawn, read back off the
+			# resident proxies rather than assumed from the spec. b1cd3e5's whole set was rendered with every
+			# landscape component at its COARSEST LOD, because capture.landscape_lod0_screen_size 8.0 was
+			# believed to mean the opposite of what it means, and nothing in that manifest could show it.
+			landscape_lod = $loc.landscape_lod
 		}
 	}
 }

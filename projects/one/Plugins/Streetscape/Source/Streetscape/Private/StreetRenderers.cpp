@@ -231,6 +231,9 @@ void FStreetRenderBuild::BuildRoad(const FStreetSamples& Sp, FStreetRenderResult
 		Pr.HeightScalar = 0.0;
 		Pr.PointO = D;
 		Pr.PointH = H;
+		// the junction trim is a mask on the SHARED spline: the carriageway stops at the junction boundary and never
+		// crosses it; the hole it leaves is filled by BuildJunctionPatch, in THIS buffer, with THIS material.
+		Pr.Mask = Sp.Active;
 		Pr.bCapStart = false;
 		Pr.bCapEnd = false;
 		Pr.Groups = Groups;
@@ -247,13 +250,17 @@ void FStreetRenderBuild::BuildRoad(const FStreetSamples& Sp, FStreetRenderResult
 	struct FPlan { const FStreetMarking* M; TArray<TPair<double, double>> Ivs; };
 	TArray<FPlan> Plan;
 	TArray<double> Ends;
+	const double ALo = Sp.STrim[0], AHi = Sp.STrim[1];
 	for (const TStreetInterval<TArray<FStreetMarking>>& Iv : Sp.Road.MarkingIntervals)
 	{
 		if (!Iv.bHas) continue;
+		const double IvA = FMath::Max(Iv.A, ALo);
+		const double IvB = FMath::Min(Iv.B, AHi);
+		if (IvB - IvA <= 1e-9) continue;    // the whole interval is inside a junction
 		for (const FStreetMarking& M : Iv.Value)
 		{
 			if (M.Pattern == EStreetMarkingPattern::None) continue;
-			TArray<TPair<double, double>> Ivs = FStreetRenderBuild::MarkingIntervals(M, Iv.A, Iv.B, L);
+			TArray<TPair<double, double>> Ivs = FStreetRenderBuild::MarkingIntervals(M, IvA, IvB, L);
 			if (Ivs.Num() == 0) continue;
 			for (const TPair<double, double>& X : Ivs) { Ends.Add(X.Key); Ends.Add(X.Value); }
 			Plan.Add({ &M, MoveTemp(Ivs) });
@@ -380,6 +387,9 @@ void FStreetRenderBuild::BuildRail(const FStreetSamples& Sp, FStreetRenderResult
 		Pr.Side = +1;
 		Pr.PointO = O;
 		Pr.PointH = Hh;
+		// a rail spline never stands in a tarmac junction (the plan drops rail arms), so Active is all-true here; the
+		// mask is carried anyway so a rail that ever did stop at one would stop in both renderers (rail.py:45-48).
+		Pr.Mask = Sp.Active;
 		Pr.bCapStart = false;
 		Pr.bCapEnd = false;
 		Pr.Group = TEXT("ballast");
@@ -460,6 +470,7 @@ void FStreetRenderBuild::BuildRail(const FStreetSamples& Sp, FStreetRenderResult
 			Pr.Side = +1;
 			Pr.LateralScalar = Signs[Q] * Lat;
 			Pr.HeightScalar = Height;
+			Pr.Mask = Sp.Active;
 			Pr.bCapStart = true;
 			Pr.bCapEnd = true;
 			Pr.CapMat = Rs.Material;
@@ -473,6 +484,63 @@ void FStreetRenderBuild::BuildRail(const FStreetSamples& Sp, FStreetRenderResult
 // ---------------------------------------------------------------------------------------------------------------
 // Renderer B - edge.py
 // ---------------------------------------------------------------------------------------------------------------
+
+void FStreetRenderBuild::KerbLayout(int32 M, TArray<bool>& OutSmooth, TArray<FName>& OutGroups, int32& OutNInnerEdges)
+{
+	OutNInnerEdges = 2 + (M + 1);          // A-B, B-C, C..D
+	OutGroups.Reset();
+	for (int32 K = 0; K < OutNInnerEdges + 2; ++K) OutGroups.Add(TEXT("kerb"));
+	OutGroups.Add(TEXT("pavement"));
+	OutGroups.Add(TEXT("pavement"));
+	OutSmooth.Reset();
+	OutSmooth.Add(false); OutSmooth.Add(false); OutSmooth.Add(true);
+	for (int32 J = 0; J < M; ++J) OutSmooth.Add(true);
+	OutSmooth.Add(true); OutSmooth.Add(true); OutSmooth.Add(true); OutSmooth.Add(false); OutSmooth.Add(false);
+}
+
+void FStreetRenderBuild::KerbColumns(TConstArrayView<double> KerbWidth, TConstArrayView<double> Hk, TConstArrayView<double> LipR,
+	TConstArrayView<double> PavementWidth, TConstArrayView<double> HkBack, TConstArrayView<double> TuckIn,
+	TConstArrayView<double> TuckDepth, TConstArrayView<double> Skirt, TConstArrayView<double> Frac,
+	TConstArrayView<EStreetLipKind> LipKind, int32 M, TArray<double>& OutO, TArray<double>& OutH)
+{
+	const int32 Rows = Hk.Num();
+	const int32 P = 3 + M + 5;
+	OutO.SetNumUninitialized(Rows * P);
+	OutH.SetNumUninitialized(Rows * P);
+	for (int32 I = 0; I < Rows; ++I)
+	{
+		const double Kw = KerbWidth[I], H = Hk[I], Rr = LipR[I];
+		const double Pw = PavementWidth[I], Hkb = HkBack[I];
+		const double Ti = TuckIn[I], Td = TuckDepth[I], Sk = Skirt[I];
+		double* Or = &OutO[I * P];
+		double* Hr = &OutH[I * P];
+		Or[0] = -Ti;   Hr[0] = -Td;
+		Or[1] = 0.0;   Hr[1] = -Td;
+		Or[2] = 0.0;   Hr[2] = H - Rr;
+		for (int32 J = 1; J <= M; ++J)
+		{
+			const double Th = (90.0 * (double)J / (double)(M + 1)) * (kPiD / 180.0);
+			double Lo = 0.0, Lh = H;
+			if (LipKind[I] == EStreetLipKind::Radius)
+			{
+				Lo = Rr - Rr * std::cos(Th);
+				Lh = H - Rr + Rr * std::sin(Th);
+			}
+			else if (LipKind[I] == EStreetLipKind::Chamfer)
+			{
+				const double F = (double)J / (double)(M + 1);
+				Lo = Rr * F;
+				Lh = H - Rr + Rr * F;
+			}
+			Or[2 + J] = Lo; Hr[2 + J] = Lh;
+		}
+		Or[3 + M] = Rr;           Hr[3 + M] = H;
+		Or[4 + M] = Kw * Frac[I]; Hr[4 + M] = H;
+		Or[5 + M] = Kw;           Hr[5 + M] = H;
+		Or[6 + M] = Kw + Pw;      Hr[6 + M] = Hkb;
+		Or[7 + M] = Kw + Pw;      Hr[7 + M] = -Sk;
+	}
+}
 
 TArray<double> FStreetRenderBuild::PostStations(double A, double B, double Pitch)
 {
@@ -498,7 +566,11 @@ void FStreetRenderBuild::BuildEdge(const FStreetSamples& Sp, EStreetSide SideEnu
 	const int32 SideIdx = StreetSideIndex(SideEnum);
 	const int32 Side = StreetSideSigma(SideEnum);
 	const FStreetSideSpec& Spec = Sp.SideSpec[SideIdx];
-	if (!AnyTrue(Spec.Present)) return;
+	// the junction trim is a mask on the SHARED spline, so Renderer B stops exactly where Renderer A does: kerb and
+	// pavement never run on into the middle of a junction (edge.build_edge: present = spec.present & spline.active).
+	TArray<bool> Present = Spec.Present;
+	for (int32 I = 0; I < Present.Num(); ++I) Present[I] = Present[I] && (Sp.Active.IsValidIndex(I) ? Sp.Active[I] : true);
+	if (!AnyTrue(Present)) return;
 	const TArray<double> O0 = Sp.EdgeOffset(SideEnum);
 	const TArray<double> H0 = Sp.EdgeHeight(SideEnum);
 	const TArray<double>& S = Sp.S;
@@ -511,46 +583,20 @@ void FStreetRenderBuild::BuildEdge(const FStreetSamples& Sp, EStreetSide SideEnu
 		const int32 M = Spec.ArcPoints;
 		const int32 P = 3 + M + 5;
 		const int32 E = P - 1;
+		TArray<double> Frac;
+		Frac.SetNumUninitialized(N);
+		for (int32 I = 0; I < N; ++I) Frac[I] = Spec.Split[I] ? Spec.SplitFrac[I] : 0.5;
 		TArray<double> O, Hh;
-		O.SetNumUninitialized(N * P);
-		Hh.SetNumUninitialized(N * P);
+		KerbColumns(Spec.KerbWidth, Spec.Hk, Spec.LipR, Spec.PavementWidth, Spec.HkBack, Spec.TuckIn, Spec.TuckDepth,
+			Spec.Skirt, Frac, Spec.LipKind, M, O, Hh);
 		TArray<FName> Mats;
 		Mats.SetNumUninitialized(N * E);
-		const int32 NInnerEdges = 2 + (M + 1);
+		TArray<bool> Smooth;
+		TArray<FName> Groups;
+		int32 NInnerEdges = 0;
+		KerbLayout(M, Smooth, Groups, NInnerEdges);
 		for (int32 I = 0; I < N; ++I)
 		{
-			const double Kw = Spec.KerbWidth[I], Hk = Spec.Hk[I], Rr = Spec.LipR[I];
-			const double Pw = Spec.PavementWidth[I], Hkb = Spec.HkBack[I];
-			const double Ti = Spec.TuckIn[I], Td = Spec.TuckDepth[I], Sk = Spec.Skirt[I];
-			const double Frac = Spec.Split[I] ? Spec.SplitFrac[I] : 0.5;
-			double* Or = &O[I * P];
-			double* Hr = &Hh[I * P];
-			Or[0] = -Ti;   Hr[0] = -Td;
-			Or[1] = 0.0;   Hr[1] = -Td;
-			Or[2] = 0.0;   Hr[2] = Hk - Rr;
-			for (int32 J = 1; J <= M; ++J)
-			{
-				const double Th = (90.0 * (double)J / (double)(M + 1)) * (kPiD / 180.0);
-				double Lo = 0.0, Lh = Hk;
-				if (Spec.LipKind[I] == EStreetLipKind::Radius)
-				{
-					Lo = Rr - Rr * std::cos(Th);
-					Lh = Hk - Rr + Rr * std::sin(Th);
-				}
-				else if (Spec.LipKind[I] == EStreetLipKind::Chamfer)
-				{
-					const double F = (double)J / (double)(M + 1);
-					Lo = Rr * F;
-					Lh = Hk - Rr + Rr * F;
-				}
-				Or[2 + J] = Lo; Hr[2 + J] = Lh;
-			}
-			Or[3 + M] = Rr;        Hr[3 + M] = Hk;
-			Or[4 + M] = Kw * Frac; Hr[4 + M] = Hk;
-			Or[5 + M] = Kw;        Hr[5 + M] = Hk;
-			Or[6 + M] = Kw + Pw;   Hr[6 + M] = Hkb;
-			Or[7 + M] = Kw + Pw;   Hr[7 + M] = -Sk;
-
 			const FName Inner = Spec.MatInner[I];
 			const FName TopOut = Spec.Split[I] ? Spec.MatOuter[I] : Spec.MatKerb[I];
 			const FName PavMat = Spec.Split[I] ? Spec.MatOuter[I] : Spec.MatPavement[I];
@@ -561,14 +607,6 @@ void FStreetRenderBuild::BuildEdge(const FStreetSamples& Sp, EStreetSide SideEnu
 			Mr[NInnerEdges + 2] = PavMat;
 			Mr[NInnerEdges + 3] = PavMat;
 		}
-		TArray<FName> Groups;
-		for (int32 K = 0; K < NInnerEdges + 2; ++K) Groups.Add(TEXT("kerb"));
-		Groups.Add(TEXT("pavement"));
-		Groups.Add(TEXT("pavement"));
-		TArray<bool> Smooth;
-		Smooth.Add(false); Smooth.Add(false); Smooth.Add(true);
-		for (int32 J = 0; J < M; ++J) Smooth.Add(true);
-		Smooth.Add(true); Smooth.Add(true); Smooth.Add(true); Smooth.Add(false); Smooth.Add(false);
 		// section from station 0 (materials of the first station; the per-station table overrides them)
 		FStreetSection Section;
 		Section.bClosed = false;
@@ -586,7 +624,7 @@ void FStreetRenderBuild::BuildEdge(const FStreetSamples& Sp, EStreetSide SideEnu
 		Pr.Height = H0;
 		Pr.PointO = O;
 		Pr.PointH = Hh;
-		Pr.Mask = Spec.Present;
+		Pr.Mask = Present;
 		Pr.bCapStart = true;
 		Pr.bCapEnd = true;
 		Pr.Groups = Groups;
@@ -603,7 +641,8 @@ void FStreetRenderBuild::BuildEdge(const FStreetSamples& Sp, EStreetSide SideEnu
 		if (!Iv.bHas) continue;
 		const FStreetBarrier& Bar = Iv.Value;
 		if (Bar.Type == EStreetBarrierType::None) continue;
-		const TArray<bool> Mask = RangeMask(S, Iv.A, Iv.B);
+		TArray<bool> Mask = RangeMask(S, Iv.A, Iv.B);
+		for (int32 I = 0; I < Mask.Num(); ++I) Mask[I] = Mask[I] && (Sp.Active.IsValidIndex(I) ? Sp.Active[I] : true);
 		if (!AnyTrue(Mask)) continue;
 		TArray<double> Ob;
 		Ob.SetNumUninitialized(N);
@@ -720,7 +759,7 @@ void FStreetRenderBuild::BuildEdge(const FStreetSamples& Sp, EStreetSide SideEnu
 				double Zt = 0.0;
 				const bool bOk = Terrain->SampleHeight(Bx, By, Zt);
 				Dz[I] = bOk ? (Zb - Zt) : NAN;
-				Valid[I] = bOk && std::isfinite(Dz[I]) && Rng[I];
+				Valid[I] = bOk && std::isfinite(Dz[I]) && Rng[I] && (Sp.Active.IsValidIndex(I) ? Sp.Active[I] : true);
 			}
 			const double Thr = Emb.ThresholdM;
 			const bool bWantBatter = Emb.Kind == EStreetEmbankmentKind::Batter || Emb.Kind == EStreetEmbankmentKind::Auto;
@@ -906,7 +945,8 @@ void FStreetRenderBuild::BuildHedge(const FStreetSamples& Sp, EStreetSide SideEn
 		if (!Iv.bHas || Iv.Value.Profile == nullptr) continue;
 		const FStreetHedgeSpec& Hs = Iv.Value;
 		const FHedgeProfileData& Prof = *Hs.Profile;
-		const TArray<bool> Mask = RangeMask(S, Iv.A, Iv.B);
+		TArray<bool> Mask = RangeMask(S, Iv.A, Iv.B);
+		for (int32 I = 0; I < Mask.Num(); ++I) Mask[I] = Mask[I] && (Sp.Active.IsValidIndex(I) ? Sp.Active[I] : true);
 		if (CountTrue(Mask) < 2) continue;
 		const double W = Hs.WidthM;
 		const double H = Hs.HeightM + Prof.BaseSinkM;
@@ -1013,6 +1053,307 @@ void FStreetRenderBuild::BuildHedge(const FStreetSamples& Sp, EStreetSide SideEn
 			}
 		}
 	}
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// Junctions - Renderer A's patch (road.py) and Renderer B's corner (edge.py). NO fourth renderer, NO fourth buffer.
+// ---------------------------------------------------------------------------------------------------------------
+
+TArray<FVector3d> FStreetRenderBuild::ArmEndRow(const FStreetSamples& Sp, int32 I, bool bReverse)
+{
+	TArray<double> D, H;
+	TArray<FName> Groups;
+	int32 NInt = 0, R = 0;
+	RibbonRows(Sp, D, H, Groups, NInt, R);
+	const FVector3d& Pp = Sp.Frames.P[I];
+	const FVector3d& Nn = Sp.Frames.N[I];
+	const FVector3d& Bb = Sp.Frames.B[I];
+	TArray<FVector3d> Out;
+	Out.Reserve(R);
+	for (int32 K = 0; K < R; ++K)
+	{
+		const int32 C = bReverse ? (R - 1 - K) : K;
+		const double Dv = D[I * R + C], Hv = H[I * R + C];
+		Out.Add(FVector3d(Pp.X + Dv * Nn.X + Hv * Bb.X, Pp.Y + Dv * Nn.Y + Hv * Bb.Y, Pp.Z + Dv * Nn.Z + Hv * Bb.Z));
+	}
+	return Out;
+}
+
+bool FStreetRenderBuild::JunctionBoundary(const FStreetJunctionSpec& Spec, const TMap<FString, const FStreetSamples*>& Splines,
+	TArray<FStreetArmFrame>& OutFrames, TArray<FVector3d>& OutLoop, TArray<FIntPoint>& OutArmSlices, TArray<FStreetJunctionCornerSpec>& OutCorners)
+{
+	OutFrames.Reset(); OutLoop.Reset(); OutArmSlices.Reset(); OutCorners.Reset();
+	if (!FStreetJunctionMath::ResolveArmFrames(Spec, Splines, OutFrames)) return false;
+	if (OutFrames.Num() < 3) return false;
+	const FStreetJunction* J = &Spec.Junction;
+	const FVector2d Node(J->X, J->Y);
+	const FStreetJunctionDefaults& Cfg = Spec.Cfg;
+	const int32 NA = OutFrames.Num();
+	for (int32 K = 0; K < NA; ++K)
+	{
+		const FStreetArmFrame& Af = OutFrames[K];
+		const TArray<FVector3d> Rows = ArmEndRow(*Af.Spline, Af.I, Af.Arm->End != EStreetSplineEnd::Start);
+		OutArmSlices.Add(FIntPoint(OutLoop.Num(), OutLoop.Num() + Rows.Num()));
+		OutLoop.Append(Rows);
+		const FStreetArmFrame& Nx = OutFrames[(K + 1) % NA];
+		FStreetJunctionCornerSpec Cs;
+		Cs.A = K; Cs.B = (K + 1) % NA;
+		FStreetJunctionMath::CornerCurve(Af.PHi, Nx.PLo, FVector2d(-Af.U.X, -Af.U.Y), FVector2d(Nx.U.X, Nx.U.Y), Node,
+			Cfg.CornerStepDeg, Cfg.CornerHandleFrac, Cs.P, Cs.T);
+		Cs.Fr = FStreetJunctionMath::CornerFrames(Cs.P, Cs.T, Af.NHi, Nx.NLo);
+		const double Ov0 = Af.Spline->OverlapM[Af.I], Ov1 = Nx.Spline->OverlapM[Nx.I];
+		const double Sd0 = Af.Spline->SkirtDropM[Af.I], Sd1 = Nx.Spline->SkirtDropM[Nx.I];
+		const int32 M = Cs.P.Num();
+		Cs.Ov.SetNumUninitialized(M);
+		Cs.Sd.SetNumUninitialized(M);
+		for (int32 Q = 0; Q < M; ++Q)
+		{
+			const double T = (M > 1) ? ((Q == M - 1) ? 1.0 : (double)Q * (1.0 / (double)(M - 1))) : 0.0;
+			Cs.Ov[Q] = (1.0 - T) * Ov0 + T * Ov1;
+			Cs.Sd[Q] = (1.0 - T) * Sd0 + T * Sd1;
+		}
+		for (int32 Q = 1; Q + 1 < M; ++Q)
+		{
+			OutLoop.Add(FVector3d(Cs.Fr.P[Q].X - Cs.Ov[Q] * Cs.Fr.N[Q].X - Cs.Sd[Q] * Cs.Fr.B[Q].X,
+				Cs.Fr.P[Q].Y - Cs.Ov[Q] * Cs.Fr.N[Q].Y - Cs.Sd[Q] * Cs.Fr.B[Q].Y,
+				Cs.Fr.P[Q].Z - Cs.Ov[Q] * Cs.Fr.N[Q].Z - Cs.Sd[Q] * Cs.Fr.B[Q].Z));
+		}
+		OutCorners.Add(MoveTemp(Cs));
+	}
+	return true;
+}
+
+FStreetJunctionInfo FStreetRenderBuild::BuildJunctionPatch(const FStreetJunctionSpec& Spec,
+	const TMap<FString, const FStreetSamples*>& Splines, FStreetMeshBuilder& Buf, const FName* Material)
+{
+	FStreetJunctionInfo Out;
+	TArray<FStreetArmFrame> Frames;
+	TArray<FVector3d> Loop;
+	TArray<FIntPoint> Slices;
+	TArray<FStreetJunctionCornerSpec> Corners;
+	if (!JunctionBoundary(Spec, Splines, Frames, Loop, Slices, Corners)) return Out;
+	const int32 K = Loop.Num();
+	if (K < 3) return Out;
+	const FStreetJunction* J = &Spec.Junction;
+	double ZApex = -TNumericLimits<double>::Max();
+	for (const FStreetArmFrame& Af : Frames) ZApex = FMath::Max(ZApex, Af.Spline->Frames.P[Af.I].Z);
+	const FVector3d Centre(J->X, J->Y, ZApex);
+
+	// angular monotonicity about the node: what says whether the fan double-covers anything
+	{
+		TArray<double> Ang;
+		Ang.SetNumUninitialized(K);
+		for (int32 Q = 0; Q < K; ++Q) Ang[Q] = std::atan2(Loop[Q].Y - J->Y, Loop[Q].X - J->X);
+		double Sum = 0.0;
+		bool bAllPos = true;
+		for (int32 Q = 0; Q < K; ++Q)
+		{
+			double St = Ang[(Q + 1) % K] - Ang[Q];
+			St = std::fmod(St + kPiD, 2.0 * kPiD);
+			if (St < 0.0) St += 2.0 * kPiD;
+			St -= kPiD;
+			Sum += St;
+			bAllPos = bAllPos && (St > 1e-12);
+		}
+		Out.bMonotone = bAllPos && FMath::Abs(Sum - 2.0 * kPiD) < 1e-6;
+	}
+
+	const FName Mat = Material ? *Material : Frames[0].Spline->SurfaceMaterial[Frames[0].I];
+	const int32 Gid = Buf.GroupId(FName(*FString::Printf(TEXT("junction:%s"), *Spec.Junction.Id)));
+	const int32 Mid = Buf.MaterialId(Mat);
+	TArray<FVector3d> V;
+	V.Reserve(K + 1);
+	V.Add(Centre);
+	V.Append(Loop);
+	TArray<FVector2d> Uv;
+	TArray<double> Vs, Vd, Vh;
+	const double SOwner = Frames[0].Spline->S[Frames[0].I];
+	Uv.SetNumUninitialized(V.Num()); Vs.SetNumUninitialized(V.Num()); Vd.Init(0.0, V.Num()); Vh.Init(0.0, V.Num());
+	for (int32 Q = 0; Q < V.Num(); ++Q) { Uv[Q] = FVector2d(V[Q].X - J->X, V[Q].Y - J->Y); Vs[Q] = SOwner; }
+	const int32 First = Buf.AppendVertices(V, Uv, Vs, Vd, Vh);
+
+	// plan areas of what is actually emitted: the boundary's own area is the shoelace of the loop, so the excess is
+	// the area some triangle covers twice (0 when nothing is inverted)
+	double SumAbs = 0.0, Shoe = 0.0;
+	for (int32 Q = 0; Q < K; ++Q)
+	{
+		const FVector3d& A1 = Loop[Q];
+		const FVector3d& A2 = Loop[(Q + 1) % K];
+		SumAbs += FMath::Abs(0.5 * ((A1.X - Centre.X) * (A2.Y - Centre.Y) - (A2.X - Centre.X) * (A1.Y - Centre.Y)));
+		Shoe += Loop[Q].X * Loop[(Q + 1) % K].Y - Loop[(Q + 1) % K].X * Loop[Q].Y;
+	}
+	Shoe *= 0.5;
+	Out.AreaM2 = FMath::Abs(Shoe);
+	Out.OverlapAreaM2 = FMath::Max(0.0, SumAbs - FMath::Abs(Shoe));
+
+	TArray<UE::Geometry::FIndex3i> Tris;
+	Tris.Reserve(K);
+	for (int32 Q = 0; Q < K; ++Q)
+	{
+		int32 Ia = First, Ib = First + 1 + Q, Ic = First + 1 + ((Q + 1) % K);
+		const FVector3d& Pa = Buf.V[Ia];
+		const FVector3d& Pb = Buf.V[Ib];
+		const FVector3d& Pc = Buf.V[Ic];
+		const FVector3d Fn = Cross3(FVector3d(Pb.X - Pa.X, Pb.Y - Pa.Y, Pb.Z - Pa.Z), FVector3d(Pc.X - Pa.X, Pc.Y - Pa.Y, Pc.Z - Pa.Z));
+		if (Fn.Z < 0) Swap(Ib, Ic);
+		if (0.5 * Norm3(Fn) < 1e-10) continue;
+		Tris.Add(UE::Geometry::FIndex3i(Ia, Ib, Ic));
+	}
+	Buf.AppendTriangles(Tris, Mid, Gid);
+	Out.bBuilt = true;
+	Out.Verts = V.Num();
+	Out.Tris = Tris.Num();
+	Out.Arms = Frames.Num();
+	Out.Boundary = K;
+	Out.TrimRadiusM = Spec.TrimRadiusM;
+	Out.ZApex = ZApex;
+	return Out;
+}
+
+bool FStreetRenderBuild::JunctionSurface(const FStreetJunctionSpec& Spec, const TMap<FString, const FStreetSamples*>& Splines,
+	TArray<FVector3d>& OutLoop, FVector3d& OutApex)
+{
+	TArray<FStreetArmFrame> Frames;
+	TArray<FIntPoint> Slices;
+	TArray<FStreetJunctionCornerSpec> Corners;
+	if (!JunctionBoundary(Spec, Splines, Frames, OutLoop, Slices, Corners)) return false;
+	if (OutLoop.Num() < 3) return false;
+	const FStreetJunction* J = &Spec.Junction;
+	double ZApex = -TNumericLimits<double>::Max();
+	for (const FStreetArmFrame& Af : Frames) ZApex = FMath::Max(ZApex, Af.Spline->Frames.P[Af.I].Z);
+	OutApex = FVector3d(J->X, J->Y, ZApex);
+	return true;
+}
+
+double FStreetRenderBuild::JunctionTargetZ(const TArray<FVector3d>& Loop, const FVector3d& Apex, double X, double Y)
+{
+	const int32 K = Loop.Num();
+	const double Ax = Apex.X, Ay = Apex.Y, Az = Apex.Z;
+	for (int32 Q = 0; Q < K; ++Q)
+	{
+		const FVector3d& B = Loop[Q];
+		const FVector3d& C = Loop[(Q + 1) % K];
+		const double Det = (B.Y - C.Y) * (Ax - C.X) + (C.X - B.X) * (Ay - C.Y);
+		if (FMath::Abs(Det) < 1e-18) continue;
+		const double L1 = ((B.Y - C.Y) * (X - C.X) + (C.X - B.X) * (Y - C.Y)) / Det;
+		const double L2 = ((C.Y - Ay) * (X - C.X) + (Ax - C.X) * (Y - C.Y)) / Det;
+		const double L3 = 1.0 - L1 - L2;
+		if (L1 >= -1e-9 && L2 >= -1e-9 && L3 >= -1e-9) return L1 * Az + L2 * B.Z + L3 * C.Z;
+	}
+	return NAN;
+}
+
+FStreetJunctionInfo FStreetRenderBuild::BuildJunctionCorners(const FStreetJunctionSpec& Spec,
+	const TMap<FString, const FStreetSamples*>& Splines, FStreetMeshBuilder& Buf)
+{
+	FStreetJunctionInfo Out;
+	TArray<FStreetArmFrame> Frames;
+	if (!FStreetJunctionMath::ResolveArmFrames(Spec, Splines, Frames)) return Out;
+	if (Frames.Num() < 3) return Out;
+	const FStreetJunction* J = &Spec.Junction;
+	const FVector2d Node(J->X, J->Y);
+	const FStreetJunctionDefaults& Cfg = Spec.Cfg;
+	const int32 V0 = Buf.V.Num(), T0 = Buf.F.Num();
+	const int32 NA = Frames.Num();
+	for (int32 K = 0; K < NA; ++K)
+	{
+		const FStreetArmFrame& Af = Frames[K];
+		const FStreetArmFrame& Nx = Frames[(K + 1) % NA];
+		const FStreetSideSpec* Sa = &Af.Spline->SideSpec[StreetSideIndex(Af.SideHi)];
+		int32 Ia = Af.I;
+		const FStreetSideSpec* Sb = &Nx.Spline->SideSpec[StreetSideIndex(Nx.SideLo)];
+		int32 Ib = Nx.I;
+		const bool bUseA = Sa->bHasKerbOrPavement && Sa->Present[Ia];
+		const bool bUseB = Sb->bHasKerbOrPavement && Sb->Present[Ib];
+		if (!bUseA && !bUseB) { ++Out.CornersSkippedNoKerb; continue; }
+		// one arm kerbed and the other not (a footway meeting a street): run THAT arm's section round the corner
+		// unchanged and cap the far end, rather than leaving the kerb hanging at the trim
+		bool bCapStart = false, bCapEnd = false;
+		if (!bUseB) { Sb = Sa; Ib = Ia; bCapEnd = true; }
+		else if (!bUseA) { Sa = Sb; Ia = Ib; bCapStart = true; }
+		if (Sa->ArcPoints != Sb->ArcPoints) { ++Out.CornersSkippedIncompatible; continue; }
+
+		TArray<FVector3d> P, T;
+		FStreetJunctionMath::CornerCurve(Af.PHi, Nx.PLo, FVector2d(-Af.U.X, -Af.U.Y), FVector2d(Nx.U.X, Nx.U.Y), Node,
+			Cfg.CornerStepDeg, Cfg.CornerHandleFrac, P, T);
+		FStreetFrames Fr = FStreetJunctionMath::CornerFrames(P, T, Af.NHi, Nx.NLo);
+		const double SBase = Af.Spline->S[Af.I];       // UV u keeps running in metres across the join
+		for (int32 Q = 0; Q < Fr.S.Num(); ++Q) Fr.S[Q] += SBase;
+		const int32 M = P.Num();
+		TArray<double> Tt;
+		Tt.SetNumUninitialized(M);
+		for (int32 Q = 0; Q < M; ++Q) Tt[Q] = (M > 1) ? ((Q == M - 1) ? 1.0 : (double)Q * (1.0 / (double)(M - 1))) : 0.0;
+		auto Lerp = [&Tt, M](const TArray<double>& Va, int32 A, const TArray<double>& Vb, int32 B)
+		{
+			TArray<double> R;
+			R.SetNumUninitialized(M);
+			for (int32 Q = 0; Q < M; ++Q) R[Q] = (1.0 - Tt[Q]) * Va[A] + Tt[Q] * Vb[B];
+			return R;
+		};
+		const double FracA = Sa->Split[Ia] ? Sa->SplitFrac[Ia] : 0.5;
+		const double FracB = Sb->Split[Ib] ? Sb->SplitFrac[Ib] : 0.5;
+		TArray<double> FracArr;
+		FracArr.SetNumUninitialized(M);
+		for (int32 Q = 0; Q < M; ++Q) FracArr[Q] = (1.0 - Tt[Q]) * FracA + Tt[Q] * FracB;
+		const int32 Mp = Sa->ArcPoints;
+		const int32 Half = M / 2;
+		TArray<EStreetLipKind> LipKind;
+		LipKind.SetNumUninitialized(M);
+		for (int32 Q = 0; Q < M; ++Q) LipKind[Q] = (Q < Half) ? Sa->LipKind[Ia] : Sb->LipKind[Ib];
+		TArray<double> O, Hh;
+		KerbColumns(Lerp(Sa->KerbWidth, Ia, Sb->KerbWidth, Ib), Lerp(Sa->Hk, Ia, Sb->Hk, Ib), Lerp(Sa->LipR, Ia, Sb->LipR, Ib),
+			Lerp(Sa->PavementWidth, Ia, Sb->PavementWidth, Ib), Lerp(Sa->HkBack, Ia, Sb->HkBack, Ib),
+			Lerp(Sa->TuckIn, Ia, Sb->TuckIn, Ib), Lerp(Sa->TuckDepth, Ia, Sb->TuckDepth, Ib),
+			Lerp(Sa->Skirt, Ia, Sb->Skirt, Ib), FracArr, LipKind, Mp, O, Hh);
+		const int32 Pp = 3 + Mp + 5;
+		const int32 E = Pp - 1;
+		TArray<bool> Smooth;
+		TArray<FName> Groups;
+		int32 NInner = 0;
+		KerbLayout(Mp, Smooth, Groups, NInner);
+		TArray<FName> Mats;
+		Mats.SetNumUninitialized(M * E);
+		for (int32 Row = 0; Row < M; ++Row)
+		{
+			const FStreetSideSpec* Spec = (Row < Half) ? Sa : Sb;
+			const int32 Idx = (Row < Half) ? Ia : Ib;
+			const bool bSplit = Spec->Split[Idx];
+			const FName Inner = Spec->MatInner[Idx];
+			FName* Mr = &Mats[Row * E];
+			for (int32 C = 0; C <= NInner; ++C) Mr[C] = Inner;
+			Mr[NInner + 1] = bSplit ? Spec->MatOuter[Idx] : Spec->MatKerb[Idx];
+			const FName Pav = bSplit ? Spec->MatOuter[Idx] : Spec->MatPavement[Idx];
+			Mr[NInner + 2] = Pav;
+			Mr[NInner + 3] = Pav;
+		}
+		FStreetSection Section;
+		Section.bClosed = false;
+		double Vv = 0.0;
+		for (int32 C = 0; C < Pp; ++C)
+		{
+			if (C > 0) Vv += std::hypot(O[C] - O[C - 1], Hh[C] - Hh[C - 1]);
+			FStreetSectionPoint Pt;
+			Pt.O = O[C]; Pt.H = Hh[C]; Pt.Mat = Mats[FMath::Min(C, E - 1)]; Pt.V = Vv; Pt.bSmooth = Smooth[C];
+			Section.Points.Add(Pt);
+		}
+		TArray<FName> GNames;
+		for (const FName& G : Groups) GNames.Add(FName(*FString::Printf(TEXT("corner_%s:%s:%d"), *G.ToString(), *Spec.Junction.Id, K)));
+		FStreetSweepParams Pr;
+		Pr.Side = -1;
+		Pr.LateralScalar = 0.0;
+		Pr.HeightScalar = 0.0;
+		Pr.PointO = O;
+		Pr.PointH = Hh;
+		Pr.bCapStart = bCapStart;
+		Pr.bCapEnd = bCapEnd;
+		Pr.Groups = GNames;
+		Pr.EdgeMatStation = Mats;
+		FStreetSweep::Sweep(Buf, Section, Fr, Pr);
+		++Out.Corners;
+	}
+	Out.CornerVerts = Buf.V.Num() - V0;
+	Out.CornerTris = Buf.F.Num() - T0;
+	return Out;
 }
 
 // ---------------------------------------------------------------------------------------------------------------

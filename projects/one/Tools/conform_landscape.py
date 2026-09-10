@@ -41,11 +41,11 @@ import numpy as np
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, "blender"))
 
-from streetscape import conform as C          # noqa: E402
-from streetscape import io_json               # noqa: E402
-from streetscape import schema as S           # noqa: E402
-from streetscape.spline import Spline         # noqa: E402
-from streetscape.terrain import Heightfield   # noqa: E402
+from streetscape import conform as C                    # noqa: E402
+from streetscape import io_json                         # noqa: E402
+from streetscape import schema as S                     # noqa: E402
+from streetscape.spline import JunctionPlan, Spline     # noqa: E402
+from streetscape.terrain import Heightfield             # noqa: E402
 
 
 def git_commit(repo):
@@ -139,6 +139,11 @@ def main():
     ap.add_argument("--batter-deg", type=float, default=C.CorridorParams.batter_deg)
     ap.add_argument("--report-delta-m", type=float, default=C.CorridorParams.report_delta_m)
     ap.add_argument("--clamp-m", type=float, default=C.CorridorParams.clamp_m)
+    ap.add_argument("--no-junctions", action="store_true",
+                    help="do not burn the junction discs (the corridor bands only).  Leaves the "
+                         "wedges between adjacent arms as blend, where the survey may rise back "
+                         "through Renderer A's junction patch -- 814 of 87,969 patch vertices did, "
+                         "worst 2.890 m.  For A/B measurement only.")
     ap.add_argument("--report", default=None, help="where to write the run report (default <out>/conform_report.json)")
     args = ap.parse_args()
 
@@ -176,8 +181,11 @@ def main():
     skipped = []
     structures = []
     earth_all = []
+    jstats = {"junctions_seen": 0, "junctions_burned": 0, "junctions_no_patch": 0,
+              "junctions_missing_arm": 0, "cells_stamped": 0}
     for path in files:
         site = io_json.load_site(path)
+        ok_for_junction = {}                 # spline id -> the def, for the arms worth building
         for sdef in site.splines:
             layer = (sdef.source.layer if sdef.source is not None else None)
             if layer not in params.layers or sdef.profile_ids.road is None:
@@ -224,6 +232,11 @@ def main():
                 ok = (col >= 0) & (col < grid.W) & (row >= 0) & (row < grid.H)
                 acc.add(col[ok], row[ok], z[ok], rank[ok], u[ok])
             acc.stats["splines"] += 1
+            # this spline's corridor was burned, so it is fit to be an arm: it has a road profile, it
+            # is not a structure, it built, and it has survey ground under it.  A junction whose arm
+            # is missing any of that is left to its arms' corridors rather than burned from a patch
+            # whose height came from a spline this pass refused.
+            ok_for_junction[sdef.id] = sdef
             shelf = C.shelf_levels(sp, params, z_raw_at)
             e_sp = []
             for side in (S.LEFT, S.RIGHT):
@@ -246,6 +259,45 @@ def main():
                     d["max_cut_m"] = min(d["max_cut_m"], float(e_cat.min()))
                     d["abs_sum"] += float(np.abs(e_cat).sum())
                     earth_all.append(e_cat.astype(np.float32))
+        # -- the junction discs -------------------------------------------------------------
+        # A corridor is a band along ONE spline; between two arms, close to the node, there are
+        # wedges no band covers as built surface.  Renderer A lays tarmac across them, and before
+        # this pass existed 814 of 87,969 patch vertices over the isle sat BELOW the conformed
+        # ground, worst 2.890 m (Saved/Diag/junction_isle.json) -- ground standing up through the
+        # middle of a crossroads.  The patch polygon is rasterised here with the geometry core's own
+        # `junction_target_z` as its target, so what is burned is the surface Renderer A builds.
+        if not args.no_junctions and site.junctions:
+            plan = JunctionPlan(site)
+            arm_ids = sorted({a.spline_id for arms in plan.arms.values() for a in arms})
+            tsp = {}
+            for sid in arm_ids:
+                sdef = ok_for_junction.get(sid)
+                if sdef is None:
+                    continue
+                try:
+                    # TRIMMED: the patch is bounded by the arms' trimmed end rows, so the frames it
+                    # is built from must be the trimmed ones.  The corridor above deliberately used
+                    # the untrimmed extent; both are the same surface, they differ only in which
+                    # stations are active.
+                    tsp[sid] = Spline(sdef, site, hf, trim=plan.trim_for(sid))
+                except Exception:                                       # noqa: BLE001
+                    continue
+            for jid in sorted(plan.arms):
+                jstats["junctions_seen"] += 1
+                if any(a.spline_id not in tsp for a in plan.arms[jid]):
+                    jstats["junctions_missing_arm"] += 1
+                    continue
+                out = C.junction_targets(plan, jid, tsp, params)
+                if out is None:
+                    jstats["junctions_no_patch"] += 1
+                    continue
+                jx, jy, jz, jrank, ju = out
+                col = jx.astype(np.int64)
+                row = (grid.H - 1) - jy.astype(np.int64)
+                ok = (col >= 0) & (col < grid.W) & (row >= 0) & (row < grid.H)
+                acc.add(col[ok], row[ok], jz[ok], jrank[ok], ju[ok])
+                jstats["junctions_burned"] += 1
+                jstats["cells_stamped"] += int(ok.sum())
         n_docs += 1
         if n_docs % 10 == 0:
             print("  %d/%d docs, %d splines, %.0f s" % (n_docs, len(files), acc.stats["splines"],
@@ -347,8 +399,32 @@ def main():
                            "15-16), so conforming the ground to them would cut the deck's dive into "
                            "the ground the way underneath is built on.  The ground under a structure "
                            "belongs to whatever passes below, and that way burns it.  The list is "
-                           "conform_structures.json; the DECK height itself is a geometry-core "
-                           "question and is not decided here."),
+                           "conform_structures.json.  The DECK height itself is a z_ref question in "
+                           "the shared spline layer and is NOT decided here, and it is the open half "
+                           "of Alex's 'above ground as necessary': measured over the isle by "
+                           "projects/one/Tools/road_fusion_audit.py (structures_summary of "
+                           "Saved/Clearance/fusion_after_v4.json), a bridge deck falls below the "
+                           "straight line between its own two ends by a median of 1.909 m, a p95 of "
+                           "5.408 m and a maximum of 12.595 m (rail:27641607:0, a 99 m rail bridge, "
+                           "at a 161 % grade); 58 of 92 bridges sag more than 1 m and 71 of 92 carry "
+                           "a grade over 25 %.  That is the railway 'leaving the ground at bridges' "
+                           "of renders/b1cd3e5/INDEX.md defect 8, seen from underneath."),
+        "junctions": dict(jstats, burned=(not args.no_junctions), note=(
+            "Renderer A's junction patch is burned as BUILT SURFACE with the geometry core's own "
+            "road.junction_target_z as its target, plus an apron of apron_m.  A corridor is a band "
+            "along one spline and leaves wedges between adjacent arms that only the patch covers; "
+            "without this the survey rises back through the middle of a crossroads (measured before "
+            "it existed: 814 of 87,969 patch vertices below the conformed ground, worst 2.890 m).  "
+            "The disc's sink is the shallowest of its arms', so the disc and its arms cannot step.  "
+            "junctions_missing_arm are junctions with an arm this pass did not burn (a bridge, a "
+            "tunnel, or a spline with no survey ground under it): they keep their arms' corridors.  "
+            "MEASURED over the isle, patch vertices below the conformed ground: 814 of 87,969 "
+            "without the disc burn, 94 with it (build.py --junction-audit --clearance-landscape, "
+            "Saved/Clearance/junction_isle_v4.json vs Saved/Diag/junction_isle.json).  All 91 that "
+            "an independent attribution can place belong to 7 junctions with a BRIDGE arm "
+            "(Saved/Clearance/why_patch_low.py): the deck there carries the elevation of the ground "
+            "under the structure, so its patch is not a surface any ground should be conformed to.  "
+            "That residual is a z_ref question in the shared spline layer, not a conform one.")),
         "cells_changed": total_changed,
         "cells_touched": stats["cells_touched"],
         "contributions": stats["contributions"],
@@ -453,6 +529,8 @@ def main():
                 "sink_note": conform_block["corridor"].get("sink_note"),
                 "structures_not_burned": conform_block["splines_structure"],
                 "structure_note": conform_block["structure_note"],
+                "junctions": {k: v for k, v in conform_block["junctions"].items() if k != "note"},
+                "junction_note": conform_block["junctions"]["note"],
             })
             entry.setdefault("why", ("the road corridor burned into a copy of the landscape so the "
                                      "built street sits on the ground instead of in it"))

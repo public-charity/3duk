@@ -148,3 +148,146 @@ bool FStreetTerrainTriangulatedTest::RunTest(const FString& Parameters)
 	TestTrue(TEXT("identical at a grid post"), FMath::Abs(Za - Zc) < 1e-12);
 	return true;
 }
+
+// Streetscape.Terrain.SamplerAgreement: the plugin, the numpy core and the engine have to mean the SAME surface by
+// "the ground". This pins the three things that could drift apart:
+//
+//   1. the DIAGONAL. Both branches of the triangulated rule share P00 (NW) and P11 (SE), i.e. the quad splits on the
+//      NW-SE diagonal. The opposite split is a different surface by the full |twist|/4 at the quad centre, so the
+//      choice is asserted here against a cell with a large twist rather than left to a comment.
+//   2. the EXPRESSION. It is checked against a literal transcription of Tools/blender/streetscape/terrain.py:_interp
+//      over hashed points on a twisted field, to 0 (not to a tolerance).
+//   3. the DEFAULTS. UStreetHeightfieldTerrain - what a real street is draped from - must ask for the landscape's own
+//      rule, and the pure FStreetHeightfield must keep the numpy contract's bilinear so no frozen number moves. The
+//      two are only allowed to differ where the surface itself does not: on a plane, and at every grid post.
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FStreetTerrainSamplerAgreementTest, "Streetscape.Terrain.SamplerAgreement", EAutomationTestFlags::EditorContext | EAutomationTestFlags::ProductFilter)
+bool FStreetTerrainSamplerAgreementTest::RunTest(const FString& Parameters)
+{
+	// -- 1 + 2: a field with a big twist in every cell, so the two diagonals and the two rules all disagree --------
+	auto Twisted = [](double X, double Y) -> double
+	{
+		const int32 Ix = (int32)FMath::FloorToDouble(X), Iy = (int32)FMath::FloorToDouble(Y);
+		return 3.0 * (double)((Ix & 1) ^ (Iy & 1)) + 0.05 * (double)Ix - 0.03 * (double)Iy;
+	};
+	FStreetHeightfield H = FStreetHeightfield::FromFunction(Twisted, FVector2d(512.0, 512.0), 1.0, 512.0);
+	H.Sampling = EStreetHeightSampling::LandscapeTriangulated;
+
+	// the numpy rule, transcribed here so that two expressions are compared and not one expression called twice
+	auto Post = [&](int32 Col, int32 Row) -> double
+	{
+		// tile (0, 0) covers x in [0, 512], y in [0, 512]; row 0 is the NORTH edge, so post (col, row) is at
+		// (x, y) = (col, 512 - row) and Twisted is evaluated on the integer lattice there. The cast through float
+		// is not cosmetic: the heightfield stores float32 samples on BOTH sides (numpy's tiles are float32 too),
+		// so comparing against the double-precision function instead of the stored value would leave a 1e-6
+		// residual that has nothing to do with the interpolation rule.
+		return (double)(float)Twisted((double)Col, (double)(512 - Row));
+	};
+	auto NumpyTriangulated = [&](double X, double Y) -> double
+	{
+		const double Cx = X;
+		const double Ry = 512.0 - Y;
+		const int32 X0 = FMath::Min((int32)FMath::FloorToDouble(Cx), 511);
+		const int32 Y0 = FMath::Min((int32)FMath::FloorToDouble(Ry), 511);
+		const double Tx = Cx - X0, Ty = Ry - Y0;
+		const double A = Post(X0, Y0);              // NW
+		const double B = Post(X0 + 1, Y0);          // NE
+		const double C = Post(X0, Y0 + 1);          // SW
+		const double D = Post(X0 + 1, Y0 + 1);      // SE
+		return (Tx < Ty) ? (A * (1.0 - Ty) + D * Tx + C * (Ty - Tx))
+		                 : (A * (1.0 - Tx) + B * (Tx - Ty) + D * Ty);
+	};
+	double MaxDiff = 0.0, MaxFlipped = 0.0;
+	int32 N = 0;
+	for (int32 I = 0; I < 5000; ++I)
+	{
+		const double X = FStreetNoise::UnitNoise01((uint32)I, 401) * 500.0 + 5.0;
+		const double Y = FStreetNoise::UnitNoise01((uint32)I, 402) * 500.0 + 5.0;
+		double Z = 0;
+		if (!H.Sample(X, Y, Z)) continue;
+		++N;
+		MaxDiff = FMath::Max(MaxDiff, FMath::Abs(Z - NumpyTriangulated(X, Y)));
+		// the SW-NE split of the same cell: the answer a mirrored diagonal convention would give
+		const double Cx = X, Ry = 512.0 - Y;
+		const int32 X0 = FMath::Min((int32)FMath::FloorToDouble(Cx), 511);
+		const int32 Y0 = FMath::Min((int32)FMath::FloorToDouble(Ry), 511);
+		const double Tx = Cx - X0, Ty = Ry - Y0;
+		const double A = Post(X0, Y0), Bq = Post(X0 + 1, Y0), Cq = Post(X0, Y0 + 1), Dq = Post(X0 + 1, Y0 + 1);
+		const double Flipped = (Tx + Ty < 1.0) ? (A + (Bq - A) * Tx + (Cq - A) * Ty)
+		                                       : (Dq + (Cq - Dq) * (1.0 - Tx) + (Bq - Dq) * (1.0 - Ty));
+		MaxFlipped = FMath::Max(MaxFlipped, FMath::Abs(Z - Flipped));
+	}
+	AddInfo(FString::Printf(TEXT("%d hashed points on a twisted field: max |plugin - numpy rule| = %.3g, max |plugin - flipped diagonal| = %.3g"), N, MaxDiff, MaxFlipped));
+	TestTrue(TEXT("at least 4000 points landed on coverage"), N > 4000);
+	TestTrue(TEXT("the plugin's triangulated rule IS terrain.py:_interp's, bit for bit"), MaxDiff == 0.0);
+	TestTrue(TEXT("and it is NOT the mirrored diagonal (the twist is 3 m, so the split is visible)"), MaxFlipped > 0.5);
+
+	// -- 3: the defaults, and the only places they are allowed to differ -----------------------------------------
+	{
+		FStreetHeightfield Fresh;
+		TestTrue(TEXT("FStreetHeightfield keeps the numpy contract's bilinear default"), Fresh.Sampling == EStreetHeightSampling::Bilinear);
+		const UStreetHeightfieldTerrain* Cdo = GetDefault<UStreetHeightfieldTerrain>();
+		TestTrue(TEXT("UStreetHeightfieldTerrain - what a real street is draped from - asks for the landscape's own rule"),
+			Cdo->Sampling == EStreetHeightSampling::LandscapeTriangulated);
+	}
+	{
+		// a plane: the two rules ARE one surface there, which is why no frozen fixture number moves
+		FStreetHeightfield P = FStreetHeightfield::FromFunction([](double X, double Y) { return -0.375 * X + 0.125 * Y - 7.0; }, FVector2d(512.0, 512.0), 1.0, 512.0);
+		double Worst = 0.0, WorstPost = 0.0;
+		for (int32 I = 0; I < 4000; ++I)
+		{
+			const double X = FStreetNoise::UnitNoise01((uint32)I, 411) * 500.0;
+			const double Y = FStreetNoise::UnitNoise01((uint32)I, 412) * 500.0;
+			double Z1 = 0, Z2 = 0;
+			P.Sampling = EStreetHeightSampling::Bilinear;               P.Sample(X, Y, Z1);
+			P.Sampling = EStreetHeightSampling::LandscapeTriangulated;  P.Sample(X, Y, Z2);
+			Worst = FMath::Max(Worst, FMath::Abs(Z1 - Z2));
+		}
+		FStreetHeightfield T = FStreetHeightfield::FromFunction(Twisted, FVector2d(512.0, 512.0), 1.0, 512.0);
+		for (int32 I = 0; I < 500; ++I)
+		{
+			const double X = FMath::FloorToDouble(FStreetNoise::UnitNoise01((uint32)I, 421) * 500.0);
+			const double Y = FMath::FloorToDouble(FStreetNoise::UnitNoise01((uint32)I, 422) * 500.0);
+			double Z1 = 0, Z2 = 0;
+			T.Sampling = EStreetHeightSampling::Bilinear;               T.Sample(X, Y, Z1);
+			T.Sampling = EStreetHeightSampling::LandscapeTriangulated;  T.Sample(X, Y, Z2);
+			WorstPost = FMath::Max(WorstPost, FMath::Abs(Z1 - Z2));
+		}
+		AddInfo(FString::Printf(TEXT("plane: max |bilinear - triangulated| = %.3g; grid posts on a twisted field: %.3g"), Worst, WorstPost));
+		TestTrue(TEXT("the two rules are one surface on a plane"), Worst == 0.0);
+		TestTrue(TEXT("and one value at every grid post"), WorstPost == 0.0);
+	}
+
+	// -- and the coupling to the numpy core, read out of terrain.py rather than asserted from memory --------------
+	{
+		const FString Py = ProjectDir() / TEXT("Tools/blender/streetscape/terrain.py");
+		FString Text;
+		if (FFileHelper::LoadFileToString(Text, *Py))
+		{
+			const FString Needle = TEXT("sampling: str = ");
+			const int32 At = Text.Find(Needle, ESearchCase::CaseSensitive);
+			if (At != INDEX_NONE)
+			{
+				const int32 Q0 = Text.Find(TEXT("\""), ESearchCase::CaseSensitive, ESearchDir::FromStart, At) + 1;
+				const int32 Q1 = Text.Find(TEXT("\""), ESearchCase::CaseSensitive, ESearchDir::FromStart, Q0);
+				const FString Declared = (Q0 > 0 && Q1 > Q0) ? Text.Mid(Q0, Q1 - Q0) : FString();
+				AddInfo(TEXT("terrain.py Heightfield.sampling default = ") + Declared);
+				TestTrue(TEXT("terrain.py declares a rule this plugin implements"),
+					Declared == TEXT("bilinear") || Declared == TEXT("landscape_triangulated"));
+				if (Declared == TEXT("landscape_triangulated"))
+				{
+					AddWarning(TEXT("terrain.py's Heightfield now defaults to landscape_triangulated: FStreetHeightfield::Sampling should follow it, ")
+						TEXT("and fixtures/expected.json's frozen numbers move with it (see EStreetHeightSampling in StreetTerrainSource.h)."));
+				}
+			}
+			else
+			{
+				AddWarning(TEXT("could not find Heightfield.sampling's default in ") + Py);
+			}
+		}
+		else
+		{
+			AddInfo(TEXT("terrain.py not readable from here - the numpy-side default was not cross-checked"));
+		}
+	}
+	return true;
+}

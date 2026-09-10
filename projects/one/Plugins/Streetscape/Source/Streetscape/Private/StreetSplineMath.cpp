@@ -608,6 +608,19 @@ TSharedRef<FJsonObject> FStreetSamples::StatsJson() const
 	O->SetNumberField(TEXT("bank_max"), R6(BMax));
 	O->SetNumberField(TEXT("w_max"), R6(WMax));
 	if (bHasKind) O->SetStringField(TEXT("kind"), FStreetEnums::ToString(Kind)); else O->SetField(TEXT("kind"), MakeShared<FJsonValueNull>());
+	O->SetBoolField(TEXT("trimmed"), bTrimmed);
+	{
+		TArray<TSharedPtr<FJsonValue>> Tm, St;
+		Tm.Add(MakeShared<FJsonValueNumber>(R6(TrimM[0]))); Tm.Add(MakeShared<FJsonValueNumber>(R6(TrimM[1])));
+		St.Add(MakeShared<FJsonValueNumber>(R6(STrim[0]))); St.Add(MakeShared<FJsonValueNumber>(R6(STrim[1])));
+		O->SetArrayField(TEXT("trim_m"), Tm);
+		O->SetArrayField(TEXT("s_trim"), St);
+	}
+	{
+		int32 NA = 0;
+		for (bool A : Active) { if (A) ++NA; }
+		O->SetNumberField(TEXT("n_active"), (double)(Active.Num() ? NA : S.Num()));
+	}
 	TArray<TSharedPtr<FJsonValue>> W;
 	for (const FString& Wn : Warnings) W.Add(MakeShared<FJsonValueString>(Wn));
 	O->SetArrayField(TEXT("warnings"), W);
@@ -618,7 +631,38 @@ TSharedRef<FJsonObject> FStreetSamples::StatsJson() const
 // the build (spline.Spline.__init__)
 // ---------------------------------------------------------------------------------------------------------------
 
-bool FStreetSplineMath::Build(const FStreetSplineDef& Def, const FStreetSiteProfiles& Profiles, const IStreetTerrainSource* Terrain, FStreetSamples& O, FString* Error)
+int32 FStreetSamples::ArmStationIndex(EStreetSplineEnd End) const
+{
+	const int32 N = S.Num();
+	if (End == EStreetSplineEnd::Start)
+	{
+		for (int32 I = 0; I < N; ++I) { if (Active.IsValidIndex(I) ? Active[I] : true) return I; }
+		return 0;
+	}
+	for (int32 I = N - 1; I >= 0; --I) { if (Active.IsValidIndex(I) ? Active[I] : true) return I; }
+	return FMath::Max(0, N - 1);
+}
+
+void FStreetSplineMath::ResolveWidths(const TArray<FStreetPoint>& Points, const TArray<double>& SKnots, const FRoadProfileData* RoadProf,
+	const FStreetRoadTimeline& RoadTl, TConstArrayView<double> S, TArray<double>& OutW, TArray<double> OutExtra[2])
+{
+	const int32 M = S.Num();
+	const double BaseW = RoadProf ? RoadProf->WidthM : 0.0;
+	TArray<double> WKnots;
+	WKnots.Reserve(Points.Num());
+	for (const FStreetPoint& Pt : Points) WKnots.Add((!Pt.WidthM.IsSet() || !RoadProf) ? BaseW : Pt.WidthM.GetValue());
+	OutW.SetNum(M);
+	for (int32 I = 0; I < M; ++I) OutW[I] = FStreetSplineMath::Interp(S[I], SKnots, WKnots);
+	for (const FStreetScalarOverride& Ov : RoadTl.WidthOverrides) FStreetTimelineMath::ApplyRampedOverride(S, OutW, Ov.S0, Ov.S1, Ov.Ramp, Ov.Value);
+	for (int32 Side = 0; Side < 2; ++Side)
+	{
+		OutExtra[Side].Init(0.0, M);
+		for (const FStreetScalarOverride& Ov : RoadTl.ExtraOverrides[Side]) FStreetTimelineMath::ApplyRampedOverride(S, OutExtra[Side], Ov.S0, Ov.S1, Ov.Ramp, Ov.Value);
+	}
+}
+
+bool FStreetSplineMath::Build(const FStreetSplineDef& Def, const FStreetSiteProfiles& Profiles, const IStreetTerrainSource* Terrain, FStreetSamples& O, FString* Error,
+	const double* Trim)
 {
 	O = FStreetSamples();
 	O.Id = Def.Id;
@@ -659,6 +703,15 @@ bool FStreetSplineMath::Build(const FStreetSplineDef& Def, const FStreetSiteProf
 		}
 	}
 
+	// -- junction trim (a mask on s, resolved by FStreetJunctionPlan; see FStreetSamples::TrimM)
+	{
+		const double T0 = Trim ? FMath::Max(0.0, Trim[0]) : 0.0;
+		const double T1 = Trim ? FMath::Max(0.0, Trim[1]) : 0.0;
+		O.TrimM[0] = T0; O.TrimM[1] = T1;
+		O.STrim[0] = T0; O.STrim[1] = FMath::Max(T0, L - T1);
+		O.bTrimmed = (T0 > 0.0) || (T1 > 0.0);
+	}
+
 	// -- stations
 	TArray<double> Mand;
 	for (int32 I = 1; I + 1 < O.SKnots.Num(); ++I) Mand.Add(O.SKnots[I]);
@@ -666,6 +719,7 @@ bool FStreetSplineMath::Build(const FStreetSplineDef& Def, const FStreetSiteProf
 	Mand.Append(O.Road.MandatoryStations());
 	Mand.Append(O.Sides[0].MandatoryStations());
 	Mand.Append(O.Sides[1].MandatoryStations());
+	for (int32 K = 0; K < 2; ++K) { if (O.STrim[K] > 0.0 && O.STrim[K] < L) Mand.Add(O.STrim[K]); }
 	int32 Clamped = 0;
 	for (double M : Mand) { if (M > L + 0.01) ++Clamped; }
 	if (Clamped) O.Warnings.Add(FString::Printf(TEXT("%d station(s) beyond L clamped"), Clamped));
@@ -679,6 +733,25 @@ bool FStreetSplineMath::Build(const FStreetSplineDef& Def, const FStreetSiteProf
 	const int32 N = O.S.Num();
 	O.Mandatory.SetNum(N);
 	for (int32 I = 0; I < N; ++I) O.Mandatory[I] = O.MandatorySet.Contains(O.S[I]);
+	// the active (untrimmed) run: closed on both trim stations, which are in O.S exactly
+	{
+		const double A0 = O.STrim[0], A1 = O.STrim[1];
+		O.Active.SetNum(N);
+		int32 NActive = 0;
+		for (int32 I = 0; I < N; ++I)
+		{
+			O.Active[I] = (O.S[I] >= A0 - 1e-12) && (O.S[I] <= A1 + 1e-12);
+			NActive += O.Active[I] ? 1 : 0;
+		}
+		if (NActive < 2)
+		{
+			for (int32 I = 0; I < N; ++I) O.Active[I] = true;
+			O.bTrimmed = false;
+			O.STrim[0] = 0.0; O.STrim[1] = L;
+			O.TrimM[0] = 0.0; O.TrimM[1] = 0.0;
+			O.Warnings.Add(TEXT("junction trim would leave fewer than 2 stations: not trimmed"));
+		}
+	}
 	TArray<double> Xd, Yd;
 	Xd.SetNum(O.XYDense.Num()); Yd.SetNum(O.XYDense.Num());
 	for (int32 I = 0; I < O.XYDense.Num(); ++I) { Xd[I] = O.XYDense[I].X; Yd[I] = O.XYDense[I].Y; }
@@ -694,18 +767,8 @@ bool FStreetSplineMath::Build(const FStreetSplineDef& Def, const FStreetSiteProf
 		O.ThXY[I] = Unit2(FVector2d(Interp(O.S[I], O.SDense, Tdx), Interp(O.S[I], O.SDense, Tdy)));
 	}
 
-	// -- width, extras, roll
-	const double BaseW = RoadProf ? RoadProf->WidthM : 0.0;
-	TArray<double> WKnots;
-	for (const FStreetPoint& Pt : O.Points) WKnots.Add((!Pt.WidthM.IsSet() || !RoadProf) ? BaseW : Pt.WidthM.GetValue());
-	O.Width.SetNum(N);
-	for (int32 I = 0; I < N; ++I) O.Width[I] = Interp(O.S[I], O.SKnots, WKnots);
-	for (const FStreetScalarOverride& Ov : O.Road.WidthOverrides) FStreetTimelineMath::ApplyRampedOverride(O.S, O.Width, Ov.S0, Ov.S1, Ov.Ramp, Ov.Value);
-	for (int32 Side = 0; Side < 2; ++Side)
-	{
-		O.Extra[Side].Init(0.0, N);
-		for (const FStreetScalarOverride& Ov : O.Road.ExtraOverrides[Side]) FStreetTimelineMath::ApplyRampedOverride(O.S, O.Extra[Side], Ov.S0, Ov.S1, Ov.Ramp, Ov.Value);
-	}
+	// -- width, extras, roll (ResolveWidths is the ONE definition; FStreetJunctionPlan calls the same static)
+	ResolveWidths(O.Points, O.SKnots, RoadProf, O.Road, O.S, O.Width, O.Extra);
 	{
 		bool bAnyRoll = false;
 		TArray<double> HasRoll, RollVals, SKnotsRoll, RollValsRoll;

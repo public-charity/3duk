@@ -507,6 +507,10 @@ struct STREETSCAPE_API FStreetJunction : public FStreetJsonBase
 	UPROPERTY(EditAnywhere, Category = "Streetscape") double Y = 0.0;
 	UPROPERTY() TOptional<double> Z;
 	UPROPERTY() TOptional<double> RadiusM;
+	/** Override of the DERIVED trim radius (SCHEMA.md 4.18). The adapter always writes null: leave it unset and the
+	    radius is solved from RadiusM, the arm bearings and the arm half-widths, so it cannot go stale when a profile
+	    width changes. Set, it replaces the solve for every arm of this junction. */
+	UPROPERTY() TOptional<double> TrimRadiusM;
 	UPROPERTY(EditAnywhere, Category = "Streetscape") EStreetJunctionKind Kind = EStreetJunctionKind::Disc;
 	UPROPERTY(EditAnywhere, Category = "Streetscape") TArray<FStreetJunctionEnd> Ends;
 };

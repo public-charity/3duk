@@ -159,6 +159,54 @@ def _num(v):
     return None if v is None or (isinstance(v, float) and math.isnan(v)) else round(float(v), 3)
 
 
+def landscape_lod(cap):
+    """Apply the spec's landscape LOD policy, then READ BACK what the resident proxies actually carry.
+
+    History, because this one property produced sixteen false frames.  `capture.landscape_lod0_screen_size`
+    was introduced at 8.0 in the belief that a LARGER LOD0ScreenSize keeps the landscape at LOD 0 further
+    out.  It is the opposite.  LOD0ScreenSize is the screen size at which LOD 0 STOPS: screen size falls
+    with distance, so a threshold of 8.0 is above anything the ground ever subtends and every landscape
+    component draws at its COARSEST level, whose vertices are nowhere near the surface GetHeightAtLocation
+    returns.  That is what drew grass over carriageways the numbers put 3 cm above the ground, and it is
+    why b1cd3e5's own INDEX.md could report "the capture already pins the landscape to LOD 0" while
+    photographing the exact artefact the pin was meant to remove.
+
+    Measured single-variable A/B, same commit, same cameras, one editor session, nine frames that had lost
+    their road (projects/one/Saved/Clearance/frames_v4/): mean grass fraction over the lower half of the
+    frame 0.739 with the 8.0 pin against 0.159 with the level's own saved settings.  The saved proxies
+    carry the engine defaults (0.5 / 1.25 / 3.0) and are correct, so the policy is now to leave them alone:
+    the spec sets landscape_lod0_screen_size null and this function only records the state.
+
+    A non-null value still applies, unchanged, so the experiment is repeatable from the spec - but whatever
+    happens, the values actually in force go into the report and from there into the snapshot manifest, so
+    no future reader has to take a comment's word for what the landscape was doing.
+    """
+    ss = cap.get("landscape_lod0_screen_size")
+    applied = SS.pin_landscape_lod(ss) if ss else None
+    eas = unreal.get_editor_subsystem(unreal.EditorActorSubsystem)
+    seen = {}
+    n = 0
+    for a in eas.get_all_level_actors():
+        if not isinstance(a, unreal.LandscapeProxy):
+            continue
+        n += 1
+        key = (round(float(a.get_editor_property("lod0_screen_size")), 4),
+               round(float(a.get_editor_property("lod_distribution_setting")), 4),
+               round(float(a.get_editor_property("lod0_distribution_setting")), 4))
+        seen[key] = seen.get(key, 0) + 1
+    state = {
+        "spec_landscape_lod0_screen_size": ss,
+        "pin_applied": bool(ss),
+        "proxies_pinned": applied,
+        "proxies_resident": n,
+        "in_force": [{"lod0_screen_size": k[0], "lod_distribution_setting": k[1],
+                      "lod0_distribution_setting": k[2], "proxies": v}
+                     for k, v in sorted(seen.items())],
+    }
+    uc.log("landscape LOD: %s" % json.dumps(state, sort_keys=False))
+    return state
+
+
 def ground_at(land, hf, x, y):
     """(ground_z_m, source, {measurements}) at document metres.
 
@@ -244,10 +292,9 @@ def main(argv):
             if not lib.load_region(unreal.Vector(100.0 * cx, -100.0 * cy, 0.0), 100.0 * radius_m):
                 uc.fail(NAME, "%s: load_region(%.1f, %.1f, r=%.0f m) failed - World Partition streams "
                               "nothing in a commandlet, so the frame would be empty" % (lid, cx, cy, radius_m))
-        # AFTER the stream: a LandscapeStreamingProxy that was not resident when the pin ran keeps its
-        # default LOD0ScreenSize, and a coarse-LOD landscape draws decimetres from the data
-        # (05_screenshot.pin_landscape_lod).
-        SS.pin_landscape_lod(cap.get("landscape_lod0_screen_size"))
+        # AFTER the stream: proxies that were not resident a moment ago carry their own LOD properties,
+        # so both the policy and the read-back have to happen once the region is in (see landscape_lod).
+        lod_state = landscape_lod(cap)
 
         ground_z, ground_src, ground_m = ground_at(land, hf, x, y)
         if ground_z is None:
@@ -286,6 +333,7 @@ def main(argv):
             "load_centre_en": [round(v, 2) for v in centre_en], "load_radius_m": round(radius_m, 1),
             "png": png_rel, "bytes": nbytes, "distinct_rgb": distinct, "mean_luminance": round(lum, 2),
             "rss_mb": round(float(unreal.StreetscapeLandscapeImporter.rss_mb()), 1),
+            "landscape_lod": lod_state,
         }
         records.append(rec)
         uc.log("%-46s -> %s  eye_ue=(%.1f, %.1f, %.1f) yaw=%.2f pitch=%.2f fov=%.1f  ground=%.3f (%s) "

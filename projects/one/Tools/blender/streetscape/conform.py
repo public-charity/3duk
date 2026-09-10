@@ -47,14 +47,29 @@ gate provable: no road can be penetrated by ground that another road put there. 
 disagree by a lot it is a grade separation -- a bridge over the railway -- and the minimum is also
 the right answer there: the ground follows the lower way and the bridge deck flies over it.
 
-JUNCTIONS.  The burn deliberately stamps the UNTRIMMED extent of every spline: ``Spline`` is built
-here with ``trim=None`` (SCHEMA.md 4.18 -- the shared spline layer trims an arm back to the junction
-so Renderer A can fill the disc and Renderer B can turn the corner).  Trimming is a mask on ``s`` and
-does not move the surface at any station, so burning the untrimmed extent writes exactly the same
-heights the trimmed arms sit on AND claims the ground under the junction disc from every arm that
-reaches it.  Trimming the burn as well would leave an unclaimed hole of up to (2 * trim_radius)^2 at
-every junction -- Thanet's 1,642 junctions have radii up to 6.9 m -- and the survey standing in it.
-So: do not pass a trim in here, and if that ever becomes the default, take the untrimmed spline.
+JUNCTIONS.  Two things, and they are different.
+
+1. The corridor burn stamps the UNTRIMMED extent of every spline: ``Spline`` is built here with
+   ``trim=None`` (SCHEMA.md 4.18 -- the shared spline layer trims an arm back to the junction so
+   Renderer A can fill the disc and Renderer B can turn the corner).  Trimming is a mask on ``s`` and
+   does not move the surface at any station, so burning the untrimmed extent writes exactly the same
+   heights the trimmed arms sit on AND claims most of the ground under the junction disc from every
+   arm that reaches it.  Trimming the burn as well would leave an unclaimed hole of up to
+   (2 * trim_radius)^2 at every junction and the survey standing in it.  So: do not pass a trim in
+   here, and if that ever becomes the default, take the untrimmed spline.
+
+2. A corridor is a BAND along one spline, and between two arms, close to the node, there are wedges
+   no band covers as built surface -- only as feathered blend, which is allowed to rise back to the
+   survey.  Renderer A lays tarmac across exactly those wedges (``road.junction_surface``), so the
+   ground under them has to be conformed to the patch and not to the arms.  Measured over the isle
+   before ``junction_targets`` existed: **814 of 87,969 patch vertices (0.93 %) sat BELOW the
+   conformed ground, worst 2.890 m** (``Saved/Diag/junction_isle.json``) -- ground standing up
+   through the middle of a crossroads.  ``junction_targets`` rasterises the patch polygon into the
+   corridor as built surface with ``road.junction_target_z`` as its target, so the burn and the mesh
+   are one surface rather than two transcriptions of one.  After it: **94 of 87,969**
+   (``Saved/Clearance/junction_isle_v4.json``), and every one that can be attributed belongs to one
+   of the 7 junctions with a BRIDGE arm, whose deck carries the elevation of the ground under the
+   structure and is therefore not a surface any ground should be conformed to.
 
 Pure numpy (DESIGN.md 14): no scipy, no GDAL, no bpy, so this runs under the env python, Blender's
 python and the test suite alike.
@@ -124,11 +139,24 @@ class CorridorParams:
                         "the carriageway, 10 cm is clean on both, so the DRAWN ground beats the QUERIED "
                         "ground by up to ~0.10 m at eye level; 0.15 m is that with a factor of 1.5 and "
                         "half the 0.30 m pavement skirt, so nothing floats"),
-            "what_the_sink_cannot_fix": ("the landscape's level of detail.  Ground above the road at "
-                                         "0 % of corridor points at LOD 0, 0.04 % at LOD 1, 3.2 % at "
-                                         "LOD 2, 15.2 % at LOD 3 (p99 0.32 m).  The level's LOD "
-                                         "settings have to be sane too -- see "
-                                         "Tools/blender/streetscape/terrain.py Heightfield.lod_skeleton"),
+            "what_the_sink_cannot_fix": (
+                "the landscape's level of detail.  Measured on THIS product over 241,205 points "
+                "inside real corridors (Saved/Clearance/rules_v4.json): ground above the road at "
+                "0 % of points under the landscape's own LOD-0 triangulation, 0.034 % at LOD 1, "
+                "1.93 % at LOD 2 (p99 0.018 m) and 8.58 % at LOD 3 (p99 0.296 m, worst 4.36 m).  "
+                "The sink halves LOD 2 and LOD 3 (3.17 % and 15.25 % at the old flat 0.03 m sink, "
+                "Saved/Clearance/rules_conformed.json) and no admissible sink reaches LOD 3, so the "
+                "LEVEL'S OWN LOD SETTINGS have to be sane as well.  They are the reason 16 of 31 "
+                "street frames of renders/b1cd3e5 had no carriageway: the capture harness "
+                "(Tools/ue/05_screenshot.py pin_landscape_lod) sets lod0_screen_size 8.0 with both "
+                "distribution settings 1.0, which selects the COARSEST landscape LOD rather than "
+                "LOD 0.  Same camera, same level, same landscape, one property apart: with the "
+                "level's own settings (which the saved level carries: lod0_screen_size 0.5, "
+                "lod0_distribution 1.25, lod_distribution 3.0) the mean grass fraction over the "
+                "lower half of those nine frames is 0.159; with the harness's pin, same session and "
+                "same landscape, it is 0.739 -- and it was 0.763 at b1cd3e5 "
+                "(Saved/Clearance/green_road_qc_v4.json).  The conform cannot fix that and does not "
+                "try; see the round's needs_from_others."),
         }
         return d
 
@@ -333,8 +361,17 @@ def sink_profile(sp, params: CorridorParams):
     * the FLOOR, 0.03 m.  It has to clear the h16 half-quantum (0.0039 m) and the disagreement
       between the rule the burn writes through and the rule the landscape interpolates with.  Over
       241,205 points inside real Thanet corridors that disagreement is 0.4 mm at the median, 5.4 mm
-      at the p95, 13 mm at the p99 -- so 0.03 m is 2.3x the p99, and it is also the most a bare
-      ribbon can hide (schema caps ``skirt_drop_m`` at 0.03 m).
+      at the p95, 13.4 mm at the p99 and 0.799 m at its maximum, with 0.20 % of points over 3 cm and
+      0.014 % over 10 cm (``Saved/Clearance/rules_v4.json``) -- so 0.03 m is 2.2x the p99, and it is
+      also the most a bare ribbon can hide (schema caps ``skirt_drop_m`` at 0.03 m).
+
+      THAT MEASUREMENT ALSO SETTLES A HYPOTHESIS.  "The conform was burned against bilinear while
+      the landscape rasterises triangles, and that is why the roads are invisible" is FALSE at this
+      scale: on the shipped 0.03 m product neither rule put ground above the road at ANY of those
+      241,205 points (``Saved/Clearance/rules_conformed.json``), and over the whole isle the two
+      rules disagree about the gate on exactly one station of 660,835.  The rule still has to be the
+      landscape's -- ``Heightfield.sampling`` and ``road_fusion_audit.py --sampling`` both default to
+      ``landscape_triangulated`` for that reason -- but it is not what hides a carriageway.
     * the CAP, 0.15 m.  A sweep in the engine, same camera, same level, one thing changed: the
       landscape lowered by 0, 5, 10 and 20 cm under
       ``cliftonville/princess_margaret_avenue_at_northdown`` and
@@ -347,9 +384,13 @@ def sink_profile(sp, params: CorridorParams):
 
     The mechanism behind that engine sweep is the landscape's LEVEL OF DETAIL, which is not the
     surface ``GetHeightAtLocation`` returns -- see ``Heightfield.lod_skeleton`` and the header of
-    ``projects/one/Tools/road_fusion_audit.py``.  A sink cannot beat a coarse LOD outright (at LOD 3
-    the p99 of ground-over-road is 0.32 m and no admissible sink reaches that); the level's own LOD
-    settings have to be sane as well, and that is recorded in the round's needs_from_others.
+    ``projects/one/Tools/road_fusion_audit.py``.  On this product, 241,205 corridor points: ground
+    above the road at 0 % under the landscape's LOD-0 triangulation, 0.034 % at LOD 1, 1.93 % at
+    LOD 2, 8.58 % at LOD 3 -- against 0 %, 0.040 %, 3.17 % and 15.25 % for the old flat 0.03 m sink.
+    So the sink buys LOD 1 outright and halves LOD 2 and LOD 3, and nothing admissible reaches LOD 3
+    (its p99 is 0.296 m and the deepest sink a 0.30 m skirt can hide is 0.15 m).  The level's own LOD
+    settings therefore have to be sane as well; see ``to_json``'s ``what_the_sink_cannot_fix`` for
+    the one property that made 16 of 31 street frames green, and the round's needs_from_others.
     """
     cover = None
     drop = np.asarray(sp.skirt_drop_m, dtype=np.float64) * np.ones(sp.n)
@@ -477,6 +518,147 @@ def spline_targets(sp, params: CorridorParams, z_raw_at, stats=None):
         cx, cy, latc, s_star = cx[ok], cy[ok], latc[ok], s_star[ok]
         yield _evaluate(sp, params, cx, cy, latc, s_star, kinds, sinb, cosb, sink,
                         oL, oR, coreL, coreR, zshelf, blend, z_raw_at, stats)
+
+
+# -------------------------------------------------------------------------------------------
+# the junction disc: the tarmac Renderer A lays across the node
+# -------------------------------------------------------------------------------------------
+def resample_loop(loop, step_m: float = 0.35):
+    """A closed polygon (K, 3) resampled so no two consecutive points are further apart than
+    ``step_m``.  Used only for the patch's apron, where "how far is this cell from the tarmac" has to
+    be answered for a few hundred cells: nearest RESAMPLED VERTEX is then within ``step_m / 2`` of
+    nearest point-on-edge, which is two orders of magnitude finer than the apron it decides."""
+    P = np.asarray(loop, dtype=np.float64)
+    if len(P) < 2:
+        return P
+    Q = np.vstack([P, P[:1]])
+    seg = np.hypot(np.diff(Q[:, 0]), np.diff(Q[:, 1]))
+    n = np.maximum(1, np.ceil(seg / max(step_m, 1e-3)).astype(np.int64))
+    idx = np.repeat(np.arange(len(P)), n)
+    off = np.arange(int(n.sum())) - np.repeat(np.cumsum(n) - n, n)
+    t = (off / np.repeat(n, n).astype(np.float64))[:, None]
+    return Q[idx] * (1.0 - t) + Q[idx + 1] * t
+
+
+def junction_sag(loop, apex, X, Y, base, delta_m: float = 0.5, factor: float = 1.5):
+    """The same second-difference correction ``sag_correction`` applies to a ribbon, applied to the
+    patch fan: the landscape draws a straight line between two burned posts, and where the fan is
+    convex across a triangle edge that line lies ABOVE the surface it was burned from.  Zero on a
+    plane at any grade, which is why it is a correction and not a minimum over a stencil."""
+    from .road import junction_target_z
+    v = np.zeros(X.shape, dtype=np.float64)
+    for dx, dy in ((delta_m, 0.0), (0.0, delta_m)):
+        a = junction_target_z(loop, apex, X + dx, Y + dy)
+        b = junction_target_z(loop, apex, X - dx, Y - dy)
+        m = np.isfinite(a) & np.isfinite(b) & np.isfinite(base)
+        if m.any():
+            v[m] += np.maximum(0.0, 0.5 * (a[m] + b[m]) - base[m])
+    return v * factor
+
+
+def junction_targets(plan, junction_id: str, splines, params: CorridorParams, max_span_m: float = 200.0):
+    """``(cx, cy, z, rank, u)`` for one junction patch, or ``None`` when the patch does not build.
+
+    Cell centres are integer local metres, exactly as ``spline_targets`` yields them, so the driver
+    turns both into mosaic row/col the same way.  The target is ``road.junction_target_z`` -- the
+    barycentric evaluation of the very fan ``build_junction_patch`` emits -- less the sag correction
+    and less the sink.
+
+    THE SINK IS THE SHALLOWEST OF THE ARMS'.  ``sink_profile`` already takes the minimum over a
+    spline's two sides, on the rule that the burn may only sink the ground as far as the built block
+    covers.  A patch is covered by whatever its arms carry round the corner, so the same minimum is
+    taken over the arms at their trim stations: a crossroads of kerbed roads sinks the full
+    ``sink_max_m``, and one footway in the junction pulls the whole disc back to the floor.  That
+    keeps the disc and its arms from stepping and keeps the float measurement where it was.
+
+    The patch is stamped as RANK_SURFACE, including an apron of ``apron_m`` outside its boundary, for
+    the same reason the ribbon's is: the landscape interpolates linearly to the next post, so a cell
+    just outside the tarmac is read by the triangle that draws the tarmac's edge.  Arbitration is
+    still the minimum, so where an arm's own corridor asked for something lower, the lower answer
+    wins and neither surface is penetrated.
+
+    ``max_span_m`` refuses a patch whose plan bounding box is absurd (a trim radius that ran away
+    would otherwise rasterise a square kilometre); it is a guard, not a modelling choice, and the
+    largest real Thanet junction spans about 45 m."""
+    from .road import junction_surface, junction_target_z
+    from .spline import resolve_arm_frames
+    res = junction_surface(plan, junction_id, splines)
+    if res is None:
+        return None
+    loop, apex = res
+    frames = resolve_arm_frames(plan, junction_id, splines)
+    if not frames:
+        return None
+    sink = min(float(sink_profile(af.spline, params)[af.i]) for af in frames)
+    apron = float(params.apron_m)
+    lx, ly = loop[:, 0], loop[:, 1]
+    if not (np.isfinite(lx).all() and np.isfinite(ly).all() and np.isfinite(apex).all()):
+        return None
+    x0 = int(np.floor(lx.min() - apron - 1.0))
+    x1 = int(np.ceil(lx.max() + apron + 1.0))
+    y0 = int(np.floor(ly.min() - apron - 1.0))
+    y1 = int(np.ceil(ly.max() + apron + 1.0))
+    if (x1 - x0) > max_span_m or (y1 - y0) > max_span_m:
+        return None
+    W = x1 - x0 + 1
+    H = y1 - y0 + 1
+    X, Y = np.meshgrid(np.arange(x0, x1 + 1, dtype=np.float64),
+                       np.arange(y0, y1 + 1, dtype=np.float64))
+    X = X.ravel()
+    Y = Y.ravel()
+    acc = np.full(X.shape, np.inf, dtype=np.float64)
+
+    # (a) the surface at the cell centre, less its own sag correction
+    z = junction_target_z(loop, apex, X, Y)
+    inside = np.isfinite(z)
+    if inside.any():
+        z[inside] = z[inside] - junction_sag(loop, apex, X[inside], Y[inside], z[inside],
+                                             0.5, params.sag_factor)
+        acc[inside] = z[inside]
+
+    # (b) the fan's own EDGES, densely, each point claiming all four cells of the unit square it
+    # falls in.  A cell centre tells you nothing about a crease that runs between two cells, and the
+    # patch fan is full of creases: it is a cone from the node apex down to each arm's end row, so
+    # every apex-to-boundary spoke is one.  Where the crease is a valley the landscape's straight
+    # line between two posts lies ABOVE it, which is fusion again -- measured at 1.601 m on
+    # junction:21_3:4 (a 4-arm junction whose arms span 14.1-20.8 m) before these pins were added.
+    # Pinning every point of every edge to all four of its neighbouring posts bounds each post by the
+    # lowest bit of surface within a metre of it, so no post can sit above a crease it touches.
+    pin = [resample_loop(loop, 0.35)]
+    sp_t = np.arange(0.0, 1.0, 0.35 / max(float(np.max(np.hypot(loop[:, 0] - apex[0],
+                                                                loop[:, 1] - apex[1]))), 1e-6))
+    if sp_t.size:
+        A = np.asarray(apex, dtype=np.float64)[None, None, :]
+        pin.append((A + (loop[:, None, :] - A) * sp_t[None, :, None]).reshape(-1, 3))
+    P = np.vstack(pin)
+    fx = np.floor(P[:, 0]).astype(np.int64)
+    fy = np.floor(P[:, 1]).astype(np.int64)
+    pcx = np.concatenate([fx, fx + 1, fx, fx + 1]) - x0
+    pcy = np.concatenate([fy, fy, fy + 1, fy + 1]) - y0
+    pz = np.tile(P[:, 2], 4)
+    ok = (pcx >= 0) & (pcx < W) & (pcy >= 0) & (pcy < H) & np.isfinite(pz)
+    if ok.any():
+        np.minimum.at(acc, (pcy[ok] - 0) * W + pcx[ok], pz[ok])
+
+    # (c) the apron: cells the tarmac does not cover but whose post is read by the triangle that
+    # draws its edge.  Held at the nearest boundary point's height, as the ribbon's apron is.
+    out_idx = np.where(~np.isfinite(acc))[0]
+    if out_idx.size:
+        D = pin[0]
+        dx = X[out_idx][:, None] - D[None, :, 0]
+        dy = Y[out_idx][:, None] - D[None, :, 1]
+        d2 = dx * dx + dy * dy
+        j = np.argmin(d2, axis=1)
+        near = d2[np.arange(len(j)), j] <= apron * apron
+        if near.any():
+            acc[out_idx[near]] = D[j[near], 2]
+
+    keep = np.isfinite(acc)
+    if not keep.any():
+        return None
+    n = int(keep.sum())
+    return (X[keep], Y[keep], acc[keep] - sink,
+            np.full(n, RANK_SURFACE, dtype=np.int32), np.zeros(n))
 
 
 def built_surface(sp, s_star, d, kinds, sinb, cosb, oL, oR):

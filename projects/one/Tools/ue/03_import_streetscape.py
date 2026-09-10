@@ -62,7 +62,7 @@ def main(argv):
         flags=("player_start", "save", "verify", "no_preload", "purge", "census"),
         options={"json": "", "map": DEFAULT_MAP, "stats_out": "", "site": "", "origin_e": "", "origin_n": "",
                  "region_radius_m": "20000", "set_game_mode": "", "expect_actors": "", "stats_limit": "0", "slice": "", "allow_no_terrain": "0", "files": "",
-                 "first": ""},
+                 "first": "", "sample_mode": ""},
     )
     src = ""
     if not opts["verify"] and not opts["files"]:
@@ -92,6 +92,19 @@ def main(argv):
     if site is None:
         uc.fail(NAME, "ensure_site_actor failed")
     terrain = site.get_editor_property("terrain_source")
+    # WHICH SURFACE THE STREET IS DRAPED FROM. UStreetHeightfieldTerrain defaults to the landscape's own
+    # triangulated rule, because that is the ground the pawn collides with and the camera sees (docs/TERRAIN_ROADS.md
+    # 3; landscape_manifest.json:sampling_note). The numpy Heightfield still defaults to bilinear, so a run whose
+    # numbers are going to be compared against a numpy stats.json must pin the SAME rule on both sides:
+    #     --sample-mode bilinear   for the FD parity comparison (Tools/ue/compare_stats.py)
+    #     --sample-mode triangulated (or the default) for a level a player will walk on
+    # Either way the rule is printed below and carried in the report's "terrain" string, so no run is ambiguous.
+    if opts["sample_mode"] and terrain is not None:
+        modes = {"bilinear": unreal.StreetHeightSampling.BILINEAR,
+                 "triangulated": unreal.StreetHeightSampling.LANDSCAPE_TRIANGULATED}
+        if opts["sample_mode"] not in modes:
+            uc.fail(NAME, "--sample-mode must be bilinear or triangulated, not %r" % opts["sample_mode"])
+        terrain.set_sampling(modes[opts["sample_mode"]])
     uc.log("site actor %s origin (%g, %g), terrain %s" % (
         site.get_actor_label(), origin_e, origin_n, terrain.describe_source() if terrain else "NONE"))
 
