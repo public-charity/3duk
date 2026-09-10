@@ -1,5 +1,13 @@
 # Handover — taking this project to the finishing line
 
+**Active Phase 1 work, 2026-09-10:** start with [RESUME.md](RESUME.md) for the latest
+verified checkpoint and [PHASE1_QC.md](PHASE1_QC.md) for the replacement QC strategy.
+Several diagnoses below are historical: junction conform was already wired, the
+production road sampler is triangulated, and incomplete heightmap residency caused
+false foreground breakthrough in headless captures. A tested shared elevation
+profile and a continuous Minnis bridge/approach candidate now exist. The pilot is
+not whole-site acceptance; the saved production level is still unchanged.
+
 Written 2026-09-10 for an incoming assistant with **no prior context**, at Alex's request. If you
 are that assistant: read this file end to end before running anything. It is long because the
 expensive failures in this project have all been failures of context, not of capability.

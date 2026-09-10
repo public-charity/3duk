@@ -367,6 +367,7 @@ knowing its geometry.
 | `profile_ids` | `ProfileIds` | required | A H U | **all five keys required**: `road, edge_left, edge_right, hedge_left, hedge_right`, each Id or null |
 | `points` | `Point[]` ≥ 2 | required | A H U | §4.14 |
 | `sampling` | `Sampling` | inherit | A? H U | adapter writes it only for the test-stretch style overrides; normally absent |
+| `elevation_profile` | `ElevationKnot[]` ≥ 2 | absent | H U | explicit modelled reference elevation and bank, as described below |
 | `segments` | `Segment[]` | `[]` | A H U | §4.16 |
 | `drop_kerbs` | `SplineDropKerb[]` | `[]` | H U | adapter emits none this round |
 | `overlay` | `Overlay` | — | A H U | required in practice when `source.layer ≠ authored` (semantic warning) |
@@ -378,6 +379,22 @@ knowing its geometry.
 
 `profile_ids.road = null` → no carriageway: `w(s) = 0`, `edge_offset = extras only`, camber none (OSM
 barrier ways). `edge_<side> = null` → nothing on that side.
+
+`ElevationKnot` contains required finite numbers `s_m`, `z_m`, `bank_deg` (bank within
+−45..45 degrees, positive left-up). Knots strictly increase from `s_m = 0` through
+the full **untrimmed** spline length L. The final station must agree with L within
+10 micrometres of numerical tolerance; changing the horizontal path invalidates an
+old profile instead of stretching it silently. This tolerance describes computation,
+not survey accuracy. All interior knots join the shared mandatory station set.
+
+Elevation and bank interpolate linearly between these knots, replacing the smoothed
+terrain/Z-pin reference and the terrain/roll/rate-limited bank. Raw survey samples
+remain available unchanged. The explicit bank is not subsequently rate-limited,
+so connected endpoints cannot move silently; the producer must validate grade,
+bank rate, continuity and clearance. All three renderers use the same final frames.
+An absent profile preserves the existing sampling/build/serialization behaviour.
+Keep fitted heights in a separate derived document and store provenance under an
+underscore key such as `_elevation_model`; they are modelled values, not survey posts.
 
 ### 4.14 `Point`
 

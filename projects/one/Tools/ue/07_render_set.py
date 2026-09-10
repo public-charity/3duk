@@ -236,7 +236,7 @@ def main(argv):
         argv,
         flags=("list", "no_load_region"),
         options={"out": "", "only": "", "spec": DEFAULT_SPEC, "map": "", "radius_m": "",
-                 "report": "", "warm_s": "0"},
+                 "report": "", "warm_s": "0", "candidate_streetscape": ""},
     )
     spec = read_spec(opts["spec"])
     items = select(flatten(spec), opts["only"])
@@ -295,6 +295,10 @@ def main(argv):
         # AFTER the stream: proxies that were not resident a moment ago carry their own LOD properties,
         # so both the policy and the read-back have to happen once the region is in (see landscape_lod).
         lod_state = landscape_lod(cap)
+        candidate_state = None
+        if opts["candidate_streetscape"]:
+            from candidate_preview import apply_candidate
+            candidate_state = apply_candidate(opts["candidate_streetscape"])
 
         ground_z, ground_src, ground_m = ground_at(land, hf, x, y)
         if ground_z is None:
@@ -335,6 +339,7 @@ def main(argv):
             "rss_mb": round(float(unreal.StreetscapeLandscapeImporter.rss_mb()), 1),
             "landscape_lod": lod_state,
             "capture_readiness": dict(SS.LAST_CAPTURE_STATE),
+            "candidate_streetscape": candidate_state,
         }
         records.append(rec)
         uc.log("%-46s -> %s  eye_ue=(%.1f, %.1f, %.1f) yaw=%.2f pitch=%.2f fov=%.1f  ground=%.3f (%s) "

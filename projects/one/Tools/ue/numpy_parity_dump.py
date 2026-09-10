@@ -50,7 +50,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", default=os.path.join(PROJECT_ONE, "Saved", "Tests", "numpy_parity.json"))
     args = ap.parse_args()
-    out = {name: arrays(build(name)) for name in ("straight_100", "sine_5_50", "curve_R20_200", "rail_R300_600")}
+    out = {name: arrays(build(name)) for name in ("straight_100", "sine_5_50", "curve_R20_200", "rail_R300_600", "elevation_profile_100")}
     out["bank_cross"] = arrays(build("straight_100", SY.cross_slope_terrain(0.1)))
     for rule in ("bilinear", "landscape_triangulated"):
         field = Heightfield.from_function(lambda x, y: 10.0 + x * y / 32.0,

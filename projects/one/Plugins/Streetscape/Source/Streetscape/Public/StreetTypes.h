@@ -463,6 +463,16 @@ struct STREETSCAPE_API FStreetFlags : public FStreetJsonBase
 	UPROPERTY() TOptional<int32> Tracks;
 };
 
+/** One explicit reference-elevation/bank knot in the shared spline's untrimmed arc length. */
+USTRUCT(BlueprintType)
+struct STREETSCAPE_API FStreetElevationKnot : public FStreetJsonBase
+{
+	GENERATED_BODY()
+	UPROPERTY(EditAnywhere, Category = "Streetscape") double SM = 0.0;
+	UPROPERTY(EditAnywhere, Category = "Streetscape") double ZM = 0.0;
+	UPROPERTY(EditAnywhere, Category = "Streetscape") double BankDeg = 0.0;
+};
+
 /** schema Spline (SCHEMA.md 4.13). */
 USTRUCT(BlueprintType)
 struct STREETSCAPE_API FStreetSplineDef : public FStreetJsonBase
@@ -472,6 +482,7 @@ struct STREETSCAPE_API FStreetSplineDef : public FStreetJsonBase
 	UPROPERTY(EditAnywhere, Category = "Streetscape") FStreetSource Source;
 	UPROPERTY(EditAnywhere, Category = "Streetscape") FStreetProfileIds ProfileIds;
 	UPROPERTY(EditAnywhere, Category = "Streetscape") TArray<FStreetPoint> Points;
+	UPROPERTY(EditAnywhere, Category = "Streetscape") TArray<FStreetElevationKnot> ElevationProfile;
 	UPROPERTY(EditAnywhere, Category = "Streetscape") bool bHasSampling = false;
 	UPROPERTY(EditAnywhere, Category = "Streetscape") FStreetSampling Sampling;
 	UPROPERTY(EditAnywhere, Category = "Streetscape") TArray<FStreetSegment> Segments;

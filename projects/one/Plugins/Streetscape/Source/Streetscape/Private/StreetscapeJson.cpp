@@ -1220,10 +1220,25 @@ TSharedRef<FJsonObject> WriteFlags(const FStreetFlags& X)
 	return W.Finish();
 }
 
+void ReadElevationKnot(const FJsonObject& O, const FString& Path, FStreetElevationKnot& X, TArray<FString>& E)
+{
+	FObj R(O, Path, E, &X, { TEXT("s_m"), TEXT("z_m"), TEXT("bank_deg") });
+	R.Num(TEXT("s_m"), X.SM, true, 0.0);
+	R.Num(TEXT("z_m"), X.ZM, true);
+	R.Num(TEXT("bank_deg"), X.BankDeg, true, -45.0, 45.0);
+}
+
+TSharedRef<FJsonObject> WriteElevationKnot(const FStreetElevationKnot& X)
+{
+	FW W(X);
+	W.Num(TEXT("s_m"), X.SM); W.Num(TEXT("z_m"), X.ZM); W.Num(TEXT("bank_deg"), X.BankDeg);
+	return W.Finish();
+}
+
 void ReadSplineDef(const FJsonObject& O, const FString& Path, FStreetSplineDef& X, TArray<FString>& E)
 {
 	FObj R(O, Path, E, &X, { TEXT("id"), TEXT("source"), TEXT("profile_ids"), TEXT("points"), TEXT("sampling"), TEXT("segments"), TEXT("drop_kerbs"), TEXT("overlay"), TEXT("junction_start"),
-		TEXT("junction_end"), TEXT("continues_from"), TEXT("continues_to"), TEXT("continuation_kind"), TEXT("overrun_points"), TEXT("flags") });
+		TEXT("junction_end"), TEXT("continues_from"), TEXT("continues_to"), TEXT("continuation_kind"), TEXT("overrun_points"), TEXT("flags"), TEXT("elevation_profile") });
 	R.Id(TEXT("id"), X.Id, true);
 	if (const FJsonObject* S = R.Obj(TEXT("source"), true)) ReadSource(*S, R.P(TEXT("source")), X.Source, E);
 	if (const FJsonObject* S = R.Obj(TEXT("profile_ids"), true)) ReadProfileIds(*S, R.P(TEXT("profile_ids")), X.ProfileIds, E);
@@ -1238,6 +1253,16 @@ void ReadSplineDef(const FJsonObject& O, const FString& Path, FStreetSplineDef& 
 		}
 	}
 	if (const FJsonObject* S = R.Obj(TEXT("sampling"), false)) { X.bHasSampling = true; ReadSampling(*S, R.P(TEXT("sampling")), X.Sampling, E); }
+	if (R.Arr(TEXT("elevation_profile"), false, 2))
+	{
+		ReadObjList(R, TEXT("elevation_profile"), X.ElevationProfile, false,
+			[](const FJsonObject& SO, const FString& SP, FStreetElevationKnot& D, TArray<FString>& SE) { ReadElevationKnot(SO, SP, D, SE); });
+		for (int32 I = 0; I < X.ElevationProfile.Num(); ++I)
+		{
+			if ((I == 0 && X.ElevationProfile[I].SM != 0.0) || (I > 0 && X.ElevationProfile[I].SM <= X.ElevationProfile[I-1].SM))
+				E.Add(Path + TEXT(".elevation_profile: stations must start at 0 and strictly increase"));
+		}
+	}
 	ReadObjList(R, TEXT("segments"), X.Segments, false, [](const FJsonObject& SO, const FString& SP, FStreetSegment& D, TArray<FString>& SE) { ReadSegment(SO, SP, D, SE); });
 	ReadObjList(R, TEXT("drop_kerbs"), X.DropKerbs, false, [](const FJsonObject& SO, const FString& SP, FStreetSplineDropKerb& D, TArray<FString>& SE) { ReadSplineDropKerb(SO, SP, D, SE); });
 	if (const FJsonObject* S = R.Obj(TEXT("overlay"), false)) { X.bHasOverlay = true; ReadOverlay(*S, R.P(TEXT("overlay")), X.Overlay, E); }
@@ -1254,6 +1279,9 @@ TSharedRef<FJsonObject> WriteSplineDef(const FStreetSplineDef& X)
 	TArray<TSharedPtr<FJsonValue>> A;
 	for (const FStreetPoint& P : X.Points) A.Add(ObjVal(WritePoint(P)));
 	W.ObjList(TEXT("points"), A, true);
+	A.Reset();
+	for (const FStreetElevationKnot& K : X.ElevationProfile) A.Add(ObjVal(WriteElevationKnot(K)));
+	W.ObjList(TEXT("elevation_profile"), A, A.Num() > 0 || W.Want(TEXT("elevation_profile")));
 	if (X.bHasSampling) W.Obj(TEXT("sampling"), WriteSampling(X.Sampling));
 	A.Reset();
 	for (const FStreetSegment& S : X.Segments) A.Add(ObjVal(WriteSegment(S)));

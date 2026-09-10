@@ -434,6 +434,15 @@ class Spline:
 
         # -- stations
         mand = list(s_knots[1:-1]) + list(self.sampling.extra_stations_m or [])
+        elevation = sdef.elevation_profile
+        if elevation:
+            elev = np.array([[k.s_m, k.z_m, k.bank_deg] for k in elevation], dtype=float)
+            if (len(elev) < 2 or not np.isfinite(elev).all() or elev[0, 0] != 0.0
+                    or np.any(np.diff(elev[:, 0]) <= 0.0) or abs(elev[-1, 0] - L) > 1e-5
+                    or np.any(np.abs(elev[:, 2]) > 45.0)):
+                raise S.SchemaError([self.id + ": elevation_profile must cover exactly [0, length] with finite increasing knots and bank within +/-45 degrees"])
+            elev[-1, 0] = L
+            mand += list(elev[1:-1, 0])
         mand += self.road.mandatory_stations()
         for tl in self.side_tl.values():
             mand += tl.mandatory_stations()
@@ -511,6 +520,8 @@ class Spline:
         pins = [(float(s_knots[k]), float(p.z)) for k, p in enumerate(pts) if p.z is not None]
         self.pins = pins
         self.z_ref = apply_pins(z_s, self.s, pins, float(self.sampling.pin_blend_m)) if pins else z_s
+        if elevation:
+            self.z_ref = np.interp(self.s, elev[:, 0], elev[:, 1])
 
         # -- bank
         n_flat_xy = np.stack([-t_xy[:, 1], t_xy[:, 0]], axis=1)
@@ -531,6 +542,8 @@ class Spline:
         beta = (1.0 - self.roll_mask) * beta_t + self.roll_mask * self.roll_pl
         self.bank_unlimited = beta
         self.bank_deg = rate_limit(beta, self.s, float(self.sampling.bank_rate_max_deg_per_m))
+        if elevation:
+            self.bank_deg = np.interp(self.s, elev[:, 0], elev[:, 2])
 
         # -- frames
         p3 = np.column_stack([self.xy, self.z_ref])

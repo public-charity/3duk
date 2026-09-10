@@ -680,6 +680,24 @@ bool FStreetSplineMath::Build(const FStreetSplineDef& Def, const FStreetSiteProf
 	CatmullRomDense(P, O.SDense, O.XYDense, O.SKnots);
 	O.LengthM = O.SDense.Last();
 	const double L = O.LengthM;
+	TArray<double> ElevS, ElevZ, ElevBank;
+	if (Def.ElevationProfile.Num())
+	{
+		bool bValid = Def.ElevationProfile.Num() >= 2 && Def.ElevationProfile[0].SM == 0.0
+			&& FMath::Abs(Def.ElevationProfile.Last().SM - L) <= 1e-5;
+		for (const FStreetElevationKnot& K : Def.ElevationProfile)
+		{
+			bValid &= FMath::IsFinite(K.SM) && FMath::IsFinite(K.ZM) && FMath::IsFinite(K.BankDeg)
+				&& FMath::Abs(K.BankDeg) <= 45.0 && (ElevS.IsEmpty() || K.SM > ElevS.Last());
+			ElevS.Add(K.SM); ElevZ.Add(K.ZM); ElevBank.Add(K.BankDeg);
+		}
+		if (!bValid)
+		{
+			if (Error) *Error = Def.Id + TEXT(": elevation_profile must cover exactly [0, length] with finite increasing knots and bank within +/-45 degrees");
+			return false;
+		}
+		ElevS.Last() = L;
+	}
 	TArray<double> KappaAbsD, KappaSigD;
 	DenseCurvature(O.SDense, O.XYDense, KappaAbsD, KappaSigD);
 
@@ -716,6 +734,7 @@ bool FStreetSplineMath::Build(const FStreetSplineDef& Def, const FStreetSiteProf
 	TArray<double> Mand;
 	for (int32 I = 1; I + 1 < O.SKnots.Num(); ++I) Mand.Add(O.SKnots[I]);
 	Mand.Append(O.Sampling.ExtraStationsM);
+	Mand.Append(ElevS);
 	Mand.Append(O.Road.MandatoryStations());
 	Mand.Append(O.Sides[0].MandatoryStations());
 	Mand.Append(O.Sides[1].MandatoryStations());
@@ -832,6 +851,7 @@ bool FStreetSplineMath::Build(const FStreetSplineDef& Def, const FStreetSiteProf
 		if (O.Points[K].Z.IsSet()) O.Pins.Add(TPair<double, double>(O.SKnots[K], O.Points[K].Z.GetValue()));
 	}
 	O.ZRef = O.Pins.Num() ? ApplyPins(Zs, O.S, O.Pins, O.Sampling.PinBlendM) : Zs;
+	if (ElevS.Num()) for (int32 I = 0; I < N; ++I) O.ZRef[I] = Interp(O.S[I], ElevS, ElevZ);
 
 	// -- bank
 	O.BankRaw.SetNum(N);
@@ -858,6 +878,7 @@ bool FStreetSplineMath::Build(const FStreetSplineDef& Def, const FStreetSiteProf
 	O.BankUnlimited.SetNum(N);
 	for (int32 I = 0; I < N; ++I) O.BankUnlimited[I] = (1.0 - O.RollMask[I]) * O.BankTerrain[I] + O.RollMask[I] * O.RollPl[I];
 	O.BankDeg = RateLimitBank(O.BankUnlimited, O.S, O.Sampling.BankRateMaxDegPerM);
+	if (ElevS.Num()) for (int32 I = 0; I < N; ++I) O.BankDeg[I] = Interp(O.S[I], ElevS, ElevBank);
 
 	// -- frames
 	TArray<FVector3d> P3, T3;

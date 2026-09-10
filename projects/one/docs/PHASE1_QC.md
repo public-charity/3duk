@@ -125,3 +125,16 @@ frames are in `Saved/Phase1/minnis_residency/`; normal corrected frames are in
 `Saved/Phase1/capture_ready/`. This fixes misleading capture geometry, not the
 remaining bridge/approach, terrain-wall or floating-edge defects. Twenty-six tool
 tests pass, including triangle-interior and texture-readiness failure proofs.
+
+## First structural geometry candidate
+
+Two Minnis railway spans and four 40 m approaches now use an explicit shared
+elevation/bank profile. The same profile is read, built and written by NumPy and
+Unreal; all new parity arrays are bit-identical. Geometry regression is 151 NumPy
+tests and 35 Unreal tests. Candidate generation takes 2.1 seconds. The p95 DSM
+residual on adjusted approaches is 3.5–7.2 cm, with maximum approach grade 1.381%.
+
+The fixed-camera preview has continuous rail above the road. Sampled nominal
+ballast-base clearance is at least 4.633 m. The saved level is unchanged: delta
+previews verify document hashes and actor census, record engine stats, and do not
+save. Support geometry, other structures and full-site acceptance remain open.

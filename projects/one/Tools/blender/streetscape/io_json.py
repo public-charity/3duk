@@ -63,6 +63,10 @@ def _cross_checks(site: S.Site) -> List[str]:
     errs: List[str] = []
     for si, sp in enumerate(site.splines):
         where = "$.splines[%d] (%s)" % (si, sp.id)
+        if sp.elevation_profile:
+            stations = [k.s_m for k in sp.elevation_profile]
+            if stations[0] != 0.0 or any(b <= a for a, b in zip(stations, stations[1:])):
+                errs.append(where + ".elevation_profile: stations must start at 0 and strictly increase")
         ids = sp.profile_ids
         for slot, table in (("road", site.profiles.road), ("edge_left", site.profiles.edge),
                             ("edge_right", site.profiles.edge), ("hedge_left", site.profiles.hedge),

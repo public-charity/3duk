@@ -2,6 +2,45 @@
 
 ## Current checkpoint — 2026-09-10, Phase 1 completion
 
+### Fourth milestone: continuous Minnis bridge/approach candidate
+
+- Previous source checkpoint **`ac64942`** contains the verified capture-readiness fix.
+- Added optional `Spline.elevation_profile` knots `{s_m,z_m,bank_deg}` to the shared
+  JSON, NumPy and C++ schema/build. Profiles cover exactly the untrimmed spline arc;
+  knots become shared mandatory stations. They override reference elevation/bank,
+  preserve raw survey samples, roundtrip, and fail if an edited horizontal path
+  invalidates their length. Existing documents without the field behave unchanged.
+- NumPy suite **151/151** passes (`Saved/phase1_elevation_numpy.log`); Unreal build
+  passed after correcting a negative-test fixture pointer; Unreal **35/35** passes
+  (`Saved/phase1_elevation_tests.runner.log`). All five new profile parity arrays are
+  **56/56 bit-identical**. Do not reuse the old seven-case parity JSON.
+- `Tools/diag/bridge_profile_candidate.py` builds explicitly selected, passing rail
+  DSM fits with supported 40–120 m Hermite approach blends. Missing/ambiguous anchors,
+  excessive grade/bank rate, stale source documents and conflicting profiles fail.
+  The initial two Minnis spans plus four approaches generate in **2.1 seconds**:
+  `Saved/Phase1/minnis_bridge_candidate/candidate_manifest.json` (delta scope).
+  All four blends are 40 m; maximum grade 1.381%; changed-approach DSM residual p95
+  3.5–7.2 cm. Profile endpoints match exactly in height/bank; remote approach geometry
+  remains at its earlier reference. Bridge spans have zero modelled bank.
+- Reproduce: `& projects/one/Tools/python.ps1 projects/one/Tools/diag/bridge_profile_candidate.py --group rail:310977210:0 --group rail:4596560:0 --out projects/one/Saved/Phase1/minnis_bridge_candidate`.
+- `Tools/diag/bridge_crossing_audit.py` samples the nominal ballast base against
+  actual road triangles at 0.25 m spacing. Minnis minimum is **4.633 m**. This is a
+  model envelope, not a surveyed/designed soffit: ballast is currently open below.
+  Report: `Saved/Phase1/minnis_bridge_clearance.json`.
+- Fixed-camera engine preview inspected: `Saved/Phase1/minnis_bridge_preview/manifest.json`.
+  Both spans now cross above the road with continuous approaches; sag and foreground
+  grass patches are absent. Capture takes 103 s with the recorded post-success
+  teardown crash. Renderer B supports/retaining edges and broader rollout remain open.
+- `render_set.ps1 -CandidateStreetscape <dir>` verifies candidate hashes, requires
+  exactly one loaded actor per ID, imports the delta in memory, checks the unchanged
+  actor census, and records per-actor stats. **It never saves the level.** Currently
+  restricted to splines without junction ownership. Production data and level are
+  still unchanged. Candidate provenance lives with the separate modelled documents.
+- Next: checkpoint this verified implementation, inspect unsupported structure groups,
+  extend bounded candidate generation beyond the two rail pilots, add support/edge
+  geometry, and then conform/import only reviewed derived products. Full Phase 1
+  acceptance remains open; do not infer it from the pilot or unit-test totals.
+
 ### Third milestone: Minnis foreground capture defect isolated and fixed
 
 - Source checkpoint before this milestone: **`7e15e8d`**. That commit contains the

@@ -26,6 +26,7 @@ param(
 	[switch]$PerTown,
 	[string]$Out = "",
 	[string]$Spec = "",
+	[string]$CandidateStreetscape = "",
 	[switch]$Force,
 	[switch]$List
 )
@@ -106,6 +107,7 @@ foreach ($b in $batches) {
 	$ueLog = "$ProjDir/Saved/Logs/render_set_$($b.name).log"
 	$runnerOut = "$ProjDir/Saved/Logs/render_set_$($b.name).runner.txt"
 	$a = "--out $OutRoot --report $rep --spec $Spec"
+	if ($CandidateStreetscape) { $a += " --candidate-streetscape " + ((Resolve-Path $CandidateStreetscape).Path -replace '\\', '/') }
 	if ($b.only) { $a = "$a --only $($b.only)" }
 	Write-Host ""
 	Write-Host "=== render $($b.name)  ($([int]((Get-Date) - $T0).TotalSeconds) s elapsed)" -ForegroundColor Cyan
@@ -195,6 +197,7 @@ foreach ($r in $reports) {
 			# believed to mean the opposite of what it means, and nothing in that manifest could show it.
 			landscape_lod = $loc.landscape_lod
 			capture_readiness = $loc.capture_readiness
+			candidate_streetscape = $loc.candidate_streetscape
 		}
 	}
 }

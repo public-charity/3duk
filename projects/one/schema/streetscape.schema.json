@@ -539,6 +539,19 @@
         "profile_ids": { "$ref": "#/$defs/ProfileIds" },
         "points": { "type": "array", "minItems": 2, "items": { "$ref": "#/$defs/Point" }, "description": "Waypoints in travel order (increasing s). At least 2 distinct points after duplicate merging." },
         "sampling": { "$ref": "#/$defs/Sampling" },
+        "elevation_profile": {
+          "type": "array", "minItems": 2,
+          "description": "Explicit modelled reference elevation and bank over the full shared spline arc [0,L]. Strictly increasing s_m; linear interpolation; overrides terrain smoothing and point Z/roll. Retain survey data and model provenance separately.",
+          "items": {
+            "type": "object", "required": ["s_m", "z_m", "bank_deg"],
+            "properties": {
+              "s_m": { "type": "number", "minimum": 0 },
+              "z_m": { "type": "number" },
+              "bank_deg": { "type": "number", "minimum": -45, "maximum": 45 }
+            },
+            "patternProperties": { "^_": {} }, "additionalProperties": false
+          }
+        },
         "segments": { "type": "array", "items": { "$ref": "#/$defs/Segment" }, "default": [] },
         "drop_kerbs": { "type": "array", "items": { "$ref": "#/$defs/SplineDropKerb" }, "default": [] },
         "overlay": { "$ref": "#/$defs/Overlay", "description": "Required in practice for every spline with source.layer != authored (semantic warning when absent)." },

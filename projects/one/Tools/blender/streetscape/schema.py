@@ -972,6 +972,15 @@ class Flags(SchemaObject):
 
 
 @dataclass
+class ElevationKnot(SchemaObject):
+    SPEC = {"s_m": (NONNEG, True, 0.0), "z_m": (NUM, True, 0.0),
+            "bank_deg": (_S("num", -45.0, 45.0), True, 0.0)}
+    s_m: float = 0.0
+    z_m: float = 0.0
+    bank_deg: float = 0.0
+
+
+@dataclass
 class SplineDef(SchemaObject):
     SPEC = {
         "id": (ID, True, "spline"),
@@ -979,6 +988,7 @@ class SplineDef(SchemaObject):
         "profile_ids": (_S("obj", ProfileIds), True, ProfileIds),
         "points": (_S("list", _S("obj", Point), 2), True, list),
         "sampling": (_S("obj", Sampling), False, None),
+        "elevation_profile": (_S("list", _S("obj", ElevationKnot), 2), False, None),
         "segments": (_S("list", _S("obj", Segment)), False, list),
         "drop_kerbs": (_S("list", _S("obj", SplineDropKerb)), False, list),
         "overlay": (_S("obj", Overlay), False, None),
@@ -995,6 +1005,7 @@ class SplineDef(SchemaObject):
     profile_ids: ProfileIds = field(default_factory=ProfileIds)
     points: List[Point] = field(default_factory=list)
     sampling: Optional[Sampling] = None
+    elevation_profile: Optional[List[ElevationKnot]] = None
     segments: List[Segment] = field(default_factory=list)
     drop_kerbs: List[SplineDropKerb] = field(default_factory=list)
     overlay: Optional[Overlay] = None
