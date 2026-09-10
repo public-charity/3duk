@@ -29,6 +29,9 @@ import sys
 import unreal
 
 import ue_common as uc
+from capture_readiness import require_heightmaps
+
+LAST_CAPTURE_STATE = {}
 
 NAME = "05_screenshot"
 DEFAULT_MAP = "/Game/Thanet/Maps/Thanet"
@@ -120,7 +123,9 @@ SOURCES = {
 }
 
 
-def capture(world, cam, rt, out_png, source, ev, warm_s):
+def capture(world, cam, rt, out_png, source, ev, warm_s, prepare_heightmaps=True):
+    global LAST_CAPTURE_STATE
+    LAST_CAPTURE_STATE = {}
     eye = cam["eye_ue"]
     loc = unreal.Vector(eye[0], eye[1], eye[2])
     rot = unreal.Rotator(cam["roll"], cam["pitch"], cam["yaw"])
@@ -151,6 +156,12 @@ def capture(world, cam, rt, out_png, source, ev, warm_s):
         comp.capture_scene()
         waited = unreal.StreetscapeEditorLibrary.finish_shader_compilation()
         uc.log("shader compilation: waited on %d job(s) before the real capture" % waited)
+        if prepare_heightmaps:
+            residency = json.loads(unreal.StreetscapeEditorLibrary.landscape_heightmap_residency_json(True))
+            require_heightmaps(residency)
+            LAST_CAPTURE_STATE["heightmap_residency"] = residency
+            uc.log("capture heightmaps ready: %d components / %d textures" %
+                   (residency["components"], len(residency["textures"])))
         if warm_s > 0:
             import time
             time.sleep(warm_s)

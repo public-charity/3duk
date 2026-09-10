@@ -194,6 +194,7 @@ foreach ($r in $reports) {
 			# landscape component at its COARSEST LOD, because capture.landscape_lod0_screen_size 8.0 was
 			# believed to mean the opposite of what it means, and nothing in that manifest could show it.
 			landscape_lod = $loc.landscape_lod
+			capture_readiness = $loc.capture_readiness
 		}
 	}
 }

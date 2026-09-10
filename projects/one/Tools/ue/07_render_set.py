@@ -334,6 +334,7 @@ def main(argv):
             "png": png_rel, "bytes": nbytes, "distinct_rgb": distinct, "mean_luminance": round(lum, 2),
             "rss_mb": round(float(unreal.StreetscapeLandscapeImporter.rss_mb()), 1),
             "landscape_lod": lod_state,
+            "capture_readiness": dict(SS.LAST_CAPTURE_STATE),
         }
         records.append(rec)
         uc.log("%-46s -> %s  eye_ue=(%.1f, %.1f, %.1f) yaw=%.2f pitch=%.2f fov=%.1f  ground=%.3f (%s) "

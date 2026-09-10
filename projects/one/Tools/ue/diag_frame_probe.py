@@ -44,7 +44,7 @@ def load_plan(loc):
 
 
 def main(argv):
-    opts = uc.parse_args(argv, options={"spec": "", "only": "", "report": "", "map": ""})
+    opts = uc.parse_args(argv, options={"spec": "", "only": "", "report": "", "map": "", "ids": ""})
     spec_path = opts["spec"] or os.path.join(os.path.dirname(__file__), "render_set.json").replace("\\", "/")
     spec = json.load(open(spec_path))
     want = [s.strip() for s in (opts["only"] or "").split(",") if s.strip()]
@@ -89,8 +89,11 @@ def main(argv):
             cn = a.get_class().get_name()
             if cn not in ("StreetscapeActor", "StreetscapeMassingActor"):
                 continue
-            p = a.get_actor_location()
-            d = math.hypot(p.x / 100.0 - camx, -p.y / 100.0 - camy)
+            # Street meshes carry document coordinates with identity actor transforms.
+            # Actor.h:1611: bounds measure their position; actor location does not.
+            p, extent = a.get_actor_bounds(False)
+            d = math.hypot(max(0.0, abs(p.x / 100.0 - camx) - extent.x / 100.0),
+                           max(0.0, abs(-p.y / 100.0 - camy) - extent.y / 100.0))
             b = len(BINS_M)
             for k, edge in enumerate(BINS_M):
                 if d <= edge:
@@ -137,6 +140,7 @@ def main(argv):
                "subject_en": loc["subject_en"], "subject_distance_m": round(dist_m, 1),
                "load_centre_en": [round(v, 2) for v in centre], "load_radius_m": round(radius_m, 1),
                "bins_m": BINS_M + ["beyond"],
+               "distance_basis": "distance_to_actor_component_bounds_xy",
                "streetscape_actors_loaded_by_bin": street,
                "massing_actors_loaded_by_bin": massing,
                "streetscape_actors_loaded_total": sum(street),
@@ -149,6 +153,10 @@ def main(argv):
                "census_of_loaded_streetscape": census,
                "nearest_street_actor_stats": near_stats,
                "rss_mb": round(float(imp.rss_mb()), 1)}
+        rec["requested_actor_stats"] = {
+            sid: json.loads(lib.actor_stats_json(sid))
+            for sid in opts["ids"].split(",") if sid
+        }
         uc.log("%s: %d streetscape / %d massing actors loaded within 800 m; ray %s"
                % (loc["id"], sum(street[:-1]), sum(massing[:-1]),
                   "".join({"street": "S", "terrain": "t", "nothing": "."}[r["what"]] for r in ray)))

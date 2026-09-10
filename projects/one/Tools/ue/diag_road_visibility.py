@@ -46,7 +46,11 @@ SS = _load("thanet_screenshot05", "05_screenshot.py")
 
 
 def main(argv):
-    opts = uc.parse_args(argv, options={"spec": "", "only": "", "out": "", "report": "", "warm_s": "0.5"})
+    opts = uc.parse_args(argv, options={"spec": "", "only": "", "out": "", "report": "", "warm_s": "0.5",
+                                       "variants": "as_rendered,landscape_hidden"})
+    variants = opts["variants"].split(",")
+    if not variants or set(variants) - {"as_rendered", "forced_lod0", "resident_heightmaps", "landscape_hidden"}:
+        uc.fail(NAME, "unknown or empty variants")
     spec_path = opts["spec"] or (SCRIPT_DIR + "/render_set.json")
     spec = json.load(open(spec_path))
     want = [s.strip() for s in (opts["only"] or "").split(",") if s.strip()]
@@ -101,20 +105,31 @@ def main(argv):
                "fov_deg": float(loc.get("fov_deg", 75.0))}
 
         proxies = [a for a in eas.get_all_level_actors() if isinstance(a, unreal.LandscapeProxy)]
-        for hide in (False, True):
+        components = [c for a in proxies for c in a.get_components_by_class(unreal.LandscapeComponent)]
+        lod_before = [int(c.get_editor_property("forced_lod")) for c in components]
+        for tag in variants:
+            hide = tag == "landscape_hidden"
             for a in proxies:
                 a.set_is_temporarily_hidden_in_editor(hide)
-            tag = "landscape_hidden" if hide else "as_rendered"
+            for c, before in zip(components, lod_before):
+                c.set_forced_lod(0 if tag == "forced_lod0" else before)
+            residency = json.loads(lib.landscape_heightmap_residency_json(tag == "resident_heightmaps"))
             png = "%s/%s__%s.png" % (out, loc["id"].replace("/", "__"), tag)
             ok = SS.capture(world, cam, rt, png, cap["source"], float(cap["exposure_ev"]),
-                            float(opts["warm_s"]))
+                            float(opts["warm_s"]), prepare_heightmaps=False)
             rows.append({"id": loc["id"], "variant": tag, "png": png, "captured": bool(ok),
                          "bytes": (os.path.getsize(png) if os.path.exists(png) else 0),
-                         "landscape_proxies_hidden": (len(proxies) if hide else 0)})
+                         "landscape_proxies_hidden": (len(proxies) if hide else 0),
+                         "landscape_component_count": len(components),
+                         "heightmap_residency": residency,
+                         "forced_lod_counts": {str(k): sum(int(c.get_editor_property("forced_lod")) == k for c in components)
+                                               for k in set(int(c.get_editor_property("forced_lod")) for c in components)}})
             uc.log("%s %s -> %s (%d proxies, %d bytes)"
                    % (loc["id"], tag, "ok" if ok else "FAILED", len(proxies), rows[-1]["bytes"]))
         for a in proxies:
             a.set_is_temporarily_hidden_in_editor(False)
+        for c, before in zip(components, lod_before):
+            c.set_forced_lod(before)
 
     payload = {"script": NAME, "out": out, "captures": rows}
     if opts["report"]:

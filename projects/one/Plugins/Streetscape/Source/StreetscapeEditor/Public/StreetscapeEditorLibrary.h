@@ -51,6 +51,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Streetscape")
 	static double ProbeHeightfieldM(double XM, double YM);
 
+	/** Resident heightmap mip counts for loaded landscape components. Optional streaming request changes no assets. */
+	UFUNCTION(BlueprintCallable, Category = "Streetscape|Diagnostics")
+	static FString LandscapeHeightmapResidencyJson(bool bMakeResident = false);
+
 	// -- phase 3: the actors ---------------------------------------------------------------------------------------
 
 	/** The level's site actor (created and populated from the asset registry when missing). */

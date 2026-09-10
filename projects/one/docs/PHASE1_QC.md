@@ -113,6 +113,15 @@ both sampling rules; all 34 engine tests pass, and an empty reference deliberate
 fails. Nineteen tool tests pass. This is stronger evidence than a historical test
 count that included a skipped parity case.
 
-Minnis foreground breakthrough persists with finer terrain LOD settings. Inspect
-actual triangle interiors and engine probes next; passing station samples cannot
-establish clearance across the whole rendered surface.
+Minnis foreground breakthrough persisted even with forced component LOD 0. Actual
+triangle sampling and engine probes agreed. A landscape-hidden comparison isolated
+the covering mesh; requesting full heightmap residency then removed the patches.
+The capture was using incomplete asynchronous texture resources. Shader readiness
+and component LOD settings alone were insufficient evidence of terrain readiness.
+
+All standard captures now complete heightmap compilation and residency, validate
+resident mip counts, and retain that evidence per image. Diagnostic before/after
+frames are in `Saved/Phase1/minnis_residency/`; normal corrected frames are in
+`Saved/Phase1/capture_ready/`. This fixes misleading capture geometry, not the
+remaining bridge/approach, terrain-wall or floating-edge defects. Twenty-six tool
+tests pass, including triangle-interior and texture-readiness failure proofs.

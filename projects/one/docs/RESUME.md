@@ -2,6 +2,39 @@
 
 ## Current checkpoint — 2026-09-10, Phase 1 completion
 
+### Third milestone: Minnis foreground capture defect isolated and fixed
+
+- Source checkpoint before this milestone: **`7e15e8d`**. That commit contains the
+  corrected production sampler, hardened parity gate and structure/DSM diagnostics.
+- `Tools/diag/mesh_clearance.py` samples actual emitted triangle interiors at 0.25 m
+  spacing. Five Minnis road carriageways have no penetration above 5 mm; the maximum
+  is 2.09 mm. Runtime bounding boxes and ten-metre height probes match NumPy exactly.
+  Evidence: `Saved/Phase1/minnis_mesh_clearance.json`, `minnis_engine_probe.json`.
+  Edge counts include potentially covered tuck faces and are diagnostic, not an
+  exposed-surface acceptance claim. Four deliberate-defect tests pass.
+- Hiding the landscape removes the green patches. Explicitly forcing all **96**
+  loaded terrain components to LOD 0 does **not** remove them. Evidence directories:
+  `Saved/Phase1/minnis_landscape_hidden/`, `minnis_forced_lod0/`.
+- **Root cause: asynchronous heightmap compilation/residency in headless captures.**
+  Before preparation, texture APIs report placeholder one-mip resources; later the
+  real nine-mip textures have only seven resident. Completing texture compilation
+  and requesting/waiting for full residency produces nine resident mips and removes
+  every foreground green patch, with NO terrain/road elevation changes. Engine source
+  `LandscapeRender.cpp:4516` clamps rendered detail to the first resident height mip,
+  independently of the component's forced LOD. `Saved/Phase1/minnis_residency.json`.
+- Standard `05_screenshot.capture` now completes/streams loaded landscape heightmaps
+  before the final capture and fails for incomplete residency. `07_render_set` and
+  `render_set.ps1` retain per-texture readiness evidence in their reports/manifests.
+  Diagnostic variants can bypass preparation explicitly to reproduce the defect.
+- Build passed; **26 tool tests pass**, including missing/coarse-mip failure proofs.
+  Standard two-camera render: `Saved/Phase1/capture_ready/`; both images inspected.
+  Minnis carriageway is clear; urban road remains continuous. Railway sag, steep
+  unsupported cutting sides and black massing shadows are still visible and open.
+  The known post-success engine teardown crash still occurs; inspect runner verdict.
+- No production terrain, streetscape data or saved level assets changed. Next work:
+  explicit shared-schema elevation/bank profiles, first on the two DSM-supported
+  Minnis rail spans with continuous approach transitions; then sample/full expansion.
+
 ### Second milestone after source checkpoint `6ef72f0`
 
 - **The earlier green sample used bilinear road construction. The saved Unreal
