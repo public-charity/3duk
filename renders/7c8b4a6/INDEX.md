@@ -1,5 +1,12 @@
 # `renders/7c8b4a6` — what this snapshot shows
 
+> **The 45 images of this snapshot were deleted on 2026-09-10 to keep the repository's LFS store
+> from growing without bound.** This was the intermediate snapshot: `b1cd3e5` (roads buried) and
+> `b6d3274` (roads and junctions present) bracket it and tell the same story. The analysis below and
+> the camera transforms and per-image sha256 in `manifest.json` beside it are kept, so the numbers
+> remain citable and the images themselves are recoverable from git history at commit `b6d3274` if
+> anyone ever needs them.
+
 45 frames, one per location in [`projects/one/Tools/ue/render_set.json`](../../projects/one/Tools/ue/render_set.json) (spec sha256 `584afbd7680113ae`), rendered at commit **7c8b4a6** — *The roads come out of the ground: conform against the surface the engine actually draws* — on 2026-09-10T11:15:34Z in 1088 s, on engine `5.8.2-56702186+++UE5+Release-5.8`, from `/Game/Thanet/Maps/Thanet` over `data/thanet/out/unreal/landscape_conformed`.
 
 > The worktree held **one uncommitted change** when this was taken (`?? projects/one/Tools/compare_snapshots.py`, the measurement script used below; `manifest.json` records it). Every landscape, massing and streetscape asset in the level was built from commit `7c8b4a6` in this session — see *How this was built* at the end.

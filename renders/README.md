@@ -198,3 +198,16 @@ permanently. You cannot get it back by deleting the directory later.
 So: take a snapshot when a commit meaningfully changes what the model looks like, not on every commit.
 Keep the manifests (they are small text) even for snapshots you would rather not have taken — the record
 of what was measured is worth more than the disk it costs.
+
+## Retention
+
+A snapshot is 45 images and about 66 MB, and LFS keeps every version forever, so they are taken at
+milestones rather than at every commit, and superseded ones are pruned.
+
+Kept: the **first** snapshot, as the baseline every later one is measured against, and the
+**current** one. Intermediate snapshots have their images deleted once a newer snapshot supersedes
+them, keeping `INDEX.md` and `manifest.json` — the analysis, the camera transforms and the per-image
+sha256 are text and cost nothing, and the images themselves stay recoverable from git history at the
+commit that added them.
+
+`renders/7c8b4a6/` is the first snapshot pruned this way (2026-09-10).
