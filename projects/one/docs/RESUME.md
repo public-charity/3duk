@@ -1,5 +1,59 @@
 # Resume here
 
+## Current checkpoint — 2026-09-10, Phase 1 completion
+
+This section supersedes the historical September 9 handover below. Read
+`PHASE1_QC.md` for the active strategy and acceptance ledger.
+
+- Start: clean tree at `e67b876`, branch `thanet-explorer`. No Unreal editor process
+  was running when inspected. Survey and generated products are present.
+- User objective: finish a base for high-quality building overlays, with roads and
+  streets in a sane state; use fast iterations and durable restart checkpoints.
+- Completed: resumable, fail-closed numerical QC; debug overlay off by default in
+  Unreal and Blender presentation. O-key now controls the actual world line batch,
+  including newly streamed cells. No survey, road geometry or level asset changes.
+- Verified: numpy baseline 147 tests; pipeline 167 checks; adapter 47 tests;
+  QC failure/resume tests 13; Unreal build succeeded; Unreal automation **34/34**,
+  including `Streetscape.Overlay.Lifecycle`. Logs: `Saved/phase1_*.log` and
+  `Saved/Logs/phase1_tests.log`. The handover's 32-test count was stale.
+- QC sample: 48 documents, 2,868 selected splines = 2,843 measured + 24 structures
+  explicitly excluded + one named no-terrain stub. Twelve chunks took 111.34 seconds
+  of audit time, about 7–13 seconds each. A second invocation reused all twelve in
+  ~5 seconds. State: `Saved/Phase1/sample/70b1f1ab251bc2f0c187/state.json`.
+- Numerical baseline: 133,265 stations / 192.737 km; LOD 0 has zero penetration above
+  5 mm, but **11.638%** of stations float over 125 mm (max 4.475 m). Penetrated length:
+  LOD 1 0.366%, LOD 2 2.657%, LOD 3 7.626%. These are recorded defects, not acceptance.
+- Two fixed renders inspected: `Saved/Phase1/overlay_smoke/manifest.json`; overlay
+  absent in both. `birchington/station_road_to_the_square.png` has continuous road
+  and junction corner. `birchington/railway_bridge_over_minnis_road.png` still has
+  conspicuous terrain breakthrough and a sagging railway span. Both PNG guards pass
+  with low-detail warnings. Engine had the known **post-success teardown access
+  violation**; runner recorded raw -1073741819 after the images/report/log closed.
+- Findings: junction conform is already wired; overlay uses SDPG_World already;
+  `road_fusion_audit.py --all` in HANDOVER.md is invalid (use `--n 0`).
+- Next: investigate Minnis Road using its fixed camera and neighbouring documents;
+  separate missing structure elevation from ground/LOD conflict. Inventory connected
+  bridge segments and approach endpoint heights before choosing a deck model. Keep
+  modelled structure heights in a separate derived product with explicit provenance.
+- Useful implementation warning: `Spline.apply_pins` applies sequential local
+  triangular corrections, so pinning only a bridge's endpoints does **not** create
+  a straight deck. Do not mistake existing Z-pin support for a structure profile.
+- Commands (PowerShell, repository root):
+  `& projects/one/Tools/python.ps1 projects/one/Tools/phase1_qc.py --max-jobs 2`
+  resumes up to two sample chunks (exit 2 = pending, 1 = failed, 0 = numerical
+  checks complete). `--scope full --max-jobs 0` measures the full census, still with
+  per-chunk checkpoints. Run commands to validate freshness; do not trust an old
+  `latest.json` alone after changing source/data.
+- Engine build/tests/render require writable AppData engine caches. Sandbox launches
+  failed before work; rerunning with approved cache access succeeded. Do not work
+  around permissions with another engine invocation.
+- No full-site Phase 1 acceptance has been earned. Bridges, cuttings/bare edges,
+  crossing paths and junction editing/roundtrip remain open.
+
+---
+
+## Historical checkpoint (superseded; retained for diagnostic context)
+
 The VM this is built on drops without warning, and it has already taken the session down five
 times. This file is the handover: read it first after any disconnect, and it should be enough to
 pick the work up cold. Keep it current — it is the only file that claims to describe *now*.

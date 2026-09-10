@@ -2,12 +2,31 @@
 
 #include "Components/LineBatchComponent.h"
 #include "Engine/World.h"
+#include "HAL/IConsoleManager.h"
 #include "Misc/Crc.h"
 #include "SceneManagement.h"
 #include "StreetTerrainSource.h"
 #include "StreetscapeJson.h"
 #include "StreetscapeSettings.h"
 #include "StreetscapeSiteActor.h"
+#include "UObject/UObjectIterator.h"
+
+namespace
+{
+void RefreshStreetOverlays(IConsoleVariable*)
+{
+	for (TObjectIterator<UStreetOverlayComponent> It; It; ++It)
+	{
+		if (It->IsRegistered()) It->Redraw();
+	}
+}
+
+// A process-wide opt-in also covers existing saved actors and newly streamed cells.
+// Engine/Source/Runtime/Core/Public/HAL/IConsoleManager.h:1598 callback constructor.
+FAutoConsoleVariable CVarStreetOverlay(TEXT("streetscape.Overlay"), 0,
+	TEXT("OSM debug lines: 0 hidden (default), 1 visible. Also controlled by the explorer O key."),
+	FConsoleVariableDelegate::CreateStatic(&RefreshStreetOverlays));
+}
 
 UStreetOverlayComponent::UStreetOverlayComponent()
 {
@@ -48,7 +67,8 @@ void UStreetOverlayComponent::Redraw()
 	{
 		DrapedUE.Add(FStreetscapeJson::ToUE(FVector3d(PtsJson[I].X, PtsJson[I].Y, Z[I] + Lift)));
 	}
-	if (!bShow || !Site || !Site->bShowOverlay) return;
+	IConsoleVariable* Enabled = IConsoleManager::Get().FindConsoleVariable(TEXT("streetscape.Overlay"));
+	if (!Enabled || Enabled->GetInt() == 0 || !IsVisible() || !bShow || !Site || !Site->bShowOverlay) return;
 	UWorld* World = GetWorld();
 	if (!World) return;
 	ULineBatchComponent* Batcher = World->GetLineBatcher(UWorld::ELineBatcherType::WorldPersistent);
@@ -80,4 +100,10 @@ void UStreetOverlayComponent::OnUnregister()
 {
 	ClearDraw();
 	Super::OnUnregister();
+}
+
+void UStreetOverlayComponent::OnVisibilityChanged()
+{
+	Super::OnVisibilityChanged();
+	if (IsRegistered()) Redraw();
 }

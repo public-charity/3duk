@@ -12,6 +12,7 @@
 #include "InputMappingContext.h"
 #include "InputModifiers.h"
 #include "Engine/World.h"
+#include "HAL/IConsoleManager.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogThanetExplorer, Log, All);
 
@@ -72,24 +73,14 @@ void AThanetExplorerPawn::ToggleFly()
 int32 AThanetExplorerPawn::SetOverlayVisible(bool bVisible)
 {
 	bOverlayVisible = bVisible;
-	int32 Touched = 0;
-	UWorld* World = GetWorld();
-	if (!World) return 0;
-	// by class NAME: the game module does not depend on the Streetscape plugin (Thanet.Build.cs).
-	for (TActorIterator<AActor> It(World); It; ++It)
-	{
-		for (UActorComponent* C : It->GetComponents())
-		{
-			if (!C || !C->GetClass()->GetName().Contains(TEXT("StreetOverlayComponent"))) continue;
-			if (USceneComponent* S = Cast<USceneComponent>(C))
-			{
-				S->SetVisibility(bVisible, true);
-				++Touched;
-			}
-		}
-	}
-	UE_LOG(LogThanetExplorer, Log, TEXT("overlay %s on %d component(s)"), bVisible ? TEXT("shown") : TEXT("hidden"), Touched);
-	return Touched;
+	// Lines belong to the world's batcher, not the component scene proxy. The
+	// plugin's callback clears/redraws them and its state applies to future cells.
+	// Look up the public cvar so this game stays independent of the plugin module.
+	IConsoleVariable* Overlay = IConsoleManager::Get().FindConsoleVariable(TEXT("streetscape.Overlay"));
+	if (!Overlay) return 0;
+	Overlay->Set(bVisible ? 1 : 0, ECVF_SetByConsole);
+	UE_LOG(LogThanetExplorer, Log, TEXT("overlay %s"), bVisible ? TEXT("shown") : TEXT("hidden"));
+	return 1;
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -225,4 +216,8 @@ void AThanetExplorerPawn::OnDown(const FInputActionValue& Value) { UpDown(-1.f);
 void AThanetExplorerPawn::OnSprintStart(const FInputActionValue& Value) { bSprinting = true; ApplySpeeds(); }
 void AThanetExplorerPawn::OnSprintStop(const FInputActionValue& Value) { bSprinting = false; ApplySpeeds(); }
 void AThanetExplorerPawn::OnToggleFly(const FInputActionValue& Value) { ToggleFly(); }
-void AThanetExplorerPawn::OnToggleOverlay(const FInputActionValue& Value) { SetOverlayVisible(!bOverlayVisible); }
+void AThanetExplorerPawn::OnToggleOverlay(const FInputActionValue& Value)
+{
+	const IConsoleVariable* Overlay = IConsoleManager::Get().FindConsoleVariable(TEXT("streetscape.Overlay"));
+	SetOverlayVisible(Overlay ? Overlay->GetInt() == 0 : !bOverlayVisible);
+}

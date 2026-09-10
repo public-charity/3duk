@@ -161,6 +161,16 @@ def main():
     ap.add_argument("--out", required=True)
     args = ap.parse_args()
 
+    files = sorted(glob.glob(os.path.join(args.streetscape, "site_x*_y*.json")))
+    for token in args.only_doc:
+        if not any(token in os.path.basename(f) for f in files):
+            ap.error("--only-doc matched no documents: " + token)
+    if args.only_doc:
+        files = [f for f in files if any(t in os.path.basename(f) for t in args.only_doc)]
+    files += list(args.extra_doc)
+    if not files:
+        ap.error("no site documents: empty coverage cannot pass")
+
     t0 = time.time()
     layers = set(args.layers.split(","))
     hf_survey = Heightfield.from_landscape_dir(args.survey)
@@ -177,10 +187,6 @@ def main():
     print("survey %d tiles, test lods %s (%s), %.1f s"
           % (len(hf_survey.tiles), lods, args.sampling, time.time() - t0), flush=True)
 
-    files = sorted(glob.glob(os.path.join(args.streetscape, "site_x*_y*.json")))
-    if args.only_doc:
-        files = [f for f in files if any(t in os.path.basename(f) for t in args.only_doc)]
-    files += list(args.extra_doc)
     rng = random.Random(args.seed)
     per_file = []
     for p in files:
@@ -205,6 +211,8 @@ def main():
                     chosen.append((p, idx[r]))
             r += 1
     print("%d splines from %d documents" % (len(chosen), len(per_file)), flush=True)
+    if not chosen:
+        ap.error("no eligible splines: empty coverage cannot pass")
 
     cache = {}
     records = []
@@ -279,6 +287,9 @@ def main():
     worst.sort(key=lambda w: -w[0])
     agg = F.aggregate(records, gate_m=(args.gate_m if args.gate_m is not None else 0.0),
                       float_gate_m=args.float_gate_m)
+    if agg.get("stations_with_terrain", 0) == 0:
+        sys.exit("GATE FAIL: no stations with terrain; excluded %d structures, skipped %d splines"
+                 % (len(structures), len(skipped)))
     by_lod = {}
     for k in lods:
         a_k = F.aggregate(records_lod[k], gate_m=(args.gate_m if args.gate_m is not None else 0.0),

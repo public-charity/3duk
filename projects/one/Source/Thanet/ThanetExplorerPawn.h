@@ -39,7 +39,7 @@ public:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Thanet") bool bFlying = false;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Thanet") bool bSprinting = false;
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Thanet") bool bOverlayVisible = true;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Thanet") bool bOverlayVisible = false;
 
 	// The input objects, built in C++ and kept alive by these properties.
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Thanet|Input") TObjectPtr<UInputMappingContext> MappingContext;
@@ -54,7 +54,7 @@ public:
 	/** MOVE_Flying <-> MOVE_Walking (CharacterMovementComponent.h SetMovementMode). */
 	UFUNCTION(BlueprintCallable, Category = "Thanet") void SetFlying(bool bInFlying);
 	UFUNCTION(BlueprintCallable, Category = "Thanet") void ToggleFly();
-	/** Show / hide every StreetOverlayComponent in the world; returns the number of components touched. */
+	/** Toggle the plugin's debug-line cvar, including future streamed cells; returns 1 if available. */
 	UFUNCTION(BlueprintCallable, Category = "Thanet") int32 SetOverlayVisible(bool bVisible);
 	/** The mapping context's "action -> keys" as text, so a headless run can prove the bindings exist. */
 	UFUNCTION(BlueprintCallable, Category = "Thanet") FString DescribeBindings() const;

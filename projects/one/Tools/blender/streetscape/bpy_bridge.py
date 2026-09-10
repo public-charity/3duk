@@ -238,7 +238,7 @@ def clear_scene():
     _PRIMS.clear()
 
 
-def build_scene(results: dict, site, terrain=None, terrain_margin_m: float = 30.0) -> dict:
+def build_scene(results: dict, site, terrain=None, terrain_margin_m: float = 30.0, show_overlay: bool = False) -> dict:
     """Collections per spline: <id>.road / .edge_left / ... / .instances / .overlay; returns {id: {name: object}}."""
     from . import schema as S
     hints = site.materials
@@ -253,7 +253,7 @@ def build_scene(results: dict, site, terrain=None, terrain_margin_m: float = 30.
         if res.instances:
             icol = ensure_collection("%s.instances" % sid, col)
             objs["instances"] = instances_to_objects(res.instances, icol, hints, prefix="%s." % sid)
-        if res.overlay is not None:
+        if show_overlay and res.overlay is not None:
             objs["overlay"] = overlay_to_object(res.overlay, "%s.overlay" % sid, col)
         out[sid] = objs
         all_xy.append(res.spline.xy)

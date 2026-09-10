@@ -33,4 +33,5 @@ public:
 protected:
 	virtual void OnRegister() override;
 	virtual void OnUnregister() override;
+	virtual void OnVisibilityChanged() override;
 };

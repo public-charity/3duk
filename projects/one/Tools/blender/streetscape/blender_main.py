@@ -40,6 +40,7 @@ def parse_args(argv):
     ap.add_argument("--resolution", default="1920x1080")   # STAGES.md FD.1 task 1: 1920x1080 PNG
     ap.add_argument("--no-bpy", action="store_true", help="numeric build only (env python)")
     ap.add_argument("--no-terrain-patch", action="store_true")
+    ap.add_argument("--show-overlay", action="store_true", help="include the OSM debug layer in renders/GLB")
     return ap.parse_args(argv)
 
 
@@ -68,7 +69,7 @@ def main(argv=None) -> int:
         return 1 if problems else 0
     from streetscape import bpy_bridge, render
     bpy_bridge.clear_scene()
-    bpy_bridge.build_scene(results, site, None if args.no_terrain_patch else terrain)
+    bpy_bridge.build_scene(results, site, None if args.no_terrain_patch else terrain, show_overlay=args.show_overlay)
     print("bpy scene: %.1f s" % (time.time() - t0))
     if args.gltf:
         base = os.path.splitext(os.path.basename(args.site))[0]
