@@ -33,10 +33,12 @@ import json
 import math
 import os
 import sys
+from pathlib import Path
 
 import unreal
 
 import ue_common as uc
+from content_guard import snapshot, require_unchanged
 
 NAME = "07_render_set"
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__)).replace("\\", "/")
@@ -231,7 +233,10 @@ def ground_at(land, hf, x, y):
 
 # ---- main ---------------------------------------------------------------------------------------------------------
 
-def main(argv):
+def main(argv, content_before=None):
+    content_root = Path(__file__).resolve().parents[2]/"Content"
+    if content_before is None:
+        content_before = snapshot(content_root)
     opts = uc.parse_args(
         argv,
         flags=("list", "no_load_region"),
@@ -365,6 +370,7 @@ def main(argv):
         "images": len(records),
         "locations": records,
         "materials": audit,
+        "content_integrity": require_unchanged(content_before, snapshot(content_root)),
     }
     with open(report_path, "w") as fh:
         json.dump(payload, fh, indent=2, sort_keys=False)
@@ -388,4 +394,11 @@ def main(argv):
 
 
 if __name__ == "__main__":
-    main(sys.argv)
+    # Also check failed captures; a Python exception must not skip the disk guard.
+    _content_root = Path(__file__).resolve().parents[2]/"Content"
+    _before = snapshot(_content_root)
+    try:
+        main(sys.argv, _before)
+    except BaseException:
+        require_unchanged(_before, snapshot(_content_root))
+        raise

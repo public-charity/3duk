@@ -198,6 +198,7 @@ foreach ($r in $reports) {
 			landscape_lod = $loc.landscape_lod
 			capture_readiness = $loc.capture_readiness
 			candidate_streetscape = $loc.candidate_streetscape
+			content_integrity = $r.content_integrity
 		}
 	}
 }
@@ -227,7 +228,7 @@ $manifest = [ordered]@{
 	renderer         = "projects/one/Tools/ue/07_render_set.py"
 	driver           = "projects/one/Tools/render_set.ps1"
 	spec             = [ordered]@{
-		path           = "projects/one/Tools/ue/render_set.json"
+		path           = $Spec
 		sha256         = $specSha
 		schema_version = $specDoc.schema_version
 		locations      = $expected.Count

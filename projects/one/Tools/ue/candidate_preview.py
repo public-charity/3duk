@@ -38,16 +38,24 @@ def apply_candidate(directory):
         return [str(a.get_editor_property("street_id")) for a in eas.get_all_level_actors()
                 if isinstance(a, unreal.StreetscapeActor)]
 
+    def loaded_paths():
+        return sorted((str(a.get_editor_property("street_id")), str(a.get_path_name()))
+                      for a in eas.get_all_level_actors() if isinstance(a, unreal.StreetscapeActor))
+
     before = loaded_ids()
+    before_paths = loaded_paths()
     for sid in record["ids"]:
         if before.count(sid) != 1:
-            raise ValueError("preview must load exactly one existing actor for " + sid)
+            raise ValueError("preview requires one loaded actor: %s has %d" % (sid, before.count(sid)))
     for path, expected in files:
-        count = lib.import_streetscape_json(path, False, False, 0)
+        count = lib.preview_elevation_json(path)
         if count != expected:
             raise ValueError("candidate import count mismatch: " + path)
     after = loaded_ids()
     if sorted(before) != sorted(after):
         raise ValueError("candidate changed actor census")
+    if loaded_paths() != before_paths:
+        raise ValueError("candidate replaced an actor instead of updating it in memory")
+    record["actor_paths_unchanged"] = True
     record["actor_stats"] = {sid: json.loads(lib.actor_stats_json(sid)) for sid in record["ids"]}
     return record

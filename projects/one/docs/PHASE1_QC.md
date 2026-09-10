@@ -7,6 +7,29 @@ decorative presentation remain later work.
 
 ## Structure rollout checkpoint — 2026-09-10
 
+**Preview correction:** the first preview implementation reused the production
+replace-by-ID importer. That importer deletes saved external actor packages immediately;
+not calling SaveAll did NOT make it transient. Twelve original rail actors were affected
+(six Minnis, six Margate). Targeted recovery from unchanged source JSON restored twelve
+new actor packages and changed/deleted no pre-existing Content file:
+`Saved/Phase1/preview_recovery/restore.json`. Fresh-process verification passed:
+`preview_recovery/verify_reload.json`, all 12 IDs exactly once, zero file changes.
+The replacement native `PreviewElevationJson` updates only loaded elevation profiles
+and never calls spawn/delete/save. Python checks actor paths as well as the ID census.
+Every capture now hashes saved Content before/after, including failed captures.
+Do not use the old preview helper from commits 68e32c0 or 5dc05d9.
+The safe four-span Margate preview passed (115 s): actor paths retained and all
+15,913 Content files byte-identical. `margate_four_bridge_preview_safe/manifest.json`.
+Four selected spans and their approaches are visibly continuous; other nearby
+tracks, supports and the raw cutting sides remain unresolved.
+
+Connected approach modelling doubled the passing rail candidates from eight to sixteen
+without relaxing the DSM gate. It follows tile fragments, joins short bridge connectors
+with matching endpoint heights/tangents, preserves signed bank under reversal and rejects
+conflicting overlapping edits. A union generation produces 50 spline definitions in 6.7 s.
+The two Broadley Road crossings still have only 1.78–1.97 m nominal clearance above the
+current road mesh; these remain unresolved despite positive, non-intersecting envelopes.
+
 `Tools/diag/structure_workflow.py` screens at most four rail candidates per invocation
 with per-group atomic state, bounded subprocess deadlines and immutable attempt folders.
 The whole 133-group inventory remains visible; unsupported models are not dropped from

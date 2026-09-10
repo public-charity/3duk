@@ -76,11 +76,14 @@ def knots(s, z, bank):
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--group", action="append", required=True)
+    ap.add_argument("--connected", action="store_true", help="join short bridge connectors and follow ground approaches across tile stubs")
     ap.add_argument("--inventory", type=Path, default=TOOLS.parent / "Saved/Phase1/structures_baseline.json")
     ap.add_argument("--fits", type=Path, default=TOOLS.parent / "Saved/Phase1/deck_candidates.json")
     ap.add_argument("--out", type=Path, required=True)
     args = ap.parse_args()
     start = time.time()
+    if (args.out/"candidate_manifest.json").exists():
+        raise ValueError("candidate already exists; choose a fresh output directory")
     inv = json.loads(args.inventory.read_text())
     fits = json.loads(args.fits.read_text())
     if fits["source_sha256"] != sha256(args.inventory):
@@ -123,7 +126,18 @@ def main():
 
     groups = {g["id"]: g for g in inv["groups"]}
     fitted = {g["id"]: g for g in fits["groups"]}
-    for gid in args.group:
+    if args.connected:
+        from diag.bridge_alignment import network_profiles
+        decks, approaches, records, selected = network_profiles(args.group, groups, fitted, definitions, built,
+                                                                approach_profile, hermite, inv["snap_m"])
+        for sid, (q, z, bank, gid) in decks.items():
+            add(sid, knots(q, z, bank), gid, "deck")
+        for sid, (q, z, bank, owners) in approaches.items():
+            add(sid, knots(q, z, bank), owners, "approach")
+        rows = [{"group": gid, "approaches": [r for r in records if gid in r["groups"]]} for gid in selected]
+        for row in rows:
+            print(json.dumps(row), flush=True)
+    for gid in ([] if args.connected else args.group):
         if gid not in groups or gid not in fitted:
             raise ValueError("unmatched group " + gid)
         group, fit = groups[gid], fitted[gid]
@@ -188,8 +202,12 @@ def main():
                              "dsm_abs_residual_p95_m": float(np.percentile(np.abs(residual[valid]), 95)) if valid.any() else None,
                              "end_z_m": [float(sp.z_ref[0]), float(sp.z_ref[-1])],
                              "end_bank_deg": [float(sp.bank_deg[0]), float(sp.bank_deg[-1])]})
+    # Validate every document before emitting any of them.
+    for name, doc in docs.items():
         atomic_json(args.out/name, doc)
     atomic_json(args.out/"candidate_manifest.json", {"scope": "delta", "production_accepted": False,
+                "alignment_mode": "connected" if args.connected else "single_spline",
+                "alignment_tool_sha256": sha256(TOOLS/"diag/bridge_alignment.py") if args.connected else None,
                 "tool_sha256": sha256(__file__), "inventory_sha256": sha256(args.inventory), "fits_sha256": sha256(args.fits),
                 "source_documents": {n: sha256(source/n) for n in docs},
                 "candidate_documents": {n: sha256(args.out/n) for n in docs},

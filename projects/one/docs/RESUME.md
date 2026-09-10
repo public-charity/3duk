@@ -2,6 +2,90 @@
 
 ## Current checkpoint — 2026-09-10, Phase 1 completion
 
+### Preview importer side effect recovered and verified
+
+- The full Margate preview failed because an original actor was absent on the next
+  engine load. Traced to the earlier preview helper calling ImportStreetscapeJson:
+  it calls DeleteActorsAndPackages, which deletes existing external .uasset files
+  immediately even without SaveAll. Prior claims that the preview left Content
+  unchanged were wrong. Source JSON and survey products ARE unchanged.
+- Affected successful previews: six Minnis rail IDs from minnis_bridge_candidate,
+  six Margate rail IDs from paired_bridge_candidate. The full four-span preview
+  failed before applying anything. Restore the union of those 12 original IDs.
+- New native PreviewElevationJson mutates only loaded spline elevation profiles;
+  no spawn/delete/save. RestoreMissingBaselineJson creates only absent original
+  non-junction actors and saves only their new external packages.
+- Recovery build succeeded. Targeted restore **completed**, 12 original IDs restored,
+  twelve new actor packages; no pre-existing Content file changed or was deleted.
+  Evidence: Saved/Phase1/preview_recovery/restore.json and
+  Saved/phase1_preview_recovery.runner.log (146 s, post-success teardown crash).
+- Fresh-process verification **completed**: all twelve original IDs reload exactly
+  once; no Content file added, changed or deleted. Runner verdict passed with the
+  known post-success teardown crash (107.6 s).
+  Report: Saved/Phase1/preview_recovery/verify_reload.json.
+  Log: Saved/phase1_preview_recovery_verify.runner.log.
+  The script checks source hashes, ID counts, per-actor stats and Content changes.
+- **43/43 tool tests pass**, Saved/phase1_tools_43_final.log. The safe four-span render
+  **passed and was visually inspected**, Saved/Phase1/margate_four_bridge_preview_safe;
+  runner log Saved/phase1_margate_four_preview_safe.runner.log (115 s). Its manifest
+  proves actor_paths_unchanged=true, saved=false, all **15,913 Content files
+  byte-identical**. New preview/recovery code compiled successfully.
+- Standard captures now include a byte-level Content-integrity guard. Do not run
+  the old candidate_preview.py from commit 68e32c0 or 5dc05d9.
+
+### Sixth milestone: connected rail structures and verified transient preview
+
+- Previous checkpoint **`5dc05d9`** contains the bounded structure screening.
+- `bridge_profile_candidate.py --connected` now follows unambiguous ground track
+  across tile-boundary stubs, includes passing neighbouring decks across short links,
+  interpolates height/tangent continuously between those decks, and splits the shared
+  profile back to the original per-spline arcs. Reversed fragments flip signed bank.
+  Overlapping incompatible edits fail; all changed station heights still need DSM support.
+  Candidate outputs now refuse to overwrite an existing manifest.
+- **40/40 tool tests pass**, including reversed bank/arc roundtrip, paired spans with
+  a reversed 2 m stub, unsupported neighbouring deck rejection and conflicting edits.
+  No core renderer/schema change in this milestone; native tests remain 35/35.
+- Connected census: `Saved/Phase1/structures/8d47c7fb87e6c61b2583/state.json`:
+  **16 candidate rail groups, 8 approach reviews** (was 8/16). Other 109 groups remain
+  unresolved as before. Three bridge pairs appear from either seed, so the ledger
+  explicitly flags their duplicate changed IDs; do not concatenate candidate documents.
+  Use one connected generation with the union of selected groups.
+- Margate four-span candidate: `Saved/Phase1/margate_four_bridge_candidate/`, 12
+  splines across two selected tracks, two short connectors and two tile-boundary stubs.
+  Generated in 5.6 s; nominal rail-base clearance min **4.407 m** above road mesh
+  (`margate_four_bridge_clearance.json`). This still is not a designed soffit.
+- Initial pair, six-spline before/after renders inspected:
+  `Saved/Phase1/paired_bridge_before/`, `paired_bridge_after/`.
+  Selected track is continuous above both crossings; adjacent unmodified track
+  retains the old dips. Renderer B support geometry remains absent.
+  The first full four-span render (`margate_four_bridge_preview/`) failed and exposed
+  the importer side effect described above. Safe replacement render
+  `margate_four_bridge_preview_safe/` passed with file and actor-identity evidence.
+- Fixed camera is now tracked at `Tools/ue/render_structure_probes.json`; it has
+  exactly the same capture controls and transform as the initial Saved diagnostic.
+- A union candidate for all 16 supported rail groups generated in 6.7 s, **50
+  splines**, `Saved/Phase1/rail_network_candidate/`; `phase1_rail_network.log`.
+  Crossing report `rail_network_clearance.json` measures 18 overlaps. Two spans,
+  rail:28752680:0 and rail:311074731:0, are only **1.971 m / 1.779 m** above the
+  current Broadley Road mesh (roads:979368122:0, unclassified). Positive clearance
+  alone is insufficient; inspect and model the road-under-bridge alignment before
+  these groups can pass. Do not combine candidate status with production acceptance.
+  An additional six-span/18-spline Margate candidate exists at
+  `margate_six_bridge_candidate/` (three selected tracks, not yet rendered).
+  There are actually EIGHT bridge spans near this camera. The last pair
+  rail:30725164:0 / rail:30725166:0 is blocked by the latter's rejected DSM p20 fit.
+  Diagnostic `probe_rejected_deck.py` shows centre/upper returns are supported
+  while lower lateral samples fall through the edge. Do not silently swap estimators:
+  resolve deck width/return selection and approach continuity with provenance first.
+  Next: checkpoint, then add actual support geometry and address unresolved
+  structures plus road/junction/full-ground acceptance. Production source documents
+  and survey data are unchanged. Recovered actor packages contain original definitions.
+
+- Ground QC resumed against current core: sample state
+  Saved/Phase1/sample/6a0b0866f116a8cb1337/state.json. Four of twelve chunks
+  passed; eight remain pending. Check phase1_ground_resume*.log. Production
+  conformed terrain still uses the older sampler; correction/import remains open.
+
 ### Fifth milestone: bounded structure rollout
 
 - Current committed source: **`68e32c0`**, continuous Minnis bridge candidate and

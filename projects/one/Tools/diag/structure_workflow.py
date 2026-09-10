@@ -57,6 +57,7 @@ def main():
     ap.add_argument("--out", type=Path, default=TOOLS.parent/"Saved/Phase1/structures")
     ap.add_argument("--max-jobs", type=int, default=4)
     ap.add_argument("--timeout-s", type=int, default=60)
+    ap.add_argument("--connected", action="store_true", help="screen bridge networks across short links and tile stubs")
     args = ap.parse_args()
     if args.max_jobs < 0 or args.timeout_s <= 0:
         ap.error("max-jobs must be nonnegative and timeout positive")
@@ -70,9 +71,11 @@ def main():
     paths = [Path(p) for p in dependencies]
     paths += [source/n for n in inv["source"]["document_sha256"]]
     paths += [args.inventory, args.fits, Path(__file__), TOOLS/"phase1_qc.py",
-              TOOLS/"diag/bridge_profile_candidate.py", TOOLS/"diag/structure_inventory.py"]
+              TOOLS/"diag/bridge_profile_candidate.py", TOOLS/"diag/structure_inventory.py",
+              TOOLS/"diag/bridge_alignment.py"]
     import numpy as np
-    config = {"python": sys.version, "numpy": np.__version__, "kind": "rail", "timeout_s": args.timeout_s}
+    config = {"python": sys.version, "numpy": np.__version__, "kind": "rail", "timeout_s": args.timeout_s,
+              "connected": args.connected}
     fingerprint, hashes = content_identity(paths, config)
     for path, digest in dependencies.items():
         if hashes[str(Path(path).resolve())] != digest:
@@ -111,6 +114,8 @@ def main():
             log = attempt/"run.log"
             cmd = [sys.executable, str(TOOLS/"diag/bridge_profile_candidate.py"), "--inventory", str(args.inventory.resolve()),
                    "--fits", str(args.fits.resolve()), "--group", gid, "--out", str(attempt)]
+            if args.connected:
+                cmd.append("--connected")
             job = {"status": "running", "fingerprint": fingerprint, "log": str(log), "started_utc": time.time(), "command": cmd}
             state["jobs"][gid] = job
             atomic_json(state_path, state)
@@ -124,9 +129,10 @@ def main():
                 else:
                     path = attempt/"candidate_manifest.json"
                     manifest = read_json(path)
-                    if [r["group"] for r in manifest["groups"]] != [gid] or not manifest["measured"]:
+                    covered = [r["group"] for r in manifest["groups"]]
+                    if gid not in covered or any(k not in groups for k in covered) or not manifest["measured"]:
                         raise ValueError("candidate returned incomplete group")
-                    job.update(status="candidate", manifest=str(path), manifest_sha256=sha256(path), problems=[])
+                    job.update(status="candidate", manifest=str(path), manifest_sha256=sha256(path), covered_groups=covered, problems=[])
                 job["log_sha256"] = sha256(log)
             except (OSError, ValueError, KeyError, IndexError, subprocess.TimeoutExpired) as exc:
                 job.update(status="interrupted", problems=[str(exc)])

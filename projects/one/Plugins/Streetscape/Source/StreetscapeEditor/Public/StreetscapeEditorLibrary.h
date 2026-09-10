@@ -78,6 +78,14 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Streetscape")
 	static int32 ImportStreetscapeJson(const FString& FileOrDir, bool bPlacePlayerStart, bool bPreloadWorld = true, int32 MaxNoTerrainActors = 0);
 
+	/** Update only elevation profiles on exactly one loaded actor per ID. Never spawn, destroy, delete or save. */
+	UFUNCTION(BlueprintCallable, Category = "Streetscape")
+	static int32 PreviewElevationJson(const FString& Path);
+
+	/** Recover missing baseline actors from explicit source documents; save only newly created external packages. */
+	UFUNCTION(BlueprintCallable, Category = "Streetscape")
+	static int32 RestoreMissingBaselineJson(const FString& Path);
+
 	/**
 	 * Zero the running junction totals. Call it ONCE before a run's imports: ImportStreetscapeJson accumulates,
 	 * because a site import calls it once per document and the number worth reporting is the run's, not the last

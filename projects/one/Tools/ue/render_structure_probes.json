@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "site": "thanet",
+  "map": "/Game/Thanet/Maps/Thanet",
+  "crs": "EPSG:27700",
+  "vertical_datum": "ODN",
+  "origin": {"E": 627680, "N": 163080},
+  "purpose": "Fixed structure probes added from inventory geometry. Use identical cameras for baseline and candidate comparisons.",
+  "capture": {
+    "width": 1600,
+    "height": 900,
+    "source": "final_ldr",
+    "exposure_ev": 0.0,
+    "landscape_lod0_screen_size": null,
+    "guards": {"min_distinct_rgb": 24, "min_mean_luminance": 4.0, "max_mean_luminance": 250.0}
+  },
+  "towns": [{
+    "slug": "phase1",
+    "name": "Phase 1 diagnostics",
+    "locations": [{
+      "id": "phase1/margate_connected_bridges",
+      "slug": "margate_connected_bridges",
+      "title": "Margate paired rail bridges and tile boundary approach",
+      "kind": "street",
+      "camera_en": [634928.0575, 170435.66],
+      "subject_en": [634878.0575, 170495.66],
+      "camera_height_m": 30,
+      "pitch_deg": -21,
+      "fov_deg": 75,
+      "why": "Both parallel tracks, four spans, short connectors and tile seams. Initially derived from rail:311074733:0 and rail:311074730:0 endpoints; camera is 50 m east and 60 m south of their centroid."
+    }]
+  }]
+}
