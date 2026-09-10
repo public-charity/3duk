@@ -48,6 +48,19 @@ pin is applied and is not the explanation — it is still part of the spec, not 
 it the same frames would be worse and for a different reason. `renders/b1cd3e5/INDEX.md` has the
 numbers and the pictures. **Do not restore the old claim without re-measuring it against a snapshot.**
 
+**Corrected again 2026-09-10 by the second full snapshot, `7c8b4a6`.** The sentence above that says "the
+LOD 0 pin is applied and is not the explanation" is **wrong**, and it is wrong in the most expensive
+way a sentence can be: it asserted the opposite of what the picture was showing.
+`capture.landscape_lod0_screen_size` was 8.0, and `LOD0ScreenSize` is the screen size at which LOD 0
+*stops* — screen size falls with distance, so a threshold of 8.0 is above anything the ground subtends and
+every landscape component drew at its **coarsest** level, which is exactly the artefact the pin was
+believed to remove. The spec now sets it `null`, `07_render_set.py` reads the proxies' real LOD
+properties back into the report, and `render_set.ps1` folds them into `manifest.json` per image, so no
+future reader has to take a comment's word for it. With that one property changed and nothing else
+touched about the cameras, the carriageway is drawn in **30 of the 31 road frames instead of 15**
+(`renders/7c8b4a6/INDEX.md`). The two paragraphs above are kept, not deleted, because the record of
+what was believed and when is the point of this directory.
+
 The three off-isle towns in `sources/config/thanet_towns.json` — **minster, monkton, cliffsend** — are
 deliberately excluded: they lie outside the Wantsum cut, so there is no terrain under them to photograph.
 
