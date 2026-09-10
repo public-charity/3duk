@@ -12,6 +12,7 @@ import math
 from pathlib import Path
 import sys
 import time
+import xml.etree.ElementTree as ET
 
 import numpy as np
 
@@ -61,12 +62,51 @@ def finite_list(values):
     return [float(v) if np.isfinite(v) else None for v in values]
 
 
+def read_osm_way_tags(path, ids):
+    """Retain original structure semantics lost in the boolean renderer flags."""
+    tags = {}
+    for _, element in ET.iterparse(path, events=("end",)):
+        if element.tag == "way":
+            if element.get("id") in ids:
+                tags[element.get("id")] = {t.get("k"): t.get("v") for t in element.findall("tag")}
+            element.clear()
+        elif element.tag in ("node", "relation"):
+            element.clear()
+    if ids - tags.keys():
+        raise ValueError("structure ways absent from OSM source: " + ", ".join(sorted(ids-tags.keys())))
+    return tags
+
+
+def structure_context(kind, tags):
+    if kind == "bridge":
+        return "bridge_deck"
+    if tags.get("tunnel") == "building_passage":
+        return "building_passage"
+    if tags.get("tunnel") == "covered" or tags.get("covered") == "yes":
+        return "covered_passage"
+    if tags.get("railway") == "rail" and tags.get("service") == "siding":
+        return "rail_siding_cover_review"
+    if tags.get("location") == "underground" or tags.get("tunnel:name"):
+        return "underground_tunnel"
+    return "tunnel_context_review"
+
+
+def verify_inventory_sources(inventory):
+    expected = inventory["source"].get("dependency_sha256")
+    if not expected:
+        raise ValueError("inventory lacks source pixel hashes; regenerate it")
+    for path, digest in expected.items():
+        if sha256(path) != digest:
+            raise ValueError("inventory dependency changed: " + path)
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--streetscape", type=Path, default=REPO / "data/thanet/out/unreal/streetscape")
     ap.add_argument("--survey", type=Path, default=REPO / "data/thanet/out/unreal/landscape")
     ap.add_argument("--snap-m", type=float, default=0.35)
     ap.add_argument("--dsm", type=Path, default=REPO / "data/thanet/interim/dsm.vrt")
+    ap.add_argument("--osm", type=Path, default=REPO / "data/thanet/raw/thanet.osm")
     ap.add_argument("--out", type=Path, default=TOOLS.parent / "Saved/Phase1/structures_baseline.json")
     args = ap.parse_args()
     if args.snap_m <= 0:
@@ -93,6 +133,7 @@ def main():
     structures = {sid for sid, (_, row) in defs.items() if structure_kind(row) != "ground"}
     if not structures:
         ap.error("no structures: empty inventory cannot pass")
+    osm_tags = read_osm_way_tags(args.osm, {sid.split(":")[1] for sid in structures})
 
     def neighbours(key):
         sid, _ = key
@@ -175,11 +216,13 @@ def main():
                "splines": component, "documents": sorted({defs[sid][0].name for sid in component}),
                "status": "complex_connectivity" if branched or len(ends) != 2 else "measured_chain",
                "ends": [endpoint_record(key) for key in ends], "segments": []}
+        row["contexts"] = sorted({structure_context(row["kind"], osm_tags[sid.split(":")[1]]) for sid in component})
         for sid in component:
             sp = spline(sid)
             chord = np.interp(sp.s, [0, sp.length], [sp.z_ref[0], sp.z_ref[-1]])
             grade = np.abs(np.diff(sp.z_ref) / np.diff(sp.s)) * 100
             segment = {"spline_id": sid, "length_m": sp.length,
+                                    "osm_tags": osm_tags[sid.split(":")[1]],
                                     "xy_ends_m": [endpoints[(sid, "start")], endpoints[(sid, "end")]],
                                     "class": defs[sid][1]["source"].get("cls"),
                                     "max_grade_pct": float(grade.max()) if grade.size else 0,
@@ -208,14 +251,24 @@ def main():
             row["both_ends_have_ground_approaches"] = all(e["ground_approaches"] for e in row["ends"])
         result.append(row)
     result.sort(key=lambda r: -max(s["chord_sag_m"] + s["chord_rise_m"] for s in r["segments"]))
+    # The VRT only names rasters: hash its dependencies and survey samples too,
+    # so downstream cached models cannot survive changed pixels behind an unchanged VRT.
+    dependencies = {Path(p).resolve() for p in dsm.GetFileList()}
+    dependencies.update(p.resolve() for pattern in ("hm_*.r16", "clip_*.r8", "landscape_manifest.json")
+                        for p in args.survey.glob(pattern))
+    dependencies.add(args.osm.resolve())
+    dependencies.update(p.resolve() for p in (TOOLS / "blender/streetscape").glob("*.py"))
     report = {"source": {"survey": str(args.survey.resolve()), "survey_sampling": hf.sampling,
                          "streetscape": str(args.streetscape.resolve()),
                          "document_sha256": files, "survey_manifest_sha256": sha256(args.survey / "landscape_manifest.json"),
                          "dsm_vrt": str(args.dsm.resolve()), "dsm_vrt_sha256": sha256(args.dsm),
+                         "osm": str(args.osm.resolve()),
+                         "dependency_sha256": {str(p): sha256(p) for p in sorted(dependencies)},
                          "tool_sha256": sha256(__file__)},
               "snap_m": args.snap_m, "groups": result,
               "summary": {"structure_splines": len(structures), "groups": len(groups),
                           "by_kind": dict(Counter(r["kind"] for r in result)),
+                          "by_context": dict(Counter(c for r in result for c in r["contexts"])),
                           "status": dict(Counter(r["status"] for r in result)),
                           "groups_crossing_documents": sum(len(r["documents"]) > 1 for r in result),
                           "chains_with_ground_approaches_both_ends": sum(r.get("both_ends_have_ground_approaches", False) for r in result),

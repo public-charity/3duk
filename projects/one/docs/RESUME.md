@@ -2,6 +2,38 @@
 
 ## Current checkpoint — 2026-09-10, Phase 1 completion
 
+### Fifth milestone: bounded structure rollout
+
+- Current committed source: **`68e32c0`**, continuous Minnis bridge candidate and
+  shared elevation-profile schema. No production data or saved level changed.
+- Source structure semantics are now recorded in `structures_baseline.json`:
+  14 building passages, two covered passages, nine rail sidings requiring cover
+  context review. Do not treat every boolean `tunnel` flag as an underground road.
+- Inventory now hashes the actual DSM raster dependencies, survey samples/masks,
+  OSM source and geometry modules. Unchanged VRT filenames alone cannot validate
+  cached fits. Inventory and deck fits regenerated; historical candidate folders
+  still describe earlier evidence and must not be mixed with the new inventory.
+- `Tools/diag/structure_workflow.py` accounts for all 133 groups, then attempts four
+  passing rail fits per call (60 s deadline each). Uses content fingerprint, OS lock,
+  atomic per-group checkpoints, separate attempt directories, output hashes, final
+  input recheck, and shared-approach conflict reporting. `--max-jobs 0` runs remaining
+  groups. State pointer: `Saved/Phase1/structures/latest.json`.
+- Candidate generation also requires 80% of changed stations to match DSM within
+  0.25 m. Supported span fits alone cannot certify unsupported approaches.
+- **36/36 tool tests pass**, `Saved/phase1_tools_36.log`. Completed 24 rail-fit jobs,
+  about 4.6–5.4 s each: **8 candidates, 16 requiring approach work**. All 133 groups
+  accounted for: also 34 deck-fit reviews, 25 road-approach models, 50 context models.
+  State: `Saved/Phase1/structures/c6e5169baf705bcf9ea1/state.json`. Logs:
+  `phase1_structure_batch1.log`, `phase1_structure_remaining.log`; repeated invocation
+  reused every result in 7.4 s (`phase1_structure_resume.log`). None of the eight
+  candidates share a changed approach; crossing/support/visual checks remain open.
+- Short approaches are real: several bridge pairs have only 9–13 m between them,
+  and tile-boundary stubs can be 0.5–3 m. They need a connected alignment across
+  segments, not a forced 40 m transition on each segment. Other failures need
+  locally supported curvature/grade handling; do not relax gates to turn them green.
+- Next: resolve short/shared approach cases, then
+  add actual bridge/support geometry and road/junction treatments. No Phase 1 pass.
+
 ### Fourth milestone: continuous Minnis bridge/approach candidate
 
 - Previous source checkpoint **`ac64942`** contains the verified capture-readiness fix.
@@ -36,7 +68,7 @@
   actor census, and records per-actor stats. **It never saves the level.** Currently
   restricted to splines without junction ownership. Production data and level are
   still unchanged. Candidate provenance lives with the separate modelled documents.
-- Next: checkpoint this verified implementation, inspect unsupported structure groups,
+- Source checkpoint: **`68e32c0`**. Next: inspect unsupported structure groups,
   extend bounded candidate generation beyond the two rail pilots, add support/edge
   geometry, and then conform/import only reviewed derived products. Full Phase 1
   acceptance remains open; do not infer it from the pilot or unit-test totals.

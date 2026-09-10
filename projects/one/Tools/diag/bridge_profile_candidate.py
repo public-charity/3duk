@@ -17,7 +17,7 @@ TOOLS = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(TOOLS))
 sys.path.insert(0, str(TOOLS / "blender"))
 from phase1_qc import atomic_json, sha256
-from diag.structure_inventory import sample_dsm
+from diag.structure_inventory import sample_dsm, verify_inventory_sources
 from streetscape import io_json
 from streetscape.spline import Spline
 from streetscape.terrain import Heightfield
@@ -85,6 +85,7 @@ def main():
     fits = json.loads(args.fits.read_text())
     if fits["source_sha256"] != sha256(args.inventory):
         raise ValueError("deck fits do not match inventory")
+    verify_inventory_sources(inv)
     source = Path(inv["source"]["streetscape"])
     if args.out.resolve() == source.resolve() or source.resolve() in args.out.resolve().parents:
         raise ValueError("candidate must be outside the production streetscape directory")
@@ -177,8 +178,13 @@ def main():
                                  sp.xy[:, 1, None]+offset*normal[:, 1, None]+candidate.origin.N)
             residual = np.nanpercentile(heights, 20, axis=1)-sp.z_ref
             valid = tested & np.isfinite(residual)
+            if tested.any() and (valid.sum()/tested.sum() < .8 or
+                                np.sum(valid & (np.abs(residual) <= .25))/tested.sum() < .8):
+                raise ValueError(sp.id + ": changed profile lacks 80% DSM support within 0.25 m")
             measured.append({"id": sp.id, "length_m": sp.length, "profile_knots": len(sdef.elevation_profile),
+                             "tested_stations": int(tested.sum()),
                              "dsm_tested_stations": int(valid.sum()),
+                             "dsm_support_fraction": float(np.sum(valid & (np.abs(residual) <= .25))/tested.sum()) if tested.any() else 1.0,
                              "dsm_abs_residual_p95_m": float(np.percentile(np.abs(residual[valid]), 95)) if valid.any() else None,
                              "end_z_m": [float(sp.z_ref[0]), float(sp.z_ref[-1])],
                              "end_bank_deg": [float(sp.bank_deg[0]), float(sp.bank_deg[-1])]})

@@ -5,6 +5,23 @@ Thanet base suitable for high-quality building overlays. Survey registration, te
 roads, rail, junctions and their transitions belong to Phase 1. Hero buildings and
 decorative presentation remain later work.
 
+## Structure rollout checkpoint — 2026-09-10
+
+`Tools/diag/structure_workflow.py` screens at most four rail candidates per invocation
+with per-group atomic state, bounded subprocess deadlines and immutable attempt folders.
+The whole 133-group inventory remains visible; unsupported models are not dropped from
+coverage. Resume results require matching source and artifact hashes. DSM VRT dependencies,
+survey pixels/masks, original OSM semantics and geometry modules are now hashed too.
+
+Current ledger `Saved/Phase1/structures/c6e5169baf705bcf9ea1/state.json`:
+8 rail candidates, 16 rail approach reviews, 34 deck-fit reviews, 25 road-approach models,
+50 passage/tunnel context models. The 24 rail jobs took roughly five seconds each.
+Repeat invocation reuses all results in 7.4 s; 36 tool tests pass. All remain candidates.
+Original tunnel tags distinguish 14 building passages, two covered passages, and nine
+rail sidings requiring cover review. Do not model these all as underground tunnels.
+Several bridge pairs have 9–13 m ground connectors, and tile stubs can be under a metre:
+use connected alignments across those segments before claiming continuity.
+
 ## Working strategy
 
 1. Inspect current source and saved evidence before accepting historical status.
