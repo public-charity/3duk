@@ -47,6 +47,16 @@ use connected alignments across those segments before claiming continuity.
 
 ## Working strategy
 
+**2026-09-11 contact repair:** exact mesh/landscape triangle intersections and a
+bounded integer height solver repaired three ordinary corners with eight grid-post
+changes. The complete derived `Saved/Phase1/ground_contact_candidate` verifies
+2,486 output files and all 246 survey-relative delta round trips. The 75 junctions
+in its touched documents now have 73 passes and two existing failures. Other cuts
+were rejected because they opened pavement/road edges even with protected-edge
+constraints; those require geometry/support corrections. Source rasters and the
+saved Unreal level are unchanged. This is a numerical candidate, awaiting a safe
+terrain preview and visual acceptance. See RESUME.md for every report and restart path.
+
 **Latest measurements supersede the older float numbers below.** Per-side coverage
 now measures bare edges independently: **8.38545% / 65.961 km** floating at LOD 0,
 with all 62 envelope chunks still within the penetration gate. Every floating run

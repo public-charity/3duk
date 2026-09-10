@@ -2,6 +2,59 @@
 
 ## Current checkpoint — 2026-09-10, Phase 1 completion
 
+### Eleventh milestone — 2026-09-11: bounded corner terrain contact
+
+- Latest committed milestone **`dd9ee22`**, full junction QC census. No engine job.
+- New working tools `diag/terrain_contact.py` and `diag/junction_contact_candidate.py`
+  test sparse terrain cuts on ordinary non-occluded corners. Intersect actual mesh
+  triangles with LOD-0 landscape triangles; constrain every intersection vertex;
+  minimize total post lowering with a 0.5 m cap in INTEGER encoding steps, and
+  update both copies of a tile seam. Source rasters never change. A first continuous
+  solver was replaced because post-rounding can violate an adjacent edge's cut limit.
+- **58/58 tool tests pass**, `Saved/phase1_tools_58.log`; six new contact tests cover
+  sub-cell triangles, interior penetration despite clear vertices, shared seams,
+  invalid/over-budget inputs, the actual terrain diagonal, and incompatible edge
+  contact. No core/native geometry changed; NumPy 152 remains the current baseline.
+- First real pilot junction:16_8:2 / :3 changed only **10 posts**, max 0.383 m.
+  Both corner interiors became clear by >=10 mm; actual outer corner bases had
+  no daylight before or after. State `junction_contact_candidates/415e8f5721e5b14326af/report.json`.
+  It was correctly retained as REJECTED because the initial neighbour check found
+  apparent float increases. That neighbour check included trimmed-out stations.
+- The corrected emitted-row check still found real daylight. Final tool measures
+  actual banked outer-base XY/Z at <=25 cm spacing and uses these as additional
+  constraints. Some cuts are infeasible without changing pavement/support geometry.
+- Passing candidates (current tool): **junction:16_8:3**, **junction:20_11:3**,
+  **junction:22_4:1**. Reports respectively
+  `junction_contact_candidates/c2c051f6797537904b34/report.json`,
+  `junction_contact_candidates/e5259755dbcf4fbae8cc/report.json`,
+  `junction_contact_candidates/b81563f0a651c2f8a0d3/report.json`.
+  The third required a protected re-solve: 2 posts rather than its initial 1.
+  Rejected :16_8:2, :5_12:7, :15_14:3/:22 and :15_13:3 need edge geometry work.
+  Logs `Saved/phase1_corner_*.log` preserve all attempts; failed candidates are not
+  silently dropped or materialized.
+- **Derived product complete**, `Saved/Phase1/ground_contact_candidate/`:
+  **8 changed posts across 3 tiles**, max additional lowering 0.171875 m, all
+  **2,486 output files verified**. New `materialize_contact_candidate.py` validates
+  every candidate/source hash, rejects interacting patches, resumes bounded copies,
+  updates tile statistics and survey-relative signed deltas, and publishes the
+  final manifest last. State `contact_build_state.json`, log
+  `Saved/phase1_contact_materialize.log`. No production import or engine process.
+- Independent read-back: all **391 heightmaps compared**, exactly 8 changes;
+  all **246 available signed deltas recover raw survey bytes exactly**. Rebuilt
+  all junctions in the 3 touched documents: **73 pass / 2 existing failures**
+  (75 total), the three repaired corners pass. Evidence inside product:
+  `independent_verification.json`; log `Saved/phase1_contact_verify.log`.
+- Still need a safe unsaved terrain preview and visual acceptance. Native landscape
+  importer saves/deletes assets; do not use it for previews. FHeightmapAccessor under
+  a scoped base edit layer may support a bounded unsaved preview, but is not yet
+  implemented. Current level still uses the older terrain product.
+- Next substantial geometry work: bank-aware Renderer B supports (actual world edge,
+  terrain-intersecting batter toes, downhill retaining walls), with NumPy/native
+  parity and focused fixtures. Unconstrained cuts cannot solve the floating edges.
+- Full junction census worst corner failures reach 6.79 m (junction:19_2:15),
+  4.66 m (:21_3:4), 1.65 m (:20_3:21). All A patches pass. Do not turn these
+  coastal/multi-level geometry defects into large terrain excavations.
+
 ### Tenth milestone: side-aware float and emitted junction mesh QC
 
 - Latest commit **`d181075`** contains the Broadley candidate generator and previous
