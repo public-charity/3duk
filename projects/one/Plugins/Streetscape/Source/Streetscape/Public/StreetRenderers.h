@@ -47,6 +47,8 @@ struct STREETSCAPE_API FStreetRenderResult
 	FStreetMeshBuilder Buffer;
 	TArray<FStreetInstance> Instances;
 	int32 MarkingStrips = 0;
+	/** Required support geometry that cannot meet the terrain; checked before committing any renderer. */
+	TArray<FString> Problems;
 };
 
 /** road.build_junction_patch's dict, with edge.build_junction_corners' folded in as the "corner" keys. */

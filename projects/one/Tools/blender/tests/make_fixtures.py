@@ -154,10 +154,10 @@ EXPECTED = {
                     "embankment only builds because SCHEMA.md 5 rule 1 (null -> an empty profile with "
                     "every width 0) is now implemented: before, it was silently discarded.",
             "embankment_segment": {"side": "both", "kind": "auto", "material": "grass", "threshold_m": 0.35},
-            "left": {"group": "embankment:retaining_wall:0", "stations": 175, "wall_thickness_m": 0.3,
-                     "wall_height_m": 2.3632, "skirt_m": 0.3, "verts": 1400, "tris": 1392},
-            "right": {"group": "embankment:batter:0", "stations": 22, "batter_width_m": 1.0220,
-                      "batter_drop_m": 0.6813, "slope_ratio": 1.5, "verts": 44, "tris": 38},
+            "left": {"group": "embankment:retaining_wall:0", "stations": 155, "wall_thickness_m": 0.3,
+                     "max_world_height_m": 2.883040034312124, "verts": 1240, "tris": 1224},
+            "right": {"group": None, "stations": 0, "verts": 0, "tris": 0,
+                      "reason": "actual banked edge gap [-0.266636, 0.203490] m is within the 0.35 m threshold"},
         },
         "rail_cutting_render": {
             "site": "site_x20_y6.json", "spline": "rail:474810874:0",

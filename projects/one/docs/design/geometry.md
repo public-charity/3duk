@@ -959,17 +959,27 @@ back edge; `= h0 + hk` if pw = 0; `= h0` if kw = pw = 0), `mask = (s ≥ s0) & (
 All use the section origin `lateral = ob`, `height = hb` — behind the pavement, per side, per s-range.
 
 **5.8.4 Embankment / retaining wall.** For each `(s0, s1, spec)` in `spec.embankment_timeline`,
-per station: back point `xy_b = xy + side·(o0 + kw + pw)·n_flat.xy`, `dz = (z_ref + h0 + hk_back) −
-terrain.sample(xy_b)` (NaN → no geometry). Side/kind gating:
+per station: world back point `P = frames.p + side·(o0 + kw + pw)·frames.n +
+(h0 + hk_back)·frames.b`, `dz = P.z − terrain.sample(P.xy)`. Missing terrain at a
+requested edge, wall footing or batter toe fails the build. Side/kind gating:
 `side ∈ {left,right}` must equal this side; `downhill` → only where `dz > threshold`; `uphill` → only
 where `dz < −threshold`; `both/auto` → either. `kind auto` → batter where `dz > 0`, retaining wall
-where `dz < 0`.
-- batter (fill): open 2-point section `(o_b, hk_back) → (o_b + slope_ratio·(dz + toe_extra), hk_back −
-  (dz + toe_extra))`, material `material`, mask where `dz > threshold`, no caps.
-- retaining wall (cut): closed CW box `(o_b, hk_back − skirt) (o_b, hk_back + |dz| + wall_coping)
-  (o_b + wall_thickness, …) (o_b + wall_thickness, hk_back − skirt)`, mask where `dz < −threshold`,
-  caps at run ends.
-Threshold 0.35 m: below it the standard 0.30 m skirt already hides the gap.
+where `dz < 0`. Explicit `kind retaining_wall` accepts either sign, subject to the
+side filter and threshold.
+- Batter: find terrain contact along `P.xy + L·side·n_flat.xy`, at height
+  `P.z − L/slope_ratio`. Scan at 25 cm horizontal intervals, bounded to 64 m,
+  then bisect the first detected crossing 28 times. The toe stays at that XY and
+  tucks `toe_extra_m` vertically beneath the ground. No contact within the bound
+  requires another support model. Sweep an open two-point section, without caps.
+- Wall: world-horizontal thickness `wall_thickness_m`; top above the maximum of
+  `P.z` and terrain at both faces by `wall_coping_m`; bottom below the minimum of
+  those heights by `toe_extra_m`. Sweep a closed box with caps at run ends.
+- Convert world run `L` and vertical offset `Z` back into the shared banked section:
+  `o = L·cosβ + side·Z·sinβ`, `h = −side·L·sinβ + Z·cosβ`.
+
+The default 0.35 m is a modelling trigger, not proof that the exposed edge is
+supported; actual outer-face daylight is measured separately. Support terrain is
+the final/conformed ground while the shared road spline retains its survey source.
 
 ### 5.9 `hedge.py` — Renderer C
 

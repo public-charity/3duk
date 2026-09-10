@@ -44,6 +44,40 @@ TArray<bool> RangeMask(const TArray<double>& S, double A, double B)
 bool AnyTrue(const TArray<bool>& M) { for (bool B : M) { if (B) return true; } return false; }
 int32 CountTrue(const TArray<bool>& M) { int32 C = 0; for (bool B : M) { if (B) ++C; } return C; }
 
+// support.py: world horizontal-outward run and vertical offset into the banked sweep frame.
+FVector2d SupportSection(const FStreetFrames& Frames, int32 I, int32 Side, double Run, double Dz)
+{
+	const double C = Frames.B[I].Z, S = Frames.N[I].Z;
+	return FVector2d(C * Run + Side * S * Dz, -Side * S * Run + C * Dz);
+}
+
+bool BatterToe(const IStreetTerrainSource* Terrain, const FVector3d& P, const FVector3d& U,
+	double Ratio, double Extra, double& Run, double& Dz)
+{
+	double Lo = 0.0, Hi = 0.0, Ground = 0.0;
+	for (int32 Step = 1; Step <= 256; ++Step)
+	{
+		const double D = Step * 0.25;
+		const FVector3d Q = P + D * U;
+		if (!Terrain->SampleHeight(Q.X, Q.Y, Ground) || !std::isfinite(Ground)) return false;
+		if (P.Z - D / Ratio <= Ground) { Hi = D; break; }
+		Lo = D;
+	}
+	if (Hi == 0.0) return false;
+	for (int32 K = 0; K < 28; ++K)
+	{
+		const double Mid = (Lo + Hi) * 0.5;
+		const FVector3d Q = P + Mid * U;
+		if (!Terrain->SampleHeight(Q.X, Q.Y, Ground) || !std::isfinite(Ground)) return false;
+		if (P.Z - Mid / Ratio > Ground) Lo = Mid; else Hi = Mid;
+	}
+	const FVector3d Q = P + Hi * U;
+	if (!Terrain->SampleHeight(Q.X, Q.Y, Ground) || !std::isfinite(Ground)) return false;
+	Run = Hi;
+	Dz = Ground - Extra - P.Z;
+	return true;
+}
+
 /** edge._wall_section / edge._square_section share this: v = cumulative section length. */
 FStreetSection MakeSection(bool bClosed, const TArray<FVector2d>& Pts, const TArray<FName>& Mats, const TArray<bool>& Smooth)
 {
@@ -746,19 +780,26 @@ void FStreetRenderBuild::BuildEdge(const FStreetSamples& Sp, EStreetSide SideEnu
 			if ((Emb.Side == EStreetEmbankmentSide::Left || Emb.Side == EStreetEmbankmentSide::Right) &&
 				((Emb.Side == EStreetEmbankmentSide::Left) != (EmbSide == EStreetSide::Left))) continue;
 			const TArray<bool> Rng = RangeMask(S, Iv.A, Iv.B);
-			TArray<double> Dz;
+			TArray<double> Dz, Ground;
+			TArray<FVector3d> Start;
 			TArray<bool> Valid;
 			Dz.SetNumUninitialized(N);
+			Ground.SetNumUninitialized(N);
+			Start.SetNumUninitialized(N);
 			Valid.SetNumUninitialized(N);
 			for (int32 I = 0; I < N; ++I)
 			{
 				const double Ob = O0[I] + Spec.BackOffset[I];
-				const double Bx = Sp.XY[I].X + Side * Ob * Frames.NFlat[I].X;
-				const double By = Sp.XY[I].Y + Side * Ob * Frames.NFlat[I].Y;
-				const double Zb = Sp.ZRef[I] + H0[I] + Spec.HkBack[I];
+				Start[I] = Frames.P[I] + Side * Ob * Frames.N[I] + HbAll[I] * Frames.B[I];
 				double Zt = 0.0;
-				const bool bOk = Terrain->SampleHeight(Bx, By, Zt);
-				Dz[I] = bOk ? (Zb - Zt) : NAN;
+				const bool bOk = Terrain->SampleHeight(Start[I].X, Start[I].Y, Zt);
+				Ground[I] = Zt;
+				Dz[I] = bOk ? (Start[I].Z - Zt) : NAN;
+				if (Rng[I] && (Sp.Active.IsValidIndex(I) ? Sp.Active[I] : true) && (!bOk || !std::isfinite(Dz[I])))
+				{
+					Out.Problems.Add(FString::Printf(TEXT("embankment edge at s=%g has missing terrain"), S[I]));
+					return;
+				}
 				Valid[I] = bOk && std::isfinite(Dz[I]) && Rng[I] && (Sp.Active.IsValidIndex(I) ? Sp.Active[I] : true);
 			}
 			const double Thr = Emb.ThresholdM;
@@ -781,9 +822,15 @@ void FStreetRenderBuild::BuildEdge(const FStreetSamples& Sp, EStreetSide SideEnu
 					Hh.SetNumUninitialized(N * 2);
 					for (int32 I = 0; I < N; ++I)
 					{
-						const double Dzp = (Mask[I] ? Dz[I] : 0.0) + Emb.ToeExtraM;
-						O[I * 2 + 0] = 0.0; O[I * 2 + 1] = Emb.SlopeRatio * Dzp;
-						Hh[I * 2 + 0] = 0.0; Hh[I * 2 + 1] = -Dzp;
+						double Run = 0.0, Drop = 0.0;
+						if (Mask[I] && !BatterToe(Terrain, Start[I], Side * Frames.NFlat[I], Emb.SlopeRatio, Emb.ToeExtraM, Run, Drop))
+						{
+							Out.Problems.Add(FString::Printf(TEXT("batter at s=%g has no terrain contact within 64 m or crosses missing terrain"), S[I]));
+							return;
+						}
+						const FVector2d Toe = SupportSection(Frames, I, Side, Run, Drop);
+						O[I * 2 + 0] = 0.0; O[I * 2 + 1] = Toe.X;
+						Hh[I * 2 + 0] = 0.0; Hh[I * 2 + 1] = Toe.Y;
 					}
 					FStreetSection Sec = MakeSection(false, { FVector2d(0.0, 0.0), FVector2d(1.0, -1.0) }, { Emb.Material, Emb.Material }, { true, true });
 					Sec.Points[0].V = 0.0; Sec.Points[1].V = 1.0;
@@ -800,11 +847,12 @@ void FStreetRenderBuild::BuildEdge(const FStreetSamples& Sp, EStreetSide SideEnu
 					FStreetSweep::Sweep(Buf, Sec, Frames, Pr);
 				}
 			}
-			if (bWantWall && bAllowUp)
+			if (bWantWall)
 			{
 				TArray<bool> Mask;
 				Mask.SetNumUninitialized(N);
-				for (int32 I = 0; I < N; ++I) Mask[I] = Valid[I] && Dz[I] < -Thr;
+				for (int32 I = 0; I < N; ++I) Mask[I] = Valid[I] && ((Dz[I] < -Thr && bAllowUp) ||
+					(Dz[I] > Thr && bAllowDown && Emb.Kind == EStreetEmbankmentKind::RetainingWall));
 				if (AnyTrue(Mask))
 				{
 					const double Wt = Emb.WallThicknessM;
@@ -813,10 +861,22 @@ void FStreetRenderBuild::BuildEdge(const FStreetSamples& Sp, EStreetSide SideEnu
 					Hh.SetNumUninitialized(N * 4);
 					for (int32 I = 0; I < N; ++I)
 					{
-						const double Top = (Mask[I] ? FMath::Abs(Dz[I]) : 0.0) + Emb.WallCopingM;
-						const double Sk = Spec.Skirt[I];
-						O[I * 4 + 0] = 0.0; O[I * 4 + 1] = 0.0; O[I * 4 + 2] = Wt; O[I * 4 + 3] = Wt;
-						Hh[I * 4 + 0] = -Sk; Hh[I * 4 + 1] = Top; Hh[I * 4 + 2] = Top; Hh[I * 4 + 3] = -Sk;
+						const FVector3d Outer = Start[I] + Side * Wt * Frames.NFlat[I];
+						double ZOuter = 0.0;
+						if (Mask[I] && (!Terrain->SampleHeight(Outer.X, Outer.Y, ZOuter) || !std::isfinite(ZOuter)))
+						{
+							Out.Problems.Add(FString::Printf(TEXT("retaining wall at s=%g has no terrain under its footing"), S[I]));
+							return;
+						}
+						const double Top = (Mask[I] ? FMath::Max3(Start[I].Z, Ground[I], ZOuter) - Start[I].Z : 0.0) + Emb.WallCopingM;
+						const double Base = (Mask[I] ? FMath::Min3(Start[I].Z, Ground[I], ZOuter) - Start[I].Z : 0.0) - Emb.ToeExtraM;
+						const double Runs[4] = {0.0, 0.0, Wt, Wt};
+						const double Heights[4] = {Base, Top, Top, Base};
+						for (int32 J = 0; J < 4; ++J)
+						{
+							const FVector2d P = SupportSection(Frames, I, Side, Runs[J], Heights[J]);
+							O[I * 4 + J] = P.X; Hh[I * 4 + J] = P.Y;
+						}
 					}
 					FStreetSection Sec = MakeSection(true, { FVector2d(0.0, -0.3), FVector2d(0.0, 1.0), FVector2d(Wt, 1.0), FVector2d(Wt, -0.3) },
 						{ Emb.Material, Emb.Material, Emb.Material, Emb.Material }, { false, false, false, false });

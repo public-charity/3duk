@@ -217,6 +217,11 @@ bool AStreetscapeActor::RebuildAllChecked(FString* Error)
 		if (!R) continue;
 		FStreetRenderResult& Res = Results[K];
 		R->BuildFrom(*Samples, Terrain, Res);
+		if (Res.Problems.Num() > 0)
+		{
+			if (Error) *Error = FString::Printf(TEXT("%s: %s: %s"), *StreetId, RNames[K], *FString::Join(Res.Problems, TEXT(" | ")));
+			return false;
+		}
 		const TArray<double> St = FStreetGeometry::StationValues(Res.Buffer);
 		if (K == 0)
 		{

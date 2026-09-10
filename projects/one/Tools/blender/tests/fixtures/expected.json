@@ -205,21 +205,18 @@
    },
    "left": {
     "group": "embankment:retaining_wall:0",
-    "stations": 175,
+    "stations": 155,
     "wall_thickness_m": 0.3,
-    "wall_height_m": 2.3632,
-    "skirt_m": 0.3,
-    "verts": 1400,
-    "tris": 1392
+    "max_world_height_m": 2.883040034312124,
+    "verts": 1240,
+    "tris": 1224
    },
    "right": {
-    "group": "embankment:batter:0",
-    "stations": 22,
-    "batter_width_m": 1.022,
-    "batter_drop_m": 0.6813,
-    "slope_ratio": 1.5,
-    "verts": 44,
-    "tris": 38
+    "group": null,
+    "stations": 0,
+    "verts": 0,
+    "tris": 0,
+    "reason": "actual banked edge gap [-0.266636, 0.203490] m is within the 0.35 m threshold"
    }
   },
   "rail_cutting_render": {

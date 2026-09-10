@@ -27,6 +27,7 @@ from streetscape import io_json as IO  # noqa: E402
 from streetscape import schema as S  # noqa: E402
 from streetscape import spline as SP  # noqa: E402
 from streetscape.terrain import Heightfield
+from streetscape.edge import build_edge
 
 
 def build(name, terrain=None):
@@ -46,6 +47,23 @@ def arrays(sp):
     }
 
 
+def support_meshes(kind):
+    doc = SY.load_fixture("straight_100")
+    definition = doc["splines"][0]
+    definition["elevation_profile"] = [dict(s_m=0,z_m=11.5,bank_deg=12),dict(s_m=100,z_m=11.5,bank_deg=12)]
+    definition["segments"] = [dict(id="support",s0_m=0,s1_m=None,side="both",
+        edge=dict(embankment=dict(kind=kind,side="both",material="grass",threshold_m=.01)))]
+    site = IO.site_from_dict(doc)
+    field = Heightfield.from_function(lambda x,y:10-.2*y if kind=="batter" else 10+0*x,
+                                      extent_m=(512,512),xy0=(0,-256))
+    sp = SP.Spline(site.splines[0],site,field)
+    result = {}
+    for side,name in ((1,"left"),(-1,"right")):
+        mesh,_ = build_edge(sp,side,field)
+        result[name] = {key:getattr(mesh,key).ravel().tolist() for key in ("v","f","vs","vd","vh")}
+    return result
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", default=os.path.join(PROJECT_ONE, "Saved", "Tests", "numpy_parity.json"))
@@ -57,10 +75,12 @@ def main():
                                            extent_m=(512, 512), px_m=1.0, tile_m=512.0, xy0=(0.0, -256.0))
         field.sampling = rule
         out["twist_" + rule] = arrays(build("sine_5_50", field))
+    for kind in ("batter","retaining_wall"):
+        out["support_"+kind] = support_meshes(kind)
     os.makedirs(os.path.dirname(args.out), exist_ok=True)
     with open(args.out, "w", encoding="utf-8", newline="\n") as fh:
         json.dump(out, fh, indent=1)
-    print("wrote %s: %s" % (args.out, {k: len(v["s"]) for k, v in out.items()}))
+    print("wrote %s: %s" % (args.out, {k:len(v["s"]) if "s" in v else "support meshes" for k,v in out.items()}))
 
 
 if __name__ == "__main__":

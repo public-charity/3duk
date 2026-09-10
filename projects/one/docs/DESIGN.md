@@ -183,8 +183,11 @@ only barriers/embankments. Caps at mask-run ends.
   otherwise identical); railing / guard_rail = square posts + closed 4-point rails at `rails_m`
   (guard_rail default `[0.75, 0.55]`). Post rule: `n = floor(Δ/pitch) + 1 + [frac(Δ/pitch) > 0.5]`,
   posts at `s0 + j·pitch` for `j < n − 1`, last at `s1` — `[45, 100]`/3 → 19 posts.
-- **Embankments**: batter (open 2-point) where `dz > 0.35`, retaining wall (closed box) where
-  `dz < −0.35`, `dz = z_back_edge − terrain(back edge)`, side/kind gating per SCHEMA.md 4.11.
+- **Embankments**: `auto` selects batter (open 2-point) where `dz > 0.35` and retaining
+  wall (closed box) where `dz < −0.35`, using the actual banked world edge. Explicit
+  retaining walls support either direction. Batters solve the toe's terrain contact;
+  walls remain world-vertical with buried footings. Missing/unreachable required toes
+  fail the build. Side/kind gating and contact limits are defined in SCHEMA.md 4.11.
 
 ### 4.3 Renderer C — hedge (`hedge.py`, `UStreetHedgeRenderer`) — **closes BRIEF 6 Q6**
 

@@ -338,8 +338,15 @@ DESIGN.md 4.2.
 them from the enclosing `Segment`), `side ∈ left|right|both|downhill|uphill|auto` (required),
 `kind ∈ batter|retaining_wall|auto` (required), `slope_ratio 1.5`, `wall_thickness_m 0.30`,
 `wall_coping_m 0.10`, `threshold_m 0.35`, `toe_extra_m 0.30`, `material` (required).
-`dz = z_back_edge − terrain(back edge)`; batter where `dz > threshold`, retaining wall where
-`dz < −threshold`.
+`dz = z_back_edge − terrain(back edge)` uses the actual banked world edge. `auto` chooses
+batter where `dz > threshold` and retaining wall where `dz < −threshold`. Explicit
+`retaining_wall` also supports raised edges where `dz > threshold`; `side=uphill/downhill`
+still restricts which direction is allowed. Walls are vertical in world space, with the
+footing `toe_extra_m` below the lower ground sample at their two faces. Batter toes solve
+the terrain intersection at `slope_ratio` horizontal run per vertical drop, then tuck
+vertically `toe_extra_m` below that contact. Missing ground or no contact within the
+bounded 64 m search fails the build. The support terrain should be the rendered/conformed
+ground; the spline itself retains its original survey source.
 
 ### 4.12 `HedgeProfile`, `HedgeSegment`, `Foliage`
 

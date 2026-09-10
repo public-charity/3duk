@@ -244,8 +244,11 @@ class TestBarriers(unittest.TestCase):
 
 class TestEmbankments(unittest.TestCase):
     def _doc(self, side="auto", kind="auto"):
-        return doc_with(segments=[{"id": "emb", "s0_m": 0.0, "s1_m": None, "side": "both",
+        doc = doc_with(segments=[{"id": "emb", "s0_m": 0.0, "s1_m": None, "side": "both",
                                    "edge": {"embankment": {"side": side, "kind": kind, "material": "grass"}}}])
+        # These cases isolate threshold/direction gating; test_support exercises bank.
+        doc["splines"][0].setdefault("sampling",{})["bank_max_deg"] = 0.
+        return doc
 
     def test_batter_only_where_dz_exceeds_threshold(self):
         # ground falls away on the left beyond y = 3: back edge (y = 4.925 .. 5.925) is 0.96+ m above it
@@ -266,7 +269,9 @@ class TestEmbankments(unittest.TestCase):
         self.assertTrue(top.any())
         self.assertTrue(np.allclose(o[top], 0.0, atol=1e-9))
         low = ~top
-        self.assertTrue(np.allclose(o[low] / (-h[low]), 1.5, atol=1e-9))
+        self.assertTrue(np.allclose(o[low] / (-h[low]-.3), 1.5, atol=1e-7))
+        toe = e.v[bv[low]]
+        self.assertTrue(np.allclose(toe[:,2],terrain.sample(toe[:,0],toe[:,1])-.3,atol=1e-7))
         self.assertEqual(res.stats["validate"]["edge_left"], [])
 
     def test_retaining_wall_only_where_ground_is_above(self):
@@ -290,7 +295,7 @@ class TestEmbankments(unittest.TestCase):
         res = build(self._doc(side="right", kind="batter"), terrain)
         self.assertEqual([g for g in res.edge[S.LEFT].group_names if g.startswith("embankment")], [])
         res = build(self._doc(side="left", kind="retaining_wall"), terrain)
-        self.assertEqual([g for g in res.edge[S.LEFT].group_names if g.startswith("embankment")], [])
+        self.assertEqual([g for g in res.edge[S.LEFT].group_names if g.startswith("embankment")], ["embankment:retaining_wall:0"])
         res = build(self._doc(side="downhill", kind="batter"), terrain)
         self.assertEqual([g for g in res.edge[S.LEFT].group_names if g.startswith("embankment")], ["embankment:batter:0"])
 
@@ -333,6 +338,13 @@ class TestRealThanetEmbankment(unittest.TestCase):
         for side, key in ((S.LEFT, "left"), (S.RIGHT, "right")):
             X = E[key]
             e = res.edge[side]
+            if X["group"] is None:
+                self.assertIsNone(e)
+                spec = sp.side_spec[side]
+                p = sp.frames.p+side*(sp.edge_offset(side)+spec.back_offset)[:,None]*sp.frames.n+(sp.edge_height(side)+spec.hk_back)[:,None]*sp.frames.b
+                gap = p[:,2]-terrain.sample(p[:,0],p[:,1])
+                self.assertLess(float(np.max(np.abs(gap))),E["embankment_segment"]["threshold_m"])
+                continue
             self.assertIsNotNone(e, "%s: no embankment built on a null edge slot" % key)
             self.assertEqual(e.group_names, [X["group"]])
             self.assertEqual(e.validate(), [])
@@ -342,14 +354,15 @@ class TestRealThanetEmbankment(unittest.TestCase):
             o = side * e.vd[vi] - np.interp(e.vs[vi], sp.s, sp.edge_offset(side) + spec.back_offset)
             h = e.vh[vi] - np.interp(e.vs[vi], sp.s, sp.edge_height(side) + spec.hk_back)
             self.assertEqual(len(np.unique(e.vs[vi])), X["stations"])
-            if key == "left":
-                self.assertAlmostEqual(float(o.max()), X["wall_thickness_m"], places=9)
-                self.assertAlmostEqual(float(h.max()), X["wall_height_m"], places=3)
-                self.assertAlmostEqual(float(h.min()), -X["skirt_m"], places=9)
-            else:
-                self.assertAlmostEqual(float(o.max()), X["batter_width_m"], places=3)
-                self.assertAlmostEqual(float(h.min()), -X["batter_drop_m"], places=3)
-                self.assertAlmostEqual(float(o.max()) / -float(h.min()), X["slope_ratio"], places=6)
+            heights = []
+            for station in np.unique(e.vs[vi]):
+                p = e.v[vi[np.abs(e.vs[vi]-station)<1e-8]]
+                xy = np.unique(np.round(p[:,:2],8),axis=0)
+                self.assertEqual(len(xy),2)
+                self.assertAlmostEqual(float(np.linalg.norm(xy[1]-xy[0])),X["wall_thickness_m"],places=6)
+                heights.append(float(np.ptp(p[:,2])))
+                self.assertLessEqual(float(p[:,2].min()),float(np.min(terrain.sample(xy[:,0],xy[:,1])))-.3+1e-6)
+            self.assertAlmostEqual(max(heights),X["max_world_height_m"],places=6)
 
 
 class TestNullEdgeProfileSlot(unittest.TestCase):
@@ -387,6 +400,7 @@ class TestNullEdgeProfileSlot(unittest.TestCase):
     def test_embankment_on_a_null_side_is_built_not_dropped(self):
         terrain = Heightfield.from_function(lambda x, y: 10.0 - 0.5 * np.maximum(0.0, -y - 3.0), (512.0, 512.0), xy0=(0.0, -256.0))
         doc = self._doc({"embankment": {"side": "auto", "kind": "auto", "material": "grass"}})
+        doc["splines"][0].setdefault("sampling",{})["bank_max_deg"] = 0.
         res = build(doc, terrain)
         e = res.edge[S.RIGHT]
         self.assertIsNotNone(e, "the embankment was silently dropped")

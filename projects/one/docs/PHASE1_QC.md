@@ -47,6 +47,15 @@ use connected alignments across those segments before claiming continuity.
 
 ## Working strategy
 
+**Renderer B support correction, 2026-09-11:** actual banked world edge positions
+now drive support selection. Batter toes solve their intersection with terrain;
+retaining walls stay vertical and explicitly support downhill road edges. Missing
+or unreachable required toes fail the actor rebuild. 155 NumPy tests, 58 tool tests
+and 41 native tests pass; all 20 support mesh arrays are bit-identical across the
+two engines. Before rollout, supports must sample the conformed ground separately
+from the survey that establishes the road spline. No support edits have been saved
+to the production level. See RESUME.md for current checkpoint and integration work.
+
 **2026-09-11 contact repair:** exact mesh/landscape triangle intersections and a
 bounded integer height solver repaired three ordinary corners with eight grid-post
 changes. The complete derived `Saved/Phase1/ground_contact_candidate` verifies

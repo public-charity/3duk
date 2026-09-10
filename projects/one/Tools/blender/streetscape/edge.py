@@ -30,6 +30,7 @@ from .instance import Instance, make_transform
 from .mesh import MeshBuffer
 from .spline import JunctionPlan, Spline, corner_curve, corner_frames, resolve_arm_frames
 from .sweep import Section, SectionPoint, sweep
+from .support import world_section, batter_toes
 
 
 def post_stations(a: float, b: float, pitch: float) -> List[float]:
@@ -210,35 +211,47 @@ def build_edge(spline: Spline, side: int, terrain=None, params=None) -> Tuple[Me
             if emb.side in ("left", "right") and emb.side != S.SIDE_NAME[side]:
                 continue
             rng = (s >= a - 1e-9) & (s <= b + 1e-9)
-            xy_b = spline.xy + side * (o0 + spec.back_offset)[:, None] * n_flat_xy
-            z_b = spline.z_ref + h0 + spec.hk_back
-            zt = terrain.sample(xy_b[:, 0], xy_b[:, 1])
-            dz = z_b - zt
+            ob = o0 + spec.back_offset
+            start = frames.p+side*ob[:,None]*frames.n+hb_all[:,None]*frames.b
+            zt = terrain.sample(start[:,0],start[:,1])
+            dz = start[:,2]-zt
+            if np.any(rng & spline.active & ~np.isfinite(dz)):
+                raise ValueError("embankment edge has missing terrain")
             valid = np.isfinite(dz) & rng & spline.active
             thr = float(emb.threshold_m)
             want_batter = emb.kind in ("batter", "auto")
             want_wall = emb.kind in ("retaining_wall", "auto")
             allow_down = emb.side in ("both", "auto", "downhill", "left", "right")
             allow_up = emb.side in ("both", "auto", "uphill", "left", "right")
-            ob = o0 + spec.back_offset
             if want_batter and allow_down:
                 mask = valid & (dz > thr)
                 if mask.any():
-                    dzp = np.where(mask, dz, 0.0) + float(emb.toe_extra_m)
-                    O = np.column_stack([np.zeros(N), float(emb.slope_ratio) * dzp])
-                    Hh = np.column_stack([np.zeros(N), -dzp])
+                    run,drop = batter_toes(start,side*n_flat_xy,terrain,mask,
+                                           float(emb.slope_ratio),float(emb.toe_extra_m))
+                    o_toe,h_toe = world_section(frames,side,run,drop)
+                    O = np.column_stack([np.zeros(N),o_toe])
+                    Hh = np.column_stack([np.zeros(N),h_toe])
                     sec = Section((SectionPoint(0.0, 0.0, emb.material, 0.0, True),
                                    SectionPoint(1.0, -1.0, emb.material, 1.0, True)), False)
                     sweep(buf, sec, frames, side=side, lateral=ob, height=hb_all, point_o=O, point_h=Hh, mask=mask,
                           cap_start=False, cap_end=False, group="embankment:batter:%g" % a)
-            if want_wall and allow_up:
-                mask = valid & (dz < -thr)
+            if want_wall:
+                # Auto uses a batter downhill. Explicit retaining_wall also
+                # supports a raised road, respecting an explicit uphill filter.
+                mask = valid & (((dz < -thr)&allow_up) |
+                    ((dz > thr)&allow_down&(emb.kind=="retaining_wall")))
                 if mask.any():
                     wt = float(emb.wall_thickness_m)
-                    top = np.where(mask, np.abs(dz), 0.0) + float(emb.wall_coping_m)
-                    sk = spec.skirt
-                    O = np.column_stack([np.zeros(N), np.zeros(N), np.full(N, wt), np.full(N, wt)])
-                    Hh = np.column_stack([-sk, top, top, -sk])
+                    outer = start[:,:2]+side*wt*n_flat_xy
+                    z_outer = terrain.sample(outer[:,0],outer[:,1])
+                    if not np.isfinite(z_outer[mask]).all():
+                        raise ValueError("retaining wall footing has missing terrain")
+                    top = np.where(mask,np.maximum.reduce([start[:,2],zt,z_outer])-start[:,2],0.)+float(emb.wall_coping_m)
+                    base = np.where(mask,np.minimum.reduce([start[:,2],zt,z_outer])-start[:,2],0.)-float(emb.toe_extra_m)
+                    runs = [np.zeros(N),np.zeros(N),np.full(N,wt),np.full(N,wt)]
+                    pairs = [world_section(frames,side,r,z) for r,z in zip(runs,[base,top,top,base])]
+                    O = np.column_stack([pair[0] for pair in pairs])
+                    Hh = np.column_stack([pair[1] for pair in pairs])
                     sec = Section((SectionPoint(0.0, -0.3, emb.material, 0.0, False), SectionPoint(0.0, 1.0, emb.material, 1.0, False),
                                    SectionPoint(wt, 1.0, emb.material, 2.0, False), SectionPoint(wt, -0.3, emb.material, 3.0, False)), True)
                     sweep(buf, sec, frames, side=side, lateral=ob, height=hb_all, point_o=O, point_h=Hh, mask=mask,
