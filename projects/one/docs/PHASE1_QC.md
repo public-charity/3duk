@@ -47,6 +47,20 @@ use connected alignments across those segments before claiming continuity.
 
 ## Working strategy
 
+Full corrected ground census passed **62/62** chunks: 12,945 measured splines,
+660,835 stations, 961.532 km, max LOD-0 penetration 0.8005 mm. 151 structures and
+one named no-terrain stub remain explicitly excluded. Floating measures 8.0557%
+of stations / 63.245 km, worst 12.292 m. A code review found that the float audit
+can miss a bare side when the opposite side has a kerb; correct that before using
+this percentage as a complete acceptance measure.
+
+Broadley road inference now corrects the DTM's false rise onto the rail deck using
+nearby road-height anchors, with longer bank blends. All tested visible approach
+points agree with DTM; the occluded floor is named as inferred. Nominal rail-base
+clearance improves to 3.410/3.557 m. Candidate full document and 49-test evidence
+are recorded in RESUME.md. Terrain import, actual soffits, support geometry, widths
+and visual checks remain open; positive envelope clearance alone is insufficient.
+
 Corrected triangulated terrain candidate completed all 246 documents / 391 tiles.
 Its 48-document sample now passes all 12 chunks with zero LOD-0 penetration across
 133,265 stations (old baseline: two failed chunks, max 23.116 mm). Floating remains

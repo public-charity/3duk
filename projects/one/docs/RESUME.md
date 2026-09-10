@@ -2,6 +2,44 @@
 
 ## Current checkpoint — 2026-09-10, Phase 1 completion
 
+### Ninth milestone in progress: ground census complete, Broadley floor candidate
+
+- Latest committed code: **`06d87d4`**, validated document export/refresh. Working
+  changes add an underpass floor candidate generator and ground-candidate crossing audit.
+- Full corrected-terrain census **62/62 chunks pass**, 595.24 s total worker time.
+  State `Saved/Phase1/ground_candidate_qc/full/23e0541a1dd5b0a8a66e/state.json`.
+  13,097 selected = **12,945 measured + 151 structures + 1 named no-terrain stub**.
+  LOD 0: 660,835 stations / **961.532 km**, max penetration **0.8005 mm**, none over
+  the 5 mm gate. Floating: **8.0557% of stations / 63.245 km**, max **12.292 m**.
+  Coarser LODs still penetrate; structures, floating edges and engine acceptance OPEN.
+  This candidate has NOT been imported. There are no running engine jobs.
+- Broadley road floor candidate **generated**, three changed splines, full source
+  document retained because the two approaches have remote junctions:
+  `Saved/Phase1/broadley_road_candidate_v2/` (current tool), previous identical geometry
+  `broadley_road_candidate/`. Source and survey unchanged. Max lowering 1.596 m.
+  All 31 tested visible approach stations agree with DTM within 25 cm; p95 residual
+  by segment <= 13.64 cm. The area under modelled rail footprints + 2 m raster margin
+  is explicitly unobserved/inferred, not claimed as surveyed road floor.
+- A long single height blend failed the visible-approach gate (68% support after
+  the bridge). The accepted candidate uses nearby height anchors 5 m beyond the
+  underpass ends and longer bank-only blends (20 m before / 40 m after). Endpoints
+  match across all three splines. **49/49 tool tests pass**, `Saved/phase1_tools_49.log`.
+  Added tests recover a known occluded floor/tangents exactly and reject short,
+  nonfinite or excessive-grade inputs.
+- Crossing measurement with the first equivalent road candidate:
+  `rail_network_with_broadley_clearance.json`, 18 rail/road overlaps measured.
+  Broadley minimum nominal ballast-base clearance improves from **1.971/1.779 m**
+  to **3.557/3.410 m**. This is NOT structural soffit clearance. Original OSM road
+  way 979368122 carries `maxheight=10'0\"`; actual bridge beam geometry is still absent.
+- Candidate scope is **`document_elevations`**, not `delta`. Existing rail preview
+  helper deliberately refuses this scope. Use complete-document refresh for a future
+  safe in-memory preview; DO NOT reuse the replace-by-ID importer. Still needed:
+  bank/width visual review, closed soffit/support geometry and candidate terrain conform.
+- Next QC correction discovered during review: `fusion.audit_spline` uses `edge_any`
+  to suppress BOTH bare road edges when EITHER side has a kerb. This can undercount
+  daylight on the opposite bare side. Fix it per side with an asymmetric fixture,
+  and refresh ground census numbers before relying on the float percentage.
+
 ### Eighth milestone: junction document editing/export and corrected terrain sample
 
 - Full corrected terrain conform **completed**, 246 documents, 391 tiles, 1,390.5 s
@@ -12,7 +50,7 @@
   192.737 km, **zero LOD-0 penetration**. 24 structures and the named no-terrain stub
   remain explicit exclusions. Floating remains **11.6287%**, max 4.480 m; this is NOT
   site acceptance. State `ground_candidate_qc/sample/6604853a1bbcfc30d0d7/state.json`.
-- Full candidate census is RUNNING, state
+- Full candidate census is COMPLETE (see current figures above), state
   `ground_candidate_qc/full/23e0541a1dd5b0a8a66e/state.json`, log
   `Saved/phase1_ground_candidate_full.log`. Resume `phase1_qc.py --scope full
   --landscape projects/one/Saved/Phase1/ground_conformed_triangulated

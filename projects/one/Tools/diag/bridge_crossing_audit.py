@@ -43,8 +43,23 @@ def main():
     ap.add_argument("--candidate", type=Path, required=True)
     ap.add_argument("--streetscape", type=Path, default=REPO/"data/thanet/out/unreal/streetscape")
     ap.add_argument("--survey", type=Path, default=REPO/"data/thanet/out/unreal/landscape")
+    ap.add_argument("--ground-candidate", type=Path, help="complete source documents with candidate road elevations")
     ap.add_argument("--out", type=Path, required=True)
     args = ap.parse_args()
+    ground_documents, ground_manifest_hash = {}, None
+    if args.ground_candidate:
+        manifest_path = args.ground_candidate/"candidate_manifest.json"
+        manifest = json.loads(manifest_path.read_text())
+        if manifest.get("scope") != "document_elevations":
+            raise ValueError("ground candidate must preserve complete source documents")
+        ground_manifest_hash = sha256(manifest_path)
+        for name, digest in manifest["candidate_documents"].items():
+            candidate_path = (args.ground_candidate/name).resolve()
+            if candidate_path.parent != args.ground_candidate.resolve() or sha256(candidate_path) != digest:
+                raise ValueError("invalid ground candidate document: "+name)
+            if sha256(args.streetscape/name) != manifest["source_documents"][name]:
+                raise ValueError("ground candidate source changed: "+name)
+            ground_documents[name] = json.loads(candidate_path.read_text())
     hf = Heightfield.from_landscape_dir(str(args.survey))
     hf.sampling = "landscape_triangulated"
     decks = []
@@ -66,7 +81,7 @@ def main():
         raise ValueError("no explicit bridge decks")
     roads = []
     for p in args.streetscape.glob("site_x*_y*.json"):
-        raw = json.loads(p.read_text())
+        raw = ground_documents.get(p.name) or json.loads(p.read_text())
         selected = []
         for row in raw["splines"]:
             if row["source"]["layer"] != "roads" or any((row.get("flags") or {}).get(k) for k in ("bridge", "tunnel")):
@@ -98,6 +113,7 @@ def main():
         rows.append({"bridge": sid, "crossings": crossing})
     atomic_json(args.out, {"scope": "candidate", "production_accepted": False, "model": __doc__,
                           "candidate_manifest_sha256": sha256(args.candidate/"candidate_manifest.json"),
+                          "ground_candidate_manifest_sha256": ground_manifest_hash,
                           "bridge_spacing_m": .25, "results": rows})
     print(json.dumps(rows, indent=2))
     if any(not r["crossings"] for r in rows):
