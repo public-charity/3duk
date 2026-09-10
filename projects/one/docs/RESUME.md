@@ -2,10 +2,51 @@
 
 ## Current checkpoint — 2026-09-10, Phase 1 completion
 
-### Seventh milestone in progress: resumable corrected terrain conform
+### Eighth milestone: junction document editing/export and corrected terrain sample
 
-- Source checkpoint before this milestone: **`78a81ff`** (connected rail profiles,
-  safe preview, restored baseline). Working tree adds sparse conformance checkpoints.
+- Full corrected terrain conform **completed**, 246 documents, 391 tiles, 1,390.5 s
+  for the resumed 242-document invocation. Log: `Saved/phase1_ground_conform_complete.log`.
+  State: `Saved/Phase1/ground_conform_state/31dcf1d182f95cf3a33a/state.json`.
+  Output: `Saved/Phase1/ground_conformed_triangulated/`. Production is unchanged.
+- Corrected sample **12/12 chunks pass**, 2,843 measured splines / 133,265 stations /
+  192.737 km, **zero LOD-0 penetration**. 24 structures and the named no-terrain stub
+  remain explicit exclusions. Floating remains **11.6287%**, max 4.480 m; this is NOT
+  site acceptance. State `ground_candidate_qc/sample/6604853a1bbcfc30d0d7/state.json`.
+- Full candidate census is RUNNING, state
+  `ground_candidate_qc/full/23e0541a1dd5b0a8a66e/state.json`, log
+  `Saved/phase1_ground_candidate_full.log`. Resume `phase1_qc.py --scope full
+  --landscape projects/one/Saved/Phase1/ground_conformed_triangulated
+  --out projects/one/Saved/Phase1/ground_candidate_qc --max-jobs 0` through python.ps1.
+  Do not modify its Python/core inputs while running. Each chunk is checkpointed.
+- Working changes add `ExportDocumentJson(source, out)` and
+  `RefreshDocumentJunctions(source)` in the editor module. Source supplies ALL junctions,
+  loaded actors supply current spline/profile edits. The old generic exporter now
+  refuses junction-bearing actors. Build **passed**, `Saved/phase1_document_edit_build.log`.
+  **2/2 new native tests pass**, `Saved/phase1_document_edit_tests.runner.log`, covering
+  all six junction fixtures, canonical round trips, disabled junction preservation,
+  updated owner arm copies and incomplete/conflicting input rejection.
+- Real edit/export/restore **passed**, `Saved/Phase1/document_roundtrip/report.json`:
+  six actors / one junction in site_x1_y12. Moving roads:1291638667:0's non-junction
+  point by 15 cm changed roads:30195361:1's owner patch; restoration matched original
+  JSON and junction statistics exactly. Actor paths retained, all **15,913 Content
+  files byte-identical**. Runner 41.3 s, only VC++ advisory waived.
+  First diagnostic attempt failed before mutation on a non-exposed Python property;
+  replacement verifies the owner's actual emitted patch statistics.
+- Editing is an explicit whole-document refresh, not an automatic gizmo listener.
+  `Tools/ue/README.md` records point synchronization and export workflow. No production
+  actors, source JSON or survey pixels changed. Original 35-test native baseline remains
+  valid; two new editor tests were run separately. Ground/core Python unchanged.
+- Broadley underpass probe confirms survey contamination: source roads:979368122:0
+  is 15.85 m long, DTM rises from ~23.55 m at its approach to **27.23 m** at s=8 m,
+  where DSM is ~27.78 m (rail deck). Smoothed road is incorrectly up at ~25 m.
+  `Saved/Phase1/probe_broadley.json`, `Saved/phase1_broadley_probe.log`. Next: infer
+  road floor from connected visible approaches with explicit occlusion provenance;
+  do not blindly raise the rail to compensate. No road candidate created yet.
+
+### Seventh milestone: resumable corrected terrain conform
+
+- Committed checkpoint: **`ac51e3e`**, exact sparse conformance checkpoints (previous
+  **`78a81ff`** contains connected rail profiles, safe preview and restored baseline).
 - `conform_landscape.py --checkpoint-dir <dir> --max-docs 4` stamps at most four
   NEW documents and returns pending (exit 2) until all documents are processed.
   Checkpoint includes exact accumulator key/float32 targets, class/run/structure

@@ -106,12 +106,12 @@ struct STREETSCAPE_API FStreetJunctionSpec
 // duplicated onto their owners (about 5 MB of the 23 MB the documents themselves occupy) and that an owner builds
 // its arms' samples a second time. Both were preferred to a junction that is only right when everything is in.
 //
-// THE LIMITATION, STATED. The owner's copy of an arm is a COPY, taken at import. Drag an arm spline's points in
-// the editor and that arm rebuilds, but its junction does not: the owner still holds the definition the document
-// had, so the patch would meet where the ribbon used to be. Junctions are import-time data - re-import the
-// DOCUMENT (03_import_streetscape.py --files <that file>) after editing a spline that stands in one, which
-// re-solves the whole document's plan and rewrites every affected actor. This is a real constraint and not a
-// latent bug: the import path is the only writer, and it always rewrites a whole document at once.
+// EDITING. The owner's copy is refreshed only by a whole-document solve. After changing an arm definition,
+// call StreetscapeEditorLibrary::RefreshDocumentJunctions(source document): it validates complete loaded
+// coverage, re-solves current arm definitions, and updates trims and owner copies together without replacing
+// actors or saving packages. ExportDocumentJson(source, separate output) preserves ALL source junctions,
+// including intentionally unbuilt ones. A single-actor rebuild or spline gizmo drag alone does not refresh
+// the owner. Source junction membership/metadata remain authoritative; this path edits existing spline IDs.
 
 /** One arm as its OWNER carries it: the solved arm, plus what the owner needs to rebuild that arm's samples. */
 USTRUCT()

@@ -6,6 +6,33 @@ this project's MCP bridge is configured for port 55558 and does not start inside
 
 Commands are Git Bash from the repo root (`cd /c/Users/Shadow/code/3duk`).
 
+## Editing and exporting a junction document
+
+Load the actors covering the complete source document with `load_region` first.
+After editing spline gizmos, call each edited spline component's
+`sync_def_from_component()` to copy its points into the shared schema definition.
+For edits made directly to `def`, use `sync_component_from_def()` instead.
+Then call `unreal.StreetscapeEditorLibrary.refresh_document_junctions(source_path)`.
+It validates every source actor is loaded exactly once, resolves the whole document,
+preflights all splines/junctions, and updates trims and owner arm copies together.
+Existing actor identities remain stable. A failed preflight changes nothing; a failed
+actor rebuild restores the prior junction/profile state. This operation does not save.
+
+`export_document_json(source_path, separate_output_path)` exports the current spline
+definitions and referenced profiles while preserving all source junction definitions,
+including disabled/unbuilt junctions, materials and document metadata. Missing actors,
+duplicate IDs, changed registration, conflicting shared profiles and loss of a previously
+buildable junction are errors. Source overwrite is refused. Source junction membership
+and junction coordinates remain authoritative; this workflow edits existing spline IDs.
+The old `export_site_json` refuses junction-bearing actors because a partial loaded actor
+set cannot reconstruct every original junction. Keep the exported file for review/QC,
+then use the normal editor save operation when the complete edit is accepted.
+
+Headless regression: `diag_document_roundtrip.py --source site_x1_y12.json --out <dir>`.
+It exports a complete real document, changes a non-owner arm by 15 cm, verifies the owner
+patch responds, restores the original points, and proves the original document and
+junction statistics return exactly. It checks actor paths and saved Content hashes too.
+
 ## Build
 
 ```bash

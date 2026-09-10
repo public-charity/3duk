@@ -47,6 +47,21 @@ use connected alignments across those segments before claiming continuity.
 
 ## Working strategy
 
+Corrected triangulated terrain candidate completed all 246 documents / 391 tiles.
+Its 48-document sample now passes all 12 chunks with zero LOD-0 penetration across
+133,265 stations (old baseline: two failed chunks, max 23.116 mm). Floating remains
+11.6287%, max 4.480 m, and coarser terrain LODs still intersect roads; these remain
+open acceptance items. Full resumable census is in
+`ground_candidate_qc/full/23e0541a1dd5b0a8a66e/state.json`.
+
+Junction editing/export now has an explicit whole-document path: preserve the full
+source junction list, replace definitions with complete current loaded actor state,
+preflight the shared solve, then refresh trims and owner copies together. Missing actors,
+duplicate IDs, profile conflicts and disappearing previously buildable junctions fail.
+Two new native tests pass; a real six-actor document edit/export/restore also passed,
+with original JSON/patch statistics restored and all 15,913 Content files unchanged.
+Evidence: `document_roundtrip/report.json`; workflow in `Tools/ue/README.md`.
+
 Terrain conform now supports sparse atomic checkpoints and bounded document runs:
 `conform_landscape.py --checkpoint-dir <dir> --max-docs 4`. Interrupted work loses
 at most the current small chunk. Cache identity covers source pixels, documents,

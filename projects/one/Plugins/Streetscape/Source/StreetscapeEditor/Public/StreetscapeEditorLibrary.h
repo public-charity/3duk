@@ -130,9 +130,19 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Streetscape")
 	static bool LoadRegion(FVector CenterUE, float RadiusCm);
 
-	/** Every actor's spline written back as one Streetscape document. */
+	/** Loaded independent splines only. Junction documents require ExportDocumentJson to preserve all source junctions. */
 	UFUNCTION(BlueprintCallable, Category = "Streetscape")
 	static FString ExportSiteJson(const FString& Path);
+
+	/** Export current loaded actors for one source document, preserving its complete junctions and metadata.
+	 * Requires every source spline loaded exactly once; refuses conflicting profiles and source overwrite. */
+	UFUNCTION(BlueprintCallable, Category = "Streetscape")
+	static FString ExportDocumentJson(const FString& SourcePath, const FString& OutPath);
+
+	/** Re-solve one source document using its current loaded spline edits; update trims and owner copies together.
+	 * Preflights before mutation. Does not spawn/delete actors or save packages. Returns actor count, -1 on failure. */
+	UFUNCTION(BlueprintCallable, Category = "Streetscape")
+	static int32 RefreshDocumentJunctions(const FString& SourcePath);
 
 	/**
 	 * What the level's streetscape actually amounts to: actor count, component count by renderer, and the summed

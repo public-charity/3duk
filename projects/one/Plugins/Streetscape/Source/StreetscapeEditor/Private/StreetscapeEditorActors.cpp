@@ -968,6 +968,12 @@ FString UStreetscapeEditorLibrary::ExportSiteJson(const FString& Path)
 	Actors.Sort([](const AStreetscapeActor& X, const AStreetscapeActor& Y) { return X.StreetId < Y.StreetId; });
 	for (AStreetscapeActor* A : Actors)
 	{
+		if (!A->Spline || !A->OwnedJunctions.IsEmpty() || !A->JunctionTrimM.IsNearlyZero() ||
+			!A->Spline->Def.JunctionStart.IsEmpty() || !A->Spline->Def.JunctionEnd.IsEmpty())
+		{
+			UE_LOG(LogStreetscapeEditor, Error, TEXT("ExportSiteJson: junction data requires ExportDocumentJson with the source document"));
+			return FString();
+		}
 		Doc.Splines.Add(A->Spline->Def);
 		for (const TPair<FString, FRoadProfileData>& Kv : A->DocProfiles.Road) Doc.Profiles.Road.Add(Kv.Key, Kv.Value);
 		for (const TPair<FString, FEdgeProfileData>& Kv : A->DocProfiles.Edge) Doc.Profiles.Edge.Add(Kv.Key, Kv.Value);
