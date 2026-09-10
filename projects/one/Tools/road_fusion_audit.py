@@ -101,6 +101,10 @@ def main():
                     help="the landscape the engine imports: what the road is measured AGAINST")
     ap.add_argument("--survey", default="data/thanet/out/unreal/landscape",
                     help="the landscape the road is DRAPED on (BRIEF 1.1); defaults to the adapter product")
+    ap.add_argument("--survey-sampling", default="landscape_triangulated",
+                    choices=["bilinear", "landscape_triangulated"],
+                    help="sampling used to BUILD the street; must match the saved Unreal site terrain source. "
+                         "The production default is triangulated; bilinear reproduces the older audit reference.")
     ap.add_argument("--streetscape", default="data/thanet/out/unreal/streetscape")
     ap.add_argument("--extra-doc", action="append", default=[])
     ap.add_argument("--only-doc", action="append", default=[],
@@ -174,7 +178,9 @@ def main():
     t0 = time.time()
     layers = set(args.layers.split(","))
     hf_survey = Heightfield.from_landscape_dir(args.survey)
-    same = os.path.abspath(args.survey) == os.path.abspath(args.landscape)
+    hf_survey.sampling = args.survey_sampling
+    same = (os.path.abspath(args.survey) == os.path.abspath(args.landscape)
+            and args.survey_sampling == args.sampling)
     hf_lod0 = hf_survey if same else Heightfield.from_landscape_dir(args.landscape)
     hf_lod0.sampling = args.sampling
     lods = sorted({int(v) for v in str(args.lods).split(",") if str(v).strip() != ""}
@@ -308,7 +314,8 @@ def main():
     out = {"config": {"landscape": os.path.abspath(args.landscape).replace("\\", "/"),
                       "survey": os.path.abspath(args.survey).replace("\\", "/"),
                       "streetscape": os.path.abspath(args.streetscape).replace("\\", "/"),
-                      "sampling": args.sampling, "lod": args.lod, "structures": args.structures,
+                      "sampling": args.sampling, "survey_sampling": args.survey_sampling,
+                      "lod": args.lod, "structures": args.structures,
                       "k_road": args.k_road, "k_edge": args.k_edge,
                       "layers": sorted(layers), "n": len(chosen), "extra_docs": args.extra_doc,
                       "elapsed_s": round(time.time() - t0, 1)},

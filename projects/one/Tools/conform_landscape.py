@@ -123,6 +123,9 @@ def runs_of(mask, s, values, side, kind):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--landscape", default="data/thanet/out/unreal/landscape")
+    ap.add_argument("--survey-sampling", default="landscape_triangulated",
+                    choices=["bilinear", "landscape_triangulated"],
+                    help="sampling used to build road geometry; match the Unreal site terrain source")
     ap.add_argument("--streetscape", default="data/thanet/out/unreal/streetscape")
     ap.add_argument("--out", default="data/thanet/out/unreal/landscape_conformed")
     ap.add_argument("--extra-doc", action="append", default=[])
@@ -159,6 +162,20 @@ def main():
     ap.add_argument("--report", default=None, help="where to write the run report (default <out>/conform_report.json)")
     args = ap.parse_args()
 
+    files = sorted(glob.glob(os.path.join(args.streetscape, "site_x*_y*.json")))
+    for token in args.only_doc:
+        if not any(token in os.path.basename(f) for f in files):
+            ap.error("--only-doc matched no documents: " + token)
+    if args.only_doc:
+        files = [f for f in files if any(t in os.path.basename(f) for t in args.only_doc)]
+    if args.limit:
+        files = files[:args.limit]
+    files += list(args.extra_doc)
+    if not files:
+        ap.error("no site documents: an empty conform is not a successful product")
+    if (args.only_doc or args.limit) and os.path.abspath(args.out) == os.path.abspath("data/thanet/out/unreal/landscape_conformed"):
+        ap.error("subset conform requires a separate --out; refusing to replace the full-site product")
+
     t0 = time.time()
     params = C.CorridorParams(sink_m=args.sink_m, sink_max_m=args.sink_max_m,
                               sink_cover_frac=args.sink_cover_frac, sink_taper=args.sink_taper, sink_flat_m=args.sink_flat_m,
@@ -178,18 +195,13 @@ def main():
     print("grid %d x %d (%d tiles listed)" % (grid.W, grid.H, len(man.get("tiles", []))), flush=True)
 
     hf = Heightfield.from_landscape_dir(src)
+    hf.sampling = args.survey_sampling
     print("heightfield: %d tiles loaded, %.1f s" % (len(hf.tiles), time.time() - t0), flush=True)
 
     def z_raw_at(x, y):
         return hf.sample(np.asarray(x, dtype=np.float64), np.asarray(y, dtype=np.float64))
 
     acc = C.ConformAccumulator(grid)
-    files = sorted(glob.glob(os.path.join(args.streetscape, "site_x*_y*.json")))
-    if args.only_doc:
-        files = [f for f in files if any(t in os.path.basename(f) for t in args.only_doc)]
-    if args.limit:
-        files = files[:args.limit]
-    files += list(args.extra_doc)
     clamped = []
     per_class = {}
     n_docs = 0
@@ -402,6 +414,9 @@ def main():
         "source_abs": src,
         "generator": "projects/one/Tools/conform_landscape.py",
         "geometry_core": "projects/one/Tools/blender/streetscape/conform.py",
+        "survey_sampling": args.survey_sampling,
+        "scope": "subset" if args.only_doc or args.limit else "full",
+        "input_documents": {os.path.basename(path): sha256(path) for path in files},
         "commit": git_commit(os.path.join(HERE, "..", "..")),
         "generated_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         "corridor": params.to_json(),

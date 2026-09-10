@@ -16,7 +16,15 @@ param(
 $ErrorActionPreference = "Continue"
 $UE = "C:\Program Files\Epic Games\UE_5.8\Engine\Binaries\Win64\UnrealEditor-Cmd.exe"
 $Proj = (Resolve-Path "$PSScriptRoot\..\..\Thanet.uproject").Path
-if ($ParityJson) { $env:STREETSCAPE_PARITY_JSON = (Resolve-Path $ParityJson).Path }
+if (-not $ParityJson -and "Streetscape.Spline.NumpyParity".StartsWith($Filter)) {
+    $ParityJson = Join-Path (Split-Path $Proj) "Saved/Tests/numpy_parity_current.json"
+    & powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$PSScriptRoot/../python.ps1" "$PSScriptRoot/numpy_parity_dump.py" --out $ParityJson
+    if ($LASTEXITCODE -ne 0) { Write-Host "run_ue_tests: numpy parity generation failed"; exit 3 }
+}
+if ($ParityJson) {
+    if (-not (Test-Path $ParityJson)) { Write-Host "run_ue_tests: parity reference missing: $ParityJson"; exit 3 }
+    $env:STREETSCAPE_PARITY_JSON = (Resolve-Path $ParityJson).Path
+}
 $LogPath = Join-Path (Split-Path $Proj) "Saved\Logs\$Log"
 if (Test-Path $LogPath) { Remove-Item $LogPath -Force }
 $exec = "Automation RunTests $Filter; Quit"
@@ -37,5 +45,5 @@ foreach ($l in $completed) {
 $errors = @($lines | Where-Object { $_ -match "LogAutomationTest: Error:" })
 foreach ($e in $errors) { Write-Host "  ERROR: $e" }
 if ($completed.Count -eq 0) { exit 3 }
-if ($failed.Count -gt 0) { exit 2 }
+if ($failed.Count -gt 0 -or $errors.Count -gt 0 -or $passed.Count -ne $completed.Count) { exit 2 }
 exit 0

@@ -2,6 +2,58 @@
 
 ## Current checkpoint — 2026-09-10, Phase 1 completion
 
+### Second milestone after source checkpoint `6ef72f0`
+
+- **The earlier green sample used bilinear road construction. The saved Unreal
+  site uses triangulated construction** (`Saved/Logs/render_set_all.log`, line
+  reporting the loaded `landscape` terrain source, not the capture's private
+  `landscape_conformed` probe). `road_fusion_audit.py` and `conform_landscape.py`
+  now have explicit `--survey-sampling`, defaulting to `landscape_triangulated`;
+  the generic geometry fixture default remains bilinear. QC records the choice.
+- Corrected sample state: `Saved/Phase1/sample/714a0b1d99df9fdd3309/state.json`:
+  **10 batches pass, 2 fail**, worst ground penetration 13.644 mm and 23.116 mm.
+  This mismatch is a real QC
+  defect; it has not yet been proved to explain the visible Minnis cutting patches.
+- `Tools/diag/structure_inventory.py` measures all 151 flagged segments in 133
+  connected groups (83 bridges, 50 tunnels), including five groups across documents.
+  It uses mutual nearest endpoints so a 7 cm split stub does not create a branch.
+  Latest report: `Saved/Phase1/structures_baseline.json`, now triangulated survey.
+- **Useful new evidence at Minnis Road:** raw first-return DSM is almost flat around
+  13 m ODN across both rail spans while DTM falls to ~7.5 m under them. Even bridge
+  DTM endpoints are too low. Do not use a chord of the DTM endpoints as the deck.
+- `Tools/diag/fit_structure_decks.py` fits robust candidate lines to DSM lateral
+  20th-percentile samples and rejects coverage, abutment, residual, lateral-spread
+  and grade failures. Initial result: 49 bridge candidates, 34 requiring review,
+  50 tunnels requiring a different model. **No candidate is production accepted.**
+  Minnis fits match first return to max 4.5 cm, at ~0.9% grade. Approaches still need
+  up to ~2.8 m correction, so changing the deck alone would leave endpoint steps.
+- Five deck-fit failure tests plus 14 QC tests pass (19 total). Inventory and deck-fit
+  reports have both been regenerated against triangulated construction.
+- Another dishonest green was found: `Streetscape.Spline.NumpyParity` returned success
+  when no reference JSON existed, and skipped missing cases/arrays. It now fails
+  for those conditions; `run_ue_tests.ps1` generates a fresh reference by default.
+  The reference now includes rail and non-planar terrain under both sampling rules.
+  Build and fresh-reference automation passed **34/34**, including bit-identical
+  non-planar triangulated arrays. `Saved/phase1_tests_sampling.runner.log`.
+  Deliberate empty reference `{}` fails with seven missing-case errors and exit 2:
+  `Saved/phase1_parity_negative.runner.log`.
+- One-document triangulated conform completed in **14.9 seconds** under
+  `Saved/Phase1/minnis_conform_triangulated`. It is explicitly a **subset**, despite
+  having the full raster directory layout: never import it over the full site.
+  Production terrain is unchanged. Its audit has zero LOD-0 station penetration,
+  but 7.959% floating stations and 4.480 m maximum float. Partial conform now refuses
+  the default production destination; a failure test proves that guard.
+- Same Minnis camera with `landscape_lod0_screen_size=0.01` still shows foreground
+  grass through the road: `Saved/Phase1/minnis_lod_diagnostic/manifest.json`.
+  One frame took 93 s, with the recorded post-success teardown crash. The original
+  45 camera definitions remain untouched; `render_set.ps1 -Spec` accepts a candidate
+  capture specification. The LOD knob is **not** a proven fix for this cutting.
+- Next: audit interiors of actual emitted road triangles, not only sampled analytic
+  station cross-sections. Check runtime mesh/probe agreement at the breakthrough.
+  Then implement explicit deck profiles plus supported approach transitions.
+
+### Completed first milestone (historical numerical baseline uses bilinear)
+
 This section supersedes the historical September 9 handover below. Read
 `PHASE1_QC.md` for the active strategy and acceptance ledger.
 

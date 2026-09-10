@@ -239,6 +239,7 @@ def main():
     config = {"scope": args.scope, "chunk_size": args.chunk_size, "lods": lods,
               "documents": [p.name for p in selected], "python": sys.version,
               "numpy": np.__version__, "penetration_gate_m": 0.005,
+              "survey_sampling": "landscape_triangulated",
               "survey": str(args.survey.resolve()), "landscape": str(args.landscape.resolve()),
               "streetscape": str(args.streetscape.resolve())}
     inputs = paths + [spec, Path(__file__), TOOLS / "road_fusion_audit.py"]
@@ -272,6 +273,7 @@ def main():
             cmd = [sys.executable, str(TOOLS / "road_fusion_audit.py"),
                    "--landscape", str(args.landscape.resolve()), "--survey", str(args.survey.resolve()),
                    "--streetscape", str(args.streetscape.resolve()), "--n", "0",
+                   "--survey-sampling", config["survey_sampling"],
                    "--lods", ",".join(map(str, lods)), "--gate-m", "0.005", "--out", str(report)]
             for path in chunk:
                 cmd += ["--only-doc", path.name]

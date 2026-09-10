@@ -73,7 +73,7 @@ reused only with matching input roles, content hashes and report hashes. The fin
 input fingerprint is checked again to catch changes during the run. Windows reader
 sharing conflicts retry atomic replacement without truncating the old checkpoint.
 
-Measured 2026-09-10: 12 chunks, 48 documents, 2,868 selected splines; 2,843 measured,
+Historical **bilinear construction** baseline, 2026-09-10: 12 chunks, 48 documents, 2,868 selected splines; 2,843 measured,
 24 structures excluded, one no-terrain stub. 111.34 seconds of audit time; reuse-only
 run about 5 seconds. 192.737 km / 133,265 stations. No LOD-0 penetration above 5 mm;
 11.638% floating stations over 125 mm; penetrated length 0.366% / 2.657% / 7.626%
@@ -89,3 +89,30 @@ For a resumed session, run
 root. A source change creates a new run
 fingerprint; do not copy old passes into it. Full-site numerical measurement and
 engine import/visual acceptance are subsequent distinct steps.
+
+## Production sampling and structures checkpoint
+
+The saved engine site constructs roads with triangulated survey sampling. The old
+bilinear audit was not measuring that construction. Construction and measurement
+sampling are now separate, explicit inputs; the corrected sample has two failed
+chunks (worst penetration 13.644 and 23.116 mm). Source and generated terrain have
+not been altered to hide these failures. A one-document candidate conform takes
+14.9 seconds, allowing cheap experiments before any full product replacement.
+Subset outputs carry scope/document hashes and refuse the default production path.
+
+The all-site structure inventory contains 151 segments in 133 connected groups,
+including five crossing documents. DSM first returns provide a stronger bridge
+deck reference than DTM endpoint chords: at Minnis both the deck interior and some
+endpoints were lost in the DTM. Robust first-return fits yield 49 bridge candidates,
+34 bridge reviews and 50 tunnels needing another model. Candidates remain unaccepted
+until approach continuity, bank, crossing clearance and fixed-camera inspection pass.
+
+The engine parity test now fails for absent references, cases or arrays instead of
+silently skipping them. Fresh seven-case data includes non-planar terrain under
+both sampling rules; all 34 engine tests pass, and an empty reference deliberately
+fails. Nineteen tool tests pass. This is stronger evidence than a historical test
+count that included a skipped parity case.
+
+Minnis foreground breakthrough persists with finer terrain LOD settings. Inspect
+actual triangle interiors and engine probes next; passing station samples cannot
+establish clearance across the whole rendered surface.

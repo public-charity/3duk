@@ -70,6 +70,15 @@ class CoverageGates(unittest.TestCase):
             self.assertIn("matched no documents: missing", result.stderr)
             self.assertFalse(Path(d, "out.json").exists())
 
+    def test_subset_conform_cannot_replace_full_product(self):
+        with tempfile.TemporaryDirectory() as d:
+            Path(d, "site_x0_y0.json").write_text("{}")
+            result = subprocess.run([sys.executable, str(TOOLS / "conform_landscape.py"),
+                                     "--streetscape", d, "--only-doc", "site_x0_y0.json"], cwd=qc.REPO,
+                                    capture_output=True, text=True)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("subset conform requires a separate --out", result.stderr)
+
 
 class ResumeGates(unittest.TestCase):
     def test_content_change_and_new_file_change_identity(self):

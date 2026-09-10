@@ -25,6 +25,7 @@ param(
 	[string]$Only = "",
 	[switch]$PerTown,
 	[string]$Out = "",
+	[string]$Spec = "",
 	[switch]$Force,
 	[switch]$List
 )
@@ -33,7 +34,8 @@ $ToolsDir = ((Resolve-Path "$PSScriptRoot").Path -replace "\\", "/")
 $ProjDir = ((Resolve-Path "$PSScriptRoot\..").Path -replace "\\", "/")
 $RepoDir = ((Resolve-Path "$PSScriptRoot\..\..\..").Path -replace "\\", "/")
 $Runner = Join-Path $ToolsDir "ue/run_ue_python.ps1"
-$Spec = "$ToolsDir/ue/render_set.json"
+if (-not $Spec) { $Spec = "$ToolsDir/ue/render_set.json" }
+$Spec = ((Resolve-Path $Spec).Path -replace "\\", "/")
 $T0 = Get-Date
 
 if (-not (Test-Path $Spec)) { throw "no spec at $Spec" }
@@ -49,7 +51,7 @@ foreach ($t in $specDoc.towns) {
 Write-Host "render_set: spec $Spec ($($expected.Count) locations, $($townSlugs.Count) towns, sha256 $($specSha.Substring(0,12)))"
 
 if ($List) {
-	$listArgs = "--list"
+	$listArgs = "--list --spec $Spec"
 	if ($Only) { $listArgs = "$listArgs --only $Only" }
 	& powershell.exe -NoProfile -ExecutionPolicy Bypass -File $Runner -Script "07_render_set.py" -Log "render_set_list.log" -Args $listArgs
 	exit $LASTEXITCODE
@@ -103,7 +105,7 @@ foreach ($b in $batches) {
 	if (Test-Path $rep) { Remove-Item $rep }
 	$ueLog = "$ProjDir/Saved/Logs/render_set_$($b.name).log"
 	$runnerOut = "$ProjDir/Saved/Logs/render_set_$($b.name).runner.txt"
-	$a = "--out $OutRoot --report $rep"
+	$a = "--out $OutRoot --report $rep --spec $Spec"
 	if ($b.only) { $a = "$a --only $($b.only)" }
 	Write-Host ""
 	Write-Host "=== render $($b.name)  ($([int]((Get-Date) - $T0).TotalSeconds) s elapsed)" -ForegroundColor Cyan

@@ -26,6 +26,7 @@ import synthetic as SY  # noqa: E402
 from streetscape import io_json as IO  # noqa: E402
 from streetscape import schema as S  # noqa: E402
 from streetscape import spline as SP  # noqa: E402
+from streetscape.terrain import Heightfield
 
 
 def build(name, terrain=None):
@@ -51,6 +52,11 @@ def main():
     args = ap.parse_args()
     out = {name: arrays(build(name)) for name in ("straight_100", "sine_5_50", "curve_R20_200", "rail_R300_600")}
     out["bank_cross"] = arrays(build("straight_100", SY.cross_slope_terrain(0.1)))
+    for rule in ("bilinear", "landscape_triangulated"):
+        field = Heightfield.from_function(lambda x, y: 10.0 + x * y / 32.0,
+                                           extent_m=(512, 512), px_m=1.0, tile_m=512.0, xy0=(0.0, -256.0))
+        field.sampling = rule
+        out["twist_" + rule] = arrays(build("sine_5_50", field))
     os.makedirs(os.path.dirname(args.out), exist_ok=True)
     with open(args.out, "w", encoding="utf-8", newline="\n") as fh:
         json.dump(out, fh, indent=1)
