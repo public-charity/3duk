@@ -1418,6 +1418,24 @@ def derived_products(out):
             # for why it fits.  `junctions_missing_arm` are the ones left to their arms' corridors.
             entry["junctions"] = {k: v for k, v in (c.get("junctions") or {}).items() if k != "note"}
             entry["junction_note"] = (c.get("junctions") or {}).get("note")
+            # The fourth thing, and the one that made a passing gate and an empty picture agree for
+            # a whole round: this product's clearance is stated at the landscape's LOD 0, and an
+            # ALandscape does not draw LOD 0 beyond a few hundred metres.
+            entry["level_of_detail"] = {
+                "claim_holds_at": "landscape LOD 0 -- the surface GetHeightAtLocation and the "
+                                  "collision return, and what is DRAWN only within about 380 m of "
+                                  "the camera at this level's saved LOD properties",
+                "what_is_drawn_further_away": "a resample of each 127-quad subsection onto "
+                                              "(128 >> k) - 1 quads: vertices 2.016 m apart at "
+                                              "LOD 1, 4.097 m at LOD 2, 8.467 m at LOD 3 "
+                                              "(ULandscapeComponent::GenerateHeightmapMips + "
+                                              "LandscapeVertexFactory.ush)",
+                "measure_it_with": "projects/one/Tools/road_fusion_audit.py --lods 0,1,2,3 "
+                                   "(streetscape.terrain.LandscapeLodSurface)",
+                "note": "a consumer that reports 'zero penetration' from this product without "
+                        "saying at which level of detail is making a claim about the height query, "
+                        "not about the picture",
+            }
         out_block[name] = entry
     return out_block
 

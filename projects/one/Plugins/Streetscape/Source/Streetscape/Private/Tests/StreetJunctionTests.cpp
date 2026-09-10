@@ -10,6 +10,7 @@
 //   * the counts frozen in fixtures/expected.json:junction, which BOTH toolchains must produce to the digit.
 
 #include "StreetTestUtil.h"
+#include "StreetJunctionBuild.h"
 #include "StreetJunctions.h"
 #include "StreetRenderers.h"
 #include <cmath>
@@ -409,6 +410,133 @@ bool FStreetJunctionDeterminismTest::RunTest(const FString&)
 				for (int32 I = 0; I < Ba[Q]->F.Num() && bSame; ++I) bSame = (Ba[Q]->F[I].A == Bb[Q]->F[I].A && Ba[Q]->F[I].B == Bb[Q]->F[I].B && Ba[Q]->F[I].C == Bb[Q]->F[I].C);
 				TestTrue(*FString::Printf(TEXT("%s: %s buffer %d is bit-identical across builds"), *Name, *KV.Key, Q), bSame);
 			}
+		}
+	}
+	return true;
+}
+
+
+// ---------------------------------------------------------------------------------------------------------------
+// the WIRING: the same junction, rebuilt from what an ACTOR carries and nothing else
+// ---------------------------------------------------------------------------------------------------------------
+//
+// Everything above measures build_all's own path - one function holding the whole document. The level cannot use
+// that path: a document's splines are one actor each, they are streamed independently, and their meshes are never
+// serialised, so an owner has to rebuild its junction alone, months later, from serialised state.
+//
+// FStreetJunctionBuild::Distribute + BuildOwned IS that path, and this test drives it exactly as
+// AStreetscapeActor::RebuildAllChecked does: solve the plan once, distribute, throw the plan away, and rebuild each
+// owner from its records - including building the arm splines it does not own from the definitions it stored. The
+// counts must be the frozen ones and identical to the whole-document path.
+//
+// It also holds the gate down at unit level: an owner that owns junctions and builds NONE must report zero, which
+// is what the actor turns into a hard failure and the importer into a refused import. That is the defect of the
+// previous round stated as a test - the layer existed, the counts were right, and nothing called it.
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FStreetJunctionWiringTest, "Streetscape.Junction.Wiring",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ProductFilter)
+bool FStreetJunctionWiringTest::RunTest(const FString&)
+{
+	const FExpected Exp;
+	for (const FString& Name : JunctionFixtureNames())
+	{
+		FStreetSiteDoc Doc;
+		FJunctionSiteBuild Ref;
+		if (!BuildJunctionSite(*this, Name, Doc, Ref)) continue;
+
+		// -- what the IMPORTER stores on the actors -------------------------------------------------------------
+		TMap<FString, FVector2D> Trims;
+		TMap<FString, TArray<FStreetOwnedJunction>> Owned;
+		FStreetJunctionBuild::Distribute(Doc, Ref.Plan, Trims, Owned);
+		TestEqual(*(Name + TEXT(": one owner")), Owned.Num(), 1);
+		if (Owned.Num() != 1) continue;
+		const FString OwnerId = Ref.Owner[TEXT("j0")];
+		TestTrue(*(Name + TEXT(": the owner is the plan's owner")), Owned.Contains(OwnerId));
+		if (!Owned.Contains(OwnerId)) continue;
+		// every arm is trimmed, and each arm actor carries its own trim independently of its owner
+		for (const FStreetJunctionArm& A : *Ref.Plan.Arms(TEXT("j0")))
+		{
+			const FVector2D* T = Trims.Find(A.SplineId);
+			TestTrue(*FString::Printf(TEXT("%s: %s carries a trim"), *Name, *A.SplineId), T != nullptr);
+			if (T)
+			{
+				const double Want = (A.End == EStreetSplineEnd::Start) ? T->X : T->Y;
+				TestEqual(*FString::Printf(TEXT("%s: %s trim"), *Name, *A.SplineId), Want, A.TrimM, 0.0);
+			}
+		}
+
+		// -- what an OWNER ACTOR does on every rebuild, from those records alone --------------------------------
+		const FStreetHeightfield Field = JunctionTerrainFor(Name);
+		FStreetHeightfieldSource Src(Field);
+		Src.SetDocumentOrigin(Doc.Origin.E, Doc.Origin.N);
+
+		const FStreetSplineDef* OwnerDef = Doc.FindSpline(OwnerId);
+		if (!OwnerDef) { AddError(Name + TEXT(": the owner is not in the document")); continue; }
+		double OwnerTrim[2] = { 0.0, 0.0 };
+		if (const FVector2D* T = Trims.Find(OwnerId)) { OwnerTrim[0] = T->X; OwnerTrim[1] = T->Y; }
+		FStreetSamples OwnerSp;
+		FString Err;
+		if (!FStreetSplineMath::Build(*OwnerDef, Doc.Profiles, &Src, OwnerSp, &Err, OwnerTrim))
+		{
+			AddError(Name + TEXT(": owner build: ") + Err);
+			continue;
+		}
+		FStreetRenderResult Road, EdgeL;
+		FStreetRenderBuild::BuildRoad(OwnerSp, Road);
+		FStreetRenderBuild::BuildEdge(OwnerSp, EStreetSide::Left, &Src, EdgeL);
+
+		FStreetActorJunctionStats St;
+		TArray<FString> Skips;
+		FStreetJunctionBuild::BuildOwned(Owned[OwnerId], OwnerId, OwnerSp, Doc.Profiles, &Src,
+			Road.Buffer, EdgeL.Buffer, St, Skips);
+		TestEqual(*(Name + TEXT(": nothing skipped")), Skips.Num(), 0);
+		TestEqual(*(Name + TEXT(": junctions built from actor state")), St.Built, 1);
+
+		// the frozen numbers, to the digit
+		const int32 WantVerts = (int32)Exp.Num(FString::Printf(TEXT("junction.fixtures.%s.patch_verts"), *Name), -1.0);
+		const int32 WantTris = (int32)Exp.Num(FString::Printf(TEXT("junction.fixtures.%s.patch_tris"), *Name), -1.0);
+		const int32 WantCorners = (int32)Exp.Num(FString::Printf(TEXT("junction.fixtures.%s.corners"), *Name), -1.0);
+		const int32 WantCornerTris = (int32)Exp.Num(FString::Printf(TEXT("junction.fixtures.%s.corner_tris"), *Name), -1.0);
+		TestEqual(*(Name + TEXT(": patch verts")), St.PatchVerts, WantVerts);
+		TestEqual(*(Name + TEXT(": patch tris")), St.PatchTris, WantTris);
+		TestEqual(*(Name + TEXT(": corners")), St.Corners, WantCorners);
+		TestEqual(*(Name + TEXT(": corner tris")), St.CornerTris, WantCornerTris);
+
+		// ... and the same numbers the whole-document path produced, so the two can never drift apart
+		const FStreetJunctionInfo& RefInfo = Ref.Junctions[TEXT("j0")];
+		TestEqual(*(Name + TEXT(": patch verts == build_all")), St.PatchVerts, RefInfo.Verts);
+		TestEqual(*(Name + TEXT(": patch tris == build_all")), St.PatchTris, RefInfo.Tris);
+		TestEqual(*(Name + TEXT(": corner tris == build_all")), St.CornerTris, RefInfo.CornerTris);
+		TestEqual(*(Name + TEXT(": patch area == build_all")), St.PatchAreaM2, RefInfo.AreaM2, 1e-9);
+		// the whole owner buffer, not just the junction's own share: patch INTO the road buffer, corners INTO the
+		// left edge buffer, exactly as build_all merges them
+		TestEqual(*(Name + TEXT(": owner road buffer == build_all")), Road.Buffer.V.Num(), Ref.Builds[OwnerId].Road.Buffer.V.Num());
+		TestEqual(*(Name + TEXT(": owner road tris == build_all")), Road.Buffer.F.Num(), Ref.Builds[OwnerId].Road.Buffer.F.Num());
+		TestEqual(*(Name + TEXT(": owner left edge == build_all")), EdgeL.Buffer.V.Num(), Ref.Builds[OwnerId].EdgeL.Buffer.V.Num());
+		TestEqual(*(Name + TEXT(": owner left edge tris == build_all")), EdgeL.Buffer.F.Num(), Ref.Builds[OwnerId].EdgeL.Buffer.F.Num());
+		TestTrue(*(Name + TEXT(": junction:j0 is a group of the owner's ROAD buffer")),
+			Road.Buffer.FindGroupId(FName(TEXT("junction:j0"))) >= 0);
+
+		// -- the gate: an owner that cannot build its junction must say so, not pass quietly --------------------
+		if (Name == JunctionFixtureNames()[0])
+		{
+			TArray<FStreetOwnedJunction> Broken = Owned[OwnerId];
+			int32 Cut = 0;
+			for (FStreetJunctionArmRecord& R : Broken[0].Arms)
+			{
+				if (!R.bIsOwner) { R.Def = FStreetSplineDef(); ++Cut; break; }
+			}
+			TestEqual(TEXT("the negative control removed one arm definition"), Cut, 1);
+			FStreetRenderResult R2, E2;
+			FStreetRenderBuild::BuildRoad(OwnerSp, R2);
+			FStreetRenderBuild::BuildEdge(OwnerSp, EStreetSide::Left, &Src, E2);
+			FStreetActorJunctionStats St2;
+			TArray<FString> Skips2;
+			FStreetJunctionBuild::BuildOwned(Broken, OwnerId, OwnerSp, Doc.Profiles, &Src, R2.Buffer, E2.Buffer, St2, Skips2);
+			TestEqual(TEXT("a junction whose arm is missing builds nothing"), St2.Built, 0);
+			TestEqual(TEXT("... and is counted as skipped"), St2.Skipped, 1);
+			TestTrue(TEXT("... with a reason"), Skips2.Num() > 0);
+			TestEqual(TEXT("... and no patch reached the road buffer"), R2.Buffer.FindGroupId(FName(TEXT("junction:j0"))), -1);
 		}
 	}
 	return true;

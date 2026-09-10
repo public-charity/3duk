@@ -162,6 +162,19 @@ public:
 	/** Python-facing setter (the UPROPERTY alone is enough for Blueprint, not for a running commandlet's cache). */
 	UFUNCTION(BlueprintCallable, Category = "Streetscape") void SetSampling(EStreetHeightSampling In) { Sampling = In; Field.Sampling = In; }
 
+	/**
+	 * VERIFICATION ONLY: replace the field with the synthetic plane the frozen fixtures were computed on -
+	 * z = Z0 + GX * (x - 200) + GY * (y - 100), sampled the way tests/synthetic.py samples it (one 512 m tile of
+	 * 1 m posts with its south-west corner at (0, -256), float32, bilinear).
+	 *
+	 * It exists because the ONLY honest way to prove the junction wiring is to drive the real
+	 * ImportStreetscapeJson over the six frozen documents, and that path takes its heights from the site actor's
+	 * terrain source - which otherwise can only be a landscape directory on disk. This makes the terrain the
+	 * fixtures were frozen against reachable from a headless run, and it changes nothing about a site import: the
+	 * flag it sets is the same bLoaded a real Load() sets, and LandscapeDir is left alone.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Streetscape") void SetSyntheticPlane(double Z0, double GX, double GY);
+
 	UFUNCTION(BlueprintCallable, Category = "Streetscape") bool Load();
 	UFUNCTION(BlueprintCallable, Category = "Streetscape") bool IsLoaded() const { return bLoaded; }
 	UFUNCTION(BlueprintCallable, Category = "Streetscape") int32 NumTiles() const { return Field.Tiles.Num(); }

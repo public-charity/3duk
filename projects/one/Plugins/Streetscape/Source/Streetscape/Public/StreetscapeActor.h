@@ -11,6 +11,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "StreetJunctionBuild.h"
 #include "StreetProfiles.h"
 #include "StreetRenderers.h"
 #include "StreetTypes.h"
@@ -60,8 +61,40 @@ public:
 	 */
 	UPROPERTY() FBox StreamingBoundsUE = FBox(ForceInit);
 
+	/**
+	 * The junction trim of THIS spline, {t_start, t_end} in metres (SCHEMA.md 4.18).
+	 *
+	 * Serialised, because it is the whole reason a kerb stops at a junction, and a rebuild after streaming has no
+	 * document to re-solve it from. An arm that is loaded with none of its junction's other actors resident is still
+	 * trimmed exactly as it was at import.
+	 */
+	UPROPERTY(VisibleAnywhere, Category = "Streetscape") FVector2D JunctionTrimM = FVector2D::ZeroVector;
+
+	/**
+	 * The junctions this actor OWNS - the ones whose patch goes into its own road buffer and whose kerb corners go
+	 * into its own left edge buffer (build.build_all). Empty on all but 1,642 of the isle's 15,422 actors.
+	 *
+	 * Each record carries the solved arms AND the definitions of the arm splines this actor does not own, so the
+	 * junction is drawn in full from this actor alone. See the block comment in StreetJunctions.h for why the arms
+	 * cannot be re-solved here and why the owner does not go looking for its neighbours' actors.
+	 */
+	UPROPERTY() TArray<FStreetOwnedJunction> OwnedJunctions;
+
+	/** What the last rebuild's junction merge produced (0 everywhere when this actor owns none). */
+	UPROPERTY(VisibleAnywhere, Category = "Streetscape") FStreetActorJunctionStats JunctionStats;
+
 	/** Create the components the profile_ids ask for, store the definition, densify the overlay. Does not build. */
 	void ApplyDefinition(const FStreetSplineDef& Def, const FStreetSiteProfiles& Profiles, const FVector2D& OriginEN);
+
+	/**
+	 * The importer's one call: hand this actor its trim and the junctions it owns, and make the two components the
+	 * merge writes into exist.
+	 *
+	 * The renderers are created HERE and not during the rebuild because an owner may own a junction whose corners
+	 * need a left kerb it has none of itself, and a component created inside PostRegisterAllComponents on a streamed
+	 * load would not be part of the saved actor. Call before RebuildAllChecked.
+	 */
+	void SetJunctionData(const FVector2D& Trim, TArray<FStreetOwnedJunction>&& Owned);
 
 	/** Timelines -> spline -> every renderer, from ONE FStreetSamples. Returns false with Error on a build failure. */
 	UFUNCTION(CallInEditor, BlueprintCallable, Category = "Streetscape") void RebuildAll();
@@ -79,6 +112,9 @@ public:
 	/** Instance counts by kind over every renderer. */
 	TMap<FName, int32> InstanceCounts() const;
 	int32 MarkingStrips() const;
+
+	/** Junctions skipped by the last rebuild, with the reason - a junction is never half-drawn silently. */
+	const TArray<FString>& JunctionSkips() const { return LastJunctionSkips; }
 
 	bool ToJson(TSharedRef<FJsonObject> Out) const;
 	bool FromJson(const TSharedRef<FJsonObject>& In, FText* Err);
@@ -98,4 +134,5 @@ private:
 
 	bool bPendingRebuild = false;
 	bool bRebuilding = false;
+	TArray<FString> LastJunctionSkips;
 };

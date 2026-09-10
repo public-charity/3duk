@@ -7,6 +7,7 @@
 #include "Engine/StaticMesh.h"
 #include "Engine/World.h"
 #include "StreetGeometry.h"
+#include "StreetJunctionBuild.h"
 #include "StreetMaterialTable.h"
 #include "StreetOverlayComponent.h"
 #include "StreetSpline.h"
@@ -121,6 +122,27 @@ void AStreetscapeActor::ApplyDefinition(const FStreetSplineDef& Def, const FStre
 #endif
 }
 
+void AStreetscapeActor::SetJunctionData(const FVector2D& Trim, TArray<FStreetOwnedJunction>&& Owned)
+{
+	JunctionTrimM = Trim;
+	OwnedJunctions = MoveTemp(Owned);
+	Spline->MarkDirty();
+	if (OwnedJunctions.Num() == 0) return;
+	// Renderer A carries the patch and Renderer B the corners, and an owner can need either component without its
+	// own profile_ids asking for one: a road with no left kerb still owns the corners between OTHER arms' kerbs.
+	// build.build_all makes the buffer on demand (`if res.road is None: res.road = MeshBuffer()`); the component is
+	// this engine's buffer, so it is made here, at import, where it becomes part of the saved actor.
+	if (!Road)
+	{
+		Road = Cast<UStreetRoadRenderer>(MakeRenderer(UStreetRoadRenderer::StaticClass(), TEXT("Road")));
+	}
+	if (!EdgeLeft)
+	{
+		EdgeLeft = Cast<UStreetEdgeRenderer>(MakeRenderer(UStreetEdgeRenderer::StaticClass(), TEXT("EdgeLeft")));
+		EdgeLeft->Side = EStreetSide::Left;
+	}
+}
+
 FStreetSiteProfiles AStreetscapeActor::ResolveProfiles() const
 {
 	FStreetSiteProfiles Out;
@@ -160,7 +182,10 @@ bool AStreetscapeActor::RebuildAllChecked(FString* Error)
 	const FStreetSiteProfiles Profiles = ResolveProfiles();
 
 	FString BuildErr;
-	const FStreetSamples* Samples = Spline->Build(Terrain, Profiles, &BuildErr, true);
+	// SCHEMA.md 4.18: the junction trim is a mask on s, resolved once per document at import and carried here, so
+	// the road and both kerbs stop on the SAME station whatever else is loaded.
+	const double Trim[2] = { JunctionTrimM.X, JunctionTrimM.Y };
+	const FStreetSamples* Samples = Spline->Build(Terrain, Profiles, &BuildErr, true, Trim);
 	if (!Samples)
 	{
 		if (Error) *Error = BuildErr;
@@ -174,25 +199,38 @@ bool AStreetscapeActor::RebuildAllChecked(FString* Error)
 	TSet<double> StationSet;
 	StationSet.Reserve(Samples->S.Num());
 	for (double V : Samples->S) StationSet.Add(V);
+	// build._assert_stations: the road's stations must equal spline.s[spline.active] - the WHOLE spline when it
+	// stands in no junction, exactly the trimmed run when it does.
+	TArray<double> ActiveS;
+	ActiveS.Reserve(Samples->S.Num());
+	for (int32 I = 0; I < Samples->S.Num(); ++I)
+	{
+		if (!Samples->Active.IsValidIndex(I) || Samples->Active[I]) ActiveS.Add(Samples->S[I]);
+	}
+	// The five buffers are held until every station check has passed AND the junction merge has run: the merge adds
+	// vertices that are NOT on the spline's own stations (a patch boundary is another arm's ribbon end and a corner
+	// fillet), so the check below has to see the swept geometry alone - which is exactly the order build_all uses.
+	FStreetRenderResult Results[5];
 	for (int32 K = 0; K < 5; ++K)
 	{
 		UStreetRendererBase* R = Rs[K];
 		if (!R) continue;
-		FStreetRenderResult Res;
+		FStreetRenderResult& Res = Results[K];
 		R->BuildFrom(*Samples, Terrain, Res);
 		const TArray<double> St = FStreetGeometry::StationValues(Res.Buffer);
 		if (K == 0)
 		{
-			if (St.Num() != Samples->S.Num())
+			if (St.Num() != ActiveS.Num())
 			{
-				if (Error) *Error = FString::Printf(TEXT("%s: road buffer has %d stations, the spline has %d"), *StreetId, St.Num(), Samples->S.Num());
+				if (Error) *Error = FString::Printf(TEXT("%s: road buffer has %d stations, the spline has %d active of %d"),
+					*StreetId, St.Num(), ActiveS.Num(), Samples->S.Num());
 				return false;
 			}
 			for (int32 I = 0; I < St.Num(); ++I)
 			{
-				if (St[I] != Samples->S[I])
+				if (St[I] != ActiveS[I])
 				{
-					if (Error) *Error = FString::Printf(TEXT("%s: road station %d is %.17g, the spline's is %.17g"), *StreetId, I, St[I], Samples->S[I]);
+					if (Error) *Error = FString::Printf(TEXT("%s: road station %d is %.17g, the spline's active station is %.17g"), *StreetId, I, St[I], ActiveS[I]);
 					return false;
 				}
 			}
@@ -209,7 +247,37 @@ bool AStreetscapeActor::RebuildAllChecked(FString* Error)
 				}
 			}
 		}
-		R->Commit(Res, Materials);
+	}
+
+	// -- the junctions this actor owns (build.build_all's merge loop) -------------------------------------------
+	LastJunctionSkips.Reset();
+	JunctionStats = FStreetActorJunctionStats();
+	if (OwnedJunctions.Num() > 0)
+	{
+		if (!Road || !EdgeLeft)
+		{
+			if (Error) *Error = FString::Printf(TEXT("%s owns %d junction(s) but has no %s renderer"), *StreetId,
+				OwnedJunctions.Num(), Road ? TEXT("EdgeLeft") : TEXT("Road"));
+			return false;
+		}
+		FStreetJunctionBuild::BuildOwned(OwnedJunctions, StreetId, *Samples, Profiles, Terrain,
+			Results[0].Buffer, Results[1].Buffer, JunctionStats, LastJunctionSkips);
+		for (const FString& Why : LastJunctionSkips)
+		{
+			UE_LOG(LogStreetscape, Warning, TEXT("%s: junction skipped: %s"), *StreetId, *Why);
+		}
+		if (JunctionStats.Built == 0)
+		{
+			// the defect this whole layer exists to close: an owner that draws no junction must say so, not pass
+			if (Error) *Error = FString::Printf(TEXT("%s owns %d junction(s) and built none (%s)"), *StreetId,
+				OwnedJunctions.Num(), LastJunctionSkips.Num() ? *FString::Join(LastJunctionSkips, TEXT("; ")) : TEXT("no reason recorded"));
+			return false;
+		}
+	}
+
+	for (int32 K = 0; K < 5; ++K)
+	{
+		if (Rs[K]) Rs[K]->Commit(Results[K], Materials);
 	}
 	RebuildInstanceMeshComponents();
 	if (Overlay) Overlay->Redraw();

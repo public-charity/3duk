@@ -23,11 +23,12 @@ both per station from the profile data):
     ... + verge                  the verge,                held at the road-edge level
     ... + blend                  smoothstep back to the raw survey value of that cell
 
-everything but the blend tail sunk by ``sink_profile(sp, params)`` -- a PER-STATION depth read from
-the profile data, not a constant: as deep as the built block can cover and no deeper.  A side with a
-kerb and pavement covers ``SideSpec.skirt`` (0.30 m, DESIGN.md 4.2), a bare footway or railway only
-its own ``skirt_drop_m`` (<= 0.03 m by schema).  See ``sink_profile`` for the rule and the evidence
-behind the cap.
+everything but the blend tail sunk by ``sink_field(params, d, ...)`` -- a depth that varies PER
+STATION, PER SIDE and ACROSS THE SECTION, read from the profile data: as deep as the thing that
+covers that particular place can hide, and no deeper.  A side with a kerb and pavement covers
+``SideSpec.skirt`` (0.30 m, DESIGN.md 4.2); a bare footway or railway edge covers only its own
+``skirt_drop_m`` (<= 0.03 m by schema); under the carriageway and out in the verge nothing has to be
+hidden at all.  See ``sink_sides`` and ``sink_field``.
 
 A sink is needed at all because "the ground is below the road" in the DATA is not the same claim as
 "the ground draws below the road" in the ENGINE.  Measured over 241,205 points inside real corridors
@@ -35,7 +36,19 @@ on the shipped product (``Saved/Clearance/rules_conformed.json``): the bilinear 
 through and the landscape's own triangulated rule disagree by 0.4 mm at the median and 13 mm at the
 p99, and NEITHER puts any ground above any road -- yet the landscape still drew over the carriageway
 in 16 of 31 street frames of ``renders/b1cd3e5``.  What does that is the landscape's LEVEL OF DETAIL,
-which is not the surface its height query returns; the sink is the margin that survives it.
+which is not the surface its height query returns.
+
+AND THE SINK ALONE CANNOT BUY IT BACK, WHICH IS WHY THE VERGE IS 4.5 m.  The mesh the landscape
+rasterises past about 380 m is a resample of each 127-quad subsection onto 63, 31 or 15 quads --
+vertices 2.02, 4.10 and 8.47 m apart (``terrain.LandscapeLodSurface``, transcribed from
+``ULandscapeComponent::GenerateHeightmapMips`` and ``LandscapeVertexFactory.ush``).  A triangle
+8.5 m across is anchored on ground OUTSIDE a 2 m verge, so no depth under the kerb can stop it
+cutting the carriageway.  What stops it is flat ground for a whole coarse stride either side of the
+road, and the resample's weights are non-negative and sum to one, so lowering LOD-0 cells can only
+lower the drawn surface.  Measured on an 18-document A/B subset (1,249 splines), stations with ground
+above the road: LOD 1 1.27 % -> 0.11 %, LOD 2 10.37 % -> 1.64 %, LOD 3 22.86 % -> 7.57 %, at
+unchanged float.  Verge 2.0 m with the same sink rule gets LOD 2 to 2.57 % and LOD 3 only to 13.72 %,
+so the widening is worth its ground.
 
 The blend length is chosen per station and side so the fill or cut face lies at ``batter_deg``
 (1:1.5, the usual earthwork batter) rather than at a fixed width: a fixed 3 m blend turns a 4 m cut
@@ -99,7 +112,15 @@ class CorridorParams:
                                     # manifest and the driver have always used
     sink_max_m: float = 0.15        # the CAP, from measurement -- see sink_profile
     sink_cover_frac: float = 0.5    # how much of the block's own cover the sink is allowed to use
-    verge_m: float = 2.0
+    sink_taper: float = 0.10        # the cross-section slope the sink field may use to get from one
+                                    # side's cover to another's, and to reach sink_max_m away from a
+                                    # covered face.  1:10.  See sink_field.
+    sink_flat_m: float = 1.5        # how far either way from a covered face the sink is held FLAT
+                                    # at that face's depth before the taper starts.  See sink_field.
+    sink_covered_max_m: float = 0.15  # the cap AWAY from any face -- under the carriageway, and out
+                                    # in the verge -- where nothing has to be hidden.  sink_max_m is
+                                    # still the cap AT a face, which is what float is measured at.
+    verge_m: float = 4.5
     blend_min_m: float = 3.0
     blend_max_m: float = 12.0
     batter_deg: float = 34.0
@@ -119,19 +140,22 @@ class CorridorParams:
         d["note"] = ("corridor half-width per side = edge_offset(side) + kerb_width + pavement_width "
                      "(from the profile data, per station) + verge_m + blend; blend is per station and "
                      "side: clamp(|shelf - survey| / tan(batter_deg), blend_min_m, blend_max_m)")
-        d["sink_note"] = ("the sink is PER STATION, not the single sink_m: "
-                          "clip(sink_cover_frac * min over the two sides of (SideSpec.skirt where that "
-                          "side carries a kerb or pavement, else the road profile's skirt_drop_m), "
-                          "sink_m, sink_max_m).  sink_m is the floor a way with no cover keeps; "
-                          "sink_max_m is the cap.  A kerbed road therefore sinks %g m and a bare "
-                          "footway, track or railway keeps %g m."
-                          % (min(0.30 * self.sink_cover_frac, self.sink_max_m), self.sink_m))
+        d["sink_note"] = ("the sink is PER STATION *and PER SIDE and per lateral offset*, not one "
+                          "number for the cross-section (conform.sink_sides + conform.sink_field): "
+                          "sink(d) = min(sink_max_m, sink_left + sink_taper*|d - core_left|, "
+                          "sink_right + sink_taper*|d + core_right|), where sink_side = "
+                          "clip(sink_cover_frac * (SideSpec.skirt where that side carries a kerb or "
+                          "pavement, else the road profile's skirt_drop_m), sink_m, sink_max_m).  "
+                          "At each side's outer face it is exactly that side's depth, so the float "
+                          "measurement is unchanged; under the carriageway and out in the verge it "
+                          "reaches %g m, because there the built block or the ribbon itself covers it."
+                          % self.sink_max_m)
         d["sink_evidence"] = {
             "floor_m": self.sink_m,
             "floor_why": ("clears the h16 half-quantum 0.0039 m and the p99 of the bilinear vs "
                           "landscape-triangulated disagreement inside real corridors, 0.013 m over "
-                          "241,205 points; and is the most a ribbon with no kerb can hide "
-                          "(schema caps skirt_drop_m at 0.03 m)"),
+                          "241,205 points; and is the most a ribbon with no kerb can hide AT ITS OWN "
+                          "EDGE (schema caps skirt_drop_m at 0.03 m)"),
             "cap_m": self.sink_max_m,
             "cap_why": ("engine sweep, one camera, one property changed: the landscape lowered by 0, "
                         "5, 10 and 20 cm under cliftonville/princess_margaret_avenue_at_northdown and "
@@ -139,24 +163,28 @@ class CorridorParams:
                         "the carriageway, 10 cm is clean on both, so the DRAWN ground beats the QUERIED "
                         "ground by up to ~0.10 m at eye level; 0.15 m is that with a factor of 1.5 and "
                         "half the 0.30 m pavement skirt, so nothing floats"),
+            "taper_why": ("the sink field is allowed to change by sink_taper per metre across the "
+                          "section.  That is what lets one side be deep and the other shallow without "
+                          "a step, and it is self-limiting on a narrow ribbon: at 1:10 a 0.18 m "
+                          "cycleway earns 9 mm, not a notch."),
+            "why_it_is_no_longer_a_minimum": (
+                "the old rule took the MINIMUM over the two sides and applied it to the whole "
+                "cross-section, so 28.3 % of built length sat at the 0.03 m floor because ONE side "
+                "had no kerb -- and every frame of renders/7c8b4a6 that still lost its carriageway "
+                "stood on such a road.  The constraint was never symmetric: it is about what ONE "
+                "outer face can hide."),
             "what_the_sink_cannot_fix": (
-                "the landscape's level of detail.  Measured on THIS product over 241,205 points "
-                "inside real corridors (Saved/Clearance/rules_v4.json): ground above the road at "
-                "0 % of points under the landscape's own LOD-0 triangulation, 0.034 % at LOD 1, "
-                "1.93 % at LOD 2 (p99 0.018 m) and 8.58 % at LOD 3 (p99 0.296 m, worst 4.36 m).  "
-                "The sink halves LOD 2 and LOD 3 (3.17 % and 15.25 % at the old flat 0.03 m sink, "
-                "Saved/Clearance/rules_conformed.json) and no admissible sink reaches LOD 3, so the "
-                "LEVEL'S OWN LOD SETTINGS have to be sane as well.  They are the reason 16 of 31 "
-                "street frames of renders/b1cd3e5 had no carriageway: the capture harness "
-                "(Tools/ue/05_screenshot.py pin_landscape_lod) sets lod0_screen_size 8.0 with both "
-                "distribution settings 1.0, which selects the COARSEST landscape LOD rather than "
-                "LOD 0.  Same camera, same level, same landscape, one property apart: with the "
-                "level's own settings (which the saved level carries: lod0_screen_size 0.5, "
-                "lod0_distribution 1.25, lod_distribution 3.0) the mean grass fraction over the "
-                "lower half of those nine frames is 0.159; with the harness's pin, same session and "
-                "same landscape, it is 0.739 -- and it was 0.763 at b1cd3e5 "
-                "(Saved/Clearance/green_road_qc_v4.json).  The conform cannot fix that and does not "
-                "try; see the round's needs_from_others."),
+                "the landscape's level of detail, most of it.  Measured on the shipped 7c8b4a6 "
+                "product over 660,835 stations with the engine's OWN LOD rule "
+                "(terrain.LandscapeLodSurface, transcribed from GenerateHeightmapMips and "
+                "LandscapeVertexFactory.ush; Saved/Clearance/fusion_before_v5.json): ground above "
+                "the road at 0.0002 % of stations at LOD 0, 0.76 % at LOD 1, 8.18 % at LOD 2 and "
+                "22.26 % at LOD 3.  The earlier figures of 0.034 / 1.93 / 8.58 % were measured "
+                "against a WRONG model of the LOD mesh (a 2^k decimation anchored on the tile grid); "
+                "the engine's stride is 127/63, 127/31, 127/15 = 2.016, 4.097, 8.467 m and its "
+                "anchor is the subsection lattice.  Depth alone cannot buy those back -- a coarse "
+                "triangle 8.5 m across is anchored outside the corridor -- which is why the verge "
+                "shelf, and not only the sink, is what this rule widens and lowers."),
         }
         return d
 
@@ -383,25 +411,105 @@ def sink_profile(sp, params: CorridorParams):
       not move (float = sink - skirt = -0.15 m, i.e. none).
 
     The mechanism behind that engine sweep is the landscape's LEVEL OF DETAIL, which is not the
-    surface ``GetHeightAtLocation`` returns -- see ``Heightfield.lod_skeleton`` and the header of
-    ``projects/one/Tools/road_fusion_audit.py``.  On this product, 241,205 corridor points: ground
-    above the road at 0 % under the landscape's LOD-0 triangulation, 0.034 % at LOD 1, 1.93 % at
-    LOD 2, 8.58 % at LOD 3 -- against 0 %, 0.040 %, 3.17 % and 15.25 % for the old flat 0.03 m sink.
-    So the sink buys LOD 1 outright and halves LOD 2 and LOD 3, and nothing admissible reaches LOD 3
-    (its p99 is 0.296 m and the deepest sink a 0.30 m skirt can hide is 0.15 m).  The level's own LOD
-    settings therefore have to be sane as well; see ``to_json``'s ``what_the_sink_cannot_fix`` for
-    the one property that made 16 of 31 street frames green, and the round's needs_from_others.
+    surface ``GetHeightAtLocation`` returns -- see ``terrain.LandscapeLodSurface`` and the header of
+    ``projects/one/Tools/road_fusion_audit.py``.
+
+    RETRACTION, 2026-09-10.  The paragraph that stood here quoted 0.034 % of corridor points above
+    the road at LOD 1, 1.93 % at LOD 2 and 8.58 % at LOD 3.  Those figures were measured against
+    ``Heightfield.lod_skeleton``, a model of the LOD mesh with the stride and the anchor both wrong.
+    Re-measured on the same shipped product with the engine's own rule, whole isle, 660,835
+    stations (``Saved/Clearance/fusion_before_v5.json``): **0.0002 % at LOD 0, 0.76 % at LOD 1,
+    8.18 % at LOD 2, 22.26 % at LOD 3**.  The sink did not "buy LOD 1 outright"; it never came
+    close.  What this rule does about that is in the module header, and what it cannot do is in
+    ``to_json``'s ``what_the_sink_cannot_fix``.
     """
-    cover = None
+    sides = sink_sides(sp, params)
+    return np.minimum(sides[S.LEFT], sides[S.RIGHT])
+
+
+def sink_sides(sp, params: CorridorParams):
+    """``{LEFT: (N,), RIGHT: (N,)}`` -- the deepest the burn may go under EACH side's own outer face.
+
+    This is the correction of the defect the 2026-09-10 verifier found.  The old rule took the
+    MINIMUM over the two sides and applied one depth to the whole cross-section, so a road with a
+    kerb and pavement on one side only was pinned to the 0.03 m floor along its entire width by the
+    side that had no cover.  Measured over the whole isle, 961.5 km of built length
+    (``Saved/Clearance/sink_census_v5.json``): **40.5 % of length sat at the floor under the old
+    rule, 27.5 % under the new one at the carriageway centre**, and every frame in
+    ``renders/7c8b4a6`` that still lost its carriageway stood on such a road
+    (``north_foreland_lighthouse`` is ``roads:1028594193:1``, secondary, kerbed on one side, 0.030 m
+    at all 112 stations).  Be exact about what this change reaches: only **3.99 % of built length,
+    38.4 km**, has sides whose cover DIFFERS -- the rest of the 40.5 % is bare on both sides, and no
+    per-side rule can help it.  The other 13 points come from the taper reaching the middle of a way
+    wide enough for it.
+
+    The constraint was never symmetric.  It is a statement about ONE face: at the outer face of the
+    block on side X, ground more than ``SideSpec.skirt`` below the road-edge plane is daylight under
+    THAT face.  What happens under the carriageway, or under the other side's pavement, is not that
+    face's business -- nothing can see it.  So each side gets its own depth and ``sink_field`` joins
+    them."""
     drop = np.asarray(sp.skirt_drop_m, dtype=np.float64) * np.ones(sp.n)
+    out = {}
     for side in (S.LEFT, S.RIGHT):
         spec = sp.side_spec[side]
         has = np.asarray(spec.present, dtype=bool) & (np.asarray(spec.back_offset, dtype=np.float64) > 0.0)
-        c = np.where(has, np.asarray(spec.skirt, dtype=np.float64), drop)
-        cover = c if cover is None else np.minimum(cover, c)
-    if cover is None:
-        cover = drop
-    return np.clip(cover * float(params.sink_cover_frac), float(params.sink_m), float(params.sink_max_m))
+        cover = np.where(has, np.asarray(spec.skirt, dtype=np.float64), drop)
+        out[side] = np.clip(cover * float(params.sink_cover_frac),
+                            float(params.sink_m), float(params.sink_max_m))
+    return out
+
+
+def sink_field(params: CorridorParams, d, sink_left, sink_right, core_left, core_right):
+    """How deep the burn sinks the ground at signed lateral offset ``d`` (+ is LEFT).
+
+    The deepest cross-section that (a) is no deeper than each side's own cover AT that side's outer
+    face, (b) never changes by more than ``sink_taper`` per metre across the road, and (c) never
+    exceeds ``sink_max_m``:
+
+        sink(d) = min( sink_covered_max_m,
+                       sink_left  + taper * max(0, |d - core_left|  - sink_flat_m),
+                       sink_right + taper * max(0, |d + core_right| - sink_flat_m) )
+
+    THE TAPER REACHES BOTH WAYS, AND THAT WAS MEASURED, NOT ASSUMED.  An inward-only variant (v6 of
+    ``Saved/Clearance/ab_sweep_v5.json``) has the float fraction identical to four decimal places --
+    0.141097 either way -- and clearly worse penetration (LOD 2 5.81 % against 4.74 %), so the
+    outward half is free and is kept.  What is NOT free is depth close to a face: see the margin.
+
+    ``sink_flat_m`` HOLDS THE SINK FLAT FOR 1.5 m EITHER SIDE OF A COVERED FACE, and it is not
+    tidiness -- it is the raster.  The burn is written onto a 1 m grid that the landscape reads by
+    interpolating between posts, so a cell 1 m outside the pavement's outer face is read by the very
+    triangle that draws the ground AT that face.  Without the margin the taper leaks across the face
+    and the measured daylight under it grows: on the 18-document A/B subset, taper with no margin
+    took the float fraction from 13.0 % to 21.0 % of stations while the margin keeps it at the
+    baseline.  1.5 m is the 1 m reach of that interpolation with half a cell of slack.
+
+    Three more properties, and each one is why a term is there:
+
+    * **At each outer face it is exactly that side's depth**, so the float measurement -- which is
+      taken at the outer face of the built block, ``fusion.edge_points`` -- is unchanged, side for
+      side, from the old rule on the sides that had cover and strictly deeper only where a face can
+      hide it.  A one-side-kerbed road now sinks 0.15 m under its carriageway and 0.03 m under its
+      bare edge instead of 0.03 m everywhere.
+    * **Under the carriageway it reaches the cap**, because the carriageway ribbon is what covers it
+      and the ribbon is opaque.  Depth there is free clearance against the renderer's coarse mesh.
+    * **Outside the block it reaches the cap too**, at 1:10, which is the verge falling away from the
+      road as a verge does.  That is not decoration: the mesh the landscape DRAWS past about 380 m is
+      a resample whose vertices are 2.02, 4.10 and 8.47 m apart (``terrain.LandscapeLodSurface``), so
+      what decides whether a road survives at distance is the ground for a whole stride either side
+      of it, not the strip under the kerb.  The resample weights are non-negative and sum to one, so
+      lowering any LOD-0 cell can only lower the drawn surface: this is the one lever that is
+      monotone in the right direction.
+
+    ``sink_taper`` bounds the cost of all three.  A 1:10 cross-fall is invisible on grass, and on a
+    ribbon 0.18 m wide (there is one, ``roads:132194822:0``) it earns 9 mm rather than digging a
+    notch beside the path."""
+    a = float(params.sink_taper)
+    flat = float(params.sink_flat_m)
+    d = np.asarray(d, dtype=np.float64)
+    dl = np.maximum(0.0, np.abs(d - np.asarray(core_left)) - flat)
+    dr = np.maximum(0.0, np.abs(d + np.asarray(core_right)) - flat)
+    v = np.minimum(np.asarray(sink_left) + a * dl, np.asarray(sink_right) + a * dr)
+    return np.minimum(v, float(params.sink_covered_max_m))
 
 
 def corridor_half_widths(sp):
@@ -430,11 +538,14 @@ def shelf_levels(sp, params: CorridorParams, z_raw_at):
     cosb = np.cos(np.radians(sp.bank_deg))
     nfx, nfy = -sp.t_h_xy[:, 1], sp.t_h_xy[:, 0]
     tanb = max(np.tan(np.radians(params.batter_deg)), 1e-3)
-    sink = sink_profile(sp, params)
+    sides = sink_sides(sp, params)
     out = {}
     for side in (S.LEFT, S.RIGHT):
         o, back = halves[side]
         core = o + back
+        # this side's OWN depth: the shelf it holds, and therefore the earthwork and blend length it
+        # needs, are that side's business (sink_sides).
+        sink = sides[side]
         zsh = sp.z_ref + side * o * sinb + sp.surface_h(side * o) * cosb - sink
         off = float(side) * (core + params.verge_m) * cosb
         zr = z_raw_at(sp.xy[:, 0] + off * nfx, sp.xy[:, 1] + off * nfy)
@@ -467,9 +578,9 @@ def spline_targets(sp, params: CorridorParams, z_raw_at, stats=None):
     # the shelf level per station and side, and the survey level under the far edge of the verge:
     # together they set how long the blend has to be for a batter_deg face.
     shelf = shelf_levels(sp, params, z_raw_at)
-    sink = sink_profile(sp, params)
+    sink = sink_sides(sp, params)
     # shelf_z already carries the sink; the zone evaluator adds it back for the road surface itself
-    zshelf = {side: shelf[side]["shelf_z"] + sink for side in (S.LEFT, S.RIGHT)}
+    zshelf = {side: shelf[side]["shelf_z"] + sink[side] for side in (S.LEFT, S.RIGHT)}
     blend = {side: shelf[side]["blend_m"] for side in (S.LEFT, S.RIGHT)}
 
     reach_max = float(max(np.max(reach_L + blend[S.LEFT]), np.max(reach_R + blend[S.RIGHT])))
@@ -720,9 +831,12 @@ def _evaluate(sp, params, cx, cy, lat, s_star, kinds, sinb, cosb, sink,
     o = np.where(left, np.interp(s_star, sp.s, oL), np.interp(s_star, sp.s, oR))
     core = np.where(left, np.interp(s_star, sp.s, coreL), np.interp(s_star, sp.s, coreR))
     bl = np.where(left, np.interp(s_star, sp.s, blend[S.LEFT]), np.interp(s_star, sp.s, blend[S.RIGHT]))
-    sk = np.interp(s_star, sp.s, sink)              # per station: what the built block can cover
     d = lat / np.where(np.abs(cb) > 1e-6, cb, 1.0)
     ad = np.abs(d)
+    # PER SIDE and per lateral offset, not one depth for the cross-section: sink_field.
+    sk = sink_field(params, d,
+                    np.interp(s_star, sp.s, sink[S.LEFT]), np.interp(s_star, sp.s, sink[S.RIGHT]),
+                    np.interp(s_star, sp.s, coreL), np.interp(s_star, sp.s, coreR))
 
     reach = core + params.verge_m + bl
     inside = ad <= core + params.verge_m
@@ -750,8 +864,13 @@ def _evaluate(sp, params, cx, cy, lat, s_star, kinds, sinb, cosb, sink,
         db = d[m_blend]
         side_o = np.where(db >= 0, 1.0, -1.0) * (core[m_blend] + params.verge_m)
         shelf = built_surface(sp, sb_, side_o, kinds, sinb, cosb, oL, oR)
-        shelf = shelf - sk[m_blend] - sag_correction(sp, sb_, side_o, kinds, sinb, cosb, oL, oR,
-                                                       shelf, params.sag_delta_m, params.sag_factor)
+        # the blend starts from the level the VERGE EDGE holds, so the sink is read at the verge
+        # edge, not at the blend cell's own offset: otherwise the two zones step where they meet.
+        sk_shelf = sink_field(params, side_o,
+                              np.interp(sb_, sp.s, sink[S.LEFT]), np.interp(sb_, sp.s, sink[S.RIGHT]),
+                              np.interp(sb_, sp.s, coreL), np.interp(sb_, sp.s, coreR))
+        shelf = shelf - sk_shelf - sag_correction(sp, sb_, side_o, kinds, sinb, cosb, oL, oR,
+                                                  shelf, params.sag_delta_m, params.sag_factor)
         t = (ad[m_blend] - (core[m_blend] + params.verge_m)) / np.maximum(bl[m_blend], 1e-6)
         zr = z_raw_at(cx[m_blend], cy[m_blend])
         wgt = smoothstep(t)

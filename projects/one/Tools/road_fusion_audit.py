@@ -28,9 +28,15 @@ were true.  Three measurements settled why (2026-09-09, clearance agent; raw out
    (``Saved/Clearance/rules_conformed.json``; --sampling now defaults to the triangulated rule
    anyway, so the measurement is of the surface the camera sees.)
 2. It IS the landscape's level of detail -- the surface it DRAWS, which is not the surface
-   ``GetHeightAtLocation`` returns.  ``--lod k`` measures against it (Heightfield.lod_skeleton):
-   ground above the road at 0.04 % of corridor points at LOD 1, 3.2 % at LOD 2, 15.2 % at LOD 3
-   (p99 0.32 m, max 4.36 m).  A 0.03 m sink survives none of that.
+   ``GetHeightAtLocation`` returns.  ``--lods 0,1,2,3`` measures against it
+   (``streetscape.terrain.LandscapeLodSurface``, a transcription of the engine's own
+   ``GenerateHeightmapMips`` + ``LandscapeVertexFactory.ush``, replacing a 2026-09-09 model that had
+   the stride and the anchor both wrong).  On the shipped 7c8b4a6 product, whole isle, 660,835
+   stations (``Saved/Clearance/fusion_before_v5.json``): ground above the road at **0.0002 % of
+   stations at LOD 0, 0.76 % at LOD 1, 8.18 % at LOD 2, 22.26 % at LOD 3**.  Where those levels are
+   drawn is in ``LandscapeLodSurface.distances_m``: with this level's saved LOD properties and the
+   render set's camera, LOD 0 holds to 381 m, LOD 1 by 476 m, LOD 2 by 1.43 km, LOD 3 by 4.29 km.
+   So LOD 1 and LOD 2 are what a street frame's middle distance is made of, and LOD 3 is haze.
 3. Proved in the engine, same camera, same level, same conform, one property changed:
    ``broadstairs/st_peters_high_street`` and ``cliftonville/princess_margaret_avenue_at_northdown``
    render as unbroken grass with the render harness's LOD "pin" applied, and as complete streets --
@@ -63,7 +69,7 @@ sys.path.insert(0, os.path.join(HERE, "blender"))
 from streetscape import fusion as F           # noqa: E402
 from streetscape import io_json               # noqa: E402
 from streetscape.spline import Spline         # noqa: E402
-from streetscape.terrain import Heightfield   # noqa: E402
+from streetscape.terrain import Heightfield, LandscapeLodSurface   # noqa: E402
 
 
 def _structure_summary(rows) -> dict:
@@ -97,6 +103,10 @@ def main():
                     help="the landscape the road is DRAPED on (BRIEF 1.1); defaults to the adapter product")
     ap.add_argument("--streetscape", default="data/thanet/out/unreal/streetscape")
     ap.add_argument("--extra-doc", action="append", default=[])
+    ap.add_argument("--only-doc", action="append", default=[],
+                    help="restrict to site documents whose basename contains this string "
+                         "(repeatable).  Pairs with conform_landscape.py --only-doc for A/B runs "
+                         "over a subset small enough to iterate on.")
     ap.add_argument("--n", type=int, default=0, help="0 = every spline; otherwise a spread sample")
     ap.add_argument("--seed", type=int, default=20260909)
     ap.add_argument("--k-road", type=int, default=9)
@@ -123,17 +133,30 @@ def main():
                     help="fail when more than this fraction of stations float (the recorded baseline; "
                          "it may only go down, as the geometry track turns the recorded runs into "
                          "embankments and retaining walls)")
-    ap.add_argument("--lod", type=int, default=0,
-                    help="measure against the surface the landscape DRAWS at this level of detail "
-                         "(Heightfield.lod_skeleton), not the one its height query returns.  0 is "
-                         "the full triangulation.  This is the difference between a road that is "
-                         "above the ground in the data and a road that is visible.")
+    ap.add_argument("--lod", type=int, default=None, help="shorthand for --lods <k>")
+    ap.add_argument("--lods", default="0",
+                    help="comma-separated levels of detail to measure against, e.g. 0,1,2,3.  Level "
+                         "0 is the surface the height query and the collision return; every level "
+                         "above it is the mesh the RENDERER draws further away "
+                         "(streetscape.terrain.LandscapeLodSurface, transcribed from "
+                         "GenerateHeightmapMips and LandscapeVertexFactory.ush).  The splines are "
+                         "built once and sampled against every level, so four levels cost four "
+                         "sets of samples, not four runs.  This is the difference between a road "
+                         "that is above the ground in the data and a road that is visible.")
     ap.add_argument("--rules", action="store_true",
                     help="also read the SAME landscape at the SAME corridor points with BOTH "
                          "interpolation rules and report the difference (fusion.rule_delta).  This is "
                          "the measurement that decides whether the conform having been burned against "
                          "the bilinear contract, while the engine rasterises triangles, is what hides "
                          "a carriageway.  Costs one extra pair of samples per station.")
+    ap.add_argument("--lod-max-frac", action="append", default=[], metavar="K:FRAC",
+                    help="gate the DRAWN surface, not only the queried one: fail when more than "
+                         "FRAC of built length has ground above the road at level of detail K "
+                         "(repeatable, e.g. --lod-max-frac 1:0.007 --lod-max-frac 2:0.045).  This "
+                         "exists because at b1cd3e5 the LOD-0 gate said PASS over the whole isle "
+                         "while 16 of 31 street frames had no carriageway in them: a gate that "
+                         "measures the surface the height query returns is not a gate on the "
+                         "picture.  Like the float fraction, these numbers may only go DOWN.")
     ap.add_argument("--worst", type=int, default=20, help="how many worst stations to list")
     ap.add_argument("--out", required=True)
     args = ap.parse_args()
@@ -142,14 +165,22 @@ def main():
     layers = set(args.layers.split(","))
     hf_survey = Heightfield.from_landscape_dir(args.survey)
     same = os.path.abspath(args.survey) == os.path.abspath(args.landscape)
-    hf_test = hf_survey if same else Heightfield.from_landscape_dir(args.landscape)
-    if args.lod > 0:
-        hf_test = hf_test.lod_skeleton(args.lod)
-    hf_test.sampling = args.sampling
-    print("survey %d tiles, test %d tiles (%s), %.1f s"
-          % (len(hf_survey.tiles), len(hf_test.tiles), args.sampling, time.time() - t0), flush=True)
+    hf_lod0 = hf_survey if same else Heightfield.from_landscape_dir(args.landscape)
+    hf_lod0.sampling = args.sampling
+    lods = sorted({int(v) for v in str(args.lods).split(",") if str(v).strip() != ""}
+                  | ({int(args.lod)} if args.lod is not None else set()))
+    surfaces = {}
+    for k in lods:
+        surfaces[k] = hf_lod0 if k == 0 else LandscapeLodSurface.from_landscape_dir(
+            args.landscape, k, sampling=args.sampling)
+    hf_test = surfaces[lods[0]]
+    print("survey %d tiles, test lods %s (%s), %.1f s"
+          % (len(hf_survey.tiles), lods, args.sampling, time.time() - t0), flush=True)
 
-    files = sorted(glob.glob(os.path.join(args.streetscape, "site_x*_y*.json"))) + list(args.extra_doc)
+    files = sorted(glob.glob(os.path.join(args.streetscape, "site_x*_y*.json")))
+    if args.only_doc:
+        files = [f for f in files if any(t in os.path.basename(f) for t in args.only_doc)]
+    files += list(args.extra_doc)
     rng = random.Random(args.seed)
     per_file = []
     for p in files:
@@ -177,6 +208,7 @@ def main():
 
     cache = {}
     records = []
+    records_lod = {k: [] for k in lods}
     skipped = []
     structures = []
     worst = []
@@ -226,8 +258,11 @@ def main():
             # 32 m of penetration that is not the conform's.  Counted, named, and excluded.
             skipped.append([os.path.basename(path), sdef.id, "no terrain under any station"])
             continue
-        rec = F.audit_spline(sp, hf_test, args.k_road, args.k_edge)
-        slope = F.terrain_slope_deg(hf_test, sp.xy[:, 0], sp.xy[:, 1]) if args.slope else None
+        slope = F.terrain_slope_deg(hf_lod0, sp.xy[:, 0], sp.xy[:, 1]) if args.slope else None
+        for k in lods:
+            r_k = F.audit_spline(sp, surfaces[k], args.k_road, args.k_edge)
+            records_lod[k].append((cls, slope, r_k))
+        rec = records_lod[lods[0]][-1][2]
         records.append((cls, slope, rec))
         if args.rules:
             d, cb, ct = F.rule_delta(sp, hf_test, args.k_road)
@@ -244,6 +279,21 @@ def main():
     worst.sort(key=lambda w: -w[0])
     agg = F.aggregate(records, gate_m=(args.gate_m if args.gate_m is not None else 0.0),
                       float_gate_m=args.float_gate_m)
+    by_lod = {}
+    for k in lods:
+        a_k = F.aggregate(records_lod[k], gate_m=(args.gate_m if args.gate_m is not None else 0.0),
+                          float_gate_m=args.float_gate_m)
+        by_lod["lod%d" % k] = {m: a_k[m] for m in a_k if m != "by_terrain_slope"}
+    lod_model = {k if k == 0 else "lod%d" % k: (surfaces[k].describe() if k else {"lod": 0})
+                 for k in lods}
+    lod_model = {("lod%d" % k): (surfaces[k].describe() if k else
+                                 {"lod": 0, "source": hf_lod0.source, "sampling": hf_lod0.sampling})
+                 for k in lods}
+    lod_model["where_each_lod_is_drawn_m"] = LandscapeLodSurface.distances_m()
+    lod_model["where_each_lod_is_drawn_m"]["screen_multiple"] = float(
+        lod_model["where_each_lod_is_drawn_m"]["screen_multiple"])
+    lod_model["where_each_lod_is_drawn_m"]["lod_begins_m"] = [
+        float(v) for v in lod_model["where_each_lod_is_drawn_m"]["lod_begins_m"]]
     out = {"config": {"landscape": os.path.abspath(args.landscape).replace("\\", "/"),
                       "survey": os.path.abspath(args.survey).replace("\\", "/"),
                       "streetscape": os.path.abspath(args.streetscape).replace("\\", "/"),
@@ -251,7 +301,7 @@ def main():
                       "k_road": args.k_road, "k_edge": args.k_edge,
                       "layers": sorted(layers), "n": len(chosen), "extra_docs": args.extra_doc,
                       "elapsed_s": round(time.time() - t0, 1)},
-           "summary": agg, "skipped": skipped, "skipped_count": len(skipped),
+           "summary": agg, "by_lod": by_lod, "lod_model": lod_model, "skipped": skipped, "skipped_count": len(skipped),
            "structures_not_gated": sorted(structures, key=lambda r: -abs(r.get("chord_sag_m") or 0.0))[:400],
            "structures_not_gated_count": len(structures),
            "structures_summary": _structure_summary(structures),
@@ -277,10 +327,28 @@ def main():
                  r["points_with_ground_above_road_bilinear"], r["points_with_ground_above_road_triangulated"]),
               flush=True)
     os.makedirs(os.path.dirname(os.path.abspath(args.out)), exist_ok=True)
+    lod_gates = []
+    for spec in args.lod_max_frac:
+        ks, _, fs = str(spec).partition(":")
+        kk, ff = int(ks), float(fs)
+        got = by_lod.get("lod%d" % kk, {}).get("fraction_length_penetrated")
+        if got is None:
+            sys.exit("--lod-max-frac %s: LOD %d was not measured (add it to --lods)" % (spec, kk))
+        lod_gates.append((kk, ff, got, got <= ff))
+    out["lod_gates"] = [{"lod": kk, "allowed_fraction_length": ff, "measured": got, "pass": okk}
+                        for kk, ff, got, okk in lod_gates]
     with open(args.out, "w", encoding="utf-8", newline="\n") as fh:
         json.dump(out, fh, indent=1)
         fh.write("\n")
     print(json.dumps({k: v for k, v in agg.items() if k not in ("by_class", "by_terrain_slope")}, indent=1))
+    for k in lods:
+        a_k = by_lod["lod%d" % k]
+        print("LOD %d: ground above the road at %.4f%% of stations, %.4f%% of length, worst %.3f m; "
+              "float over %.3f m at %.4f%% of stations"
+              % (k, 100.0 * a_k["fraction_stations_penetrated"],
+                 100.0 * a_k["fraction_length_penetrated"],
+                 a_k["penetration_m_over_all_stations"]["max"], args.float_gate_m,
+                 100.0 * a_k["fraction_stations_floating"]), flush=True)
     print("worst: %s" % json.dumps(out["worst_stations"][:3]))
 
     pen_max = agg.get("penetration_m_over_all_stations", {}).get("max", 0.0)
@@ -297,7 +365,10 @@ def main():
         # (Saved/Diag/float_attribution.json).  So the number to defend is "no worse than today", and
         # it must fall as those structures are built.
         ok_flt = args.float_max_frac is None or frac <= args.float_max_frac
-        ok = ok_pen and ok_flt
+        ok = ok_pen and ok_flt and all(o for _, _, _, o in lod_gates)
+        for kk, ff, got, okk in lod_gates:
+            print("LOD GATE %s: LOD %d has ground above the road over %.4f%% of built length "
+                  "(allowed %.4f%%)" % ("PASS" if okk else "FAIL", kk, 100.0 * got, 100.0 * ff))
         print("GATE %s: worst penetration %.6f m (allowed %.6f); float over %.3f m at %.4f%% of "
               "stations (allowed %s), worst float %.6f m"
               % ("PASS" if ok else "FAIL", pen_max, args.gate_m, args.float_gate_m, 100.0 * frac,

@@ -216,6 +216,19 @@ FString UStreetHeightfieldTerrain::ResolvedDir() const
 	return GetDefault<UStreetscapeSettings>()->GetResolvedDataDir() / TEXT("landscape");
 }
 
+void UStreetHeightfieldTerrain::SetSyntheticPlane(double Z0, double GX, double GY)
+{
+	// synthetic.flat_terrain / synthetic.graded_terrain: extent (512, 512), 1 m posts, tile 512 m, xy0 (0, -256)
+	Field = FStreetHeightfield::FromFunction([Z0, GX, GY](double X, double Y) { return Z0 + GX * (X - 200.0) + GY * (Y - 100.0); },
+		FVector2d(512.0, 512.0), 1.0, 512.0, FVector2d::ZeroVector, FVector2d(0.0, -256.0));
+	// the frozen numbers were computed with the numpy Heightfield's own default rule
+	Sampling = EStreetHeightSampling::Bilinear;
+	Field.Sampling = Sampling;
+	Field.Source = FString::Printf(TEXT("synthetic plane z=%g%+g(x-200)%+g(y-100)"), Z0, GX, GY);
+	bLoaded = true;
+	LastError.Reset();
+}
+
 bool UStreetHeightfieldTerrain::Load()
 {
 	FText Err;

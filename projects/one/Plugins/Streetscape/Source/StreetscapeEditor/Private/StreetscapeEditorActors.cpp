@@ -18,6 +18,8 @@
 #include "Misc/Paths.h"
 #include "ObjectTools.h"
 #include "StreetGeometry.h"
+#include "StreetJunctionBuild.h"
+#include "StreetJunctions.h"
 #include "StreetMaterialTable.h"
 #include "StreetProfiles.h"
 #include "StreetRenderers.h"
@@ -46,6 +48,64 @@ FString JsonText(const TSharedRef<FJsonObject>& O)
 UWorld* EditorWorld()
 {
 	return GEditor ? GEditor->GetEditorWorldContext().World() : nullptr;
+}
+
+/**
+ * What the last ImportStreetscapeJson call did about junctions, so a headless run can assert on it.
+ *
+ * A file static and not an actor property because the number that matters spans documents: an isle import is twelve
+ * slices of about twenty documents each, and the claim to be checked is "1,642 junctions, 5,168 trimmed ends".
+ */
+struct FJunctionImportTotals
+{
+	int32 Documents = 0, DocumentsWithJunctions = 0;
+	int32 InDocuments = 0, PlanBuilt = 0, SkippedKind = 0, SkippedArms = 0;
+	int32 Arms = 0, ArmsDropped = 0, ArmsUnseparable = 0;
+	int32 SplinesTrimmed = 0, SplinesDegenerate = 0, SplinesUntrimmable = 0, TrimmedEnds = 0;
+	double TrimTotalM = 0.0;
+	int32 Owners = 0;
+	FStreetActorJunctionStats Geo;
+	TArray<FString> Skips;
+
+	void Reset() { *this = FJunctionImportTotals(); }
+};
+FJunctionImportTotals GJunctionTotals;
+
+TSharedRef<FJsonObject> JunctionTotalsJson(const FJunctionImportTotals& T)
+{
+	TSharedRef<FJsonObject> O = MakeShared<FJsonObject>();
+	O->SetNumberField(TEXT("documents"), T.Documents);
+	O->SetNumberField(TEXT("documents_with_junctions"), T.DocumentsWithJunctions);
+	O->SetNumberField(TEXT("junctions_in_documents"), T.InDocuments);
+	O->SetNumberField(TEXT("junctions_planned"), T.PlanBuilt);
+	O->SetNumberField(TEXT("junctions_built"), T.Geo.Built);
+	O->SetNumberField(TEXT("junctions_owned"), T.Geo.Owned);
+	O->SetNumberField(TEXT("junctions_skipped_kind"), T.SkippedKind);
+	O->SetNumberField(TEXT("junctions_skipped_arms"), T.SkippedArms);
+	O->SetNumberField(TEXT("junctions_skipped_build"), T.Geo.Skipped);
+	O->SetNumberField(TEXT("owners"), T.Owners);
+	O->SetNumberField(TEXT("arms"), T.Arms);
+	O->SetNumberField(TEXT("arms_dropped"), T.ArmsDropped);
+	O->SetNumberField(TEXT("arms_unseparable"), T.ArmsUnseparable);
+	O->SetNumberField(TEXT("trimmed_ends"), T.TrimmedEnds);
+	O->SetNumberField(TEXT("trim_total_m"), T.TrimTotalM);
+	O->SetNumberField(TEXT("splines_trimmed"), T.SplinesTrimmed);
+	O->SetNumberField(TEXT("splines_degenerate"), T.SplinesDegenerate);
+	O->SetNumberField(TEXT("splines_untrimmable"), T.SplinesUntrimmable);
+	O->SetNumberField(TEXT("non_monotone"), T.Geo.NonMonotone);
+	O->SetNumberField(TEXT("patch_verts"), T.Geo.PatchVerts);
+	O->SetNumberField(TEXT("patch_tris"), T.Geo.PatchTris);
+	O->SetNumberField(TEXT("corners"), T.Geo.Corners);
+	O->SetNumberField(TEXT("corners_skipped_no_kerb"), T.Geo.CornersSkippedNoKerb);
+	O->SetNumberField(TEXT("corners_skipped_incompatible"), T.Geo.CornersSkippedIncompatible);
+	O->SetNumberField(TEXT("corner_verts"), T.Geo.CornerVerts);
+	O->SetNumberField(TEXT("corner_tris"), T.Geo.CornerTris);
+	O->SetNumberField(TEXT("patch_area_m2"), T.Geo.PatchAreaM2);
+	O->SetNumberField(TEXT("patch_overlap_area_m2"), T.Geo.PatchOverlapAreaM2);
+	TArray<TSharedPtr<FJsonValue>> Sk;
+	for (const FString& X : T.Skips) Sk.Add(MakeShared<FJsonValueString>(X));
+	O->SetArrayField(TEXT("skipped"), Sk);
+	return O;
 }
 
 AStreetscapeActor* FindActorById(const FString& Id)
@@ -227,6 +287,9 @@ int32 UStreetscapeEditorLibrary::ImportStreetscapeJson(const FString& FileOrDir,
 			UE_LOG(LogStreetscapeEditor, Log, TEXT("ImportStreetscapeJson: removed %d stale PlayerStart_Streetscape (%d packages deleted)"), Stale.Num(), Gone);
 		}
 	}
+	// NOT reset here. A site import calls this function ONCE PER DOCUMENT (03_import_streetscape.py loops over the
+	// slice's files), so resetting per call left the caller reading the last document's junctions and reporting 79
+	// for the isle instead of 1,642. The totals accumulate; ResetImportJunctionTotals() is the caller's to call.
 	const double TStart = FPlatformTime::Seconds();
 	int32 FileIndex = 0;
 	for (const FString& File : Files)
@@ -264,6 +327,44 @@ int32 UStreetscapeEditorLibrary::ImportStreetscapeJson(const FString& FileOrDir,
 		Site->Crs = Doc.Crs;
 		Site->VerticalDatum = Doc.VerticalDatum;
 
+		// -- SCHEMA.md 4.18: solve this document's junctions BEFORE any spline is built -------------------------
+		//
+		// This is the only place in the engine where a whole document exists at once. The plan is a per-DOCUMENT
+		// solve - a spline trimmed at both ends has its two trims scaled by ONE factor, which couples two different
+		// junctions - so it can only be done here; and every junction's arms are in the same document by
+		// construction, measured over the isle at 0 of 5,185 ends naming a spline outside their own file. What the
+		// solve decides is then written ONTO the actors (AStreetscapeActor::SetJunctionData) rather than used here,
+		// so a street World Partition streams back in later rebuilds the same junction with no importer, no
+		// document and no other actor resident.
+		FStreetJunctionPlan Plan;
+		Plan.Build(Doc);
+		TMap<FString, FVector2D> Trims;
+		TMap<FString, TArray<FStreetOwnedJunction>> Owned;
+		FStreetJunctionBuild::Distribute(Doc, Plan, Trims, Owned);
+		const int32 DocPlanned = Plan.Stats[TEXT("junctions_built")];
+		{
+			FJunctionImportTotals& T = GJunctionTotals;
+			++T.Documents;
+			if (Doc.Junctions.Num()) ++T.DocumentsWithJunctions;
+			T.InDocuments += Plan.Stats[TEXT("junctions")];
+			T.PlanBuilt += DocPlanned;
+			T.SkippedKind += Plan.Stats[TEXT("junctions_skipped_kind")];
+			T.SkippedArms += Plan.Stats[TEXT("junctions_skipped_arms")];
+			T.Arms += Plan.Stats[TEXT("arms")];
+			T.ArmsDropped += Plan.Stats[TEXT("arms_dropped")];
+			T.ArmsUnseparable += Plan.Stats[TEXT("arms_unseparable")];
+			T.SplinesTrimmed += Plan.Stats[TEXT("splines_trimmed")];
+			T.SplinesDegenerate += Plan.Stats[TEXT("splines_degenerate")];
+			T.SplinesUntrimmable += Plan.Stats[TEXT("splines_untrimmable")];
+			T.Owners += Owned.Num();
+			for (const TPair<FString, FVector2D>& Kv : Trims)
+			{
+				if (Kv.Value.X > 0.0) { ++T.TrimmedEnds; T.TrimTotalM += Kv.Value.X; }
+				if (Kv.Value.Y > 0.0) { ++T.TrimmedEnds; T.TrimTotalM += Kv.Value.Y; }
+			}
+		}
+		int32 DocBuilt = 0;
+
 		for (const FStreetSplineDef& Def : Doc.Splines)
 		{
 			{
@@ -276,6 +377,12 @@ int32 UStreetscapeEditorLibrary::ImportStreetscapeJson(const FString& FileOrDir,
 			AStreetscapeActor* A = World->SpawnActor<AStreetscapeActor>(AStreetscapeActor::StaticClass(), FTransform::Identity, Params);
 			if (!A) { UE_LOG(LogStreetscapeEditor, Error, TEXT("cannot spawn an actor for %s"), *Def.Id); return -1; }
 			A->ApplyDefinition(Def, Doc.Profiles, FVector2D(Doc.Origin.E, Doc.Origin.N));
+			{
+				const FVector2D* Tr = Trims.Find(Def.Id);
+				TArray<FStreetOwnedJunction> Mine;
+				if (TArray<FStreetOwnedJunction>* O = Owned.Find(Def.Id)) Mine = MoveTemp(*O);
+				A->SetJunctionData(Tr ? *Tr : FVector2D::ZeroVector, MoveTemp(Mine));
+			}
 			FString BuildErr;
 			if (!A->RebuildAllChecked(&BuildErr))
 			{
@@ -283,6 +390,12 @@ int32 UStreetscapeEditorLibrary::ImportStreetscapeJson(const FString& FileOrDir,
 				return -1;
 			}
 			++Spawned;
+			DocBuilt += A->JunctionStats.Built;
+			GJunctionTotals.Geo.Add(A->JunctionStats);
+			for (const FString& Why : A->JunctionSkips())
+			{
+				if (GJunctionTotals.Skips.Num() < 200) GJunctionTotals.Skips.Add(Why);
+			}
 			if (const FStreetSamples* Sm0 = A->GetSamples())
 			{
 				for (const FString& W : Sm0->Warnings)
@@ -316,6 +429,22 @@ int32 UStreetscapeEditorLibrary::ImportStreetscapeJson(const FString& FileOrDir,
 				}
 			}
 		}
+		// -- THE GATE. A document whose junctions the plan solved and the level then drew none of is the exact
+		// defect this round exists to close: the layer was written, ported, tested and called by nothing, and the
+		// import reported success on a level with zero junctions in it. Success on zero is never a pass.
+		if (DocPlanned != DocBuilt)
+		{
+			UE_LOG(LogStreetscapeEditor, Error,
+				TEXT("%s: the junction plan solved %d junction(s) and the level built %d - an import that does not "
+					 "draw the junctions it planned is a failure, not a pass"),
+				*FPaths::GetCleanFilename(File), DocPlanned, DocBuilt);
+			return -1;
+		}
+		if (DocPlanned > 0)
+		{
+			UE_LOG(LogStreetscapeEditor, Log, TEXT("%s: %d junction(s) built, %d spline(s) trimmed"),
+				*FPaths::GetCleanFilename(File), DocBuilt, Plan.Stats[TEXT("splines_trimmed")]);
+		}
 		if (Files.Num() > 1)
 		{
 			// a site import is 246 documents and about an hour: say where it is, so a run can be watched
@@ -343,7 +472,42 @@ int32 UStreetscapeEditorLibrary::ImportStreetscapeJson(const FString& FileOrDir,
 		}
 		UE_LOG(LogStreetscapeEditor, Warning, TEXT("ACCEPTED %s"), *Msg);
 	}
+	UE_LOG(LogStreetscapeEditor, Display, TEXT("ImportStreetscapeJson junctions: %s"), *JsonText(JunctionTotalsJson(GJunctionTotals)));
+	// THE WHOLE-RUN GATE. "Records present, none built" is NOT by itself the defect: the plan legitimately drops a
+	// record with fewer than three usable arms (junctions_skipped_arms) or a kind it does not fill
+	// (junctions_skipped_kind), exactly as the numpy JunctionPlan does - the authored test stretch is one such
+	// document. What must never pass is a record that disappears without one of those reasons, or a plan that
+	// solved junctions the level then did not draw.
+	{
+		const FJunctionImportTotals& T = GJunctionTotals;
+		const int32 Accounted = T.PlanBuilt + T.SkippedKind + T.SkippedArms;
+		if (T.PlanBuilt > 0 && T.Geo.Built == 0)
+		{
+			UE_LOG(LogStreetscapeEditor, Error,
+				TEXT("ImportStreetscapeJson: the plan solved %d junction(s) across %d document(s) and NOT ONE was built"),
+				T.PlanBuilt, T.Documents);
+			return -1;
+		}
+		if (T.InDocuments != Accounted)
+		{
+			UE_LOG(LogStreetscapeEditor, Error,
+				TEXT("ImportStreetscapeJson: %d junction record(s) but only %d accounted for (%d built, %d skipped on kind, "
+					 "%d skipped on arms) - a record vanished without a reason"),
+				T.InDocuments, Accounted, T.PlanBuilt, T.SkippedKind, T.SkippedArms);
+			return -1;
+		}
+	}
 	return Spawned;
+}
+
+FString UStreetscapeEditorLibrary::LastImportJunctionsJson()
+{
+	return JsonText(JunctionTotalsJson(GJunctionTotals));
+}
+
+void UStreetscapeEditorLibrary::ResetImportJunctionTotals()
+{
+	GJunctionTotals.Reset();
 }
 
 TArray<FString> UStreetscapeEditorLibrary::StreetscapeActorIds()
@@ -397,8 +561,14 @@ FString UStreetscapeEditorLibrary::ActorStatsJson(const FString& StreetId)
 		bool bSame = true;
 		if (Kv.Key == TEXT("road"))
 		{
-			bSame = St.Num() == Sp->S.Num();
-			for (int32 I = 0; bSame && I < St.Num(); ++I) bSame = St[I] == Sp->S[I];
+			// build._assert_stations: equality against spline.s[spline.active], so a trimmed arm is not a mismatch
+			TArray<double> ActiveS;
+			for (int32 I = 0; I < Sp->S.Num(); ++I)
+			{
+				if (!Sp->Active.IsValidIndex(I) || Sp->Active[I]) ActiveS.Add(Sp->S[I]);
+			}
+			bSame = St.Num() == ActiveS.Num();
+			for (int32 I = 0; bSame && I < St.Num(); ++I) bSame = St[I] == ActiveS[I];
 		}
 		else
 		{
@@ -657,10 +827,17 @@ FString UStreetscapeEditorLibrary::StreetscapeCensusJson()
 	TMap<FString, int64> VertsByBuffer, TrisByBuffer;
 	TMap<FString, int32> ActorsByLayer;      // roads / rail / barriers, from the id prefix
 	TMap<FName, int64> InstancesByKind;
+	FStreetActorJunctionStats Jn;
+	int32 TrimmedSplines = 0, TrimmedEnds = 0;
+	double TrimTotalM = 0.0;
 	for (TActorIterator<AStreetscapeActor> It(World); It; ++It)
 	{
 		AStreetscapeActor* A = *It;
 		++Actors;
+		Jn.Add(A->JunctionStats);
+		if (A->JunctionTrimM.X > 0.0) { ++TrimmedEnds; TrimTotalM += A->JunctionTrimM.X; }
+		if (A->JunctionTrimM.Y > 0.0) { ++TrimmedEnds; TrimTotalM += A->JunctionTrimM.Y; }
+		if (A->JunctionTrimM.X > 0.0 || A->JunctionTrimM.Y > 0.0) ++TrimmedSplines;
 		FString Layer, Rest;
 		ActorsByLayer.FindOrAdd(A->StreetId.Split(TEXT(":"), &Layer, &Rest) ? Layer : FString(TEXT("?")))++;
 		const FStreetSamples* Sm = A->GetSamples();
@@ -711,6 +888,23 @@ FString UStreetscapeEditorLibrary::StreetscapeCensusJson()
 	O->SetNumberField(TEXT("marking_strips"), (double)MarkingStrips);
 	O->SetNumberField(TEXT("stations"), (double)Stations);
 	O->SetNumberField(TEXT("length_m"), LengthM);
+	// the junction layer, read off the actors themselves: this is the number that was zero for a whole round
+	O->SetNumberField(TEXT("junctions_owned"), Jn.Owned);
+	O->SetNumberField(TEXT("junctions_built"), Jn.Built);
+	O->SetNumberField(TEXT("junctions_skipped"), Jn.Skipped);
+	O->SetNumberField(TEXT("junction_non_monotone"), Jn.NonMonotone);
+	O->SetNumberField(TEXT("junction_patch_verts"), Jn.PatchVerts);
+	O->SetNumberField(TEXT("junction_patch_tris"), Jn.PatchTris);
+	O->SetNumberField(TEXT("junction_corners"), Jn.Corners);
+	O->SetNumberField(TEXT("junction_corners_skipped_no_kerb"), Jn.CornersSkippedNoKerb);
+	O->SetNumberField(TEXT("junction_corners_skipped_incompatible"), Jn.CornersSkippedIncompatible);
+	O->SetNumberField(TEXT("junction_corner_verts"), Jn.CornerVerts);
+	O->SetNumberField(TEXT("junction_corner_tris"), Jn.CornerTris);
+	O->SetNumberField(TEXT("junction_patch_area_m2"), Jn.PatchAreaM2);
+	O->SetNumberField(TEXT("junction_patch_overlap_area_m2"), Jn.PatchOverlapAreaM2);
+	O->SetNumberField(TEXT("splines_trimmed"), TrimmedSplines);
+	O->SetNumberField(TEXT("trimmed_ends"), TrimmedEnds);
+	O->SetNumberField(TEXT("trim_total_m"), TrimTotalM);
 	O->SetNumberField(TEXT("massing_actors"), Massing);
 	O->SetNumberField(TEXT("massing_verts"), (double)MassingVerts);
 	O->SetNumberField(TEXT("massing_tris"), (double)MassingTris);

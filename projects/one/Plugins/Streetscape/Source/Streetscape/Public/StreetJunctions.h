@@ -22,6 +22,7 @@
 #include "StreetSplineMath.h"
 #include "StreetTimelines.h"
 #include "StreetTypes.h"
+#include "StreetJunctions.generated.h"
 
 /** schema.JUNCTION_DEFAULTS. */
 struct STREETSCAPE_API FStreetJunctionDefaults
@@ -37,21 +38,31 @@ struct STREETSCAPE_API FStreetJunctionDefaults
 	double CornerHandleFrac = 0.45;
 };
 
-/** spline.JunctionArm: one spline end standing in a junction, resolved in PLAN only (no terrain needed). */
+/**
+ * spline.JunctionArm: one spline end standing in a junction, resolved in PLAN only (no terrain needed).
+ *
+ * A USTRUCT because the OWNING actor carries its junctions' solved arms through a save (FStreetOwnedJunction): the
+ * plan is solved once, over the WHOLE document, and an owner streamed in on its own could never re-solve it - the
+ * degeneracy scale of a spline trimmed at both ends couples two different junctions. Every member is the value the
+ * numpy JunctionArm dataclass carries and nothing else.
+ */
+USTRUCT()
 struct STREETSCAPE_API FStreetJunctionArm
 {
-	FString JunctionId;
-	FString SplineId;
-	EStreetSplineEnd End = EStreetSplineEnd::Start;
-	double STrim = 0;            // arc length of the trim station on that spline
-	double TrimM = 0;            // arc length removed from that end
-	FVector2d U = FVector2d(1, 0);   // outward unit tangent at the trim station, pointing AWAY from the node
-	FVector2d P = FVector2d::ZeroVector;   // plan position of the trim station
-	double ELeft = 0, ERight = 0;    // edge_offset(LEFT/RIGHT) at the trim station
-	double OverlapM = 0.04;          // road skirt overhang at the trim station
-	double Phi = 0;                  // bearing of the TRIM POINT about the node - the angular order key
-	double HalfAng = 0;              // angular half-width the arm's end edge subtends at the node, measured
-	double RadiusM = 0;              // the trim radius THIS arm was solved at
+	GENERATED_BODY()
+	UPROPERTY() FString JunctionId;
+	UPROPERTY() FString SplineId;
+	UPROPERTY() EStreetSplineEnd End = EStreetSplineEnd::Start;
+	UPROPERTY() double STrim = 0;            // arc length of the trim station on that spline
+	UPROPERTY() double TrimM = 0;            // arc length removed from that end
+	UPROPERTY() FVector2D U = FVector2D(1, 0);   // outward unit tangent at the trim station, pointing AWAY from the node
+	UPROPERTY() FVector2D P = FVector2D::ZeroVector;   // plan position of the trim station
+	UPROPERTY() double ELeft = 0;
+	UPROPERTY() double ERight = 0;           // edge_offset(LEFT/RIGHT) at the trim station
+	UPROPERTY() double OverlapM = 0.04;      // road skirt overhang at the trim station
+	UPROPERTY() double Phi = 0;              // bearing of the TRIM POINT about the node - the angular order key
+	UPROPERTY() double HalfAng = 0;          // angular half-width the arm's end edge subtends at the node, measured
+	UPROPERTY() double RadiusM = 0;          // the trim radius THIS arm was solved at
 
 	/** The arm's true plan half-extent at the trim: the outer edge of its skirt row. */
 	double HalfExtentM() const { return FMath::Max(ELeft, ERight) + OverlapM; }
@@ -72,6 +83,96 @@ struct STREETSCAPE_API FStreetJunctionSpec
 	FStreetJunctionDefaults Cfg;
 
 	bool IsValid() const { return Arms.Num() >= 3; }
+};
+
+// ---------------------------------------------------------------------------------------------------------------
+// What an ACTOR carries, so a junction is right whatever World Partition has loaded
+// ---------------------------------------------------------------------------------------------------------------
+//
+// A junction's arms are different AStreetscapeActors - one actor per spline - and the patch goes into the OWNING
+// spline's own road buffer (build.build_all). Neither the plan nor the arms can be re-derived by an actor on its
+// own: the plan is a per-DOCUMENT solve, and a spline trimmed at both ends couples two junctions through one
+// degeneracy scale factor. So the whole-document solve happens ONCE, at import, and its result is SERIALISED onto
+// the actors:
+//
+//   * every arm actor keeps its own {t_start, t_end}, so an arm loaded without its junction's owner is still
+//     trimmed - the kerb and the carriageway stop where they should even with nothing else resident;
+//   * the owner keeps the solved arms AND the FStreetSplineDef of every arm it does not own, so it rebuilds each
+//     arm's FStreetSamples itself and can draw the complete patch and every kerb corner with no other actor
+//     loaded at all.
+//
+// Nothing here consults the world for another actor, which is the point: the geometry does not depend on load
+// order, on streaming radius, or on which cell the camera is in. The price is that ~3.5k arm definitions are
+// duplicated onto their owners (about 5 MB of the 23 MB the documents themselves occupy) and that an owner builds
+// its arms' samples a second time. Both were preferred to a junction that is only right when everything is in.
+//
+// THE LIMITATION, STATED. The owner's copy of an arm is a COPY, taken at import. Drag an arm spline's points in
+// the editor and that arm rebuilds, but its junction does not: the owner still holds the definition the document
+// had, so the patch would meet where the ribbon used to be. Junctions are import-time data - re-import the
+// DOCUMENT (03_import_streetscape.py --files <that file>) after editing a spline that stands in one, which
+// re-solves the whole document's plan and rewrites every affected actor. This is a real constraint and not a
+// latent bug: the import path is the only writer, and it always rewrites a whole document at once.
+
+/** One arm as its OWNER carries it: the solved arm, plus what the owner needs to rebuild that arm's samples. */
+USTRUCT()
+struct STREETSCAPE_API FStreetJunctionArmRecord
+{
+	GENERATED_BODY()
+	UPROPERTY() FStreetJunctionArm Arm;
+	/** The arm spline's definition - EMPTY for the owner's own arm, which uses the owner's already-built samples. */
+	UPROPERTY() FStreetSplineDef Def;
+	/** That arm spline's whole-document trim {t_start, t_end}: the owner must build it exactly as its own actor does. */
+	UPROPERTY() FVector2D TrimM = FVector2D::ZeroVector;
+	UPROPERTY() bool bIsOwner = false;
+};
+
+/** One junction as its OWNER carries it. Cfg is not stored: every solve uses FStreetJunctionDefaults. */
+USTRUCT()
+struct STREETSCAPE_API FStreetOwnedJunction
+{
+	GENERATED_BODY()
+	UPROPERTY() FStreetJunction Junction;
+	UPROPERTY() double TrimRadiusM = 0.0;
+	UPROPERTY() TArray<FStreetJunctionArmRecord> Arms;   // canonical (bearing, spline id, end) order
+
+	FStreetJunctionSpec ToSpec() const
+	{
+		FStreetJunctionSpec Spec;
+		Spec.Junction = Junction;
+		Spec.TrimRadiusM = TrimRadiusM;
+		Spec.Arms.Reserve(Arms.Num());
+		for (const FStreetJunctionArmRecord& R : Arms) Spec.Arms.Add(R.Arm);
+		return Spec;
+	}
+};
+
+/** The per-actor junction counters the census and the import gate add up (road.build_junction_patch's dict). */
+USTRUCT()
+struct STREETSCAPE_API FStreetActorJunctionStats
+{
+	GENERATED_BODY()
+	UPROPERTY(VisibleAnywhere, Category = "Streetscape") int32 Owned = 0;        // junctions this actor owns
+	UPROPERTY(VisibleAnywhere, Category = "Streetscape") int32 Built = 0;        // ... of which a patch was built
+	UPROPERTY(VisibleAnywhere, Category = "Streetscape") int32 Skipped = 0;
+	UPROPERTY(VisibleAnywhere, Category = "Streetscape") int32 NonMonotone = 0;
+	UPROPERTY(VisibleAnywhere, Category = "Streetscape") int32 PatchVerts = 0;
+	UPROPERTY(VisibleAnywhere, Category = "Streetscape") int32 PatchTris = 0;
+	UPROPERTY(VisibleAnywhere, Category = "Streetscape") int32 Corners = 0;
+	UPROPERTY(VisibleAnywhere, Category = "Streetscape") int32 CornersSkippedNoKerb = 0;
+	UPROPERTY(VisibleAnywhere, Category = "Streetscape") int32 CornersSkippedIncompatible = 0;
+	UPROPERTY(VisibleAnywhere, Category = "Streetscape") int32 CornerVerts = 0;
+	UPROPERTY(VisibleAnywhere, Category = "Streetscape") int32 CornerTris = 0;
+	UPROPERTY(VisibleAnywhere, Category = "Streetscape") double PatchAreaM2 = 0;
+	UPROPERTY(VisibleAnywhere, Category = "Streetscape") double PatchOverlapAreaM2 = 0;
+
+	void Add(const FStreetActorJunctionStats& O)
+	{
+		Owned += O.Owned; Built += O.Built; Skipped += O.Skipped; NonMonotone += O.NonMonotone;
+		PatchVerts += O.PatchVerts; PatchTris += O.PatchTris; Corners += O.Corners;
+		CornersSkippedNoKerb += O.CornersSkippedNoKerb; CornersSkippedIncompatible += O.CornersSkippedIncompatible;
+		CornerVerts += O.CornerVerts; CornerTris += O.CornerTris;
+		PatchAreaM2 += O.PatchAreaM2; PatchOverlapAreaM2 += O.PatchOverlapAreaM2;
+	}
 };
 
 /**

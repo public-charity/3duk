@@ -12,6 +12,13 @@ against the number the caller knows to expect (streetscape_manifest.splines_by_l
 --allow-no-terrain N accepts up to N splines whose stations all sampled NO ground (they are built flat at z = 0,
 which is geometry that looks right and is wrong); the default 0 fails the import and names them.
 
+JUNCTIONS (SCHEMA.md 4.18). Every document carries junctions[]; the importer solves that document's plan, hands
+each spline its trim and each OWNER the junctions it owns, and refuses the import when a document plans junctions
+and builds none. This script prints the totals, writes them to --junctions-out, and fails if a run that had
+junction records in its documents built none of them - which is exactly how the layer stayed unreachable for a
+whole round while every gate reported success. --expect-junctions N compares the built count against a number the
+caller knows (the numpy audit's 1,642 for the whole isle).
+
 One actor per spline, labelled with the spline id, with the components its profile_ids ask for (Road, EdgeLeft,
 EdgeRight, HedgeLeft, HedgeRight, Overlay) and the mesh built from the SAME FStreetSamples the spline produced.
 --stats-out writes the ActorStatsJson of the FIRST spline (the parity reference Tools/ue/compare_stats.py reads).
@@ -62,7 +69,7 @@ def main(argv):
         flags=("player_start", "save", "verify", "no_preload", "purge", "census"),
         options={"json": "", "map": DEFAULT_MAP, "stats_out": "", "site": "", "origin_e": "", "origin_n": "",
                  "region_radius_m": "20000", "set_game_mode": "", "expect_actors": "", "stats_limit": "0", "slice": "", "allow_no_terrain": "0", "files": "",
-                 "first": "", "sample_mode": ""},
+                 "first": "", "sample_mode": "", "junctions_out": "", "expect_junctions": ""},
     )
     src = ""
     if not opts["verify"] and not opts["files"]:
@@ -166,6 +173,9 @@ def main(argv):
         # once at most. --no-preload turns it off entirely (only correct on a level with no streetscape actors).
         n = 0
         preload = not opts["no_preload"]
+        # import_streetscape_json ACCUMULATES its junction totals and is called once per document below, so the
+        # run's own totals start here and nowhere else
+        unreal.StreetscapeEditorLibrary.reset_import_junction_totals()
         for k, f in enumerate(files):
             got = unreal.StreetscapeEditorLibrary.import_streetscape_json(
                 f, bool(opts["player_start"]) and k == 0, preload, int(opts["allow_no_terrain"]))
@@ -178,6 +188,41 @@ def main(argv):
                        % (k + 1, len(files), os.path.basename(f), got, n, uc.elapsed_s(), rss()))
         uc.log("import_streetscape_json -> %d actor(s) from %d document(s) after %.1fs (rss %.1f MB)"
                % (n, len(files), uc.elapsed_s(), rss()))
+        junctions = json.loads(unreal.StreetscapeEditorLibrary.last_import_junctions_json())
+        uc.log("junctions: %s" % json.dumps({k: v for k, v in junctions.items() if k != "skipped"}, sort_keys=True))
+        if junctions.get("skipped"):
+            uc.log("junctions skipped: %s" % json.dumps(junctions["skipped"][:20]))
+        # SUCCESS ON ZERO IS NEVER A PASS - but "no junction built" is only a defect when the plan solved one.
+        # A record with fewer than three usable arms, or a kind the layer does not fill, is dropped by the plan
+        # itself and counted; the authored test stretch is exactly that case. What must never pass is a solved
+        # junction the level did not draw, or a record that disappears without one of those two reasons.
+        planned = int(junctions.get("junctions_planned") or 0)
+        built = int(junctions.get("junctions_built") or 0)
+        records = int(junctions.get("junctions_in_documents") or 0)
+        accounted = planned + int(junctions.get("junctions_skipped_kind") or 0) + int(junctions.get("junctions_skipped_arms") or 0)
+        if planned > 0 and built == 0:
+            uc.fail(NAME, "the plan solved %d junction(s) in %d document(s) and NOT ONE was built - the junction "
+                          "layer is unreachable from the import path again" % (planned, junctions["documents"]))
+        if records != accounted:
+            uc.fail(NAME, "%d junction record(s) but only %d accounted for (%d built, %d skipped on kind, %d on arms)"
+                    % (records, accounted, planned, junctions.get("junctions_skipped_kind"),
+                       junctions.get("junctions_skipped_arms")))
+        if planned != built:
+            uc.fail(NAME, "the plan solved %d junction(s) and the level built %d" % (planned, built))
+        if opts["expect_junctions"]:
+            want = int(opts["expect_junctions"])
+            if int(junctions["junctions_built"]) != want:
+                uc.fail(NAME, "expected %d junction(s), the import built %d" % (want, junctions["junctions_built"]))
+            uc.log("junctions built %d == --expect-junctions" % want)
+        if opts["junctions_out"]:
+            out = opts["junctions_out"].replace("\\", "/")
+            d = os.path.dirname(out)
+            if d and not os.path.isdir(d):
+                os.makedirs(d)
+            with open(out, "w", encoding="utf-8", newline="\n") as fh:
+                json.dump(junctions, fh, indent=1, sort_keys=True)
+                fh.write("\n")
+            uc.log("junction totals written: %s" % out)
         timing["import_done_s"] = uc.elapsed_s()
         timing["rss_mb_after_import"] = rss()
         timing["documents"] = len(files)

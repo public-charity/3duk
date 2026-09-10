@@ -108,7 +108,7 @@ if (-not $AssertOnly) {
 		for ($i = 1; $i -le $StreetscapeSlices; $i++) {
 			$census = ""
 			if ($i -eq $StreetscapeSlices) { $census = " --census" }
-			Step "5_streetscape_$i" "03_import_streetscape.py" "--json $Data/streetscape --slice $i/$StreetscapeSlices --no-preload --save --stats-limit 1 --allow-no-terrain $AllowNoTerrain$census"
+			Step "5_streetscape_$i" "03_import_streetscape.py" "--json $Data/streetscape --slice $i/$StreetscapeSlices --no-preload --save --stats-limit 1 --allow-no-terrain $AllowNoTerrain --junctions-out $ProjDir/Saved/Junctions/slice_$i.json$census"
 		}
 	}
 }

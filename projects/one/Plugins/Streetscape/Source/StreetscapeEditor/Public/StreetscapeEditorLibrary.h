@@ -74,6 +74,26 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Streetscape")
 	static int32 ImportStreetscapeJson(const FString& FileOrDir, bool bPlacePlayerStart, bool bPreloadWorld = true, int32 MaxNoTerrainActors = 0);
 
+	/**
+	 * Zero the running junction totals. Call it ONCE before a run's imports: ImportStreetscapeJson accumulates,
+	 * because a site import calls it once per document and the number worth reporting is the run's, not the last
+	 * document's.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Streetscape")
+	static void ResetImportJunctionTotals();
+
+	/**
+	 * What the ImportStreetscapeJson calls SINCE THE LAST RESET did about junctions, as JSON.
+	 *
+	 * The counts the numpy isle-wide audit freezes (Saved/Diag/junction_isle.json): junctions_built against 1,642,
+	 * trimmed_ends against 5,168, patch_verts against 87,969, patch_tris against 86,327, corner_tris against
+	 * 498,830, plus the reason for every junction the import skipped. The import itself already refuses to return
+	 * success when a document's plan solved junctions and the level drew none of them; this is how a caller states
+	 * the number rather than trusting an exit code.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Streetscape")
+	static FString LastImportJunctionsJson();
+
 	/** Street ids of every AStreetscapeActor in the editor world, sorted. */
 	UFUNCTION(BlueprintCallable, Category = "Streetscape")
 	static TArray<FString> StreetscapeActorIds();

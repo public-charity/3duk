@@ -110,17 +110,19 @@ UStreetSplineComponent::UStreetSplineComponent(const FObjectInitializer& ObjectI
 	bSplineHasBeenEdited = true;
 }
 
-const FStreetSamples* UStreetSplineComponent::Build(const IStreetTerrainSource* Terrain, const FStreetSiteProfiles& Profiles, FString* Error, bool bForce)
+const FStreetSamples* UStreetSplineComponent::Build(const IStreetTerrainSource* Terrain, const FStreetSiteProfiles& Profiles, FString* Error, bool bForce,
+	const double* Trim)
 {
 	const FString Key = FStreetscapeJson::Canonical(FStreetscapeJson::WriteSpline(Def)) + TEXT("|") + (Terrain ? Terrain->Describe() : TEXT("no-terrain"))
-		+ FString::Printf(TEXT("|profiles:%d/%d/%d"), Profiles.Road.Num(), Profiles.Edge.Num(), Profiles.Hedge.Num());
+		+ FString::Printf(TEXT("|profiles:%d/%d/%d"), Profiles.Road.Num(), Profiles.Edge.Num(), Profiles.Hedge.Num())
+		+ FString::Printf(TEXT("|trim:%.17g/%.17g"), Trim ? Trim[0] : 0.0, Trim ? Trim[1] : 0.0);
 	if (!bForce && Samples.IsValid() && Key == CacheKey)
 	{
 		return Samples.Get();
 	}
 	TUniquePtr<FStreetSamples> S = MakeUnique<FStreetSamples>();
 	FString Err;
-	if (!FStreetSplineMath::Build(Def, Profiles, Terrain, *S, &Err))
+	if (!FStreetSplineMath::Build(Def, Profiles, Terrain, *S, &Err, Trim))
 	{
 		UE_LOG(LogStreetscape, Error, TEXT("StreetSplineComponent %s: %s"), *Def.Id, *Err);
 		if (Error) *Error = Err;

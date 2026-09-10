@@ -133,7 +133,19 @@ def main():
                     help="the CAP of the per-station sink")
     ap.add_argument("--sink-cover-frac", type=float, default=C.CorridorParams.sink_cover_frac,
                     help="fraction of the built block's own cover the sink may use")
+    ap.add_argument("--sink-taper", type=float, default=C.CorridorParams.sink_taper,
+                    help="cross-section slope the sink field may use between the two sides' depths "
+                         "and out into the verge (conform.sink_field)")
+    ap.add_argument("--sink-flat-m", type=float, default=C.CorridorParams.sink_flat_m,
+                    help="how far either side of a covered face the sink is held flat before the "
+                         "taper starts (conform.sink_field)")
+    ap.add_argument("--sink-covered-max-m", type=float, default=C.CorridorParams.sink_covered_max_m,
+                    help="the cap on the sink away from any covered face (conform.sink_field)")
     ap.add_argument("--verge-m", type=float, default=C.CorridorParams.verge_m)
+    ap.add_argument("--only-doc", action="append", default=[],
+                    help="restrict the burn to site documents whose basename contains this string "
+                         "(repeatable).  For A/B parameter runs: the product is still complete, but "
+                         "only these documents' corridors are burned into it.")
     ap.add_argument("--blend-min-m", type=float, default=C.CorridorParams.blend_min_m)
     ap.add_argument("--blend-max-m", type=float, default=C.CorridorParams.blend_max_m)
     ap.add_argument("--batter-deg", type=float, default=C.CorridorParams.batter_deg)
@@ -149,7 +161,8 @@ def main():
 
     t0 = time.time()
     params = C.CorridorParams(sink_m=args.sink_m, sink_max_m=args.sink_max_m,
-                              sink_cover_frac=args.sink_cover_frac,
+                              sink_cover_frac=args.sink_cover_frac, sink_taper=args.sink_taper, sink_flat_m=args.sink_flat_m,
+                              sink_covered_max_m=args.sink_covered_max_m,
                               verge_m=args.verge_m, blend_min_m=args.blend_min_m,
                               blend_max_m=args.blend_max_m, batter_deg=args.batter_deg,
                               report_delta_m=args.report_delta_m, clamp_m=args.clamp_m)
@@ -172,6 +185,8 @@ def main():
 
     acc = C.ConformAccumulator(grid)
     files = sorted(glob.glob(os.path.join(args.streetscape, "site_x*_y*.json")))
+    if args.only_doc:
+        files = [f for f in files if any(t in os.path.basename(f) for t in args.only_doc)]
     if args.limit:
         files = files[:args.limit]
     files += list(args.extra_doc)

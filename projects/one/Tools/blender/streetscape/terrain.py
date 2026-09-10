@@ -209,28 +209,24 @@ class Heightfield:
 
     # -- the coarser surfaces the landscape can DRAW ---------------------------------------------
     def lod_skeleton(self, k: int) -> "Heightfield":
-        """The surface an ALandscape draws at level of detail ``k``: every 2^k-th vertex kept, the
-        rest replaced by the straight line between the kept ones.
+        """A 2^k decimation of this field, anchored on the tile grid, dropped posts replaced by the
+        straight line between the kept ones.
 
-        Why a terrain sampler has to know this.  ``sample`` answers the question the ENGINE'S HEIGHT
-        QUERY answers -- and that is not the surface on the screen.  A landscape component renders a
-        decimated mesh whose spacing doubles with each LOD, so a corridor conformed to a road at the
-        1 m posts can still be drawn over by a triangle that spans 2, 4 or 8 m and never sees them.
-        Measured over 241,205 points inside real Thanet corridors on the shipped conformed product
-        (``projects/one/Saved/Clearance/rules_conformed.json``): with the landscape's own LOD-0
-        triangulation NOT ONE point has ground above the road, at LOD 1 it is 0.04 % of points,
-        at LOD 2 3.2 %, at LOD 3 15.2 % with a p99 of 0.32 m.  That is the whole distance between
-        "the data says the road is above the ground" and the 16 of 31 street frames of
-        ``renders/b1cd3e5`` that had no carriageway in them.
+        **THIS IS NOT THE LANDSCAPE'S LOD MESH.**  It was written on 2026-09-09 in the belief that it
+        was, and every LOD figure taken with it (0.03 % at LOD 1, 1.9 % at LOD 2, 8.6 % at LOD 3) is
+        an underestimate -- the same corridors measured against the engine's real rule give 0.76 %,
+        8.18 % and 22.26 %.  Two things are wrong with it and both matter:
 
-        Anchoring: tile (i, j)'s north-west sample sits at mosaic vertex (512*(ny-1-j), 512*i)
-        (``landscape_manifest.ue_import_unpadded.tile_quad_origin``), and 512 is a multiple of 2^k
-        for every k <= 9, so decimating inside each tile is the same decimation as decimating the
-        assembled mosaic -- no seam is invented by doing it per tile.  This models the LOD mesh as
-        point decimation; the engine additionally box-filters the heightmap texture into its mips,
-        which smooths rather than samples.  It is therefore a lower bound on the LOD error, and it is
-        already large enough to explain the pictures.
-        """
+        * the engine's stride is ``SubsectionSizeQuads / ((SubsectionSizeVerts >> k) - 1)``, which is
+          127/63, 127/31, 127/15 = **2.016, 4.097, 8.467 m**, not 2, 4, 8;
+        * the anchor is the **subsection lattice** -- every 127th landscape vertex, offset by the
+          importer's north padding -- which shares no alignment with the 512 m tile grid.
+
+        Use ``LandscapeLodSurface``, which is a transcription of
+        ``ULandscapeComponent::GenerateHeightmapMips`` and ``LandscapeVertexFactory.ush``.  Nothing
+        in the conform, the audit or the reports calls this any more; it survives only because
+        ``tests/test_conform.py`` still pins its behaviour, and that test belongs to the geometry
+        track to retire."""
         import copy as _copy
         k = int(k)
         if k <= 0:
@@ -247,8 +243,13 @@ class Heightfield:
             A = T.astype(np.float64)
             B = A[lo, :] * (1.0 - t)[:, None] + A[hi, :] * t[:, None]
             out.tiles[key] = (B[:, lo] * (1.0 - t)[None, :] + B[:, hi] * t[None, :]).astype(np.float32)
-        out.source = (self.source or "") + " +lod%d" % k
+        out.source = (self.source or "") + " +lod%d(NOT the engine rule)" % k
         return out
+
+    def lod_surface(self, k: int, path: str = None):
+        """The surface the landscape DRAWS at level of detail ``k`` -- see ``LandscapeLodSurface``."""
+        return LandscapeLodSurface.from_landscape_dir(path or self.source.split("landscape:", 1)[-1],
+                                                     k, sampling=self.sampling)
 
     # -- frames --------------------------------------------------------------------------------
     def rebased(self, doc_E: float, doc_N: float) -> "Heightfield":
@@ -345,3 +346,251 @@ class Heightfield:
         return {"source": self.source, "tile_m": self.tile_m, "res": self.res, "px_m": self.px_m,
                 "n_tiles": len(self.tiles), "origin": {"E": self.origin_E, "N": self.origin_N},
                 "shift_xy": [float(self.shift_xy[0]), float(self.shift_xy[1])], "xy0": [float(self.xy0[0]), float(self.xy0[1])]}
+
+
+# ---------------------------------------------------------------------------------------------
+# The surface the landscape DRAWS, which is not the surface its height query returns
+# ---------------------------------------------------------------------------------------------
+class LandscapeLodSurface:
+    """The mesh an ``ALandscape`` rasterises at integer level of detail ``k``.
+
+    ``Heightfield.sample`` answers what ``ALandscapeProxy::GetHeightAtLocation`` answers: the LOD-0
+    triangulation, which is also what the pawn collides with.  It is NOT what the camera sees.  Past
+    a distance set by ``LOD0ScreenSize`` the renderer draws a coarser mesh, and the corridor a
+    conform sank 3 cm at the 1 m posts can be drawn straight over by a triangle that never saw them.
+
+    THE RULE, TRANSCRIBED RATHER THAN GUESSED.  Two pieces of shipped engine source, read at
+    UE 5.8.2 on this machine:
+
+    * ``Runtime/Landscape/Private/LandscapeEdit.cpp:2272``
+      ``ULandscapeComponent::GenerateHeightmapMips`` builds mip ``m`` of the component's heightmap
+      texture from mip ``m-1``.  It is NOT a box filter.  Each subsection of
+      ``SubsectionSizeQuads`` quads is resampled onto
+      ``MipSubsectionSizeQuads = ((SubsectionSizeQuads + 1) >> m) - 1`` quads, and the value at mip
+      vertex ``i`` is read from the previous mip at the FRACTIONAL position
+      ``PrevMipSubsectionSizeQuads * i / MipSubsectionSizeQuads`` by bilinear interpolation
+      (``FMath::Lerp`` of the four neighbours), then re-quantised to uint16.
+    * ``Engine/Shaders/Private/LandscapeVertexFactory.ush:660-680`` places the vertex at
+      ``ActualLODCoordsInt / CoordTranslate.x`` -- the same evenly spread subsection positions -- and
+      reads its height from ``Texture2DSampleLevel(HeightmapTexture, ..., LodValue - LodBias)``, i.e.
+      exactly that mip texel.  Between two integer LODs it lerps position AND height towards the
+      next LOD (``MorphAlpha``), so an integer-LOD surface is the extreme of a continuum, not a step.
+
+    Two consequences that the previous model got wrong, and that decide where a road survives:
+
+    1. **The stride is not 2^k.**  With this site's ``SubsectionSizeQuads = 127`` it is
+       ``127 / ((128 >> k) - 1)`` = **2.0159 m at LOD 1, 4.0968 m at LOD 2, 8.4667 m at LOD 3**.
+    2. **The anchor is the subsection grid, every 127 landscape vertices**, not the 512 m tile grid
+       and not the world origin.  Subsection edges keep their LOD-0 height EXACTLY at every mip (the
+       resample lands on them with zero fraction), which is what keeps neighbouring components crack
+       free -- and it means the error is zero on a lattice of lines 127 m apart and largest between.
+
+    So the drawn surface at LOD k is: per subsection, an ``(M_k+1)^2`` lattice of vertices at those
+    strides, each carrying the chained bilinear resample of the LOD-0 heights, triangulated with the
+    landscape's own NW-SE diagonal (the same ``_interp`` rule as LOD 0, in subsection index space).
+
+    NOT modelled, and each one bounded: the uint16 re-quantisation at every mip (half-quantum
+    0.0039 m per level, unbiased, <= 0.0117 m at LOD 3); ``MorphAlpha`` (between levels, and bounded
+    by the two levels it interpolates); ``LodBias`` from heightmap texture streaming (0 with the
+    texture resident, which is what a commandlet capture has).
+
+    WHERE EACH LOD IS DRAWN.  ``FLandscapeComponentSceneProxy::ComputeLODForView``
+    (``LandscapeRender.cpp:4508``) takes ``ComputeBoundsScreenRadiusSquared`` of the COMPONENT bounds
+    -- 254 m square here, sphere radius about 180 m -- and compares it against the ratios built at
+    ``LandscapeRender.cpp:1549-1567``: ``LOD0ScreenSize``, divided by ``LOD0DistributionSetting``
+    once and by ``LODDistributionSetting`` per level after that.  With this level's saved values
+    (0.5, 1.25, 3.0) and the render set's 80 deg / 16:9 camera that is LOD 0 inside about 380 m,
+    LOD 1 by 480 m, LOD 2 by 1.4 km and LOD 3 only past 4.3 km.  ``distances_m`` computes it.
+    """
+
+    def __init__(self, mosaic, k, subsection_quads=127, y_top_m=0.0, px_m=1.0,
+                 sampling="landscape_triangulated", source="", meta=None):
+        self.meta = dict(meta or {})
+        self.k = int(k)
+        self.sq = int(subsection_quads)
+        self.y_top_m = float(y_top_m)
+        self.px_m = float(px_m)
+        self.sampling = sampling
+        self.source = source
+        self.shift_xy = (0.0, 0.0)
+        self.mk = ((self.sq + 1) >> self.k) - 1
+        if self.mk < 1:
+            raise ValueError("LOD %d leaves %d quads per subsection" % (self.k, self.mk))
+        self.stride_m = self.px_m * self.sq / float(self.mk)
+        self.weights = self.resample_weights(self.sq, self.k)
+        self.grid = self._build(mosaic)
+
+    # -- the engine's own resample chain, as a matrix ------------------------------------------
+    @staticmethod
+    def resample_weights(subsection_quads: int, k: int) -> np.ndarray:
+        """``(M_k+1, subsection_quads+1)``: row ``i`` is how mip-k vertex ``i`` of a subsection is
+        made out of that subsection's LOD-0 vertices.
+
+        One level of ``GenerateHeightmapMips`` per step, composed: the value at mip ``m`` vertex
+        ``i`` is the linear interpolation of mip ``m-1`` at ``M_{m-1} * i / M_m``.  Because every
+        level is linear in the level below it, the whole chain is one matrix -- which is also the
+        proof that the drawn height is a weighted AVERAGE of nearby survey heights with non-negative
+        weights summing to one, so lowering ground can never raise the drawn surface."""
+        n = int(subsection_quads) + 1
+        W = np.eye(n, dtype=np.float64)
+        prev_q = int(subsection_quads)
+        for m in range(1, int(k) + 1):
+            q = ((int(subsection_quads) + 1) >> m) - 1
+            if q < 1:
+                raise ValueError("mip %d leaves %d quads" % (m, q))
+            p = prev_q * np.arange(q + 1, dtype=np.float64) / float(q)
+            i0 = np.minimum(np.floor(p).astype(np.int64), prev_q)
+            i1 = np.minimum(i0 + 1, prev_q)
+            f = p - i0
+            W = (1.0 - f)[:, None] * W[i0] + f[:, None] * W[i1]
+            prev_q = q
+        return W
+
+    # -- construction ---------------------------------------------------------------------------
+    @classmethod
+    def from_landscape_dir(cls, path: str, k: int, subsection_quads: int = 127,
+                           sampling: str = "landscape_triangulated") -> "LandscapeLodSurface":
+        """Read ``hm_*.r16`` into one landscape-vertex mosaic and build the LOD-k lattice.
+
+        The clip mask is deliberately NOT applied.  ``clip == 0`` marks ground outside the model, but
+        the h16 still holds a filled height there and the engine's mip chain averages it like any
+        other texel; masking it to NaN here would poison every mip vertex within 2^k cells of the
+        coast and delete the answer exactly where the coastal roads are."""
+        with open(os.path.join(path, "landscape_manifest.json"), "r", encoding="utf-8") as fh:
+            man = json.load(fh)
+        res = int(man["res"])
+        tile_m = float(man["tile_m"])
+        px_m = float(man.get("px_m", tile_m / (res - 1)))
+        enc = man.get("heightmap", {}).get("z_encoding", {})
+        per_unit = float(enc.get("per_unit", 128))
+        offset = float(enc.get("offset", 32768))
+        nx, ny = int(man["nx"]), int(man["ny"])
+        sq = int(subsection_quads)
+        # THE ANCHOR.  Landscape vertex (0, 0) is NOT the survey's north-west sample: the importer
+        # pads to a whole component grid on the EAST and the NORTH and moves the actor with it
+        # (StreetscapeLandscapeImporter.h:8, .cpp:255 and :506 -- "data row r -> padded row
+        # r + pad_north, columns unchanged, actor at (0, -100*(H-1 + pad_north), 0)").  At Thanet
+        # that is pad_north = 178, and 178 mod 127 = 51, so getting this wrong slides the whole
+        # subsection lattice 51 m north of where the engine puts it.
+        sections = int(round(float((man.get("ue_import", {}) or {}).get("sections", 2)) or 2))
+        qpc = sq * sections
+        w0, h0 = nx * (res - 1) + 1, ny * (res - 1) + 1
+        wp = -(-(w0 - 1) // qpc) * qpc + 1
+        hp = -(-(h0 - 1) // qpc) * qpc + 1
+        pad_north = hp - h0
+        pad_h16 = float(man.get("pad_value_h16", offset))
+        nsx, nsy = (wp - 1) // sq, (hp - 1) // sq
+        mosaic = np.full((hp, wp), np.float32((pad_h16 - offset) / per_unit), dtype=np.float32)
+        missing = set(tuple(t) for t in man.get("tiles_missing", []))
+        clipped_whole = set(tuple(t) for t in man.get("tiles_clipped", []))
+        for t in man.get("tiles", []):
+            key = (int(t["x"]), int(t["y"]))
+            if key in missing or key in clipped_whole:
+                continue
+            name = (t.get("files", {}) or {}).get("heightmap") or "hm_x%d_y%d.r16" % key
+            h16 = np.fromfile(os.path.join(path, name), dtype="<u2")
+            if h16.size != res * res:
+                raise ValueError("%s: %d values, expected %d" % (name, h16.size, res * res))
+            z = ((h16.astype(np.float64) - offset) / per_unit).reshape(res, res).astype(np.float32)
+            r0 = (ny - 1 - key[1]) * (res - 1) + pad_north
+            c0 = key[0] * (res - 1)
+            mosaic[r0:r0 + res, c0:c0 + res] = z
+        return cls(mosaic, k, subsection_quads=sq, y_top_m=px_m * (h0 - 1 + pad_north), px_m=px_m,
+                   sampling=sampling, source="landscape:%s +lod%d" % (os.path.abspath(path), k),
+                   meta={"pad_north": pad_north, "pad_east": wp - w0, "verts_padded": [wp, hp],
+                         "subsections": [nsx, nsy], "quads_per_component": qpc})
+
+    def _build(self, mosaic) -> np.ndarray:
+        """``(nsy, M+1, nsx, M+1)`` mip-k heights, one subsection row of blocks at a time."""
+        sq, W = self.sq, self.weights
+        n = sq + 1
+        nsy = (mosaic.shape[0] - 1) // sq
+        nsx = (mosaic.shape[1] - 1) // sq
+        out = np.empty((nsy, self.mk + 1, nsx, self.mk + 1), dtype=np.float32)
+        from numpy.lib.stride_tricks import as_strided
+        for sy in range(nsy):
+            rows = np.ascontiguousarray(mosaic[sy * sq:sy * sq + n, :], dtype=np.float64)
+            blk = as_strided(rows, shape=(n, nsx, n),
+                             strides=(rows.strides[0], sq * rows.strides[1], rows.strides[1]))
+            r1 = np.tensordot(W, blk, axes=([1], [0]))          # (M+1, nsx, n)   rows -> mip rows
+            out[sy] = np.tensordot(r1, W, axes=([2], [1]))      # (M+1, nsx, M+1) cols -> mip cols
+        return out
+
+    # -- sampling, with Heightfield's signature so it drops into the same call sites -------------
+    def sample(self, x, y) -> np.ndarray:
+        x = np.asarray(x, dtype=np.float64) + self.shift_xy[0]
+        y = np.asarray(y, dtype=np.float64) + self.shift_xy[1]
+        scalar = x.ndim == 0
+        x = np.atleast_1d(x)
+        y = np.atleast_1d(y)
+        out = np.full(x.shape, np.nan, dtype=np.float64)
+        nsy, _, nsx, _ = self.grid.shape
+        vx = x / self.px_m
+        vy = (self.y_top_m - y) / self.px_m
+        ok = np.isfinite(vx) & np.isfinite(vy) & (vx >= 0) & (vy >= 0) \
+            & (vx <= nsx * self.sq) & (vy <= nsy * self.sq)
+        if not ok.any():
+            return float(out[0]) if scalar else out
+        sq, mk = self.sq, self.mk
+        sx = np.clip((vx[ok] / sq).astype(np.int64), 0, nsx - 1)
+        sy = np.clip((vy[ok] / sq).astype(np.int64), 0, nsy - 1)
+        # mip index space inside the subsection: u in [0, sq] -> a in [0, mk]
+        a = (vx[ok] - sx * sq) * mk / float(sq)
+        b = (vy[ok] - sy * sq) * mk / float(sq)
+        i0 = np.clip(np.floor(a).astype(np.int64), 0, mk - 1)
+        j0 = np.clip(np.floor(b).astype(np.int64), 0, mk - 1)
+        tx = np.clip(a - i0, 0.0, 1.0)
+        ty = np.clip(b - j0, 0.0, 1.0)
+        G = self.grid
+        nw = G[sy, j0, sx, i0].astype(np.float64)
+        ne = G[sy, j0, sx, i0 + 1].astype(np.float64)
+        sw = G[sy, j0 + 1, sx, i0].astype(np.float64)
+        se = G[sy, j0 + 1, sx, i0 + 1].astype(np.float64)
+        out[ok] = _interp(nw, ne, sw, se, tx, ty, self.sampling)
+        out[~np.isfinite(out)] = np.nan
+        return float(out[0]) if scalar else out
+
+    def rebased(self, doc_E: float, doc_N: float) -> "LandscapeLodSurface":
+        raise NotImplementedError("the LOD surface is only defined in the landscape's own frame")
+
+    def describe(self) -> dict:
+        d = {"source": self.source, "lod": self.k, "subsection_quads": self.sq,
+             "mip_quads": self.mk, "stride_m": self.stride_m, "px_m": self.px_m,
+             "y_top_m": self.y_top_m, "grid": [int(v) for v in self.grid.shape],
+             "sampling": self.sampling}
+        d.update(self.meta)
+        return d
+
+    # -- where the engine draws this level -------------------------------------------------------
+    @staticmethod
+    def distances_m(lod0_screen_size=0.5, lod0_distribution=1.25, lod_distribution=3.0,
+                    fov_deg=80.0, aspect=16.0 / 9.0, component_quads=254, px_m=1.0,
+                    height_extent_m=20.0, max_lod=5):
+        """Distance in metres at which each LOD becomes the one drawn, from the engine's own formula.
+
+        ``ComputeBoundsScreenRadiusSquared`` (``SceneManagement.cpp:933``) is
+        ``(0.5 * max(M00, M11) * R / D)^2``; ``FLandscapeRenderSystem::ComputeLODFromScreenSize``
+        compares it against the ratio chain of ``LandscapeRender.cpp:1549-1567``.  ``R`` is the
+        landscape COMPONENT's bounds sphere radius, not the subsection's."""
+        m00 = 1.0 / np.tan(np.radians(fov_deg) / 2.0)
+        screen_mult = max(0.5 * m00, 0.5 * m00 * aspect)
+        half = 0.5 * component_quads * px_m
+        r = float(np.sqrt(2.0 * half * half + (0.5 * height_extent_m) ** 2))
+        ratios, cur = [], float(lod0_screen_size)
+        ratios.append(cur)
+        cur /= max(lod0_distribution, 1.01)
+        ratios.append(cur)
+        for _ in range(2, max_lod + 1):
+            cur /= max(lod_distribution, 1.01)
+            ratios.append(cur)
+        d = [round(screen_mult * r / q, 1) for q in ratios]
+        return {"component_bounds_radius_m": r, "screen_multiple": screen_mult,
+                "lod_screen_ratio": ratios,
+                "lod_begins_m": d,
+                "lod_begins_m_note": (
+                    "entry k is the distance at which the component's screen radius falls to the "
+                    "ratio for LOD k.  Entry 0 is therefore where LOD 0 ENDS -- inside it the "
+                    "landscape is exactly LOD 0 -- and entry k >= 1 is where LOD k is fully "
+                    "reached; between two entries the vertex factory morphs between the two levels "
+                    "(MorphAlpha), so an integer-LOD surface is the far end of a continuum."),
+                "stride_m": [round(127.0 / (((128 >> k) - 1) or 1), 4) for k in range(len(ratios))]}

@@ -48,8 +48,15 @@ public:
 	virtual USplineMetadata* GetSplinePointsMetadata() override { return Metadata; }
 	virtual const USplineMetadata* GetSplinePointsMetadata() const override { return Metadata; }
 
-	/** Build (or reuse the cached) samples: SCHEMA.md 3.1 -> 3.6 with the mandatory stations of the two timelines. */
-	const FStreetSamples* Build(const IStreetTerrainSource* Terrain, const FStreetSiteProfiles& Profiles, FString* Error = nullptr, bool bForce = false);
+	/**
+	 * Build (or reuse the cached) samples: SCHEMA.md 3.1 -> 3.6 with the mandatory stations of the two timelines.
+	 *
+	 * Trim is {t_start, t_end} in metres, resolved once per document by FStreetJunctionPlan and carried on the owning
+	 * actor (AStreetscapeActor::JunctionTrimM), so Renderer A and Renderer B read ONE trimmed extent. It is part of
+	 * the cache key: a spline that gains or loses a junction must not answer out of a stale FStreetSamples.
+	 */
+	const FStreetSamples* Build(const IStreetTerrainSource* Terrain, const FStreetSiteProfiles& Profiles, FString* Error = nullptr, bool bForce = false,
+		const double* Trim = nullptr);
 	const FStreetSamples* GetSamples() const { return Samples.Get(); }
 	void MarkDirty() { CacheKey.Reset(); }
 

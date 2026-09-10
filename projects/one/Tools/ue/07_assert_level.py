@@ -188,9 +188,18 @@ def main(argv):
     if not got["default_pawn_class"]:
         problems.append("the map's game mode has no default pawn class")
 
+    # The streetscape census READ OFF THE LEVEL, not off the importer. With the whole world streamed in this is
+    # the isle's own account of what it holds - including the junction layer, which is the number that was zero
+    # for a whole round while every gate reported success (SCHEMA.md 4.18).
+    street = None
+    if not opts["no_load_all"]:
+        street = json.loads(unreal.StreetscapeEditorLibrary.streetscape_census_json())
+        uc.log("streetscape census: %s" % json.dumps(
+            {k: v for k, v in street.items() if not isinstance(v, dict)}, sort_keys=True))
+
     payload = {"map": opts["map"], "data": data, "census": actors, "external_actors": disk, "expect": expect, "got": got,
                "landscape_state": state, "problems": problems, "census_only": bool(opts["census_only"]),
-               "rss_mb": round(imp.rss_mb(), 1)}
+               "streetscape_census": street, "rss_mb": round(imp.rss_mb(), 1)}
     if opts["out"]:
         out = opts["out"].replace("\\", "/")
         os.makedirs(os.path.dirname(out), exist_ok=True)

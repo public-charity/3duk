@@ -776,7 +776,25 @@ int32 FStreetGeometry::ToDynamicMesh(const FStreetMeshBuilder& In, UE::Geometry:
 
 TArray<double> FStreetGeometry::StationValues(const FStreetMeshBuilder& Buf, const FString& ExcludePrefix)
 {
-	const TArray<int32> Vi = Buf.VerticesOfGroups(TEXT(""), nullptr, &ExcludePrefix);
+	// mesh.NON_STATION_PREFIXES = ("marking:", "junction:", "corner_"). A dash end is an INTERPOLATED station; a
+	// junction patch and a kerb corner are not swept along this spline at all - their vertices carry the s of
+	// whatever arm they came from. None of the three is one of this spline's own stations, so none of them may
+	// take part in the DESIGN.md 5 rule 2 comparison. ExcludePrefix is the caller's own extra prefix.
+	static const TCHAR* kNonStation[] = { TEXT("junction:"), TEXT("corner_") };
+	TSet<int32> Skip;
+	for (int32 I = 0; I < Buf.GroupNames.Num(); ++I)
+	{
+		const FString N = Buf.GroupNames[I].ToString();
+		bool bSkip = !ExcludePrefix.IsEmpty() && N.StartsWith(ExcludePrefix, ESearchCase::CaseSensitive);
+		for (const TCHAR* P : kNonStation) bSkip = bSkip || N.StartsWith(P, ESearchCase::CaseSensitive);
+		if (bSkip) Skip.Add(I);
+	}
+	TSet<int32> Vi;
+	for (int32 T = 0; T < Buf.F.Num(); ++T)
+	{
+		if (Skip.Contains(Buf.Grp[T])) continue;
+		for (int32 K = 0; K < 3; ++K) Vi.Add(Buf.F[T][K]);
+	}
 	TArray<double> S;
 	for (int32 I : Vi) S.Add(Buf.VS[I]);
 	S.Sort();
