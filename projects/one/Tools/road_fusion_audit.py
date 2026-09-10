@@ -226,6 +226,7 @@ def main():
     skipped = []
     structures = []
     worst = []
+    floating_runs = []
     rule_delta, rule_clear_b, rule_clear_t = [], [], []
     for n, (path, i) in enumerate(chosen):
         if path not in cache:
@@ -282,6 +283,16 @@ def main():
             d, cb, ct = F.rule_delta(sp, hf_test, args.k_road)
             rule_delta.append(d); rule_clear_b.append(cb); rule_clear_t.append(ct)
         v = rec["valid"]
+        hit = np.flatnonzero(v & (rec["float"] > args.float_gate_m))
+        for run in np.split(hit, np.flatnonzero(np.diff(hit) > 1)+1):
+            if not len(run):
+                continue
+            j = int(run[np.argmax(rec["float"][run])])
+            floating_runs.append({"doc":os.path.basename(path),"spline_id":sdef.id,"cls":cls,
+                "name":sdef.source.name if sdef.source is not None else None,
+                "s0_m":float(sp.s[run[0]]),"s1_m":float(sp.s[run[-1]]),
+                "length_m":float(rec["span"][run].sum()),"max_gap_m":float(rec["float"][j]),
+                "worst_s_m":float(sp.s[j]),"worst_xy_m":[float(sp.xy[j,0]),float(sp.xy[j,1])]})
         if v.any():
             j = int(np.nanargmax(np.where(v, rec["penetration"], -np.inf)))
             worst.append((float(rec["penetration"][j]), float(rec["float"][j]), sdef.id, cls,
@@ -332,6 +343,8 @@ def main():
                                "into the obstacle it spans the way currently dives.  Fixing that is a "
                                "z_ref question in the shared spline layer, not a conform one.  Pass "
                                "--structures include to gate them anyway."),
+           "floating_runs": sorted(floating_runs,key=lambda row:(-row["max_gap_m"],row["spline_id"],row["s0_m"])),
+           "measurement_scope": "untrimmed ribbon envelopes; junction patch/corner meshes require their separate geometry audit",
            "worst_stations": [{"penetration_m": w[0], "float_m": w[1], "spline_id": w[2], "cls": w[3],
                                "doc": w[4], "station": w[5], "s_m": w[6], "local_xy_m": [w[7], w[8]]}
                               for w in worst[:args.worst]]}

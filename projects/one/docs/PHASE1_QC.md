@@ -47,6 +47,21 @@ use connected alignments across those segments before claiming continuity.
 
 ## Working strategy
 
+**Latest measurements supersede the older float numbers below.** Per-side coverage
+now measures bare edges independently: **8.38545% / 65.961 km** floating at LOD 0,
+with all 62 envelope chunks still within the penetration gate. Every floating run
+is recorded for prioritized repair. Largest outliers are coastal stairs and landings.
+
+A second gate now measures emitted junction patch/corner triangle interiors from
+trimmed arms. It distinguishes actual visible penetration from lower pavement hidden
+under a higher road patch; deep overlaps remain review items. The 430-junction sample
+has **401 passes, 18 overlap reviews, 10 visible-geometry failures and one structure
+case**. Full census complete: **1,513 passes, 85 overlap reviews, 36 failures,
+8 structure cases (1,642 total)**, state `junction_mesh_qc/a087591d8ce94eb1833f/state.json`.
+This closes a scope gap in the ribbon-envelope gate;
+it does not turn its earlier numerical pass into whole-scene acceptance.
+152 core tests and 52 tool tests pass. See RESUME.md for current state paths.
+
 Full corrected ground census passed **62/62** chunks: 12,945 measured splines,
 660,835 stations, 961.532 km, max LOD-0 penetration 0.8005 mm. 151 structures and
 one named no-terrain stub remain explicitly excluded. Floating measures 8.0557%

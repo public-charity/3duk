@@ -71,6 +71,27 @@ def burn(splines, hf, params=None):
     return C.burn_heightfield(hf, grid, acc), acc, grid
 
 
+class TestFloatingEdgeCoverage(unittest.TestCase):
+    def test_kerb_on_opposite_side_does_not_hide_bare_road_edge(self):
+        survey = syn.flat_terrain(10)
+        ground = syn.flat_terrain(9.75)
+        for bare in ("edge_left", "edge_right"):
+            with self.subTest(bare=bare):
+                doc = syn.straight_100()
+                doc["splines"][0]["segments"] = []
+                doc["splines"][0]["drop_kerbs"] = []
+                site = io_json.site_from_dict(doc)
+                both_kerbed = Spline(site.splines[0], site, survey)
+                covered = F.audit_spline(both_kerbed, ground)
+                self.assertEqual(float(covered["float"].max()), 0.0)
+                doc["splines"][0]["profile_ids"][bare] = None
+                site = io_json.site_from_dict(doc)
+                asymmetric = Spline(site.splines[0], site, survey)
+                measured = F.audit_spline(asymmetric, ground)
+                self.assertTrue(measured["valid"].any())
+                self.assertGreater(float(measured["float"][measured["valid"]].min()), .125)
+
+
 class TestSyntheticCorridor(unittest.TestCase):
     @classmethod
     def setUpClass(cls):

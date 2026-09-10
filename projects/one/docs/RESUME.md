@@ -2,6 +2,63 @@
 
 ## Current checkpoint — 2026-09-10, Phase 1 completion
 
+### Tenth milestone: side-aware float and emitted junction mesh QC
+
+- Latest commit **`d181075`** contains the Broadley candidate generator and previous
+  full ground census. Working changes improve QC; source/terrain/render geometry
+  remains unchanged. No engine process is running.
+- Fixed `fusion.audit_spline`: a kerb on one side no longer hides a bare edge on the
+  other side; road skirt depth is measured in world Z after bank. Asymmetric left/right
+  fixtures prove the defect is detected. **152/152 NumPy core tests pass**,
+  `Saved/phase1_numpy_152.log`; 19 focused conform tests also pass.
+- Side-aware full census **62/62 chunks complete**, same LOD-0 max penetration
+  0.8005 mm. Floating now **55,414 / 660,835 stations = 8.38545%**, **65.961 km**,
+  max 12.2915 m. The old 8.0557% / 63.245 km undercounted asymmetric edges.
+  State: `ground_candidate_qc/full/c05c542984ffdc521cc4/state.json`.
+  Log: `Saved/phase1_ground_candidate_full_sides.log`.
+  Reports now list EVERY floating run with ID, class, arc range, length and worst XY.
+- Largest outliers are coastal stairs/landings: Augusta Steps / roads:138578171:0
+  and adjacent footway roads:138578168:0 at local (11113,1991), plus steps/footways
+  roads:43998874/75/76 at (10426,1432). Treat these as multi-level structures and
+  stair/landing supports, not blindly as ordinary earthwork batters.
+- The ribbon audit now explicitly labels its scope: **untrimmed ribbon envelopes**.
+  It cannot certify junction patches/corners. Added `diag/junction_mesh_audit.py`
+  builds actual trimmed-arm patch and upper corner triangles, samples interiors
+  at <=25 cm edge spacing, and accounts for higher road geometry covering a lower
+  corner. Missing ground and build failures fail. Deep road/pavement overlap is
+  a separate review status. Every document is atomically checkpointed with hashes.
+- **52/52 tool tests pass**, `Saved/phase1_tools_52.log`: interior penetration despite
+  clear vertices, empty/missing terrain, and hidden lower surface classification.
+  A first test fixture was too narrow for its arbitrary >10 cm expectation; widened
+  the synthetic hill. The 5 mm production gate was never relaxed.
+- Sample junction geometry completed 35 documents / **430 junctions** in 70.6 s:
+  **401 passed, 18 overlap reviews, 10 failed, 1 needs structure model**.
+  State `junction_mesh_qc/e0a4d8b565784253f11f/state.json`, log
+  `Saved/phase1_junction_mesh_sample_complete.log`.
+  This sample predates adding imported audit helpers to the input hash list;
+  measured code is the same, but a fresh invocation will use a new state identity.
+- Specific real visible corner failures: junction:16_8:2 at (8370.13,4484.91),
+  **296 mm** terrain above pavement; junction:16_8:3 at (8381.05,4438.47), **56.8 mm**.
+  junction:15_9:1 has 47.3 mm visible penetration as well as buried pavement.
+  A naive surface check falsely classified the worst buried point at junction:15_10:5
+  as green terrain intrusion: the road patch above it is clear. It now correctly
+  remains an overlap review (corner ~1.11 m below that road), not visible penetration.
+  Evidence: `Saved/Phase1/probe_junction_occlusion.json`.
+- Full emitted-junction census COMPLETE: **1,642 junctions = 1,513 passed,
+  85 overlap reviews, 36 failed, 8 need structure models**. State
+  `junction_mesh_qc/a087591d8ce94eb1833f/state.json`; log
+  `Saved/phase1_junction_mesh_full.log`. Exit 1 correctly reflects open defects.
+  No jobs are running. `--max-docs 4` gives a bounded continuation for new inputs.
+- Next: finish full junction ledger, then correct visible corner terrain gaps on a
+  small candidate first; investigate buried/overlapping pavement separately. A small
+  derived-terrain patch can avoid re-stamping all 12k roads, but needs proof and hashes.
+  Renderer B bank-aware support/toe geometry and stairs remain open.
+- Changes to diagnostic core files deliberately invalidate old structure-inventory
+  source hashes. Existing candidate artifacts retain their old provenance. Refresh
+  the inventory to a NEW output path before generating new candidates; do not overwrite
+  historical inventory/fit artifacts or rerun a 23-minute terrain conform solely
+  because an unrelated diagnostic hash changed.
+
 ### Ninth milestone in progress: ground census complete, Broadley floor candidate
 
 - Latest committed code: **`06d87d4`**, validated document export/refresh. Working

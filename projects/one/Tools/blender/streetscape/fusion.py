@@ -94,9 +94,12 @@ def audit_spline(sp, hf, k_road: int = 9, k_edge: int = 5) -> dict:
 
     pen_edge = np.zeros(N)
     float_edge = np.zeros(N)
-    edge_any = np.zeros(N, dtype=bool)
+    # carriageway_points runs from RIGHT (-d) to LEFT (+d). Coverage is per side:
+    # a left pavement cannot hide daylight underneath a bare right road edge.
+    edge_covered = np.zeros((N, 2), dtype=bool)
     for side in (S.LEFT, S.RIGHT):
         ex, ey, etop, ebase, present = edge_points(sp, side, k_edge)
+        edge_covered[:, 1 if side == S.LEFT else 0] = present
         if not present.any():
             continue
         zte = hf.sample(ex.ravel(), ey.ravel()).reshape(ex.shape)
@@ -107,15 +110,15 @@ def audit_spline(sp, hf, k_road: int = 9, k_edge: int = 5) -> dict:
         # daylight under the outer face: only the OUTERMOST column can be seen from outside
         gap = np.where(good[:, -1], ebase[:, -1] - zte[:, -1], -np.inf)
         float_edge = np.maximum(float_edge, np.where(np.isfinite(gap), np.maximum(gap, 0.0), 0.0))
-        edge_any |= present & np.isfinite(zte).any(axis=1)
 
     # Where there is no kerb/pavement the road's own skirt is the only thing hiding a gap, and the only
     # place a gap can be SEEN is the ribbon's two edges: a dip under the middle of the carriageway is
     # covered by the carriageway itself.  (With a kerb the outer face of the pavement block is the
     # visible edge, handled above.)
     skirt_drop = np.asarray(sp.skirt_drop_m, dtype=np.float64)
-    edge_clear = np.where(ok[:, [0, -1]], clear[:, [0, -1]], -np.inf).max(axis=1)
-    float_road = np.where(edge_any, 0.0, np.maximum(0.0, edge_clear - skirt_drop))
+    bare_ok = ok[:, [0, -1]] & ~edge_covered
+    edge_clear = np.where(bare_ok, clear[:, [0, -1]], -np.inf).max(axis=1)
+    float_road = np.maximum(0.0, edge_clear - skirt_drop * sp.frames.b[:, 2])
     float_road[~np.isfinite(float_road)] = 0.0
 
     pen = np.maximum(np.maximum(0.0, -min_clear), pen_edge)
