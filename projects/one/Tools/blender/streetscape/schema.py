@@ -1021,18 +1021,23 @@ class SplineDef(SchemaObject):
 @dataclass
 class JunctionEnd(SchemaObject):
     SPEC = {"spline_id": (ID, True, ""), "end": (_S("enum", ("start", "end")), True, "start"),
-            "trim_radius_m": (_S("opt", _S("num", 0.0, 32.0, True)), False, None)}
+            "trim_radius_m": (_S("opt", _S("num", 0.0, 32.0, True)), False, None),
+            "station_m": (_S("opt", _S("num", 0.0, None, True)), False, None)}
     spline_id: str = ""
     end: str = "start"
     trim_radius_m: Optional[float] = None
+    station_m: Optional[float] = None
 
     def _post(self, d, path, errs):
         self._trim_was_null = "trim_radius_m" in d and d["trim_radius_m"] is None
+        self._station_was_null = "station_m" in d and d["station_m"] is None
 
     def to_dict(self):
         out = super().to_dict()
         if self.trim_radius_m is None and getattr(self, "_trim_was_null", False):
             out["trim_radius_m"] = None
+        if self.station_m is None and getattr(self, "_station_was_null", False):
+            out["station_m"] = None
         return out
 
 
@@ -1055,7 +1060,7 @@ class Junction(SchemaObject):
         "z": (_S("opt", NUM), False, None),
         "radius_m": (NONNEG, False, None),
         "trim_radius_m": (_S("opt", NONNEG), False, None),
-        "kind": (_S("enum", ("disc", "none", "connector")), False, "disc"),
+        "kind": (_S("enum", ("disc", "none", "connector", "bend")), False, "disc"),
         "corner_handle_frac": (_S("opt", _S("num", 0.0, 1.0, True)), False, None),
         "ends": (_S("list", _S("obj", JunctionEnd)), True, list),
     }
@@ -1073,6 +1078,18 @@ class Junction(SchemaObject):
         self._handle_was_null = "corner_handle_frac" in d and d["corner_handle_frac"] is None
         if self.kind == "connector" and (len(self.ends) != 2 or len({e.spline_id for e in self.ends}) != 2):
             errs.append(path + ": connector requires exactly two distinct spline ends")
+        if self.kind == "bend":
+            valid=(len(self.ends)==2 and len({e.spline_id for e in self.ends})==1 and {e.end for e in self.ends}=={"start","end"})
+            if not valid:errs.append(path + ": bend requires start/end ports on one spline")
+            elif any(e.station_m is None for e in self.ends):errs.append(path + ": bend ports require explicit stations")
+            else:
+                stations={e.end:e.station_m for e in self.ends}
+                if stations['end']>=stations['start'] or stations['start']-stations['end']>64:
+                    errs.append(path + ": bend must span an increasing interval of at most 64 m")
+            if self.trim_radius_m is not None or any(e.trim_radius_m is not None for e in self.ends):
+                errs.append(path + ": bend uses station ports instead of trim radii")
+        elif any(e.station_m is not None for e in self.ends):
+            errs.append(path + ": interior stations are only valid for bend ports")
 
     def to_dict(self):
         out = super().to_dict()

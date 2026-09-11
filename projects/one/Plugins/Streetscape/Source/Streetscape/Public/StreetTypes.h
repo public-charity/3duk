@@ -36,7 +36,7 @@ UENUM(BlueprintType) enum class EStreetOverlayKind : uint8 { OsmWay, Step06Smoot
 /** None <-> JSON null. */
 UENUM(BlueprintType) enum class EStreetContinuation : uint8 { Seam, Way, Gap, None };
 UENUM(BlueprintType) enum class EStreetSplineEnd : uint8 { Start, End };
-UENUM(BlueprintType) enum class EStreetJunctionKind : uint8 { Disc, None, Connector };
+UENUM(BlueprintType) enum class EStreetJunctionKind : uint8 { Disc, None, Connector, Bend };
 UENUM(BlueprintType) enum class EStreetProfileKind : uint8 { Road, Edge, Hedge };
 
 /** sigma of a side: +1 left, -1 right. */
@@ -507,6 +507,8 @@ struct STREETSCAPE_API FStreetJunctionEnd : public FStreetJsonBase
 	GENERATED_BODY()
 	UPROPERTY(EditAnywhere, Category = "Streetscape") FString SplineId;
 	UPROPERTY(EditAnywhere, Category = "Streetscape") EStreetSplineEnd End = EStreetSplineEnd::Start;
+	/** Explicit interior station on the original spline timeline; only valid for a bend port. */
+	UPROPERTY() TOptional<double> StationM;
 	/** Optional requested radial trim for this arm, (0,32] m; takes precedence over the junction-wide override. */
 	UPROPERTY() TOptional<double> TrimRadiusM;
 };

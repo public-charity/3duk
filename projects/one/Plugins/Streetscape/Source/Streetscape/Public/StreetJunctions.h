@@ -82,7 +82,7 @@ struct STREETSCAPE_API FStreetJunctionSpec
 	double TrimRadiusM = 0;
 	FStreetJunctionDefaults Cfg;
 
-	bool IsValid() const { return Junction.Kind == EStreetJunctionKind::Connector ? Arms.Num() == 2 : Junction.Kind == EStreetJunctionKind::Disc && Arms.Num() >= 3; }
+	bool IsValid() const { return (Junction.Kind == EStreetJunctionKind::Connector || Junction.Kind == EStreetJunctionKind::Bend) ? Arms.Num() == 2 : Junction.Kind == EStreetJunctionKind::Disc && Arms.Num() >= 3; }
 	double CornerHandleFraction() const { return Junction.CornerHandleFrac.Get(Cfg.CornerHandleFrac); }
 };
 
@@ -124,6 +124,7 @@ struct STREETSCAPE_API FStreetJunctionArmRecord
 	UPROPERTY() FStreetSplineDef Def;
 	/** That arm spline's whole-document trim {t_start, t_end}: the owner must build it exactly as its own actor does. */
 	UPROPERTY() FVector2D TrimM = FVector2D::ZeroVector;
+	UPROPERTY() TArray<FStreetJunction> InteriorBends;
 	UPROPERTY() bool bIsOwner = false;
 };
 
@@ -212,7 +213,10 @@ public:
 	{
 		Build(Doc, InCfg);
 	}
-	void Build(const FStreetSiteDoc& Doc, const FStreetJunctionDefaults& InCfg = FStreetJunctionDefaults());
+	bool Build(const FStreetSiteDoc& Doc, const FStreetJunctionDefaults& InCfg = FStreetJunctionDefaults());
+	bool IsValid() const { return Error.IsEmpty(); }
+	FString Error;
+	TArray<FStreetJunction> InteriorBendsFor(const FString& SplineId) const { return InteriorBends.FindRef(SplineId); }
 
 	/** {t_start, t_end} in metres for one spline; {0, 0} when it stands in no junction. */
 	void TrimFor(const FString& SplineId, double OutTrim[2]) const;
@@ -257,6 +261,7 @@ private:
 	mutable TMap<FString, FCurve> Curves;
 	TMap<FString, TArray<FStreetJunctionArm>> ArmsByJunction;
 	TMap<FString, double> TrimRadiusById;
+	TMap<FString, TArray<FStreetJunction>> InteriorBends;
 	TMap<FString, TArray<double>> Trims;   // spline id -> {t_start, t_end}
 };
 

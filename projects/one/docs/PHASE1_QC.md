@@ -5,6 +5,25 @@ Thanet base suitable for high-quality building overlays. Survey registration, te
 roads, rail, junctions and their transitions belong to Phase 1. Hero buildings and
 decorative presentation remain later work.
 
+## Checkpoint 41: prove the exact seam and serialized reconstruction
+
+Restrict A seam queries to the exact junction group and B queries to that
+junction's own corner groups. Prefix collisions or another nearby junction must
+not hide a displaced surface. A planted impostor test demonstrates the old false
+pass and its rejection. This tightens evidence without changing emitted geometry.
+
+The shared interior-bend runtime passes 176 Python, 124 workflow and 54 native
+tests, including full arrays/instances, cache changes and serialized owner rebuilds.
+Keep those implementation guarantees separate from retaining a physical repair.
+Garrard removes one fold with exact untouched geometry, but its new corner bases
+still need required ground contact and a native level preview with rollback.
+
+Use two compiler actions and NoUBA after VM memory pressure; UE 5.8 retains the
+UBA scheduler while disabling detouring. Check processes before native jobs,
+preserve completed compilation, and retry only after a terminal/missing handle.
+DLL locks, compilation errors and memory failures are failed runs, never evidence
+of a passing build. The final incremental build took 16.03 seconds.
+
 ## Checkpoint 40: recoverable geometry and isolated runtime changes
 
 The retained candidate has 230 connectors; 72 added joins have complete-document

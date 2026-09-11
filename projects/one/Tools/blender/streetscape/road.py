@@ -140,6 +140,8 @@ def build_road(spline: Spline, params=None) -> Tuple[MeshBuffer, List[Instance]]
             if m.pattern == "none":
                 continue
             ivs = marking_intervals(m, a, b, L)
+            if spline.interior_trims:
+                ivs=[(max(x,lo),min(y,hi)) for x,y in ivs for lo,hi in spline.active_ranges if min(y,hi)-max(x,lo)>1e-9]
             if not ivs:
                 continue
             plan.append((m, ivs))
@@ -215,7 +217,7 @@ def junction_boundary(plan: JunctionPlan, junction_id: str, splines):
     corner kerb along, and the patch can meet neither with a crack.  Returns
     ``(loop (K, 3), arm_slices, corner_specs)``."""
     frames = resolve_arm_frames(plan, junction_id, splines)
-    if frames is None or len(frames) < (2 if plan.junction(junction_id).kind == "connector" else 3):
+    if frames is None or len(frames) < (2 if plan.junction(junction_id).kind in ("connector","bend") else 3):
         return None
     cfg = plan.config_for(junction_id)
     j = plan.junction(junction_id)

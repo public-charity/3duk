@@ -204,7 +204,7 @@ void FStreetJunctionPlan::SolveRadii(const TArray<FStreetJunctionArm>& InArms, d
 	}
 }
 
-void FStreetJunctionPlan::Build(const FStreetSiteDoc& InDoc, const FStreetJunctionDefaults& InCfg)
+bool FStreetJunctionPlan::Build(const FStreetSiteDoc& InDoc, const FStreetJunctionDefaults& InCfg)
 {
 	Doc = &InDoc;
 	Config = InCfg;
@@ -212,6 +212,8 @@ void FStreetJunctionPlan::Build(const FStreetSiteDoc& InDoc, const FStreetJuncti
 	ArmsByJunction.Reset();
 	TrimRadiusById.Reset();
 	Trims.Reset();
+	InteriorBends.Reset();
+	Error.Reset();
 	Notes.Reset();
 	Stats.Reset();
 	for (const TCHAR* K : { TEXT("junctions"), TEXT("junctions_built"), TEXT("junctions_skipped_kind"), TEXT("junctions_skipped_arms"),
@@ -221,11 +223,20 @@ void FStreetJunctionPlan::Build(const FStreetSiteDoc& InDoc, const FStreetJuncti
 		Stats.Add(FString(K), 0);
 	}
 
+	TSet<FString> SeenJunctionIds;
 	TArray<FString> PendingIds;
 	TMap<FString, TArray<FStreetJunctionArm>> Pending;
 	for (const FStreetJunction& J : InDoc.Junctions)
 	{
+		if (SeenJunctionIds.Contains(J.Id)) { Error=J.Id+TEXT(": duplicate junction id"); ArmsByJunction.Reset(); return false; }
+		SeenJunctionIds.Add(J.Id);
 		Stats[TEXT("junctions")] += 1;
+		if (J.Kind==EStreetJunctionKind::Bend)
+		{
+			if (J.Ends.Num()!=2 || J.Ends[0].SplineId!=J.Ends[1].SplineId)
+			{ Error=J.Id+TEXT(": invalid interior bend ports"); ArmsByJunction.Reset(); return false; }
+			InteriorBends.FindOrAdd(J.Ends[0].SplineId).Add(J); continue;
+		}
 		if (J.Kind != EStreetJunctionKind::Disc && J.Kind != EStreetJunctionKind::Connector)
 		{
 			Stats[TEXT("junctions_skipped_kind")] += 1;
@@ -392,6 +403,41 @@ void FStreetJunctionPlan::Build(const FStreetSiteDoc& InDoc, const FStreetJuncti
 	int32 NTrimmed = 0;
 	for (const TPair<FString, TArray<double>>& KV : Trims) { if (KV.Value[0] > 0.0 || KV.Value[1] > 0.0) ++NTrimmed; }
 	Stats[TEXT("splines_trimmed")] = NTrimmed;
+	for (const auto& Pair : InteriorBends)
+	{
+		const auto* Def=InDoc.FindSpline(Pair.Key); const auto* C=Curve(Pair.Key);
+		double Trim[2]; TrimFor(Pair.Key,Trim); TArray<FVector2d> Cuts;
+		if (!Def || !C) { Error=Pair.Key+TEXT(": missing bend spline"); ArmsByJunction.Reset(); return false; }
+		if (!FStreetSplineMath::ResolveInteriorTrims(*Def,InDoc.Profiles,C->Points,C->SKnots,C->L,Trim,Pair.Value,Cuts,&Error))
+		{ ArmsByJunction.Reset(); return false; }
+	}
+	for (const auto& J : InDoc.Junctions)
+	{
+		if (J.Kind!=EStreetJunctionKind::Bend) continue;
+		TArray<FStreetJunctionArm> BendArms; double Radius=0.;
+		for (const auto& En : J.Ends)
+		{
+			FStreetJunctionArm A;
+			if (!ArmFromStation(J.Id,En.SplineId,En.End,En.StationM.GetValue(),J.X,J.Y,A))
+			{ Error=J.Id+TEXT(": cannot resolve bend arm"); ArmsByJunction.Reset(); return false; }
+			Radius=FMath::Max(Radius,(FVector2d(A.P)-FVector2d(J.X,J.Y)).Size()); BendArms.Add(A);
+		}
+		BendArms.Sort([](const FStreetJunctionArm& A,const FStreetJunctionArm& B)
+		{
+			const double Pa=WrapTwoPi(A.Phi),Pb=WrapTwoPi(B.Phi);
+			if (Pa!=Pb) return Pa<Pb;
+			if (A.SplineId!=B.SplineId) return A.SplineId<B.SplineId;
+			return (int32)A.End<(int32)B.End;
+		});
+		TrimRadiusById.Add(J.Id,Radius); ArmsByJunction.Add(J.Id,MoveTemp(BendArms));
+		Stats[TEXT("arms")]+=2; ++Stats[TEXT("junctions_built")];
+	}
+	for (const auto& Pair : InteriorBends)
+	{
+		const auto* T=Trims.Find(Pair.Key);
+		if (!T || ((*T)[0]<=0. && (*T)[1]<=0.)) ++Stats[TEXT("splines_trimmed")];
+	}
+	return true;
 }
 
 void FStreetJunctionPlan::TrimFor(const FString& SplineId, double OutTrim[2]) const
@@ -404,7 +450,7 @@ void FStreetJunctionPlan::TrimFor(const FString& SplineId, double OutTrim[2]) co
 bool FStreetJunctionPlan::IsTrimmed(const FString& SplineId) const
 {
 	const TArray<double>* T = Trims.Find(SplineId);
-	return T && ((*T)[0] > 0.0 || (*T)[1] > 0.0);
+	return InteriorBends.Contains(SplineId) || (T && ((*T)[0] > 0.0 || (*T)[1] > 0.0));
 }
 
 FString FStreetJunctionPlan::Owner(const FString& JunctionId) const
@@ -465,7 +511,8 @@ bool FStreetJunctionMath::ResolveArmFrames(const FStreetJunctionSpec& Spec, cons
 		FStreetArmFrame F;
 		F.Arm = &A;
 		F.Spline = Sp;
-		F.I = Sp->ArmStationIndex(A.End);
+		F.I = Sp->ArmStationIndex(A.End, Spec.Junction.Kind==EStreetJunctionKind::Bend ? &A.STrim : nullptr);
+		if (!Sp->S.IsValidIndex(F.I)) return false;
 		const FVector3d Th = Sp->Frames.Th[F.I];
 		F.U = (A.End == EStreetSplineEnd::Start) ? Th : FVector3d(-Th.X, -Th.Y, -Th.Z);
 		F.SideLo = (A.End == EStreetSplineEnd::Start) ? EStreetSide::Right : EStreetSide::Left;

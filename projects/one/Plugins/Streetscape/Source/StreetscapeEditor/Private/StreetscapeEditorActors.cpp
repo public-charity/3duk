@@ -337,7 +337,7 @@ int32 UStreetscapeEditorLibrary::ImportStreetscapeJson(const FString& FileOrDir,
 		// so a street World Partition streams back in later rebuilds the same junction with no importer, no
 		// document and no other actor resident.
 		FStreetJunctionPlan Plan;
-		Plan.Build(Doc);
+		if (!Plan.Build(Doc)) { UE_LOG(LogStreetscapeEditor, Error, TEXT("invalid junction plan: %s"), *Plan.Error); return -1; }
 		TMap<FString, FVector2D> Trims;
 		TMap<FString, TArray<FStreetOwnedJunction>> Owned;
 		FStreetJunctionBuild::Distribute(Doc, Plan, Trims, Owned);
@@ -381,7 +381,7 @@ int32 UStreetscapeEditorLibrary::ImportStreetscapeJson(const FString& FileOrDir,
 				const FVector2D* Tr = Trims.Find(Def.Id);
 				TArray<FStreetOwnedJunction> Mine;
 				if (TArray<FStreetOwnedJunction>* O = Owned.Find(Def.Id)) Mine = MoveTemp(*O);
-				A->SetJunctionData(Tr ? *Tr : FVector2D::ZeroVector, MoveTemp(Mine));
+				A->SetJunctionData(Tr ? *Tr : FVector2D::ZeroVector, MoveTemp(Mine), Plan.InteriorBendsFor(Def.Id));
 			}
 			FString BuildErr;
 			if (!A->RebuildAllChecked(&BuildErr))

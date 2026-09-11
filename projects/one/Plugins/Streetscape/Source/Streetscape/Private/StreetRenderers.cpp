@@ -295,6 +295,16 @@ void FStreetRenderBuild::BuildRoad(const FStreetSamples& Sp, FStreetRenderResult
 		{
 			if (M.Pattern == EStreetMarkingPattern::None) continue;
 			TArray<TPair<double, double>> Ivs = FStreetRenderBuild::MarkingIntervals(M, IvA, IvB, L);
+			if (!Sp.InteriorTrims.IsEmpty())
+			{
+				TArray<TPair<double,double>> Clipped;
+				for (const auto& IvPart : Ivs) for (const auto& Run : Sp.ActiveRanges)
+				{
+					const double Lo=FMath::Max(IvPart.Key,Run.X),Hi=FMath::Min(IvPart.Value,Run.Y);
+					if (Hi-Lo>1e-9) Clipped.Add({Lo,Hi});
+				}
+				Ivs=MoveTemp(Clipped);
+			}
 			if (Ivs.Num() == 0) continue;
 			for (const TPair<double, double>& X : Ivs) { Ends.Add(X.Key); Ends.Add(X.Value); }
 			Plan.Add({ &M, MoveTemp(Ivs) });
@@ -710,7 +720,8 @@ void FStreetRenderBuild::BuildEdge(const FStreetSamples& Sp, EStreetSide SideEnu
 			const FName Kind = bFence ? FName(TEXT("post_round")) : FName(TEXT("post_square"));
 			const double Ps = Bar.PostSizeM;
 			const double PostH = bFence ? Hgt + 0.05 : Hgt;
-			const TArray<double> Sj = PostStations(Iv.A, Iv.B, Bar.PostPitchM.IsSet() ? Bar.PostPitchM.GetValue() : 0.0);
+			TArray<double> Sj = PostStations(Iv.A, Iv.B, Bar.PostPitchM.IsSet() ? Bar.PostPitchM.GetValue() : 0.0);
+			for (const auto& Cut : Sp.InteriorTrims) Sj.RemoveAll([&](double S) { return S>Cut.X+1e-12 && S<Cut.Y-1e-12; });
 			const FStreetFrames Fr = Frames.At(Sj);
 			for (int32 Q = 0; Q < Sj.Num(); ++Q)
 			{

@@ -442,9 +442,9 @@ informative.
 
 ### 4.18 `Junction`
 
-`{id, x, y, z: number|null, radius_m, trim_radius_m: number|null, kind: disc|none|connector,
+`{id, x, y, z: number|null, radius_m, trim_radius_m: number|null, kind: disc|none|connector|bend,
 corner_handle_frac?: number|null,
-ends: [{spline_id, end: start|end, trim_radius_m?: number|null}]}`. Step 06 `_junction` records map to `kind: disc`,
+ends: [{spline_id, end: start|end, trim_radius_m?: number|null, station_m?: number|null}]}`. Step 06 `_junction` records map to `kind: disc`,
 `radius_m = r`; `ends` lists the splines of the same document whose first/last point is within
 `junction_snap_m` = 0.3 m (measured maximum on Thanet: 0.257 m over 5,185 ends).
 
@@ -456,6 +456,37 @@ of kind `disc` with fewer than three surviving arms remains unbuilt. An explicit
 corner machinery. Their selected ends must refer back to the connector and lie
 within the 0.3 m node snap distance. Rail arms are rejected. Sharing a centreline
 endpoint alone does not join angled road and pavement cross-sections.
+
+**Interior bends.** `kind: bend` replaces a short interval of one original spline
+with the existing A/B junction patch and kerb corners. Both ports name the same
+spline. The lower station uses `end: end` and faces back along the spline; the
+upper station uses `end: start` and faces forward. Each `station_m` is explicit,
+finite and positive. The interval must lie strictly inside the original curve,
+span at most 64 m, and surround an interior source control whose XY position
+matches the junction node within 1 mm. The original endpoint bindings remain.
+Ordinary road/path profiles are supported; rail, steps, bridges and tunnels are
+rejected. A bend cannot carry a common or per-port `trim_radius_m`. Other junction
+kinds cannot carry non-null `station_m`; explicit null is preserved on round trip.
+
+The plan validates all intervals before geometry is built. Cuts cannot overlap
+and must leave at least 1 m of body between cuts and ordinary endpoint trims.
+Both cut stations enter the shared mandatory station set; their endpoints remain
+active and their open interior is masked in all three renderers. The source
+definition, curve length and semantic station distances are preserved. New
+mandatory stations can affect adaptive sampling, so preserving remote mesh arrays
+requires measurement rather than an assumption. Marking intervals are clipped
+after dash phase generation, and fence posts within cuts are removed without
+restarting their spacing. No markings are generated across the junction patch.
+Barrier/hedge continuity around bend corners needs separate implementation and
+verification; masking those bodies alone is not a complete streetscape repair.
+
+Unreal stores each actor's interior bend records alongside its external trims;
+foreign-arm owner records also carry these masks. The masks participate in the
+spline cache key and document refresh/rollback. A preview may append at most 16
+connectors or bends, using existing actors and renderer components. New bends
+must preserve their entire original spline definition. These bounds validate the
+operation; full-document geometry, terrain contact and native visual evidence
+are still required before a candidate is retained.
 
 **Per-junction corner handles.** Optional `corner_handle_frac` in (0,1] overrides
 the shared A/B cubic handle cap for that junction only. Missing/null retains 0.45.

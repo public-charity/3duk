@@ -1299,9 +1299,10 @@ TSharedRef<FJsonObject> WriteSplineDef(const FStreetSplineDef& X)
 
 void ReadJunctionEnd(const FJsonObject& O, const FString& Path, FStreetJunctionEnd& X, TArray<FString>& E)
 {
-	FObj R(O, Path, E, &X, { TEXT("spline_id"), TEXT("end"), TEXT("trim_radius_m") });
+	FObj R(O, Path, E, &X, { TEXT("spline_id"), TEXT("end"), TEXT("trim_radius_m"), TEXT("station_m") });
 	R.Id(TEXT("spline_id"), X.SplineId, true); R.Enum(TEXT("end"), X.End, true);
 	R.OptNum(TEXT("trim_radius_m"), X.TrimRadiusM, false, true, 0.0, 32.0, true);
+	R.OptNum(TEXT("station_m"), X.StationM, false, true, 0.0, TNumericLimits<double>::Max(), true);
 }
 void ReadJunction(const FJsonObject& O, const FString& Path, FStreetJunction& X, TArray<FString>& E)
 {
@@ -1313,6 +1314,22 @@ void ReadJunction(const FJsonObject& O, const FString& Path, FStreetJunction& X,
 	ReadObjList(R, TEXT("ends"), X.Ends, true, [](const FJsonObject& SO, const FString& SP, FStreetJunctionEnd& D, TArray<FString>& SE) { ReadJunctionEnd(SO, SP, D, SE); });
 	if (X.Kind == EStreetJunctionKind::Connector && (X.Ends.Num() != 2 || X.Ends[0].SplineId == X.Ends[1].SplineId))
 		E.Add(Path + TEXT(": connector requires exactly two distinct spline ends"));
+	if (X.Kind == EStreetJunctionKind::Bend)
+	{
+		if (X.Ends.Num()!=2 || X.Ends[0].SplineId!=X.Ends[1].SplineId || X.Ends[0].End==X.Ends[1].End)
+			E.Add(Path+TEXT(": bend requires start/end ports on one spline"));
+		else if (!X.Ends[0].StationM.IsSet() || !X.Ends[1].StationM.IsSet())
+			E.Add(Path+TEXT(": bend ports require explicit stations"));
+		else
+		{
+			const double Lo=X.Ends[X.Ends[0].End==EStreetSplineEnd::End ? 0 : 1].StationM.GetValue();
+			const double Hi=X.Ends[X.Ends[0].End==EStreetSplineEnd::Start ? 0 : 1].StationM.GetValue();
+			if (!(Lo<Hi) || Hi-Lo>64.) E.Add(Path+TEXT(": bend must span an increasing interval of at most 64 m"));
+		}
+		if (X.TrimRadiusM.IsSet()) E.Add(Path+TEXT(": bend uses stations instead of trim radii"));
+		for (const auto& En : X.Ends) if (En.TrimRadiusM.IsSet()) E.Add(Path+TEXT(": bend port cannot have a trim radius"));
+	}
+	else for (const auto& En : X.Ends) if (En.StationM.IsSet()) E.Add(Path+TEXT(": interior stations are only valid for bend ports"));
 }
 TSharedRef<FJsonObject> WriteJunction(const FStreetJunction& X)
 {
@@ -1326,6 +1343,7 @@ TSharedRef<FJsonObject> WriteJunction(const FStreetJunction& X)
 		FW WE(En);
 		WE.Str(TEXT("spline_id"), En.SplineId); WE.Enum(TEXT("end"), En.End);
 		WE.Opt(TEXT("trim_radius_m"), En.TrimRadiusM);
+		WE.Opt(TEXT("station_m"), En.StationM);
 		A.Add(ObjVal(WE.Finish()));
 	}
 	W.ObjList(TEXT("ends"), A, true);
@@ -1432,8 +1450,30 @@ void CrossChecks(const FStreetSiteDoc& D, TArray<FString>& E)
 		if (Seen.Contains(Sp.Id)) E.Add(FString::Printf(TEXT("$.splines[%d]: duplicate spline id '%s'"), SI, *Sp.Id));
 		Seen.Add(Sp.Id);
 	}
+	TSet<FString> JunctionIds;
 	for (const FStreetJunction& J : D.Junctions)
 	{
+		if (JunctionIds.Contains(J.Id)) E.Add(J.Id+TEXT(": duplicate junction id"));
+		JunctionIds.Add(J.Id);
+		if (J.Kind == EStreetJunctionKind::Bend)
+		{
+			for (const auto& End : J.Ends)
+			{
+				const auto* Sp=D.FindSpline(End.SplineId);
+				if (!Sp) { E.Add(J.Id+TEXT(": bend spline is missing")); continue; }
+				const auto* RP=D.Profiles.Road.Find(Sp->ProfileIds.Road);
+				if (!RP || RP->Kind!=EStreetRoadKind::Road || Sp->Source.Cls==TEXT("steps") ||
+					(Sp->bHasFlags && (Sp->Flags.bBridge || Sp->Flags.bTunnel || Sp->Flags.bSteps)))
+					E.Add(J.Id+TEXT(": bend requires an ordinary road/path profile"));
+				bool bMatched=false;
+				for (int32 K=1;K+1<Sp->Points.Num();++K)
+					if (FMath::Square(Sp->Points[K].X-J.X)+FMath::Square(Sp->Points[K].Y-J.Y)<=1e-6) bMatched=true;
+				if (!bMatched) E.Add(J.Id+TEXT(": bend node must match an interior source control within 1 mm"));
+			}
+			for (const auto& Sp : D.Splines)
+				if (Sp.JunctionStart==J.Id || Sp.JunctionEnd==J.Id) E.Add(J.Id+TEXT(": bend cannot replace endpoint bindings"));
+			continue;
+		}
 		if (J.Kind != EStreetJunctionKind::Connector) continue;
 		for (const FStreetJunctionEnd& End : J.Ends)
 		{

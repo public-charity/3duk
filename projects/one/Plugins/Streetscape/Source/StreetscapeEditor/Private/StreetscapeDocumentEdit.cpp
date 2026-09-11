@@ -94,14 +94,26 @@ bool StreetDocumentEdit::ValidatePreview(const FStreetSiteDoc& Source, const FSt
 	};
 	FStreetSiteDoc Comparable = Candidate;
 	const int32 Added = Candidate.Junctions.Num()-Source.Junctions.Num();
-	if (Added < 0 || Added > 8)
-	{ Error = TEXT("preview must preserve all junctions and may append at most eight local connectors"); return false; }
+	if (Added < 0 || Added > 16)
+	{ Error = TEXT("preview must preserve all junctions and may append at most sixteen local connectors or interior bends"); return false; }
 	TMap<FString,FString> NewBindings;
 	TSet<FString> JunctionIds;
 	for (const auto& J : Source.Junctions) JunctionIds.Add(J.Id);
 	for (int32 I=Source.Junctions.Num(); I<Candidate.Junctions.Num(); ++I)
 	{
 		const auto& J=Candidate.Junctions[I];
+		if (J.Kind==EStreetJunctionKind::Bend)
+		{
+			if (JunctionIds.Contains(J.Id) || J.Id.IsEmpty() || J.Ends.Num()!=2 || J.Ends[0].SplineId!=J.Ends[1].SplineId)
+			{ Error=TEXT("preview requires distinct interior bends on one existing spline"); return false; }
+			JunctionIds.Add(J.Id);
+			const auto* A=Source.FindSpline(J.Ends[0].SplineId); const auto* B=Candidate.FindSpline(J.Ends[0].SplineId);
+			if (!A || !B || FStreetscapeJson::ToText(FStreetscapeJson::WriteSpline(*A),true,-1,-1)!=FStreetscapeJson::ToText(FStreetscapeJson::WriteSpline(*B),true,-1,-1))
+			{ Error=TEXT("interior bend preview must preserve its complete original spline definition"); return false; }
+			if (J.CornerHandleFrac.IsSet() && (!FMath::IsFinite(J.CornerHandleFrac.GetValue()) || J.CornerHandleFrac.GetValue()<=0. || J.CornerHandleFrac.GetValue()>1.))
+			{ Error=TEXT("preview corner handle must be finite and within (0,1]"); return false; }
+			continue;
+		}
 		if (J.Kind!=EStreetJunctionKind::Connector || J.Ends.Num()!=2 || J.Ends[0].SplineId==J.Ends[1].SplineId || JunctionIds.Contains(J.Id) || J.Id.IsEmpty())
 		{ Error=TEXT("preview may append only distinct two-arm connectors"); return false; }
 		JunctionIds.Add(J.Id);
@@ -119,7 +131,7 @@ bool StreetDocumentEdit::ValidatePreview(const FStreetSiteDoc& Source, const FSt
 			const FString Key=End.SplineId+(Start ? TEXT("|start") : TEXT("|end"));
 			for (const auto& Existing : Source.Junctions)
 				for (const auto& Bound : Existing.Ends)
-					if (Bound.SplineId==End.SplineId && Bound.End==End.End)
+					if (Existing.Kind!=EStreetJunctionKind::Bend && Bound.SplineId==End.SplineId && Bound.End==End.End)
 					{ Error=TEXT("connector cannot reuse an existing junction arm"); return false; }
 			if (NewBindings.Contains(Key) || !(Start ? A->JunctionStart : A->JunctionEnd).IsEmpty() || (Start ? B->JunctionStart : B->JunctionEnd)!=J.Id ||
 				(Start ? A->ContinuesFrom : A->ContinuesTo)!=Other.SplineId || A->ContinuesFrom!=B->ContinuesFrom || A->ContinuesTo!=B->ContinuesTo)
@@ -131,9 +143,12 @@ bool StreetDocumentEdit::ValidatePreview(const FStreetSiteDoc& Source, const FSt
 			if (!RP || RP->Kind!=EStreetRoadKind::Road) { Error=TEXT("preview connector requires road arms"); return false; }
 			if (End.TrimRadiusM.IsSet() && (!FMath::IsFinite(End.TrimRadiusM.GetValue()) || End.TrimRadiusM.GetValue()<=0. || End.TrimRadiusM.GetValue()>32.))
 			{ Error=TEXT("preview arm trim must be finite and within (0,32] m"); return false; }
+			if (End.StationM.IsSet()) { Error=TEXT("connector cannot use interior stations"); return false; }
 			NewBindings.Add(Key,J.Id);
 		}
 	}
+	FStreetJunctionPlan CandidatePlan;
+	if (!CandidatePlan.Build(Candidate)) { Error=CandidatePlan.Error; return false; }
 	Comparable.Junctions.SetNum(Source.Junctions.Num());
 	for (int32 I=0; I<Source.Junctions.Num(); ++I)
 	{
@@ -222,15 +237,16 @@ bool CurrentDocument(const FString& SourcePath, FStreetSiteDoc& Source, FStreetS
 }
 
 bool PlanCurrent(const FStreetSiteDoc& Source, const FStreetSiteDoc& Current,
-	TMap<FString, FVector2D>& Trims, TMap<FString, TArray<FStreetOwnedJunction>>& Owned, FString& Error)
+	TMap<FString, FVector2D>& Trims, TMap<FString, TArray<FStreetOwnedJunction>>& Owned,
+	TMap<FString,TArray<FStreetJunction>>& Bends, FString& Error)
 {
 	FStreetJunctionPlan Before, After;
-	Before.Build(Source);
-	After.Build(Current);
+	if (!Before.Build(Source)) { Error=Before.Error; return false; }
+	if (!After.Build(Current)) { Error=After.Error; return false; }
 	const TArray<FString> AfterIds = After.BuiltJunctionIds();
 	for (const FString& Id : Before.BuiltJunctionIds())
 		if (!AfterIds.Contains(Id)) { Error = TEXT("edit removes a previously buildable junction: ") + Id; return false; }
-	FStreetJunctionBuild::Distribute(Current, After, Trims, Owned);
+	FStreetJunctionBuild::Distribute(Current, After, Trims, Owned, &Bends);
 	return true;
 }
 }
@@ -244,7 +260,8 @@ FString UStreetscapeEditorLibrary::ExportDocumentJson(const FString& SourcePath,
 	FString Error;
 	TMap<FString, FVector2D> Trims;
 	TMap<FString, TArray<FStreetOwnedJunction>> Owned;
-	if (!CurrentDocument(SourcePath, Source, Current, Actors, Error) || !PlanCurrent(Source, Current, Trims, Owned, Error))
+	TMap<FString,TArray<FStreetJunction>> Bends;
+	if (!CurrentDocument(SourcePath, Source, Current, Actors, Error) || !PlanCurrent(Source, Current, Trims, Owned, Bends, Error))
 	{ UE_LOG(LogStreetscapeEditor, Error, TEXT("ExportDocumentJson: %s"), *Error); return FString(); }
 	return FStreetscapeJson::SaveFile(OutPath, FStreetscapeJson::WriteSite(Current)) ? OutPath : FString();
 }
@@ -256,7 +273,8 @@ int32 UStreetscapeEditorLibrary::RefreshDocumentJunctions(const FString& SourceP
 	FString Error;
 	TMap<FString, FVector2D> Trims;
 	TMap<FString, TArray<FStreetOwnedJunction>> Owned;
-	if (!CurrentDocument(SourcePath, Source, Current, Actors, Error) || !PlanCurrent(Source, Current, Trims, Owned, Error))
+	TMap<FString,TArray<FStreetJunction>> Bends;
+	if (!CurrentDocument(SourcePath, Source, Current, Actors, Error) || !PlanCurrent(Source, Current, Trims, Owned, Bends, Error))
 	{ UE_LOG(LogStreetscapeEditor, Error, TEXT("RefreshDocumentJunctions: %s"), *Error); return -1; }
 	AStreetscapeSiteActor* Site = AStreetscapeSiteActor::Get(Actors[0]->GetWorld());
 	const IStreetTerrainSource* Terrain = Site->TerrainForOrigin(Current.Origin.E, Current.Origin.N);
@@ -266,7 +284,7 @@ int32 UStreetscapeEditorLibrary::RefreshDocumentJunctions(const FString& SourceP
 		const FVector2D Trim = Trims.FindRef(Def.Id);
 		const double T[2] = { Trim.X, Trim.Y };
 		FStreetSamples Samples;
-		if (!FStreetSplineMath::Build(Def, Current.Profiles, Terrain, Samples, &Error, T))
+		if (!FStreetSplineMath::Build(Def, Current.Profiles, Terrain, Samples, &Error, T, Bends.FindRef(Def.Id)))
 		{ UE_LOG(LogStreetscapeEditor, Error, TEXT("RefreshDocumentJunctions preflight: %s %s"), *Def.Id, *Error); return -1; }
 		if (const TArray<FStreetOwnedJunction>* Mine = Owned.Find(Def.Id))
 		{
@@ -278,16 +296,16 @@ int32 UStreetscapeEditorLibrary::RefreshDocumentJunctions(const FString& SourceP
 			{ UE_LOG(LogStreetscapeEditor, Error, TEXT("RefreshDocumentJunctions preflight: incomplete junctions for %s"), *Def.Id); return -1; }
 		}
 	}
-	struct FBackup { FVector2D Trim; TArray<FStreetOwnedJunction> Owned; FStreetSiteProfiles Profiles; bool Dirty; };
+	struct FBackup { FVector2D Trim; TArray<FStreetOwnedJunction> Owned; FStreetSiteProfiles Profiles; bool Dirty; TArray<FStreetJunction> Bends; };
 	TArray<FBackup> Before;
 	auto Package = [](AStreetscapeActor* A) { return A->GetExternalPackage() ? A->GetExternalPackage() : A->GetPackage(); };
 	const FScopedTransaction Transaction(NSLOCTEXT("Streetscape", "RefreshDocument", "Refresh streetscape document junctions"));
 	for (AStreetscapeActor* A : Actors)
 	{
-		Before.Add({A->JunctionTrimM, A->OwnedJunctions, A->DocProfiles, Package(A)->IsDirty()});
+		Before.Add({A->JunctionTrimM, A->OwnedJunctions, A->DocProfiles, Package(A)->IsDirty(), A->InteriorBends});
 		A->Modify();
 		A->DocProfiles = Current.Profiles;
-		A->SetJunctionData(Trims.FindRef(A->StreetId), Owned.FindRef(A->StreetId));
+		A->SetJunctionData(Trims.FindRef(A->StreetId), Owned.FindRef(A->StreetId), Bends.FindRef(A->StreetId));
 	}
 	for (AStreetscapeActor* A : Actors)
 	{
@@ -295,7 +313,7 @@ int32 UStreetscapeEditorLibrary::RefreshDocumentJunctions(const FString& SourceP
 		for (int32 I = 0; I < Actors.Num(); ++I)
 		{
 			Actors[I]->DocProfiles = Before[I].Profiles;
-			Actors[I]->SetJunctionData(Before[I].Trim, MoveTemp(Before[I].Owned));
+			Actors[I]->SetJunctionData(Before[I].Trim, MoveTemp(Before[I].Owned), Before[I].Bends);
 			Actors[I]->RebuildAll();
 			Package(Actors[I])->SetDirtyFlag(Before[I].Dirty);
 		}
@@ -390,7 +408,8 @@ FString UStreetscapeEditorLibrary::PreviewDocumentJson(const FString& SourcePath
 	if (!StreetDocumentEdit::ValidatePreview(Source,Candidate,Error)) return PreviewReply(Report,Error);
 	TMap<FString,FVector2D> Trims;
 	TMap<FString,TArray<FStreetOwnedJunction>> Owned;
-	if (!PlanCurrent(Source,Candidate,Trims,Owned,Error)) return PreviewReply(Report,Error);
+	TMap<FString,TArray<FStreetJunction>> Bends;
+	if (!PlanCurrent(Source,Candidate,Trims,Owned,Bends,Error)) return PreviewReply(Report,Error);
 	auto Snapshot = MakeUnique<FDocumentPreviewSnapshot>();
 	Snapshot->SourcePath = SourcePath;
 	Snapshot->Junctions = Candidate.Junctions;
@@ -401,7 +420,7 @@ FString UStreetscapeEditorLibrary::PreviewDocumentJson(const FString& SourcePath
 		const auto& P = D->ProfileIds;
 		if ((!P.Road.IsEmpty() && !A->Road) || (!P.EdgeLeft.IsEmpty() && !A->EdgeLeft) ||
 			(!P.EdgeRight.IsEmpty() && !A->EdgeRight) || (!P.HedgeLeft.IsEmpty() && !A->HedgeLeft) ||
-			(!P.HedgeRight.IsEmpty() && !A->HedgeRight) || (!A->OwnedJunctions.IsEmpty() && (!A->Road || !A->EdgeLeft)))
+			(!P.HedgeRight.IsEmpty() && !A->HedgeRight) || (!Owned.FindRef(A->StreetId).IsEmpty() && (!A->Road || !A->EdgeLeft)))
 			return PreviewReply(Report,TEXT("missing existing renderer component: ")+A->StreetId);
 		if (FStreetscapeJson::Canonical(FStreetscapeJson::WriteSpline(A->Spline->Def)) != FStreetscapeJson::Canonical(FStreetscapeJson::WriteSpline(*D))) ++Changed;
 		Snapshot->Actors.Add(A);

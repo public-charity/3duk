@@ -36,7 +36,8 @@ struct STREETSCAPE_API FStreetJunctionBuild
 	 * the order the owner's buffer receives them.
 	 */
 	static void Distribute(const FStreetSiteDoc& Doc, const FStreetJunctionPlan& Plan,
-		TMap<FString, FVector2D>& OutTrim, TMap<FString, TArray<FStreetOwnedJunction>>& OutOwned);
+		TMap<FString, FVector2D>& OutTrim, TMap<FString, TArray<FStreetOwnedJunction>>& OutOwned,
+		TMap<FString, TArray<FStreetJunction>>* OutInteriorBends = nullptr);
 
 	/**
 	 * Rebuild every junction an owner owns into its own two buffers - road for the patch, LEFT edge for the corners.

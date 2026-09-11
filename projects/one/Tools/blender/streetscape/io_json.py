@@ -139,6 +139,7 @@ def _cross_checks(site: S.Site) -> List[str]:
     # junction by one arm and change the trim radius of every other arm at that node.
     jids = set()
     by_id = {sp.id: sp for sp in site.splines}
+    bend_ids={j.id for j in site.junctions if j.kind=='bend'}
     for ji, j in enumerate(site.junctions):
         jw = "$.junctions[%d] (%s)" % (ji, j.id)
         if j.id in jids:
@@ -147,6 +148,12 @@ def _cross_checks(site: S.Site) -> List[str]:
         for ei, e in enumerate(j.ends):
             if e.spline_id not in seen:
                 errs.append("%s.ends[%d]: spline %r is not in this document" % (jw, ei, e.spline_id))
+            elif j.kind == "bend":
+                sp=by_id[e.spline_id];profile=site.profiles.road.get(sp.profile_ids.road)
+                if profile is None or profile.kind!='road' or sp.source.cls=='steps' or (sp.flags and (sp.flags.bridge or sp.flags.tunnel or sp.flags.steps)):
+                    errs.append(jw+': interior bend requires an ordinary road/path profile')
+                if not any((p.x-j.x)**2+(p.y-j.y)**2<=1e-6 for p in sp.points[1:-1]):
+                    errs.append(jw+': bend node must match an interior source control within 1 mm')
             elif j.kind == "connector":
                 sp = by_id[e.spline_id]
                 profile = site.profiles.road.get(sp.profile_ids.road)
@@ -162,6 +169,7 @@ def _cross_checks(site: S.Site) -> List[str]:
             v = getattr(sp, slot)
             if v is not None and v not in jids:
                 errs.append("$.splines[%d] (%s).%s: %r is not in junctions[]" % (si, sp.id, slot, v))
+            if v in bend_ids:errs.append('interior bends cannot replace spline endpoint bindings')
     return errs
 
 

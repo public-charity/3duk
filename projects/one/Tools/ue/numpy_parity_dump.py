@@ -79,15 +79,22 @@ def main():
         out["twist_" + rule] = arrays(build("sine_5_50", field))
     for kind in ("batter","retaining_wall"):
         out["support_"+kind] = support_meshes(kind)
-    for fixture in ('junction_arm_trims','junction_collapsed_pavement','junction_connector_bend','junction_connector_reverse'):
+    for fixture in ('junction_arm_trims','junction_collapsed_pavement','junction_connector_bend','junction_connector_reverse','junction_interior_bend','junction_interior_bend_garrard'):
         arm_doc=SY.load_json(os.path.join(SY.FIXTURES_DIR,fixture+'.json'))
         arm_site=IO.site_from_dict(arm_doc);arm_plan=SP.JunctionPlan(arm_site)
         arm_builds=build_all(arm_site,SY.junction_terrain_for(arm_doc),plan=arm_plan)
         out[fixture]={}
         for sid,result in arm_builds.items():
-            row=dict(s=result.spline.s.tolist(),trim=list(result.spline.s_trim))
+            row=dict(s=result.spline.s.tolist(),active=result.spline.active.astype(int).tolist(),trim=list(result.spline.s_trim))
             for name,mesh in (('road',result.road),('left',result.edge[1]),('right',result.edge[-1])):
-                row[name]={key:getattr(mesh,key).ravel().tolist() for key in ('v','f','vs','vd','vh')}
+                row[name]={key:getattr(mesh,key).ravel().tolist() for key in ('v','f','vs','vd','vh','mat','grp')}
+                row[name]['material_names']=list(mesh.material_names)
+                row[name]['group_names']=list(mesh.group_names)
+            row['instance_transforms']=[float(v) for i in result.instances for v in i.transform.ravel()]
+            row['instance_sizes']=[float(v) for i in result.instances for v in i.size]
+            row['instance_sides']=[i.side for i in result.instances]
+            row['instance_kinds']=[i.kind for i in result.instances]
+            row['instance_materials']=[i.material for i in result.instances]
             out[fixture][sid]=row
     out['corner_curves']={}
     for name,a,b,d0,d1,node in (

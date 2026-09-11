@@ -2,35 +2,56 @@
 
 ## Current checkpoint — 2026-09-10, Phase 1 completion
 
-### Checkpoint 41 IN PROGRESS — native interior bend implementation
+### Forty-first checkpoint COMPLETE — 2026-09-12: native interior bends and stronger seam QC
 
-Stable checkpoint 40 is commit `4040c81`. Its retained geometry is unchanged.
-Nineteen native source files now contain a guarded candidate, not yet accepted.
-Private backup and baseline hashes: `Saved/Phase1/interior_bend_native/`;
-`applied_files.json` identifies our exact files and pre/post hashes. Other tasks
-are changing Manston, offshore terrain and police-car assets on this branch;
-preserve their edits and use explicit paths when committing.
+**Shared Python/C++ bend implementation verified. Retained network is still
+checkpoint 40: 230 connectors, 1,912 body folds. No bend retained or promoted.**
+All **176 NumPy tests PASS (76.078 s), 124 workflow tests PASS (10.034 s),
+54 native tests PASS (81 s, clean engine exit 0)**. Native bend parity compares
+54 arrays /114,647 values, maximum difference
+2.84217094304e-14 m. Face topology, active masks,
+material/group indices and names are exact; instance data is compared too.
 
-Build started with `Tools/build.ps1`; log `Saved/phase1_interior_bend_native_build1.log`.
-Check the log/process before resuming. New tests are
-`Streetscape.Junction.InteriorBend*`, `Streetscape.Editor.InteriorBendPreview`,
-and `Streetscape.Editor.ConnectorPreviewBatchLimit`. Run with the legacy
-`powershell.exe` launcher, headless `Thanet.uproject` only, after a successful build.
-Native changes include station ports, validated interior masks, actor and foreign
-arm persistence, cache invalidation, refresh/rollback, marking/post clipping and
-an at-most-16-addition preview (explicit tests for 11, 16 and 17 connectors).
+`kind: bend` has two station ports on one original spline, lower `end` /upper
+`start`. Masks preserve the source definition and timeline, clip markings/posts
+without restarting phase, and reject overlapping/out-of-range intervals, <1 m
+body remnants, stairs/structures and duplicate junction IDs. Native masks live on
+the actor and its foreign-arm copies and participate in cache keys and rollback.
+Native ownership tests serialize and reload records, then rebuild exact meshes
+with no foreign actor loaded. Preview accepts <=16 appended joins using existing
+actors/components; tests cover 11, 16 and 17 connectors and invalid bends.
 
-Python core is still unchanged. Refined isolated runtime is
-`Saved/Phase1/interior_bend_runtime41/`, with shared plan/sample validation and
-steps-flag rejection. Five targeted tests pass; full legacy test run log is
-`phase1_interior_bend41_original_python_tests.log`. Two private numeric fixtures
-and full mesh/instance reference are under its `fixtures/` and `bend_parity.json`.
-Native parity for these still needs wiring/testing. Preserve the sealed runtime
-40 evidence; modifications went into a new runtime 41 directory.
+Seam audit now selects the EXACT junction patch and its own B corner groups.
+A planted displaced patch/corner with an intact impostor group passes the old
+selector but fails the new check. This closes a real false-pass route.
 
-No new production geometry or terrain has been imported. Finish native tests,
-full Python/native parity, schema documentation, safe preview/rollback and terrain
-contact before retaining any bend. Save a tested checkpoint before broad searches.
+Garrard full 52-definition proof `interior_bend_runtime41/document_proofs/e3e57634938df413fbae`:
+51 untouched bodies /875 arrays /61 old junction groups exact; original 152
+stations and length exact; 16.7013 m2 fold removed; simple footprint, zero overlap;
+A seam zero, B <=2.729e-12 m. Private and shared Python module bytes match.
+Candidate SHA b4388195da19f15e53d6d51a5799e49325b8c3022052315d611bba8c8ffea4b9.
+**Next:** require contact on NEW corner bases as well as road edges, measure the
+Garrard window, then run safe actual-level preview/capture/export/rollback with
+fresh all-Content guards. Barrier/hedge corner continuity and foliage stability
+remain unproved; do not retain candidates that need those features yet.
+
+Manifest `docs/checkpoints/phase1_41_native_bends.json`, SHA b8ef4958f6d55807482acd4ea78a8553ee71d96bd53b3953f63eb723148778dc.
+Full proof, candidate, helper and source/evidence hashes are embedded for recovery.
+Native reference regenerates via `Tools/ue/numpy_parity_dump.py`; numeric fixtures
+and six Python tests are committed with the source. Source/native unit evidence
+does NOT replace whole-network terrain/visual/structure acceptance.
+
+Build workflow: `Tools/build.ps1 -NoUBA -MaxParallelActions 2`. UE 5.8 still uses
+UBA scheduling but disables detouring (actions show `[NoUba]`). First attempt had
+a DLL lock, missed call argument and memory allocation failure; second caught a
+test include path. Corrected third build PASS in 16.03 s. Logs
+`phase1_interior_bend_native_build1..3.log`. Native test logs
+`phase1_interior_bend41_native_tests1.log` /`..._runner.log`; Python logs
+`phase1_interior_bend41_shared_numpy_tests.log` /`..._workflow_tests.log`.
+No jobs intentionally left running. Check current processes before every native
+run; other user tasks can import offshore/Manston/police assets on this branch.
+Search remains idle at 300; old identity is incompatible with the changed core.
+Phase 1 remains ACTIVE, NOT accepted.
 
 ### Fortieth checkpoint COMPLETE — 2026-09-11: 230 connectors, private bend runtime
 

@@ -56,7 +56,7 @@ public:
 	 * the cache key: a spline that gains or loses a junction must not answer out of a stale FStreetSamples.
 	 */
 	const FStreetSamples* Build(const IStreetTerrainSource* Terrain, const FStreetSiteProfiles& Profiles, FString* Error = nullptr, bool bForce = false,
-		const double* Trim = nullptr);
+		const double* Trim = nullptr, const TArray<FStreetJunction>& InteriorBends = {});
 	const FStreetSamples* GetSamples() const { return Samples.Get(); }
 	void MarkDirty() { CacheKey.Reset(); }
 

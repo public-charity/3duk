@@ -69,6 +69,8 @@ public:
 	 * trimmed exactly as it was at import.
 	 */
 	UPROPERTY(VisibleAnywhere, Category = "Streetscape") FVector2D JunctionTrimM = FVector2D::ZeroVector;
+	/** Original-timeline interior cut records, sufficient to rebuild this actor without its document. */
+	UPROPERTY() TArray<FStreetJunction> InteriorBends;
 
 	/**
 	 * The junctions this actor OWNS - the ones whose patch goes into its own road buffer and whose kerb corners go
@@ -94,7 +96,7 @@ public:
 	 * need a left kerb it has none of itself, and a component created inside PostRegisterAllComponents on a streamed
 	 * load would not be part of the saved actor. Call before RebuildAllChecked.
 	 */
-	void SetJunctionData(const FVector2D& Trim, TArray<FStreetOwnedJunction>&& Owned);
+	void SetJunctionData(const FVector2D& Trim, TArray<FStreetOwnedJunction>&& Owned, const TArray<FStreetJunction>& InteriorBends = {});
 
 	/** Timelines -> spline -> every renderer, from ONE FStreetSamples. Returns false with Error on a build failure. */
 	UFUNCTION(CallInEditor, BlueprintCallable, Category = "Streetscape") void RebuildAll();

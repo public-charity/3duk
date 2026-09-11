@@ -433,14 +433,14 @@ def junction_audit(plan, results: Dict[str, BuildResult]) -> dict:
         rep["patch_overlap_area_m2"] += float(info.get("overlap_area_m2", 0.0))
         rep["worst_patch_overlap_area_m2"] = max(rep["worst_patch_overlap_area_m2"],
                                                  float(info.get("overlap_area_m2", 0.0)))
-        patch = _ring_at_group(res.road, "junction:%s" % jid)
-        corner = _ring_at_group(res.edge.get(S.LEFT), "corner_")
+        patch = _ring_at_group(res.road, "junction:%s" % jid, exact=True)
+        corner = _ring_at_group(res.edge.get(S.LEFT), ("corner_kerb:%s:" % jid, "corner_pavement:%s:" % jid))
         for a in plan.arms[jid]:
             arm_res = results.get(a.spline_id)
             if arm_res is None or arm_res.road is None:
                 continue
             sp = arm_res.spline
-            i = arm_station_index(sp, a.end)
+            i = arm_station_index(sp, a.end,a.s_trim if plan.junction(jid).kind=='bend' else None)
             ribbon = _ring_at(arm_res.road, float(sp.s[i]), ("road", "skirt_"))
             g = _max_nearest(ribbon, patch)
             if g > rep["worst_patch_gap_m"]:
@@ -458,10 +458,10 @@ def junction_audit(plan, results: Dict[str, BuildResult]) -> dict:
     return rep
 
 
-def _ring_at_group(buf: Optional[MeshBuffer], prefix: str, tol: float = 1e-12) -> np.ndarray:
+def _ring_at_group(buf: Optional[MeshBuffer], prefix, tol: float = 1e-12, *, exact=False) -> np.ndarray:
     if buf is None or not len(buf.v):
         return np.zeros((0, 3))
-    ids = [i for i, n in enumerate(buf.group_names) if n.startswith(prefix)]
+    ids = [i for i, n in enumerate(buf.group_names) if (n == prefix if exact else n.startswith(prefix))]
     if not ids:
         return np.zeros((0, 3))
     vi = np.unique(buf.f[np.isin(buf.grp, ids)])

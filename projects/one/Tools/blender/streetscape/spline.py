@@ -373,6 +373,48 @@ class Frames:
 # the Spline
 # --------------------------------------------------------------------------------------------
 
+def interior_bend_intervals(sdef, site, points, stations, length, trim):
+    """Validate cuts on the original timeline before sampling or planning patches."""
+    bends = [j for j in site.junctions if j.kind == "bend"
+             and any(e.spline_id == sdef.id for e in j.ends)]
+    if not bends:
+        return []
+    profile = site.profiles.road.get(sdef.profile_ids.road)
+    flags = sdef.flags
+    if (profile is None or profile.kind != "road" or sdef.source.cls == "steps"
+            or (flags and (flags.bridge or flags.tunnel or flags.steps))):
+        raise ValueError("interior bend requires an ordinary road/path profile")
+    cuts = []
+    for junction in bends:
+        ports = {e.end: e for e in junction.ends}
+        if (len(junction.ends) != 2 or set(ports) != {"start", "end"}
+                or any(e.spline_id != sdef.id or e.station_m is None
+                       or e.trim_radius_m is not None for e in junction.ends)
+                or junction.trim_radius_m is not None or not junction.id
+                or not np.isfinite([junction.x, junction.y]).all()):
+            raise ValueError("invalid interior bend ports")
+        if junction.id in (sdef.junction_start, sdef.junction_end):
+            raise ValueError("bend cannot replace endpoint bindings")
+        lo, hi = float(ports["end"].station_m), float(ports["start"].station_m)
+        if not np.isfinite([lo, hi]).all() or not 0 < lo < hi < length or hi-lo > 64:
+            raise ValueError("interior bend stations outside the spline or too far apart")
+        if not any(lo < station < hi and (p.x-junction.x)**2 + (p.y-junction.y)**2 <= 1e-6
+                   for p, station in zip(points[1:-1], stations[1:-1])):
+            raise ValueError("interior bend interval does not surround its source control")
+        cuts.append((lo, hi))
+    cuts.sort()
+    cursor, end = float(trim[0]), length-float(trim[1])
+    if not np.isfinite([cursor, end]).all():
+        raise ValueError("nonfinite external trim")
+    for lo, hi in cuts:
+        if lo-cursor < 1.-1e-9:
+            raise ValueError("interior bends overlap or leave less than 1 m of body")
+        cursor = hi
+    if end-cursor < 1.-1e-9:
+        raise ValueError("interior bend meets an endpoint trim")
+    return cuts
+
+
 class Spline:
     """Everything the renderers read, built once from a SplineDef + Site + Heightfield."""
 
@@ -431,6 +473,13 @@ class Spline:
         self.trim_m = (t0, t1)
         self.s_trim = (t0, max(t0, L - t1))
         self.trimmed = bool(t0 > 0.0 or t1 > 0.0)
+        self.interior_trims = interior_bend_intervals(sdef, site, pts, s_knots, L, self.trim_m)
+        self.active_ranges = []
+        cursor = self.s_trim[0]
+        for lo, hi in self.interior_trims:
+            self.active_ranges.append((cursor, lo))
+            cursor = hi
+        self.active_ranges.append((cursor, self.s_trim[1]))
 
         # -- stations
         mand = list(s_knots[1:-1]) + list(self.sampling.extra_stations_m or [])
@@ -447,6 +496,7 @@ class Spline:
         for tl in self.side_tl.values():
             mand += tl.mandatory_stations()
         mand += [x for x in self.s_trim if 0.0 < x < L]
+        mand += [x for interval in self.interior_trims for x in interval]
         clamped = [m for m in mand if m > L + 0.01]
         if clamped:
             self.warnings.append("%d station(s) beyond L clamped" % len(clamped))
@@ -464,6 +514,8 @@ class Spline:
             self.s_trim = (0.0, L)
             self.trim_m = (0.0, 0.0)
             self.warnings.append("junction trim would leave fewer than 2 stations: not trimmed")
+        for lo,hi in self.interior_trims:self.active &= (self.s<=lo+1e-12)|(self.s>=hi-1e-12)
+        if self.interior_trims:self.trimmed=True
         self.xy = np.stack([np.interp(self.s, s_d, xy_d[:, 0]), np.interp(self.s, s_d, xy_d[:, 1])], axis=1)
         self.kappa = np.interp(self.s, s_d, kappa_sig_d)
         T_d = dense_tangents(xy_d)
@@ -836,6 +888,7 @@ class JunctionPlan:
         pending: Dict[str, List[JunctionArm]] = {}
         for j in self.site.junctions:
             self.stats["junctions"] += 1
+            if j.kind=='bend':continue
             if j.kind not in ("disc", "connector"):
                 self.stats["junctions_skipped_kind"] += 1
                 continue
@@ -925,6 +978,32 @@ class JunctionPlan:
             self.stats["arms"] += len(out)
             self.stats["junctions_built"] += 1
         self.stats["splines_trimmed"] = sum(1 for v in self.trims.values() if v[0] > 0.0 or v[1] > 0.0)
+        if len({j.id for j in self.site.junctions}) != len(self.site.junctions):
+            raise ValueError("duplicate junction id")
+        checked = set()
+        for j in self.site.junctions:
+            if j.kind != "bend":
+                continue
+            if (len(j.ends) != 2 or len({e.spline_id for e in j.ends}) != 1
+                    or {e.end for e in j.ends} != {"start", "end"}
+                    or any(e.station_m is None for e in j.ends)):
+                raise ValueError("invalid interior bend ports")
+            sid = j.ends[0].spline_id
+            if sid not in self._by_id:
+                raise ValueError("missing bend spline")
+            if sid not in checked:
+                pts, _, _, knots, _, _, _, length = self._curve(sid)
+                interior_bend_intervals(self._by_id[sid], self.site, pts, knots,
+                                        length, self.trim_for(sid))
+                checked.add(sid)
+            arms = [self._arm_from_station(j.id, e.spline_id, e.end, e.station_m, j.x, j.y)
+                    for e in j.ends]
+            arms.sort(key=lambda a: (_wrap_two_pi(a.phi), a.spline_id, a.end))
+            self.arms[j.id] = arms
+            self.trim_radius[j.id] = max(float(np.linalg.norm(a.p-[j.x, j.y])) for a in arms)
+            self.stats["arms"] += 2
+            self.stats["junctions_built"] += 1
+        self.stats["splines_trimmed"] += sum(not any(self.trim_for(sid)) for sid in checked)
 
     def _node(self, jid: str):
         j = self._junc_by_id[jid]
@@ -978,9 +1057,13 @@ class ArmFrame:
     b_hi: np.ndarray
 
 
-def arm_station_index(sp: "Spline", end: str) -> int:
+def arm_station_index(sp: "Spline", end: str, station=None) -> int:
     """Index in ``sp.s`` of the trim station of that end (the first / last active station)."""
     idx = np.where(sp.active)[0]
+    if station is not None:
+        found=np.flatnonzero(sp.active&(np.abs(sp.s-float(station))<=1e-9))
+        if len(found)!=1:raise ValueError('interior port does not have one active mandatory station')
+        return int(found[0])
     return int(idx[0]) if end == "start" else int(idx[-1])
 
 
@@ -991,7 +1074,7 @@ def resolve_arm_frames(plan: JunctionPlan, junction_id: str, splines: Dict[str, 
         sp = splines.get(a.spline_id)
         if sp is None or sp.kind is None:
             return None
-        i = arm_station_index(sp, a.end)
+        i = arm_station_index(sp, a.end,a.s_trim if plan.junction(junction_id).kind=='bend' else None)
         t_h = sp.frames.t_h[i]
         u = t_h if a.end == "start" else -t_h
         side_lo = S.RIGHT if a.end == "start" else S.LEFT

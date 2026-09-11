@@ -122,8 +122,9 @@ void AStreetscapeActor::ApplyDefinition(const FStreetSplineDef& Def, const FStre
 #endif
 }
 
-void AStreetscapeActor::SetJunctionData(const FVector2D& Trim, TArray<FStreetOwnedJunction>&& Owned)
+void AStreetscapeActor::SetJunctionData(const FVector2D& Trim, TArray<FStreetOwnedJunction>&& Owned, const TArray<FStreetJunction>& Bends)
 {
+	InteriorBends=Bends;
 	JunctionTrimM = Trim;
 	OwnedJunctions = MoveTemp(Owned);
 	Spline->MarkDirty();
@@ -191,7 +192,7 @@ bool AStreetscapeActor::RebuildAllChecked(FString* Error)
 	// SCHEMA.md 4.18: the junction trim is a mask on s, resolved once per document at import and carried here, so
 	// the road and both kerbs stop on the SAME station whatever else is loaded.
 	const double Trim[2] = { JunctionTrimM.X, JunctionTrimM.Y };
-	const FStreetSamples* Samples = Spline->Build(Terrain, Profiles, &BuildErr, true, Trim);
+	const FStreetSamples* Samples = Spline->Build(Terrain, Profiles, &BuildErr, true, Trim, InteriorBends);
 	if (!Samples)
 	{
 		if (Error) *Error = BuildErr;

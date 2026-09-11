@@ -631,8 +631,16 @@ TSharedRef<FJsonObject> FStreetSamples::StatsJson() const
 // the build (spline.Spline.__init__)
 // ---------------------------------------------------------------------------------------------------------------
 
-int32 FStreetSamples::ArmStationIndex(EStreetSplineEnd End) const
+int32 FStreetSamples::ArmStationIndex(EStreetSplineEnd End, const double* InteriorStation) const
 {
+	if (InteriorStation)
+	{
+		int32 Found=INDEX_NONE;
+		for (int32 I=0; I<S.Num(); ++I)
+			if (Active.IsValidIndex(I) && Active[I] && FMath::Abs(S[I]-*InteriorStation)<=1e-9)
+			{ if (Found!=INDEX_NONE) return INDEX_NONE; Found=I; }
+		return Found;
+	}
 	const int32 N = S.Num();
 	if (End == EStreetSplineEnd::Start)
 	{
@@ -662,7 +670,7 @@ void FStreetSplineMath::ResolveWidths(const TArray<FStreetPoint>& Points, const 
 }
 
 bool FStreetSplineMath::Build(const FStreetSplineDef& Def, const FStreetSiteProfiles& Profiles, const IStreetTerrainSource* Terrain, FStreetSamples& O, FString* Error,
-	const double* Trim)
+	const double* Trim, const TArray<FStreetJunction>& InteriorBends)
 {
 	O = FStreetSamples();
 	O.Id = Def.Id;
@@ -730,8 +738,14 @@ bool FStreetSplineMath::Build(const FStreetSplineDef& Def, const FStreetSiteProf
 		O.bTrimmed = (T0 > 0.0) || (T1 > 0.0);
 	}
 
+	if (!ResolveInteriorTrims(Def, Profiles, O.Points, O.SKnots, L, O.TrimM, InteriorBends, O.InteriorTrims, Error)) return false;
+	double Cursor=O.STrim[0];
+	for (const FVector2d& Cut : O.InteriorTrims) { O.ActiveRanges.Add(FVector2d(Cursor,Cut.X)); Cursor=Cut.Y; }
+	O.ActiveRanges.Add(FVector2d(Cursor,O.STrim[1]));
+
 	// -- stations
 	TArray<double> Mand;
+	for (const FVector2d& Cut : O.InteriorTrims) { Mand.Add(Cut.X); Mand.Add(Cut.Y); }
 	for (int32 I = 1; I + 1 < O.SKnots.Num(); ++I) Mand.Add(O.SKnots[I]);
 	Mand.Append(O.Sampling.ExtraStationsM);
 	Mand.Append(ElevS);
@@ -771,6 +785,9 @@ bool FStreetSplineMath::Build(const FStreetSplineDef& Def, const FStreetSiteProf
 			O.Warnings.Add(TEXT("junction trim would leave fewer than 2 stations: not trimmed"));
 		}
 	}
+	for (const FVector2d& Cut : O.InteriorTrims)
+		for (int32 I=0; I<N; ++I) O.Active[I] = O.Active[I] && (O.S[I]<=Cut.X+1e-12 || O.S[I]>=Cut.Y-1e-12);
+	if (!O.InteriorTrims.IsEmpty()) O.bTrimmed=true;
 	TArray<double> Xd, Yd;
 	Xd.SetNum(O.XYDense.Num()); Yd.SetNum(O.XYDense.Num());
 	for (int32 I = 0; I < O.XYDense.Num(); ++I) { Xd[I] = O.XYDense[I].X; Yd[I] = O.XYDense[I].Y; }
@@ -893,5 +910,48 @@ bool FStreetSplineMath::Build(const FStreetSplineDef& Def, const FStreetSiteProf
 	// -- side specs (the one SideTimeline evaluation both B and C read)
 	O.SideSpec[0] = O.Sides[0].Evaluate(O.S);
 	O.SideSpec[1] = O.Sides[1].Evaluate(O.S);
+	return true;
+}
+
+bool FStreetSplineMath::ResolveInteriorTrims(const FStreetSplineDef& Def, const FStreetSiteProfiles& Profiles,
+	const TArray<FStreetPoint>& Points, const TArray<double>& SKnots, double L, const double* Trim,
+	const TArray<FStreetJunction>& InteriorBends, TArray<FVector2d>& Out, FString* Error)
+{
+	Out.Reset();
+	auto Fail=[&](const TCHAR* Why) { Out.Reset(); if (Error) *Error=Def.Id+TEXT(": ")+Why; return false; };
+	if (InteriorBends.IsEmpty()) return true;
+	const auto* RP=Profiles.Road.Find(Def.ProfileIds.Road);
+	if (!RP || RP->Kind!=EStreetRoadKind::Road || Def.Source.Cls==TEXT("steps") ||
+		(Def.bHasFlags && (Def.Flags.bBridge || Def.Flags.bTunnel || Def.Flags.bSteps)))
+		return Fail(TEXT("interior bend requires an ordinary road/path profile"));
+	if (!FMath::IsFinite(L) || Points.Num()!=SKnots.Num()) return Fail(TEXT("invalid curve for interior bend"));
+	for (const auto& J : InteriorBends)
+	{
+		if (J.Kind!=EStreetJunctionKind::Bend || J.Ends.Num()!=2 || J.Ends[0].End==J.Ends[1].End ||
+			J.TrimRadiusM.IsSet() || J.Id.IsEmpty() || !FMath::IsFinite(J.X) || !FMath::IsFinite(J.Y))
+			return Fail(TEXT("invalid interior bend ports"));
+		if (Def.JunctionStart==J.Id || Def.JunctionEnd==J.Id) return Fail(TEXT("bend cannot replace endpoint bindings"));
+		for (const auto& En : J.Ends)
+			if (En.SplineId!=Def.Id || !En.StationM.IsSet() || En.TrimRadiusM.IsSet()) return Fail(TEXT("invalid interior bend port station"));
+		const double Lo=J.Ends[J.Ends[0].End==EStreetSplineEnd::End ? 0 : 1].StationM.GetValue();
+		const double Hi=J.Ends[J.Ends[0].End==EStreetSplineEnd::Start ? 0 : 1].StationM.GetValue();
+		if (!FMath::IsFinite(Lo) || !FMath::IsFinite(Hi) || !(0.<Lo && Lo<Hi && Hi<L) || Hi-Lo>64.)
+			return Fail(TEXT("interior bend stations outside the spline or too far apart"));
+		bool bSurrounds=false;
+		for (int32 K=1;K+1<Points.Num();++K)
+			if (Lo<SKnots[K] && SKnots[K]<Hi && FMath::Square(Points[K].X-J.X)+FMath::Square(Points[K].Y-J.Y)<=1e-6) bSurrounds=true;
+		if (!bSurrounds) return Fail(TEXT("interior bend interval does not surround its source control"));
+		Out.Add(FVector2d(Lo,Hi));
+	}
+	Out.Sort([](const FVector2d& A,const FVector2d& B) { return A.X==B.X ? A.Y<B.Y : A.X<B.X; });
+	double Cursor=Trim ? Trim[0] : 0.;
+	const double End=L-(Trim ? Trim[1] : 0.);
+	if (!FMath::IsFinite(Cursor) || !FMath::IsFinite(End)) return Fail(TEXT("nonfinite external trim"));
+	for (const FVector2d& Cut : Out)
+	{
+		if (Cut.X-Cursor<1.-1e-9) return Fail(TEXT("interior bends overlap or leave less than 1 m of body"));
+		Cursor=Cut.Y;
+	}
+	if (End-Cursor<1.-1e-9) return Fail(TEXT("interior bend meets an endpoint trim"));
 	return true;
 }

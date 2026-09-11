@@ -183,6 +183,7 @@ def build_edge(spline: Spline, side: int, terrain=None, params=None) -> Tuple[Me
             post_h = H + 0.05 if bar.type in S.FENCE_TYPES else H
             sj = np.array(post_stations(max(a, spline.s_trim[0]), min(b, spline.s_trim[1]),
                                         float(bar.post_pitch_m)))
+            for lo,hi in spline.interior_trims:sj=sj[(sj<=lo+1e-12)|(sj>=hi-1e-12)]
             fr = frames.at(sj)
             ob_j = np.interp(sj, s, ob)
             hb_j = np.interp(sj, s, hb_all)
@@ -284,7 +285,7 @@ def build_junction_corners(plan: JunctionPlan, junction_id: str, splines, buf: M
     differs cannot be interpolated column for column; those corners are skipped and counted."""
     out = {"corners": 0, "skipped_no_kerb": 0, "skipped_incompatible": 0, "verts": 0, "tris": 0}
     frames = resolve_arm_frames(plan, junction_id, splines)
-    if frames is None or len(frames) < (2 if plan.junction(junction_id).kind == "connector" else 3):
+    if frames is None or len(frames) < (2 if plan.junction(junction_id).kind in ("connector","bend") else 3):
         return out
     j = plan.junction(junction_id)
     node = np.array([j.x, j.y], dtype=np.float64)

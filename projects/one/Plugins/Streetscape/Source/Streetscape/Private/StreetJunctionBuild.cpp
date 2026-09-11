@@ -5,12 +5,16 @@
 #include "StreetscapeModule.h"
 
 void FStreetJunctionBuild::Distribute(const FStreetSiteDoc& Doc, const FStreetJunctionPlan& Plan,
-	TMap<FString, FVector2D>& OutTrim, TMap<FString, TArray<FStreetOwnedJunction>>& OutOwned)
+	TMap<FString, FVector2D>& OutTrim, TMap<FString, TArray<FStreetOwnedJunction>>& OutOwned,
+	TMap<FString, TArray<FStreetJunction>>* OutInteriorBends)
 {
+	OutTrim.Reset(); OutOwned.Reset(); if (OutInteriorBends) OutInteriorBends->Reset();
+	if (!Plan.IsValid()) return;
 	for (const FStreetSplineDef& Def : Doc.Splines)
 	{
 		double T[2] = { 0.0, 0.0 };
 		Plan.TrimFor(Def.Id, T);
+		if (OutInteriorBends) OutInteriorBends->Add(Def.Id,Plan.InteriorBendsFor(Def.Id));
 		if (T[0] > 0.0 || T[1] > 0.0) OutTrim.Add(Def.Id, FVector2D(T[0], T[1]));
 	}
 	// BuiltJunctionIds() is sorted, which is build_all's `for jid in sorted(plan.arms)`
@@ -30,6 +34,7 @@ void FStreetJunctionBuild::Distribute(const FStreetSiteDoc& Doc, const FStreetJu
 			double T[2] = { 0.0, 0.0 };
 			Plan.TrimFor(A.SplineId, T);
 			R.TrimM = FVector2D(T[0], T[1]);
+			R.InteriorBends=Plan.InteriorBendsFor(A.SplineId);
 			R.bIsOwner = (A.SplineId == OwnerId);
 			if (!R.bIsOwner)
 			{
@@ -72,7 +77,7 @@ void FStreetJunctionBuild::BuildOwned(const TArray<FStreetOwnedJunction>& Owned,
 			TUniquePtr<FStreetSamples> S = MakeUnique<FStreetSamples>();
 			const double Trim[2] = { R.TrimM.X, R.TrimM.Y };
 			FString Err;
-			if (!FStreetSplineMath::Build(R.Def, Profiles, Terrain, *S, &Err, Trim))
+			if (!FStreetSplineMath::Build(R.Def, Profiles, Terrain, *S, &Err, Trim, R.InteriorBends))
 			{
 				OutSkipped.Add(FString::Printf(TEXT("%s: arm %s did not build: %s"), *J.Junction.Id, *Sid, *Err));
 				continue;

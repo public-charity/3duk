@@ -85,11 +85,13 @@ struct STREETSCAPE_API FStreetSamples
 	double TrimM[2] = { 0.0, 0.0 };    // metres cut off the start / the end
 	double STrim[2] = { 0.0, 0.0 };    // the two trim stations: (TrimM[0], L - TrimM[1])
 	bool bTrimmed = false;
+	TArray<FVector2d> InteriorTrims; // open intervals removed from the original timeline
+	TArray<FVector2d> ActiveRanges; // closed body runs, including end trims
 	TArray<bool> Active;               // (N) stations inside [STrim[0], STrim[1]]; all true when untrimmed
 
 	int32 Num() const { return S.Num(); }
 	/** Index in S of the trim station of that end: the first / last active station (spline.arm_station_index). */
-	int32 ArmStationIndex(EStreetSplineEnd End) const;
+	int32 ArmStationIndex(EStreetSplineEnd End, const double* InteriorStation = nullptr) const;
 	const TArray<double>& ExtraOf(EStreetSide Side) const { return Extra[StreetSideIndex(Side)]; }
 	/** THE edge contract: outward distance of the kerb line from the centreline on that side: w/2 + extra(side). */
 	TArray<double> EdgeOffset(EStreetSide Side) const;
@@ -143,5 +145,10 @@ struct STREETSCAPE_API FStreetSplineMath
 	/** The whole build (spline.Spline.__init__). Terrain may be null (heights 0 + warning). False on a structural error.
 	    Trim, when given, is {t_start, t_end} in metres from FStreetJunctionPlan::TrimFor. */
 	static bool Build(const FStreetSplineDef& Def, const FStreetSiteProfiles& Profiles, const IStreetTerrainSource* Terrain, FStreetSamples& Out, FString* Error,
-		const double* Trim = nullptr);
+		const double* Trim = nullptr, const TArray<FStreetJunction>& InteriorBends = {});
+
+	/** Validate masks before any geometry/actor mutation. Also used by the document plan. */
+	static bool ResolveInteriorTrims(const FStreetSplineDef& Def, const FStreetSiteProfiles& Profiles,
+		const TArray<FStreetPoint>& Points, const TArray<double>& SKnots, double LengthM, const double* Trim,
+		const TArray<FStreetJunction>& InteriorBends, TArray<FVector2d>& Out, FString* Error);
 };

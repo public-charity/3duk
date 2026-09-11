@@ -531,14 +531,14 @@ inline bool BuildJunctionSite(FAutomationTestBase& T, const FString& Name, FStre
 	const FStreetHeightfield Field = JunctionTerrainFor(Name);
 	FStreetHeightfieldSource Src(Field);
 	Src.SetDocumentOrigin(Doc.Origin.E, Doc.Origin.N);
-	Out.Plan.Build(Doc);
+	if (!Out.Plan.Build(Doc)) { T.AddError(Out.Plan.Error); return false; }
 	for (const FStreetSplineDef& Def : Doc.Splines)
 	{
 		double Trim[2] = { 0.0, 0.0 };
 		Out.Plan.TrimFor(Def.Id, Trim);
 		FStreetSamples Sp;
 		FString Err;
-		if (!FStreetSplineMath::Build(Def, Doc.Profiles, &Src, Sp, &Err, Trim))
+		if (!FStreetSplineMath::Build(Def, Doc.Profiles, &Src, Sp, &Err, Trim, Out.Plan.InteriorBendsFor(Def.Id)))
 		{
 			T.AddError(Name + TEXT(": build ") + Def.Id + TEXT(": ") + Err);
 			return false;
