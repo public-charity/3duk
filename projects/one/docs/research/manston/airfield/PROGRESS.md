@@ -44,3 +44,10 @@ User direction: complete all visible runway/airfield surfaces and investigate Li
 - The apparent 157 buried samples are all outside the original landscape visibility clip: independent Heightfield sampling returns NaN for every one. Unreal's editor height query still reports filled, invisible heightmap texels there. The contact check now explicitly uses the source visibility mask and reports the excluded count; visible terrain retains the same 2 cm failure threshold.
 - Paint sampled directly from the raster crossed the differently tessellated floor, producing small holes in white markings. Revised baking intersects Renderer A's marking footprints with the exact exported pavement triangles and offsets each resulting face 9 mm above its supporting face. Footprint area coverage is checked during generation.
 - Revised geometry generation is running. Reimport/reopen and museum-walk regression remain required; this is not the final accepted checkpoint.
+
+## 06 — complete surface bake saved for final reopen
+
+- Revised bake: 124 caches / 565,258 triangles, 1,260 whole-runway coverage checks and all 49 source aeroway records accounted for. Marking footprints are fully supported by the pavement; white-paint area is 6,728.576 m². Manifest `f01d3002ac86740465e14e3be56fc608f76373a4b3825f9aa2b4ed319da0a64f`.
+- Saved checkpoint `Saved/ManstonAirfield/checkpoints/20260911T223349Z/`. The importer updated the same 124 actor identities and six dedicated materials, saving in batches of eight. No added/deleted Content files and no modification outside those 130 owned files.
+- Import Python completed, with the two inherited road-junction errors and known process-teardown `0xC0000005` still reported by the wrapper. This is not a clean global engine result.
+- The final reopen now runs both airfield surface validation and the established R1/R2 museum floor/body-capsule checks in the same loaded world. Packaging refuses a stale or failed museum regression. Final report and visual review pending.
