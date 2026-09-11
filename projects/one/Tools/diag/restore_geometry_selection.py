@@ -1,0 +1,82 @@
+"""Recreate a checkpointed data selection from raw source, with exact output hashes.
+
+Writes only complete documents below Saved/Phase1, at most 32 per invocation.
+The manifest records historical geometry evidence; recreation does not accept
+terrain, structures, seams, native rendering or later geometry-core changes.
+"""
+import argparse,json,sys
+from pathlib import Path
+TOOLS=Path(__file__).resolve().parents[1];REPO=TOOLS.parents[2]
+sys.path.insert(0,str(TOOLS))
+from phase1_qc import atomic_json,sha256,run_lock
+from diag.path_crossing_candidate import lane_width_candidate
+from diag.structure_inventory import read_osm_way_tags
+
+
+def pending_documents(root,expected,records):
+    """Recover a valid document written just before an interrupted state update."""
+    if not expected or set(records)-set(expected):raise ValueError('selection checkpoint coverage mismatch')
+    pending=[]
+    for name,digest in sorted(expected.items()):
+        target=root/name
+        if target.exists() and sha256(target)==digest:records[name]=dict(sha256=digest)
+        else:records.pop(name,None);pending.append(name)
+    return pending
+
+
+def main():
+    ap=argparse.ArgumentParser(description=__doc__)
+    ap.add_argument('--manifest',type=Path,default=TOOLS.parent/'docs/checkpoints/phase1_23_geometry_selection.json')
+    ap.add_argument('--max-docs',type=int,default=32)
+    ap.add_argument('--out',type=Path,default=TOOLS.parent/'Saved/Phase1/restored_geometry_selection')
+    args=ap.parse_args()
+    if not 1<=args.max_docs<=32:raise ValueError('max-docs must be 1..32')
+    if not args.out.resolve().is_relative_to((TOOLS.parent/'Saved/Phase1').resolve()):raise ValueError('output must stay under Saved/Phase1')
+    manifest=json.loads(args.manifest.read_text());digest=sha256(args.manifest)
+    for name,expected in manifest['input_sha256'].items():
+        if sha256(REPO/name)!=expected:raise ValueError('source dependency changed: '+name)
+    source=REPO/'data/thanet/out/unreal/streetscape';names=sorted(manifest['document_sha256'])
+    if set(names)!={p.name for p in source.glob('site_x*_y*.json')}:raise ValueError('source document coverage changed')
+    root=args.out/digest[:20];root.mkdir(parents=True,exist_ok=True)
+    with run_lock(root/'run.lock'):
+        path=root/'state.json'
+        state=json.loads(path.read_text()) if path.exists() else dict(status='pending',phase1_accepted=False,
+            manifest=str(args.manifest),manifest_sha256=digest,documents={})
+        if state['manifest_sha256']!=digest:raise ValueError('selection identity changed')
+        pending=pending_documents(root,manifest['document_sha256'],state['documents'])
+        if pending:
+            docs={name:json.loads((source/name).read_text()) for name in names}
+            definitions=[d for raw in docs.values() for d in raw['splines']]
+            selected=manifest['width_spline_ids']
+            osm=REPO/'data/thanet/raw/thanet.osm'
+            tags=read_osm_way_tags(osm,{d['source']['osm_id'] for d in definitions if d['id'] in selected})
+            tuning=json.loads((REPO/'sources/config/tuning.json').read_text())['roads']
+            profiles={}
+            for raw in docs.values():
+                for key,profile in raw['profiles']['road'].items():
+                    if key in profiles and profiles[key]!=profile:raise ValueError('conflicting source road profile')
+                    profiles[key]=profile
+            lane_width_candidate(dict(splines=definitions,profiles=dict(road=profiles)),selected,tags,tuning)
+            selected=set(selected);trims=manifest['junction_trims_m'];seen_trims=set()
+            for name,raw in docs.items():
+                for d in raw['splines']:
+                    if d['id'] in selected:
+                        pid=d['profile_ids']['road'];raw['profiles']['road'][pid]=profiles[pid]
+                for j in raw['junctions']:
+                    if j['id'] in trims:
+                        value=trims[j['id']]
+                        if not isinstance(value,(int,float)) or not 0<value<=32:raise ValueError('invalid retained trim')
+                        j['trim_radius_m']=value;seen_trims.add(j['id'])
+            if seen_trims!=set(trims):raise ValueError('retained trim coverage changed')
+            for name in pending[:args.max_docs]:
+                target=root/name;atomic_json(target,docs[name])
+                actual=sha256(target)
+                if actual!=manifest['document_sha256'][name]:raise ValueError('recreated document differs from verified checkpoint: '+name)
+                state['documents'][name]=dict(sha256=actual);atomic_json(path,state)
+        if sha256(args.manifest)!=digest:raise ValueError('selection manifest changed during recreation')
+        state.update(status='complete' if len(state['documents'])==len(names) else 'pending',completed=len(state['documents']),total=len(names))
+        atomic_json(path,state)
+        print(json.dumps(dict(state=str(path),status=state['status'],completed=state['completed'],total=state['total'])))
+
+
+if __name__=='__main__':main()

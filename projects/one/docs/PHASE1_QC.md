@@ -7,6 +7,20 @@ decorative presentation remain later work.
 
 ## Pavement mapping diagnosis — 2026-09-11
 
+**Verified retained selection:** 168 complete width groups (213 splines) and 420
+trims preserve all 246 documents and improve original junction passes from 645 to
+1,111. All 466 new passes survive comparison with the original base, with no lost
+passes or increased junction/body defects. Every one of 1,399 changed road bodies
+is checked. The final five-document correction takes 12.413 s; 241 unchanged
+documents reuse reports only after exact input/document/report hash checks.
+
+The committed selection manifest and `restore_geometry_selection.py` reproduce
+all 246 candidate files byte for byte from raw input in 32-document batches.
+Corruption and interruption recovery are tested; all 86 tool tests pass. This is
+a recoverable geometry candidate, not a production rollout. 361 folds, 167 overlaps
+and three unbuildable corners remain, along with terrain/seam/structure acceptance.
+See `docs/checkpoints/phase1_23_geometry_selection.json` and current RESUME.
+
 **Whole-site search and body check:** 437 bounded trims across 132 documents
 produce 1,140 passing junctions, with zero junction regressions against the width
 input. The original-base comparison still finds 21 inherited width regressions.
