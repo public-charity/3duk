@@ -3,6 +3,36 @@
 #include "StreetJunctionBuild.h"
 
 using namespace StreetTest;
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FStreetDocumentPreviewValidationTest, "Streetscape.Editor.DocumentPreviewValidation",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ProductFilter)
+bool FStreetDocumentPreviewValidationTest::RunTest(const FString&)
+{
+	FStreetSiteDoc Source;
+	FJunctionSiteBuild Built;
+	if (!BuildJunctionSite(*this,TEXT("junction_crossroads"),Source,Built)) return false;
+	FString Error;
+	FStreetSiteDoc Candidate = Source;
+	const FString Id = Candidate.Splines[0].ProfileIds.Road;
+	Candidate.Profiles.Road.FindChecked(Id).WidthM -= 1;
+	TestTrue(TEXT("profile changes accepted without replacing components"),StreetDocumentEdit::ValidatePreview(Source,Candidate,Error));
+	Candidate.Origin.E += 1;
+	TestFalse(TEXT("origin change rejected"),StreetDocumentEdit::ValidatePreview(Source,Candidate,Error));
+	Candidate = Source;
+	Candidate.Junctions.Reset();
+	TestFalse(TEXT("lost junction rejected"),StreetDocumentEdit::ValidatePreview(Source,Candidate,Error));
+	Candidate = Source;
+	Candidate.Splines[0].Id += TEXT("_new");
+	TestFalse(TEXT("renamed actor rejected"),StreetDocumentEdit::ValidatePreview(Source,Candidate,Error));
+	Candidate = Source;
+	Candidate.Splines[0].ProfileIds.Road.Reset();
+	TestFalse(TEXT("renderer removal rejected"),StreetDocumentEdit::ValidatePreview(Source,Candidate,Error));
+	Candidate = Source;
+	Candidate.Splines[0].JunctionStart += TEXT("_new");
+	TestFalse(TEXT("junction rebinding rejected"),StreetDocumentEdit::ValidatePreview(Source,Candidate,Error));
+	return true;
+}
+
 namespace
 {
 TArray<FStreetDocumentActorState> Snapshot(const FStreetSiteDoc& Doc)

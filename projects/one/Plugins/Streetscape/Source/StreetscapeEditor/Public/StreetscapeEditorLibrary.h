@@ -63,6 +63,18 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Streetscape|Diagnostics")
 	static FString RestoreLandscapePreviewJson();
 
+	/** Commandlet-only complete-document preview on existing actors, with unchanged IDs/junctions/component slots. */
+	UFUNCTION(BlueprintCallable, Category = "Streetscape|Diagnostics")
+	static FString PreviewDocumentJson(const FString& SourcePath, const FString& CandidatePath);
+
+	/** Restore definitions/profiles/junctions held by the current commandlet's document preview. */
+	UFUNCTION(BlueprintCallable, Category = "Streetscape|Diagnostics")
+	static FString RestoreDocumentPreviewJson();
+
+	/** Finish pending static-mesh/texture/etc. compilation before capture. Returns initial pending count, -1 if incomplete. */
+	UFUNCTION(BlueprintCallable, Category = "Streetscape|Diagnostics")
+	static int32 FinishRenderAssetCompilation();
+
 	// -- phase 3: the actors ---------------------------------------------------------------------------------------
 
 	/** The level's site actor (created and populated from the asset registry when missing). */

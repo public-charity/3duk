@@ -12,6 +12,7 @@
 #include "Misc/Paths.h"
 #include "ScopedTransaction.h"
 #include "UObject/Package.h"
+#include "UObject/UObjectIterator.h"
 
 namespace
 {
@@ -74,6 +75,38 @@ bool StreetDocumentEdit::Assemble(const FStreetSiteDoc& Source, const TArray<FSt
 	if (!FStreetscapeJson::ReadSite(FStreetscapeJson::WriteSite(Candidate), Validated, Problems))
 	{ Error = FString::Join(Problems, TEXT("; ")); return false; }
 	Out = MoveTemp(Validated);
+	return true;
+}
+
+bool StreetDocumentEdit::ValidatePreview(const FStreetSiteDoc& Source, const FStreetSiteDoc& Candidate, FString& Error)
+{
+	Error.Reset();
+	if (Source.Site != Candidate.Site || Source.Crs != Candidate.Crs || Source.VerticalDatum != Candidate.VerticalDatum ||
+		Source.Origin.E != Candidate.Origin.E || Source.Origin.N != Candidate.Origin.N ||
+		Source.Splines.Num() != Candidate.Splines.Num() || Source.Splines.IsEmpty())
+	{ Error = TEXT("preview must preserve source registration and spline count"); return false; }
+	auto JunctionText = [](const FStreetSiteDoc& Doc)
+	{
+		const auto All = FStreetscapeJson::WriteSite(Doc);
+		const auto Only = MakeShared<FJsonObject>();
+		if (const TSharedPtr<FJsonValue> Value = All->TryGetField(TEXT("junctions"))) Only->SetField(TEXT("junctions"),Value);
+		return FStreetscapeJson::Canonical(Only);
+	};
+	if (JunctionText(Source) != JunctionText(Candidate))
+	{ Error = TEXT("preview must preserve the complete junction definitions"); return false; }
+	TSet<FString> Seen;
+	for (const FStreetSplineDef& D : Candidate.Splines)
+	{
+		const FStreetSplineDef* Original = Source.FindSpline(D.Id);
+		if (!Original || Seen.Contains(D.Id)) { Error = TEXT("renamed, duplicate or unexpected preview spline: ") + D.Id; return false; }
+		Seen.Add(D.Id);
+		const auto& A = Original->ProfileIds;
+		const auto& B = D.ProfileIds;
+		if (A.Road.IsEmpty() != B.Road.IsEmpty() || A.EdgeLeft.IsEmpty() != B.EdgeLeft.IsEmpty() ||
+			A.EdgeRight.IsEmpty() != B.EdgeRight.IsEmpty() || A.HedgeLeft.IsEmpty() != B.HedgeLeft.IsEmpty() ||
+			A.HedgeRight.IsEmpty() != B.HedgeRight.IsEmpty() || Original->JunctionStart != D.JunctionStart || Original->JunctionEnd != D.JunctionEnd)
+		{ Error = TEXT("preview cannot change component slots or junction bindings: ") + D.Id; return false; }
+	}
 	return true;
 }
 
@@ -190,4 +223,114 @@ int32 UStreetscapeEditorLibrary::RefreshDocumentJunctions(const FString& SourceP
 	}
 	// Changes remain unsaved, with stable actor identities. The caller owns the normal editor save step.
 	return Actors.Num();
+}
+
+namespace
+{
+struct FDocumentPreviewSnapshot
+{
+	FString SourcePath;
+	TArray<TWeakObjectPtr<AStreetscapeActor>> Actors;
+	TArray<FStreetSplineDef> Definitions;
+	TArray<FStreetSiteProfiles> Profiles;
+	TArray<TPair<TWeakObjectPtr<UPackage>,bool>> Dirty;
+};
+TUniquePtr<FDocumentPreviewSnapshot> DocumentPreview;
+
+FString PreviewReply(const TSharedRef<FJsonObject>& Report, const FString& Error = FString())
+{
+	Report->SetBoolField(TEXT("ok"),Error.IsEmpty());
+	Report->SetBoolField(TEXT("saved"),false);
+	if (!Error.IsEmpty()) Report->SetStringField(TEXT("error"),Error);
+	return FStreetscapeJson::ToText(Report,false,1,-1);
+}
+
+void RestorePreviewDirty()
+{
+	for (const auto& Pair : DocumentPreview->Dirty) if (UPackage* Package = Pair.Key.Get()) Package->SetDirtyFlag(Pair.Value);
+}
+}
+
+FString UStreetscapeEditorLibrary::RestoreDocumentPreviewJson()
+{
+	const auto Report = MakeShared<FJsonObject>();
+	if (!IsRunningCommandlet()) return PreviewReply(Report,TEXT("document previews are restricted to commandlets"));
+	if (!DocumentPreview)
+	{
+		Report->SetBoolField(TEXT("nothing_to_restore"),true);
+		Report->SetBoolField(TEXT("restored"),true);
+		return PreviewReply(Report);
+	}
+	for (const auto& Weak : DocumentPreview->Actors)
+		if (!Weak.IsValid()) return PreviewReply(Report,TEXT("preview actor no longer loaded"));
+	for (int32 I=0;I<DocumentPreview->Actors.Num();++I)
+	{
+		AStreetscapeActor* A = DocumentPreview->Actors[I].Get();
+		A->DocProfiles = DocumentPreview->Profiles[I];
+		A->Spline->Def = DocumentPreview->Definitions[I];
+		A->Spline->SyncComponentFromDef();
+	}
+	const int32 Count = RefreshDocumentJunctions(DocumentPreview->SourcePath);
+	RestorePreviewDirty();
+	if (Count != DocumentPreview->Actors.Num()) return PreviewReply(Report,TEXT("document restoration refresh failed"));
+	Report->SetBoolField(TEXT("restored"),true);
+	Report->SetNumberField(TEXT("actors"),Count);
+	DocumentPreview.Reset();
+	return PreviewReply(Report);
+}
+
+FString UStreetscapeEditorLibrary::PreviewDocumentJson(const FString& SourcePath, const FString& CandidatePath)
+{
+	const auto Report = MakeShared<FJsonObject>();
+	if (!IsRunningCommandlet()) return PreviewReply(Report,TEXT("document previews are restricted to commandlets"));
+	if (DocumentPreview) return PreviewReply(Report,TEXT("restore the current document preview first"));
+	FStreetSiteDoc Source, Current, Candidate;
+	TArray<AStreetscapeActor*> Actors;
+	FString Error;
+	if (!CurrentDocument(SourcePath,Source,Current,Actors,Error)) return PreviewReply(Report,Error);
+	if (FStreetscapeJson::Canonical(FStreetscapeJson::WriteSite(Source)) != FStreetscapeJson::Canonical(FStreetscapeJson::WriteSite(Current)))
+		return PreviewReply(Report,TEXT("loaded document differs from source; preserve the existing edits before preview"));
+	TSharedPtr<FJsonObject> Object;
+	FText ReadError;
+	TArray<FString> Problems;
+	if (!FStreetscapeJson::LoadFile(CandidatePath,Object,&ReadError) || !FStreetscapeJson::ReadSite(Object.ToSharedRef(),Candidate,Problems))
+		return PreviewReply(Report,ReadError.ToString()+FString::Join(Problems,TEXT("; ")));
+	if (!StreetDocumentEdit::ValidatePreview(Source,Candidate,Error)) return PreviewReply(Report,Error);
+	TMap<FString,FVector2D> Trims;
+	TMap<FString,TArray<FStreetOwnedJunction>> Owned;
+	if (!PlanCurrent(Source,Candidate,Trims,Owned,Error)) return PreviewReply(Report,Error);
+	auto Snapshot = MakeUnique<FDocumentPreviewSnapshot>();
+	Snapshot->SourcePath = SourcePath;
+	int32 Changed = 0;
+	for (AStreetscapeActor* A : Actors)
+	{
+		const FStreetSplineDef* D = Candidate.FindSpline(A->StreetId);
+		const auto& P = D->ProfileIds;
+		if ((!P.Road.IsEmpty() && !A->Road) || (!P.EdgeLeft.IsEmpty() && !A->EdgeLeft) ||
+			(!P.EdgeRight.IsEmpty() && !A->EdgeRight) || (!P.HedgeLeft.IsEmpty() && !A->HedgeLeft) ||
+			(!P.HedgeRight.IsEmpty() && !A->HedgeRight) || (!A->OwnedJunctions.IsEmpty() && (!A->Road || !A->EdgeLeft)))
+			return PreviewReply(Report,TEXT("missing existing renderer component: ")+A->StreetId);
+		if (FStreetscapeJson::Canonical(FStreetscapeJson::WriteSpline(A->Spline->Def)) != FStreetscapeJson::Canonical(FStreetscapeJson::WriteSpline(*D))) ++Changed;
+		Snapshot->Actors.Add(A);
+		Snapshot->Definitions.Add(A->Spline->Def);
+		Snapshot->Profiles.Add(A->DocProfiles);
+	}
+	for (TObjectIterator<UPackage> It;It;++It) Snapshot->Dirty.Add({*It,It->IsDirty()});
+	DocumentPreview = MoveTemp(Snapshot);
+	for (AStreetscapeActor* A : Actors)
+	{
+		A->DocProfiles = Candidate.Profiles;
+		A->Spline->Def = *Candidate.FindSpline(A->StreetId);
+		A->Spline->SyncComponentFromDef();
+	}
+	const int32 Count = RefreshDocumentJunctions(SourcePath);
+	RestorePreviewDirty();
+	if (Count != Actors.Num())
+	{
+		Report->SetStringField(TEXT("rollback"),RestoreDocumentPreviewJson());
+		return PreviewReply(Report,TEXT("candidate document refresh failed"));
+	}
+	Report->SetNumberField(TEXT("actors"),Count);
+	Report->SetNumberField(TEXT("changed_definitions"),Changed);
+	return PreviewReply(Report);
 }

@@ -17,4 +17,5 @@ namespace StreetDocumentEdit
 // States must cover its spline IDs exactly once. Only profiles actually referenced by a state are merged.
 bool Assemble(const FStreetSiteDoc& Source, const TArray<FStreetDocumentActorState>& States,
 	FStreetSiteDoc& Out, FString& Error);
+bool ValidatePreview(const FStreetSiteDoc& Source, const FStreetSiteDoc& Candidate, FString& Error);
 }

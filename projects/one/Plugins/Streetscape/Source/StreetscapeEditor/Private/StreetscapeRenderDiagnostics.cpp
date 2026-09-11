@@ -10,6 +10,15 @@
 #include "LandscapeProxy.h"
 #include "TextureCompiler.h"
 #include "RenderingThread.h"
+#include "AssetCompilingManager.h"
+
+int32 UStreetscapeEditorLibrary::FinishRenderAssetCompilation()
+{
+	const int32 Before = FAssetCompilingManager::Get().GetNumRemainingAssets();
+	FAssetCompilingManager::Get().FinishAllCompilation();
+	FlushRenderingCommands();
+	return FAssetCompilingManager::Get().GetNumRemainingAssets() == 0 ? Before : -1;
+}
 
 FString UStreetscapeEditorLibrary::LandscapeHeightmapResidencyJson(bool bMakeResident)
 {

@@ -154,6 +154,10 @@ def capture(world, cam, rt, out_png, source, ev, warm_s, prepare_heightmaps=True
         # PNGs. FinishShaderCompilation blocks *and* applies (FShaderCompilingManager::FinishAllCompilation,
         # Runtime/Engine/Public/ShaderCompiler.h:1327).
         comp.capture_scene()
+        assets = unreal.StreetscapeEditorLibrary.finish_render_asset_compilation()
+        if assets < 0:
+            raise RuntimeError("capture still has pending render assets")
+        LAST_CAPTURE_STATE["compiled_render_assets"] = assets
         waited = unreal.StreetscapeEditorLibrary.finish_shader_compilation()
         uc.log("shader compilation: waited on %d job(s) before the real capture" % waited)
         if prepare_heightmaps:

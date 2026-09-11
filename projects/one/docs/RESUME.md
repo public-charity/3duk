@@ -2,6 +2,123 @@
 
 ## Current checkpoint — 2026-09-10, Phase 1 completion
 
+### Fourteenth milestone — 2026-09-11: visible road obstructions and safe document previews
+
+**Latest numerical iteration:** `path_crossing_candidates/43a2f4e73ddefae8c6a0/`
+fits a fair height profile (2 m curvature/displacement scale) under the same exact
+road overlap constraints. 2.703 s, max lowering unchanged 0.196159 m; bending
+energy 0.116898 -> 0.010622, endpoints fixed, minimum overlap clearance 10 mm.
+An initial 10 m fairing-scale experiment (`f7eba73699e38a9d626f`) lowered 0.412 m
+and was discarded before terrain/engine work. Local-only reconform is now
+`path_crossing_fair_ground/`, checkpoint `path_crossing_fair_conform_state/`.
+All **63 tool tests pass**, `phase1_crossing_all_tools_tests.log`.
+Independent driving screen `driving_surface_qc/94dd284b8917c1f95bc1/report.json`
+passes all 19 roads. Actual-base edge comparison still flags road30453662:
+48 -> 84 mm (improved from the first 164 mm candidate; zero >125 mm). Its worst
+point (8356.435224,4450.884570) is also covered by the crossing footway at
+51.760051 m, above the road skirt base 51.747256 m. So terrain-only edge gap
+does not by itself prove a visible seam defect there. Other footway edges still
+have real terrain-gap maxima up to 0.49 m in this bounded neighbourhood.
+
+**Next work:** separate adjacent mesh cover from exposed outer faces and test a
+bounded exact terrain finish (both small fills and cuts under ALL nearby emitted
+surfaces, preserving edge contact). Current minimum-of-corridor/sag conformance
+overcuts even after fairing; simply switching minimum to maximum would cause
+penetration. Do not accept either candidate or rerun expensive native preview
+until these contact gates and the two pavement corners are resolved. No job running.
+Gap diagnosis scripts/logs are in `Saved/Phase1/inspect_crossing_gap.py`,
+`phase1_crossing_gap_diagnosis.log`, `phase1_crossing_fair_gap_diagnosis.log`.
+The latter script currently targets the fair candidate's worst point.
+
+**Restart position (latest):** combined native document/terrain preview has FINISHED,
+runner verdict `teardown_crash_after_success`, 269 s, no running engine job. Report
+`Saved/Phase1/path_crossing_native_preview/report.json`: 239 actors / 51 junctions,
+3 changed definitions; exact complete candidate export and original restoration,
+unchanged actor paths; 8,343 terrain posts, 1,778 changed, max 0.421875 m, exact
+uint16 readback/restoration. All 15,913 Content files unchanged (aggregate
+`7afbb4eae62a31d1ccc9ac0927829a8d7df3bc2f4ae51fed28edba863a11ec27`).
+43/43 native tests passed, raw exit 0. Both camera images inspected: crossing strip
+removed, approaches narrowed, but pavement tongues/gaps remain. Capture readiness
+now finishes pending asset compilation: 142 assets before baseline, 0 before edit;
+foliage now consistently detailed in both frames. Candidate NOT accepted.
+
+Local reconform ribbon QC: no penetration, minimum clearance 0.024842 m, floating
+13.0435% of stations, max 0.550353 m. Junction QC 49/51 pass; remaining corners
+J:site_x16_y8:2 = 0.296144 m and :3 = 0.055720 m. New
+`Tools/diag/compare_edge_contact.py` compares actual banked outer base geometry:
+`path_crossing_candidates/4f698623fac024d7623f/edge_contact_comparison.json` found
+road 30453662 edge max gap REGRESSION 0.048091 -> 0.164065 m, 33 samples >125 mm,
+worst (8361.042348,4456.270320,51.735754). No other bounded max-gap regression or
+lost road coverage. Next: identify terrain ownership at this crossing (retained
+path bank + minimum overlapping conformance may over-cut under a hidden path),
+fix with numerical contact constraints, then inspect corner mesh ownership.
+Do not repeat the expensive native preview until the numerical gates pass.
+Earlier running/not-run notes below are historical and superseded by this block.
+
+- Latest verified commit **`5ea8126`**, support source and reversible terrain preview.
+- New uncommitted `Tools/diag/driving_surface_audit.py` builds real trimmed road,
+  junction and kerb/pavement meshes, screens raised footways/corners against vehicle
+  road centrelines at 25 cm spacing, and preserves missing-road coverage separately.
+  Bounded <=256 m rectangle; atomic per-road report with source/code/terrain hashes.
+  This is a screen, not complete lane/vehicle certification. No geometry is changed.
+- First pilot in progress: bounds `8320,4408,8400,4510`,
+  `Saved/phase1_driving_surface_pilot.log`, report directory `driving_surface_qc/`.
+  PowerShell bounds must be quoted, otherwise commas become separate arguments.
+  Next: identify exact mesh responsible for the transverse pale strip seen in the
+  camera, distinguish crossing footway 886487211 from junction corners, measure
+  width effects without changing raw source. Add meaningful obstruction tests.
+- `3duk-env/env/python.exe` lacks both matplotlib and PIL. No package installed.
+  Native test and capture processes from milestone 13 have all finished.
+- Pilot screen complete in 10.615 s: `driving_surface_qc/753d47f26ccffa5f147b/report.json`,
+  19 vehicle-road centrelines, no missing road coverage, one raised crossing: footway
+  886487211 over road 30453662, 76.384 mm above road at (8357.792,4454.449).
+- Original `data/thanet/raw/thanet.osm` confirms footway=crossing, crossing=unmarked,
+  crossing:island=yes and surface=asphalt (these tags were dropped from the adapter
+  source tags). 30453661 is one-way/1 lane, 30453662 one-way/2 lanes. Step06 uses
+  max(class default, lane estimate), so both became 10 m. Existing tuning is 3 m
+  lanes + 1 m total margin, 0.5 m quantum. Raw files unchanged.
+- New `path_crossing_candidate.py`: exact path/vehicle triangle intersections,
+  minimum downward profile LP, max 0.5 m lowering / 10% blend-gradient change,
+  FIXED path endpoint heights, original bank, full-document output and provenance.
+  Isolated path fix REJECTED: needs start/end lowering 0.289827/0.232796 m. Three
+  focused synthetic tests pass including sub-station crossing and endpoint rejection.
+- With explicit inferred 4 m / 7 m widths on those TWO junction-ended arms, candidate
+  PASSES in 2.611 s: `path_crossing_candidates/4f698623fac024d7623f/report.json`.
+  2,848 exact contact vertices; max footway lowering 0.196159 m, endpoints unchanged;
+  actual rebuilt footway stays >=10 mm below all vehicle triangles at overlaps.
+  One-lane centre markings removed in its profile variant. Widths are explicitly
+  inferred from existing tuning, not surveyed. Candidate full document saved beside
+  report. Independent driving screen PASSED in 9.187 s: all 19 drivers, zero raised
+  obstructions or missing-road samples, `driving_surface_qc/7d07de1ca2bede64b9c9/report.json`.
+  All **62 tool tests pass** (`phase1_driving_surface_tools_tests.log`). Candidate
+  junction/ground check has 48 passes/3 failures out of 51: existing :2 corner
+  296 mm; changed :3 patch 8.26 mm/corner 55.72 mm; changed :4 patch 6.60 mm.
+  `path_crossing_candidates/4f698623fac024d7623f/junction_ground_check.json`.
+  Ground reconform, adjacent edge/junction contact, native full-document preview and
+  visual acceptance remain required. No production geometry or raster changed.
+- Native uncommitted `PreviewDocumentJson`/`RestoreDocumentPreviewJson` now snapshot
+  complete loaded actors, reject changed registration/IDs/junctions/component slots
+  and existing unsaved source differences, refresh all source junctions, restore
+  definitions/profiles and original dirty flags. No spawn/delete/save calls.
+  Added `Streetscape.Editor.DocumentPreviewValidation` test. Build PASSED in 72.25 s,
+  `phase1_document_preview_build.log`; native regression RUNNING/recently complete,
+  `phase1_document_preview_native_tests.runner.log`. Actual preview still unverified.
+  `FinishRenderAssetCompilation` now precedes screenshot shader/heightmap readiness:
+  the terrain edit finished all assets, potentially exposing previously pending
+  foliage cards only in the second shot. This hypothesis still needs a stable A/B proof.
+  Build starting: `Saved/phase1_document_preview_build.log`. Previous aborted call
+  applied its patch but did not start a build; no engine process remained on resumption.
+- One-document terrain reconform complete, 46 s: `Saved/Phase1/path_crossing_ground`,
+  `phase1_path_crossing_conform.log`. It contains 391 tiles but ONLY source document
+  site_x16_y8 corridors are burned: for bounded local preview only, NOT a replacement
+  whole-site terrain. Atomic state: `path_crossing_conform_state/`. Ribbon/whole-document
+  junction checks running: `phase1_path_crossing_ribbon_qc.log` and
+  `phase1_path_crossing_reconformed_junctions.log`.
+- New `Tools/ue/diag_document_preview.py` verifies candidate input hashes, whole
+  document export/native preview/restore and saved Content, with optional terrain
+  preview and fixed camera from `terrain_preview_camera/report.json`. Not run yet;
+  finish native tests first. Candidate report remains `4f698623fac024d7623f/report.json`.
+
 ### Thirteenth milestone — 2026-09-11: support source and unsaved terrain preview
 
 - Latest commit **`64a86c8`**, fully verified bank-aware support core below.

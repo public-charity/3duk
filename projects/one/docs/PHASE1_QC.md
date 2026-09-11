@@ -154,6 +154,14 @@ separately under `Saved/Phase1/ground_conformed_triangulated/`.
 
 ## Acceptance ledger
 
+Latest bounded pilot (2026-09-11): exact triangle crossing fit removes a 76 mm
+footway obstruction and corrects two explicitly lane-tagged approach widths using
+existing tuning. Full document + terrain preview restores exactly; all 15,913 saved
+Content files unchanged, 43 native / 62 tool tests passed. **Candidate rejected for
+acceptance:** a neighbouring bare road edge gap increases 48 -> 164 mm, and two
+existing pavement corners remain buried. Complete contact/visual evidence and
+restart paths are in the fourteenth milestone at the top of `RESUME.md`.
+
 | Area | Current status | Evidence required to close |
 |---|---|---|
 | Survey/registration | Historical pass; preserve | Untouched survey hashes, shared tile edges, existing engine probes |
