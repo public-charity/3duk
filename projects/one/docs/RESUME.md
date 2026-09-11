@@ -2,6 +2,80 @@
 
 ## Current checkpoint — 2026-09-10, Phase 1 completion
 
+### Fifteenth milestone — 2026-09-11: bounded terrain finish and native verification
+
+**Verified completion of this tool/candidate milestone:** native preview PASSED in
+118.6 s (`phase1_crossing_finished_native.runner.log`, documented post-success
+teardown crash only). `path_crossing_finished_native_preview/report.json`: all
+239 actors / 51 junctions and 8,343 landscape posts restored exactly, stable actor
+paths, all 15,913 Content files byte-identical. Both captures exist; after inspected.
+Crossing obstruction removed; the two long pavement tongues and other local gaps
+remain visible, so this neighbourhood and Phase 1 remain UNACCEPTED.
+
+Independent raster verification PASSED: all 391 maps checked, four available signed
+delta rasters reconstruct the survey exactly, all other maps equal raw survey;
+only 19 posts in hm_x16_y8 differ from the preceding local candidate, all +1..13
+encoded units. `path_crossing_finished_ground/independent_verification.json`.
+All-document junction QC remains 49 pass / 2 fail with identical corner depths
+(296.144 / 55.720 mm), `6157d3ff4980d8b7e624/junction_ground_check.json`,
+`phase1_crossing_finished_junctions.log`. All jobs have finished.
+
+Next geometry diagnosis confirmed: `Saved/Phase1/inspect_corner_frames.py` and
+`phase1_corner_frame_diagnosis.log`. Corner :2 is 25.24 m long with only 3 rings,
+max segment 12.70 m, actual sampled tangent turn 26.87 degrees; :3 is 34.86 m,
+3 rings, max segment 17.49 m. Dense evaluations retain the same curve and expose
+missed shape; normals stay upright (min up.z 0.9982), so no evidence of a bank flip.
+Improve shared corner tessellation based on actual curve deviation/segment length,
+then verify NumPy/native parity and contact instead of hand-cutting away a bad mesh.
+Native implementation is `Streetscape/Private/StreetJunctions.cpp:482`; Python is
+`Tools/blender/streetscape/spline.py:997`. No shared-core edit has been made yet.
+
+**Latest:** two-unit candidate PASSED in 15.851 s:
+`terrain_finish_candidates/6157d3ff4980d8b7e624/report.json`. 342 candidate posts,
+22,294 exact contact vertices, 388 edge constraints; **19 raised posts only**, max
++0.1015625 m, sum +0.84375 m. Road30453662 actual base gap 84.105 -> **15.509 mm**;
+no other edge gap increases. Upper road/pavement retain 10 mm clearance; skirt-base
+clearance tapers to zero (minimum over all including skirts is 0.813 mm).
+Materialized `Saved/Phase1/path_crossing_finished_ground`, 1 changed tile,
+2,244 files verified (`phase1_crossing_finish_materialize.log`). Still LOCAL-ONLY
+because its parent has only one document conformed. Whole bounded 80x102 m edge
+comparison PASSED, zero max-gap regressions or lost coverage:
+`6157d3ff4980d8b7e624/edge_contact_comparison.json`,
+`phase1_crossing_finished_edge_compare.log`. All 67 tool tests passed again,
+`phase1_finish_tools_final_tests.log`. Guarded native combined preview starting
+now: `Saved/phase1_crossing_finished_native.runner.log`, output
+`Saved/Phase1/path_crossing_finished_native_preview/`. Source remains unchanged.
+
+Independent next diagnosis: corners :2 and :3 each emit only **three curve rings**
+(39 vertices, 49 triangles). `corner_curve` chooses segment count solely from the
+endpoint tangent angle, which may miss long or S-shaped curves. Inspect actual
+length/turn/chord error before changing shared NumPy/native geometry. Worst buried
+corner :2 at (8370.133664,4484.906830,51.344798), :3 at
+(8388.412036,4428.597928,51.682029). No core geometry change made yet.
+
+- Latest verified commit **`07af56f`** contains milestone 14 below. No engine job running.
+- New uncommitted `Tools/diag/terrain_finish.py` jointly solves encoded small fills
+  and cuts, exact triangle contact, and protected outer bases; <=64 m patch, 20 s
+  solver limit. Copies only touched tiles, checks all shared copies. No survey writes.
+  Four tests cover joint fill/cut, impossible geometry, seam copies, and an explicit
+  irreducible-gap diagnostic. All **67 tool tests passed** (`phase1_finish_tools_tests.log`).
+- `terrain_finish_candidate.py` gathers actual nearby upper surfaces and skirt
+  seam limits. Carriageway/pavement retain 10 mm clearance; clearance tapers to zero
+  at skirt bases and matching junction boundary vertices. Halo edge points preserve
+  existing contact; only named-road points inside the requested box demand closure.
+  Initial uniform-clearance runs falsely conflicted with their own skirt bases;
+  those rejected attempts are diagnostic history, not valid geometry findings.
+- Corrected solve over `8350,4445,8368,4462`, road30453662, fair candidate `43a2...`,
+  ground `path_crossing_fair_ground` still cannot meet one encoded height step
+  (7.8125 mm). Diagnostic solution finds achievable max gap **14.5615 mm**, keeps
+  surface/other-edge constraints hard; 7.418 s (`phase1_crossing_terrain_finish_v6.log`).
+  Earlier smaller patch's 33.9 mm finding was boundary-limited; do not use it.
+- Currently generating an explicit TWO encoded step target (15.625 mm) candidate,
+  which remains unaccepted pending materialization, whole-neighbour edge/junction
+  checks and native visual review. This improves the 84 mm max gap and does not
+  claim zero residual. `materialize_contact_candidate.py` now supports validated
+  bounded fills as well as historical cuts, preserving signed survey deltas.
+
 ### Fourteenth milestone — 2026-09-11: visible road obstructions and safe document previews
 
 **Latest numerical iteration:** `path_crossing_candidates/43a2f4e73ddefae8c6a0/`

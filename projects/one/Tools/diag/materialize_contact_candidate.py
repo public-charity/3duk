@@ -20,6 +20,7 @@ sys.path.insert(0,str(TOOLS/"blender"))
 from phase1_qc import atomic_json, sha256, run_lock, content_identity
 from conform_landscape import slope_stats
 from diag.terrain_contact import apply_posts
+from diag.terrain_finish import apply_adjustments
 from streetscape.terrain import Heightfield
 
 
@@ -49,7 +50,10 @@ def main():
         raise ValueError("candidate output must not overlap its baseline")
     posts,groups = {},[]
     dependencies = [Path(__file__),TOOLS/"phase1_qc.py",TOOLS/"conform_landscape.py",
-                    TOOLS/"diag/terrain_contact.py",TOOLS/"blender/streetscape/terrain.py"]
+                    TOOLS/"diag/terrain_contact.py",TOOLS/"diag/terrain_finish.py",TOOLS/"blender/streetscape/terrain.py"]
+    finish=any(row['config'].get('model')=='bounded_surface_edge_finish' for row in reports)
+    if finish and not all(row['config'].get('model')=='bounded_surface_edge_finish' for row in reports):
+        raise ValueError('surface finish and corner-cut candidates require a joint validation before merging')
     for path,row in zip(args.candidate,reports):
         post_file = path.parent/"posts.json"
         if row["status"]!="candidate" or row["problems"] or sha256(post_file)!=row.get("posts_sha256"):
@@ -89,7 +93,19 @@ def main():
         atomic_json(state_path,state)
         baseline = Heightfield.from_landscape_dir(str(source))
         baseline.sampling = "landscape_triangulated"
-        candidate = apply_posts(baseline,posts)
+        if finish:
+            for row in reports:
+                if row['config']['max_raise_m']>.5 or row['config']['max_cut_m']>.5:
+                    raise ValueError('terrain finish exceeds the bounded adjustment budget')
+            unit=baseline.manifest['heightmap']['z_encoding']['per_unit']
+            offset=baseline.manifest['heightmap']['z_encoding']['offset']
+            for key,z in posts.items():
+                old=float(baseline.sample(key[0]*baseline.px_m,key[1]*baseline.px_m))
+                if not np.isfinite(old) or abs(z-old)>.5+1e-8 or abs(z*unit+offset-round(z*unit+offset))>1e-5 or not 0<=z*unit+offset<=65535:
+                    raise ValueError('invalid encoded terrain finish adjustment')
+            candidate=apply_adjustments(baseline,posts)
+        else:
+            candidate=apply_posts(baseline,posts)
         manifest = json.loads((source/"landscape_manifest.json").read_text())
         enc = manifest["heightmap"]["z_encoding"]
         unit,offset = enc["per_unit"],enc["offset"]
@@ -116,7 +132,8 @@ def main():
             slopes = slope_stats(candidate.tiles[key],None,baseline.px_m)
             tile.update(slope_max_deg=slopes["max_deg"],slope_p99_deg=slopes["p99_deg"],cells_over_45deg=slopes["cells_over_45deg"])
             changed.append(dict(x=key[0],y=key[1],changed_posts=int(mask.sum()),
-                max_additional_cut_m=float((baseline.tiles[key]-candidate.tiles[key])[mask].max()),
+                max_additional_cut_m=float(max(0,(baseline.tiles[key]-candidate.tiles[key])[mask].max())),
+                max_additional_raise_m=float(max(0,(candidate.tiles[key]-baseline.tiles[key])[mask].max())),
                 delta_file=delta_name,slope=slopes))
         for index,name in enumerate(sorted({p.name for p in files}|set(replacements))):
             if name=="landscape_manifest.json":
@@ -147,8 +164,8 @@ def main():
             baseline=str(source),baseline_manifest_sha256=sha256(source/"landscape_manifest.json"),
             candidate_reports={str(p.resolve()):sha256(p) for p in args.candidate},
             unique_changed_posts=len(posts),changed_tiles=changed,
-            note="Conform/global survey QA blocks describe their original baseline. This block and updated tile statistics describe the subsequent contact cuts. Signed conform_delta rasters still recover the original survey exactly.")
-        manifest["heightmap"]["semantics"] += " + constrained junction corner contact cuts; see terrain_contact."
+            note="Conform/global survey QA blocks describe their original baseline. This block and updated tile statistics describe the subsequent constrained contact adjustments. Signed conform_delta rasters still recover the original survey exactly.")
+        manifest["heightmap"]["semantics"] += " + constrained contact adjustments; see terrain_contact."
         atomic_json(root/"landscape_manifest.json",manifest)
         state.update(status="complete",manifest_sha256=sha256(root/"landscape_manifest.json"),
                      unique_changed_posts=len(posts),changed_tiles=changed)

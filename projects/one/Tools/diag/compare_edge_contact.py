@@ -56,6 +56,7 @@ def main():
             if np.any(p.max(axis=0)+20 < b[:2]) or np.any(p.min(axis=0)-20 > b[2:]): continue
             sp=Spline(definition,site,survey,trim=plan.trim_for(definition.id))
             points=ribbon_bottom_points(sp,bounds)
+            points=points[np.all(points[:,:2]>=b[:2],axis=1)&np.all(points[:,:2]<=b[2:],axis=1)]
             if not len(points): continue
             gap=points[:,2]-ground.sample(points[:,0],points[:,1])
             if not np.isfinite(gap).all(): raise ValueError("missing edge ground: "+definition.id)

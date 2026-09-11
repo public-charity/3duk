@@ -154,6 +154,15 @@ separately under `Saved/Phase1/ground_conformed_triangulated/`.
 
 ## Acceptance ledger
 
+The subsequent bounded terrain finish raises 19 encoded posts by <=102 mm,
+reducing the corrected approach's max outer-base gap to 15.5 mm. Exact upper-surface
+clearance, preserved neighbour contact, whole-window max-gap comparison, independent
+391-map survey reconstruction, and the guarded native document/terrain restoration
+all pass. Two existing pavement corners remain buried and visibly malformed. Their
+25 m and 35 m curves have only three sample rings: improve shared curve quality
+before treating a terrain-only repair as sufficient. Restart details: milestone 15
+at the top of `RESUME.md`. No candidate has replaced the saved production level.
+
 Latest bounded pilot (2026-09-11): exact triangle crossing fit removes a 76 mm
 footway obstruction and corrects two explicitly lane-tagged approach widths using
 existing tuning. Full document + terrain preview restores exactly; all 15,913 saved
