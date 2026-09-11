@@ -5,6 +5,25 @@ Thanet base suitable for high-quality building overlays. Survey registration, te
 roads, rail, junctions and their transitions belong to Phase 1. Hero buildings and
 decorative presentation remain later work.
 
+## Bounded road-control repairs — 2026-09-11
+
+A complete candidate repairs 38 folded road bodies by removing redundant interior
+controls within0.1m. Endpoints, retained point dictionaries and all other document
+data remain exact. Every retained road now passes, with a conservative centreline
+deviation bound <=50mm and length change <=50mm. Actual road-edge, kerb and pavement
+continuation sections cannot worsen. Junction arms, structures, steps, loops,
+height/roll pins and distinct point semantics are protected.
+
+Independent full-document checks verify all38 repairs: 10,664 passing bodies,
+2,433 folds, 2,325 non-road definitions; all1,642 junction metrics unchanged,
+zero body/continuation regressions. Thirty-three unique continuation pairs checked.
+Largest curve bound47.272mm, length change9.752mm. The three largest mesh repairs
+were visually inspected. All246 documents reconstruct byte-exact from the committed
+checkpoint29 selection; 99 tool tests pass. Whole-network search continues in
+16-road calls, checkpointed per attempt; the first optimized batch took13.140s.
+Terrain, structures, other overlaps, existing continuation gaps and native world
+acceptance remain open. This is a geometry milestone, not Phase1 acceptance.
+
 ## Opening-section winding and full body coverage — 2026-09-11
 
 The shared sweep now uses the nonzero end section to orient a triangle when the

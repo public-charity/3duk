@@ -2,50 +2,78 @@
 
 ## Current checkpoint — 2026-09-10, Phase 1 completion
 
-### Twenty-ninth checkpoint IN PROGRESS — 2026-09-11: bounded road-control cleanup
+### Thirtieth checkpoint IN PROGRESS — 2026-09-11: whole-network redundant controls
 
-New `Tools/diag/road_control_candidates.py` removes only selected redundant
-interior controls within 0.1 m on ordinary roads with no junction-arm binding.
-First/last point dictionaries, all retained points and every other document field
-are exact. Structures, steps, loops, explicit z/roll pins and distinct point
-semantics are excluded. `_z_06` is documented historical drape, not a height pin;
-removed notes remain in the hashed original source and retained-index manifest.
-
-Each candidate must eliminate ALL target body folds, stay within 50 mm of the
-original dense polyline (conservative nearest-segment/Lipschitz bound), change
-length by <=50 mm, and worsen no actual road-edge/kerb/pavement continuation
-section against either original or current selection. Checkpoints are atomic per
-spline; complete source, core, terrain and report hashes bind every run. Candidate
-outputs stay under Saved. Full combined verification is still required.
-
-**99 tool tests PASS (6.894 s)**, including actual centimetre-corner fold failure,
-bounded repair, segment-interior distance and KD fallback, protected metadata,
-planted pavement seam regression and corrupt checkpoint rejection. No core/native
-geometry change. Real Marrose reproduction: `road_control_candidates/5f4ea26bb73cd5cb60d0`,
-one retained body; 16.601 mm centreline bound, all actual endpoint sections improve
-or stay unchanged. Initial private 32-case sample retained 14 with road-edge seam
-checks; the durable tool adds actual kerb/pavement checks and must supersede it.
-
-CURRENT NETWORK ROOT: `road_control_candidates/97dee31510fc77ddc4fb` (verify latest
-state; 32/988 attempted, 12 retained, then batches3–6 launched). Profiling removed
-unnecessary whole-document deep copies and reused parsed site/plan context. All
-32 original attempts and every trial geometry metric reproduce EXACTLY; the first
-optimized 16-road batch takes 13.140 s. Earlier root fdabfd2fd6be537fb94b is historical.
-`road_control_optimization_verification.json` preserves the comparison. The recovery
-tool now accepts `retained_point_indices`, validates all before mutation and proves
-endpoint/order/semantic rejection. Run repeatedly, <=16 splines per call:
+Continue search from the unchanged fae input (NOT from the newer pilot):
 `Tools/python.ps1 Tools/diag/road_control_candidates.py --streetscape Saved/Phase1/arm_network_candidates/fae0375edf30782333ac --census Saved/Phase1/road_surface_census/68a2bc3b5fffa79d7a76 --max-splines 16`
-Paths above are relative to projects/one; invoke from repo with full relative paths.
-Logs `Saved/phase1_road_control_optimized_batchN.log`. Initial tool connection drop
-left no running Python process or completed network state; resumed safely. Native
-API is actually `PreviewDocumentJson` (older summaries' SafePreviewDocumentJson
-name was shorthand); existing validation already allows point edits.
+Paths above relative to projects/one; invoke from repo with full relative paths.
+State: `road_control_candidates/97dee31510fc77ddc4fb/state.json`.
+988 eligible ordinary roads, checkpoint after every attempt. Batches1–24 complete:
+384 attempted /183 retained; batches25–40 started, session87562. Revalidate actual
+process/handle before resuming. Logs `Saved/phase1_road_control_optimized_batchN.log`.
+No core/tool changes while this search is active. Only checkpoints are retained;
+there is no production rollout. Search currently includes the checkpoint29 pilot.
 
-After search: compose complete 246-doc candidate, independently verify all changed
-bodies, full document/source preservation, unchanged junction dependencies and
-every combined continuation section. Add a committed retained-point selection and
-verify byte-exact reconstruction before adopting the candidate. Current retained
-data remains fae0375edf30782333ac; phase 1 and production remain unchanged.
+After all attempts finish, run `Saved/Phase1/compose_road_control_candidate.py
+--search projects/one/Saved/Phase1/road_control_candidates/97dee31510fc77ddc4fb`.
+It verifies inputs and seals an immutable search snapshot, then creates complete
+246-doc output. Run `verify_road_control_composition.py --candidate <root>
+--max-docs 4` repeatedly. This independently rebuilds every body and junction in
+changed documents, reuses unchanged reports only with exact hashes, and checks
+every combined actual road-edge/kerb/pavement continuation section. Finally export
+a new retained-point selection manifest, restore all246 byte-exact, and checkpoint.
+Do not edit the existing pilot helper/evidence while its manifest references them;
+create new export helpers for the next checkpoint instead.
+
+### Twenty-ninth checkpoint COMPLETE — 2026-09-11: 38 verified road-body repairs
+
+**Current retained geometry candidate:** `road_control_compositions/b41bd78bd0277681c93f`.
+All246 docs /15,422 definitions /1,642 junctions preserved. 38 roads repaired in
+32 docs: **10,664 passed /2,433 folded /2,325 non-road definitions**. All junction
+measurements remain EXACT: **1,182 pass /327 fold /130 overlap /3 needs_geometry**.
+Zero body regressions; every unchanged body metric exact; 33 unique combined
+continuation pairs have no increased actual road-edge, kerb or pavement gap.
+Largest conservative dense-polyline deviation bound **47.272 mm**; largest length
+change **9.752 mm**. Original endpoints and every retained point dictionary exact.
+These are local repairs; some improved continuation gaps are still substantial.
+
+Redundant interior controls are within0.1m. No junction arms, structures, steps,
+loops, explicit z/roll pins or distinct point semantics are edited. Only the
+documented historical `_z_06` drape note may differ on removed points; raw sources
+and retained-index selections preserve that provenance. All other data exact.
+99 tool tests pass (6.894s): real folded road, bounded repair, certified segment
+distance, metadata protection, planted pavement seam regression, corrupt-state
+rejection, and validate-before-mutation restoration. No core/native change.
+
+Actual mesh plan views of the three largest repairs were visually inspected:
+Marrose Avenue, St Peter's Road, Brandon Way. Red folded triangles disappear;
+original endpoints remain fixed. `control_mesh_diagram.png` in candidate root.
+Independent proof `geometry_verification.json`, full reports `verification/`.
+Verification used eight <=4-document batches; unchanged documents reuse exact
+source/report hashes. Logs `phase1_road_control_pilot_verify_batchN.log`.
+
+**Exact recovery:** `docs/checkpoints/phase1_29_geometry_selection.json`
+SHA12c1b605c655aa696608c7e24146996fad5dcb16a41d98914953aec20ee17e3d.
+`restore_geometry_selection.py --manifest <that file>` recreates all246 documents
+byte for byte in eight <=32-document batches, verified at
+`restored_geometry_selection/12c1b605c655aa696608`. Logs
+`phase1_road_control_restore_batchN.log`. Helpers `export_control_checkpoint29.py`,
+`finish_control_checkpoint29.py`, `export_control_mesh_diagram.py`,
+`draw_control_mesh_diagram.ps1`. Production unchanged; Phase1 NOT accepted.
+
+The candidate tool checkpoints each attempt and hashes complete inputs/reports.
+Profiling removed repeated deep copies and reused parsed site/plan context;
+all32 original attempts and every trial metric reproduce exactly after optimization.
+First optimized16-road batch:13.140s. Old roots fdabfd2fd6be537fb94b and the single
+Marrose reproduction5f4ea26bb73cd5cb60d0 are historical. Optimization evidence uses
+immutable state snapshots in `road_control_optimization_snapshots/`.
+
+Native preview API is actually `PreviewDocumentJson`, and already allows point
+edits; older summaries' SafePreviewDocumentJson name was shorthand. No native
+preview run for this pilot. Terrain, structures, cross-road overlaps, unresolved
+bodies/junctions and native world acceptance remain open. The initial tool-host
+drop left no running process; resumption kept source and per-attempt evidence.
+Unrelated police-car assets/source remain untouched.
 
 ### Twenty-eighth checkpoint COMPLETE — 2026-09-11: every road/rail body measured
 
