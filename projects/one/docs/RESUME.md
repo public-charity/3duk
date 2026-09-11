@@ -2,30 +2,43 @@
 
 ## Current checkpoint — 2026-09-10, Phase 1 completion
 
-### Twenty-eighth checkpoint IN PROGRESS — 2026-09-11: full road/rail surface census
+### Twenty-eighth checkpoint COMPLETE — 2026-09-11: every road/rail body measured
 
-New `Tools/diag/road_surface_census.py` measures EVERY road/pavement body and
-ballast/left-rail/right-rail ribbon, including unchanged definitions. Non-road
-definitions stay explicitly counted. Empty required surfaces and build failures
-cannot pass. Actual folded-road and real rail fixtures plus coverage/corruption
-tests pass; full tool suite is now **93 passing tests** (6.719 s).
+All 246 documents /15,422 definitions accounted for: **10,626 passed /2,471
+fold_review /2,325 without road profile**. Covers 12,815 roads and 282 rail
+definitions, including actual ballast and both rails, plus pavement on both sides.
+No body build failures. Every one of the earlier **1,487 changed-body measurements
+is exactly reproduced**. All 1,052 unique partition dependencies and all report
+hashes verified. Merged census `road_surface_census/68a2bc3b5fffa79d7a76`;
+`fae.../full_surface_census_verification.json`; committed compact evidence
+`docs/checkpoints/phase1_28_surface_census.json`. 93 tool tests pass.
 
-Three-document pilot: 542 definitions, **427 passed /96 fold_review /19 without
-road profile**; 8 rail and 515 road definitions. Runtime 6.215 s of actual builds.
-`road_surface_census/97edf027ee8076d6b96a`, `phase1_road_surface_census_pilot.log`.
-This exposes inherited body defects that changed-only comparison cannot see.
+Two partitions of 123 docs each completed in 16 bounded driver calls; checkpoint
+after every document. No census jobs remain. `run_full_road_surface_census.py`,
+`full_road_surface_census_run.json`, `merge_full_road_surface_census.py` preserve
+the workflow. Logs `phase1_full_road_surface_driver_batchN.log` and
+`phase1_full_road_surface_verification.log` under Saved.
 
-CURRENT JOB: full census driver batches5–8, session61692; logs
-`Saved/phase1_full_road_surface_driver_batchN.log` and
-`phase1_full_road_surface_part{0,1}_batchN.log`. Batches1–4 complete: 64/246 docs,
-2,115 definitions, 292 folds (partial totals). Driver
-`Saved/Phase1/run_full_road_surface_census.py` runs two <=8-document jobs per call,
-checkpointing each completed document. State `full_road_surface_census_run.json`;
-partition0 `road_surface_census/04be0be0aed22fbd32a2`, partition1
-`road_surface_census/3ff2642663dd1e36e8f6`, 123 documents each. Repeat driver until
-both complete (16 batches total expected). Keep core/tool frozen, merge all 246
-with exact report hashes, compare the 1,487 earlier changed-body metrics, and
-classify actual defects before choosing the next geometry change.
+Fold diagnosis: **254 pavement-only /790 road-and-pavement /1,427 road-or-rail**;
+2,437 road and 34 rail bodies. Median folded area 0.19177 m2, max 26.70846 m2;
+1,082 touch within 1 m of an active end. Only one is below 1 cm2. Inventory:
+`Saved/Phase1/road_surface_fold_inventory.json`. These are inherited defects,
+not regressions introduced by the current candidate.
+
+NEXT: classify centimetre-scale source controls and trial tightly bounded,
+endpoint-preserving simplification with semantic protection, geometric deviation,
+body, junction and continuation checks. A PRIVATE Marrose Avenue prototype drops
+three interior controls within 3 cm of the end, removes 20.664 m2 of folds and
+changes length by -8.84 mm. Its dense point-sample Hausdorff is NOT an exact curve
+deviation bound. No candidate/core change accepted. Actual sharp bends on Tollemache
+Close and Garrard Avenue remain folded and need a different geometry treatment.
+Helpers `probe_bad_road_tangents.py`, `probe_micro_control_pruning.py`; prototype
+results `road_surface_tangent_diagnosis.json`, `micro_control_pruning_pilot.json`.
+
+**Current data remains fae0375edf30782333ac, core checkpoint27. Phase 1 not accepted.**
+460 junctions plus these 2,471 bodies, continuation joins, terrain, structures and
+native world acceptance remain open. Production unchanged. Unrelated untracked
+police-car assets and source files are another task's work; leave them untouched.
 
 ### Twenty-seventh checkpoint COMPLETE — 2026-09-11: opening-section winding
 

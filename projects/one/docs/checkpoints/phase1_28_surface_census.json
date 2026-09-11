@@ -1,0 +1,72 @@
+{
+  "checkpoint": "Phase 1 checkpoint 28; complete road/rail body census, 2026-09-11",
+  "phase1_accepted": false,
+  "data_selection": "projects/one/docs/checkpoints/phase1_26_geometry_selection.json",
+  "data_selection_sha256": "41cfbfa673349d78884b341655b736d7c49af11bfd360205b17bd78633e7f52d",
+  "geometry_core_checkpoint": "projects/one/docs/checkpoints/phase1_27_winding_verification.json",
+  "surface_evidence": {
+    "status": "complete",
+    "phase1_accepted": false,
+    "fingerprint": "68a2bc3b5fffa79d7a76362eab29c1ff5ac18a387f15b3d8d9779a8851b4dd74",
+    "source": "projects\\one\\Saved\\Phase1\\arm_network_candidates\\fae0375edf30782333ac",
+    "completed": 246,
+    "total": 246,
+    "definitions": 15422,
+    "totals": {
+      "passed": 10626,
+      "fold_review": 2471,
+      "without_road_profile": 2325
+    },
+    "kinds": {
+      "road": 12815,
+      "not_measured_as_road": 2325,
+      "rail": 282
+    },
+    "compared_prior_changed_bodies": 1487,
+    "prior_changed_body_metrics_exact": true,
+    "verified_dependencies": 1052,
+    "state": "projects\\one\\Saved\\Phase1\\road_surface_census\\68a2bc3b5fffa79d7a76\\state.json"
+  },
+  "fold_diagnosis": {
+    "status": "diagnosis_snapshot",
+    "phase1_accepted": false,
+    "documents": 246,
+    "definitions": 15422,
+    "totals": {
+      "passed": 10626,
+      "fold_review": 2471,
+      "without_road_profile": 2325
+    },
+    "classes": {
+      "pavement_only": 254,
+      "road_and_pavement": 790,
+      "road_or_rail": 1427
+    },
+    "kinds": {
+      "road": 2437,
+      "rail": 34
+    },
+    "area_quantiles_m2": {
+      "p0": 6.127597160721935e-05,
+      "p25": 0.040014500986411995,
+      "p50": 0.19176622261420923,
+      "p75": 0.7826421007487099,
+      "p95": 5.183835088837968,
+      "p99": 11.594718983744038,
+      "max": 26.708463238277215
+    },
+    "folds_under_1cm2": 1,
+    "near_active_end": 1082
+  },
+  "tool_tests": 93,
+  "evidence_sha256": {
+    "projects/one/Saved/Phase1/arm_network_candidates/fae0375edf30782333ac/full_surface_census_verification.json": "2b74389f7714e1552ef82c0700e85adff2573c6efdbecc8b88d262541533433e",
+    "projects/one/Saved/Phase1/road_surface_census/68a2bc3b5fffa79d7a76/state.json": "144a7c2e53af8251ca8c62df8f35339ac9903a3343e8acf2b4a121beb53d12e6",
+    "projects/one/Saved/Phase1/road_surface_fold_inventory.json": "5a68ea8c01b7feb604b5dc5605ee54b479bdc22b6d19cd0682ac343a6da0587a",
+    "projects/one/Saved/Phase1/merge_full_road_surface_census.py": "a773ce48d4ee981846e35eed132fb393bd2d7fde3f96cf6cda2734f5df70ad40",
+    "projects/one/Saved/Phase1/classify_road_surface_folds.py": "da4f3cb269b0f267624cbdb7712e2281b59c76616c9afcb793625a8e64621472",
+    "projects/one/Tools/diag/road_surface_census.py": "68d84d9065f3d5e85f319071bc7ef6564cb3e50eda884529c56be2f7ff0fe367",
+    "projects/one/Saved/phase1_surface_census_all_tool_tests.log": "8e9577c9127745a99e272400ae422aac148191742c7ed4ca0fda35c5b968a075"
+  },
+  "limits": "2471 folded road/rail bodies and 460 unresolved junctions. Mapping fold screen only; road-road overlaps, continuation seams, terrain, structures and native world acceptance remain open."
+}

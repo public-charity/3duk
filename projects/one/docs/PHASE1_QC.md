@@ -18,10 +18,16 @@ metrics for all 3,284 paired records. No regressions. Candidate: 1,182 pass,
 
 The changed-body gate does not cover inherited defects in untouched roads. A new
 full census measures all road/pavement and ballast/rail ribbons and explicitly
-counts non-road definitions. Its three-document pilot finds 96 folded bodies
-among 523 road/rail definitions. The whole-site census is running in two bounded
-partitions, with a checkpoint per document. No terrain or whole-site acceptance
-can follow from the earlier changed-body comparison alone.
+counts non-road definitions. The completed 246-document census records 10,626
+passes, 2,471 folded bodies and 2,325 non-road definitions, with no missing IDs
+or body build failures. All 1,487 earlier changed-body measurements reproduce
+exactly; all 1,052 partition dependencies and report hashes verify. Of the folds,
+254 affect pavement alone, 790 both road and pavement, and 1,427 road or rail.
+Median area is 0.19177 m2; 1,082 lie near active ends. These inherited defects
+remain explicit work. Separate centimetre-scale source-control noise from genuine
+sharp bends; every candidate must pass body, junction, continuation and geometric
+deviation checks together. No terrain or whole-site acceptance can follow from
+the earlier changed-body comparison alone. Checkpoint28 preserves this baseline.
 
 ## Ordinary-road overlap checkpoint — 2026-09-11
 
