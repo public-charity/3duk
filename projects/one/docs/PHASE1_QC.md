@@ -5,6 +5,25 @@ Thanet base suitable for high-quality building overlays. Survey registration, te
 roads, rail, junctions and their transitions belong to Phase 1. Hero buildings and
 decorative presentation remain later work.
 
+## Ordinary-road overlap checkpoint — 2026-09-11
+
+The bounded 80-junction search retains 38 proposals, bringing the complete candidate
+to 1,154 passing junctions (509 more than original). Every proposal survives the
+combined original comparison: zero junction/body regressions, all 1,487 changed
+bodies checked. 23 fresh documents +223 hash-verified report reuses take 32.754 s.
+All 423 actual junction patches in the changed documents have zero patch gaps and
+corner seam error below 7e-12 m. The three largest combined trim requests were
+visually inspected. The committed checkpoint-26 selection reconstructs all 246
+documents byte for byte in eight bounded batches. This remains a geometry candidate.
+
+Remaining geometry needs a different fix: a private prototype corrects triangle
+winding where pavement opens from zero width, fixing seven junctions across four
+complete documents without moving vertices or changing mapping-fold/overlap areas.
+The starting section has no normal hint; use the nonzero end section. Port to both
+cores with an opening/closing regression fixture and parity before accepting it.
+The 488 unresolved junctions and unmeasured unchanged road bodies remain explicit,
+along with continuation seams, terrain, structures and world acceptance.
+
 ## Per-arm trim checkpoint — 2026-09-11
 
 The serialized search pilot retains 3/8 proposals: three of four overlap cases,

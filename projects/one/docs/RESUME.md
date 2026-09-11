@@ -2,20 +2,69 @@
 
 ## Current checkpoint — 2026-09-10, Phase 1 completion
 
-### Twenty-sixth checkpoint IN PROGRESS — 2026-09-11: ordinary-road overlap network
+### Twenty-sixth checkpoint COMPLETE — 2026-09-11: ordinary-road overlap network
 
-Bounded search of 80 remaining ordinary-road overlap junctions in 38 documents,
-starting from checkpoint-25 candidate 8abe below. Previously searched pilot targets
-excluded. Longest minimum arms first. Batch 1 completed: **7 attempted /4 retained**.
-CURRENT JOB batch 2, session48807, `Saved/phase1_arm_overlap_batch2.log`.
-Selection/state: `Saved/Phase1/arm_overlap_network_{selection,run}.json`.
-Driver `Saved/Phase1/run_arm_overlap_network.py` runs at most four document jobs
-with two Python processes; each tool invocation handles at most two junctions,
-20 s search budget apiece, atomic completion after each. Repeat driver until all
-80 are attempted, inspecting logs and preserving source hashes. Do not change
-tool/core while this search runs. Compose final document states, independently
-compare original junction/body geometry, verify actual meshes/seams, and export
-a recoverable selection before retaining the result. Partial outputs stay separate.
+**Current retained candidate: `Saved/Phase1/arm_network_candidates/fae0375edf30782333ac`.**
+All 246 documents /15,422 splines /1,642 junctions. 168 width groups (213 splines),
+420 common junction trims and **131 end trims at 43 junctions**.
+**1,154 pass /359 fold /126 overlap /3 needs_geometry**: **509 new passes**
+versus original, **ZERO junction/body regressions**, all 1,487 changed bodies
+checked; 11,610 unchanged road/rail and 2,325 non-road definitions accounted for.
+488 junctions remain unresolved. Production unchanged; Phase 1 NOT accepted.
+
+The ordinary-road overlap search is complete: **80 attempted /38 retained** in
+53 bounded jobs /14 driver batches across 38 documents. Excludes earlier pilot
+targets. Largest minimum arm lengths first; each search capped at 20 s, no more
+than two junctions per tool call and two simultaneous Python processes. Atomic
+checkpoint after every junction. Final composition verifies 846 unique search
+dependencies and complete source preservation. All 38 proposals survive fresh
+original comparison. 23 changed documents +223 hash-proved report reuses take
+**32.754 s**. `geometry_verification.json`, `verification/{corners,bodies}`.
+
+**Actual mesh verification:** all **423 junction patches** across those 23 docs
+have zero patch gaps, max corner seam gap **6.10108e-12 m**, and all changed-end
+length bounds hold. `mesh_seam_verification/state.json`, six <=4-document batches.
+The three largest combined trim requests were visually inspected in paired actual
+mesh plan views: `actual_mesh_diagram.png` (J14_14:10, J6_12:0, J17_9:26).
+
+**Exact recovery:** `docs/checkpoints/phase1_26_geometry_selection.json` records
+raw source hashes, all selected widths/trims and all 246 expected document hashes.
+`restore_geometry_selection.py --manifest projects/one/docs/checkpoints/phase1_26_geometry_selection.json`
+recreates it in eight <=32-document batches. Verified byte for byte at
+`restored_geometry_selection/41cfbfa673349d78884b`. No core/native change since
+checkpoint24; 90 tool /164 NumPy /46 native tests are the latest completed suites.
+No jobs running at this checkpoint.
+
+Search selection/state: `Saved/Phase1/arm_overlap_network_{selection,run}.json`;
+driver `run_arm_overlap_network.py`. Helpers `compose_arm_overlap_network.py`,
+`verify_refined_geometry.py`, `verify_arm_network_seams.py`, `export_arm_checkpoint26.py`.
+Logs under Saved: `phase1_arm_overlap_batchN.log`, `phase1_arm_overlap_composition{,_verify}.log`,
+`phase1_arm_overlap_seams_batchN.log`, `phase1_arm_overlap_restore_batchN.log`.
+
+**Next: fix opening-section triangle winding in both cores.** Four inverted-only
+cases each contain a downward top triangle where interpolated pavement opens from
+zero width. Sweep uses the zero starting section edge as its normal hint, so the
+first surviving triangle gets no orientation correction. Private fallback to the
+nonzero end section fixes these with EXACT vertices, undirected triangles,
+station/offset/height, groups and materials. Mapping-fold measurements unchanged.
+Full four-document prototype audit gives **7 new passes**, zero regressions and
+identical mapping-fold/overlap metrics for every junction. No core edits yet.
+Current 359 fold-status inventory: 253 mapping-only, 74 mapping+inverted, 32
+inverted-only; 28 have one inverted triangle and no overlap. Counts predict scope,
+not acceptance. `8abe.../remaining_fold_categories.json`.
+
+Prototype evidence under `Saved/Phase1/corner_topology`:
+`collapsed_sweep_winding_pilot.json`, `collapsed_winding_documents/state.json`,
+`corner_surface_classification_pilot.json`. Helpers `probe_collapsed_sweep_winding.py`,
+`probe_collapsed_winding_documents.py`, `prepare_collapsed_corner_fixture.py`.
+Fixture `corner_topology/junction_collapsed_pavement.json` copies the trim fixture
+with one zero-pavement profile: current core fails, private fallback passes. Use it
+for actual native/Python mesh parity; also test opening/closing sections, both
+sides and nonzero bank. Python `streetscape/sweep.py`; native `StreetGeometry.cpp`
+around line 570. Preserve quality gates, run full suites/build/parity, then a fresh
+whole-site junction census. Follow with a full road-body census: the unchanged
+baseline bodies have not yet all been measured. Continuation joins, terrain,
+driving surfaces, structures and native/world acceptance still remain open.
 
 ### Twenty-fifth checkpoint COMPLETE — 2026-09-11: serialized bounded arm search
 
