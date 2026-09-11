@@ -34,6 +34,8 @@ public class StreetscapeEditor : ModuleRules
 			"AssetRegistry",
 			"AssetTools",
 			"Json",
+			"GeometryCore",      // validated geometry-cache material/normal buffers
+			"GeometryFramework", // UDynamicMeshComponent cache upload
 			"RenderCore",   // FlushRenderingCommands (RenderingThread.h) for FinishShaderCompilation
 			"Projects"
 		});
