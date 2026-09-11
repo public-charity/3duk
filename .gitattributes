@@ -15,6 +15,7 @@
 *.uproject text eol=lf
 *.uplugin  text eol=lf
 *.txt   text eol=lf
+projects/one/docs/checkpoints/*.patch text eol=lf
 .gitignore      text eol=lf
 .gitattributes  text eol=lf
 

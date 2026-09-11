@@ -2,6 +2,36 @@
 
 ## Current checkpoint — 2026-09-10, Phase 1 completion
 
+### Checkpoint 41 IN PROGRESS — native interior bend implementation
+
+Stable checkpoint 40 is commit `4040c81`. Its retained geometry is unchanged.
+Nineteen native source files now contain a guarded candidate, not yet accepted.
+Private backup and baseline hashes: `Saved/Phase1/interior_bend_native/`;
+`applied_files.json` identifies our exact files and pre/post hashes. Other tasks
+are changing Manston, offshore terrain and police-car assets on this branch;
+preserve their edits and use explicit paths when committing.
+
+Build started with `Tools/build.ps1`; log `Saved/phase1_interior_bend_native_build1.log`.
+Check the log/process before resuming. New tests are
+`Streetscape.Junction.InteriorBend*`, `Streetscape.Editor.InteriorBendPreview`,
+and `Streetscape.Editor.ConnectorPreviewBatchLimit`. Run with the legacy
+`powershell.exe` launcher, headless `Thanet.uproject` only, after a successful build.
+Native changes include station ports, validated interior masks, actor and foreign
+arm persistence, cache invalidation, refresh/rollback, marking/post clipping and
+an at-most-16-addition preview (explicit tests for 11, 16 and 17 connectors).
+
+Python core is still unchanged. Refined isolated runtime is
+`Saved/Phase1/interior_bend_runtime41/`, with shared plan/sample validation and
+steps-flag rejection. Five targeted tests pass; full legacy test run log is
+`phase1_interior_bend41_original_python_tests.log`. Two private numeric fixtures
+and full mesh/instance reference are under its `fixtures/` and `bend_parity.json`.
+Native parity for these still needs wiring/testing. Preserve the sealed runtime
+40 evidence; modifications went into a new runtime 41 directory.
+
+No new production geometry or terrain has been imported. Finish native tests,
+full Python/native parity, schema documentation, safe preview/rollback and terrain
+contact before retaining any bend. Save a tested checkpoint before broad searches.
+
 ### Fortieth checkpoint COMPLETE — 2026-09-11: 230 connectors, private bend runtime
 
 **Current retained geometry:** `connector_compositions/ce3732f926e816d48345`.
