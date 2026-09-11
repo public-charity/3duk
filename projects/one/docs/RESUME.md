@@ -2,6 +2,71 @@
 
 ## Current checkpoint — 2026-09-10, Phase 1 completion
 
+### Twenty-eighth checkpoint IN PROGRESS — 2026-09-11: full road/rail surface census
+
+New `Tools/diag/road_surface_census.py` measures EVERY road/pavement body and
+ballast/left-rail/right-rail ribbon, including unchanged definitions. Non-road
+definitions stay explicitly counted. Empty required surfaces and build failures
+cannot pass. Actual folded-road and real rail fixtures plus coverage/corruption
+tests pass; full tool suite is now **93 passing tests** (6.719 s).
+
+Three-document pilot: 542 definitions, **427 passed /96 fold_review /19 without
+road profile**; 8 rail and 515 road definitions. Runtime 6.215 s of actual builds.
+`road_surface_census/97edf027ee8076d6b96a`, `phase1_road_surface_census_pilot.log`.
+This exposes inherited body defects that changed-only comparison cannot see.
+
+CURRENT JOB: full census driver batches5–8, session61692; logs
+`Saved/phase1_full_road_surface_driver_batchN.log` and
+`phase1_full_road_surface_part{0,1}_batchN.log`. Batches1–4 complete: 64/246 docs,
+2,115 definitions, 292 folds (partial totals). Driver
+`Saved/Phase1/run_full_road_surface_census.py` runs two <=8-document jobs per call,
+checkpointing each completed document. State `full_road_surface_census_run.json`;
+partition0 `road_surface_census/04be0be0aed22fbd32a2`, partition1
+`road_surface_census/3ff2642663dd1e36e8f6`, 123 documents each. Repeat driver until
+both complete (16 batches total expected). Keep core/tool frozen, merge all 246
+with exact report hashes, compare the 1,487 earlier changed-body metrics, and
+classify actual defects before choosing the next geometry change.
+
+### Twenty-seventh checkpoint COMPLETE — 2026-09-11: opening-section winding
+
+Matching Python/native sweep fallback now orients triangles using the end section
+when the starting section edge collapses (magnitude <=1e-12). No vertices or
+triangle coverage move. The new actual-corner regression fails on the old code;
+opening sweep cases fail on the right side at banks -12/0/+12 degrees. All pass
+after the fix. Opening and closing cases, both sides and all three banks are
+covered. New actual fixture `junction_collapsed_pavement.json` participates in
+native/Python full-mesh parity.
+
+**Build succeeded 43.97 s; 166 NumPy tests PASS (57.013 s), 93 tool tests PASS,
+46 native tests PASS, raw engine exit0 (92 s).** Both full junction fixtures
+compare **102 mesh/station arrays**, all face indices exact, largest coordinate
+difference 5.68434e-14 m. Native top-normal assertions pass. Only the known VC++
+redistributable advisory appears as a global Error; no geometry/runtime failures.
+Native run used legacy powershell.exe and Thanet.uproject headlessly.
+
+Fresh all-site census on the same fae data candidate:
+**1,182 pass /327 fold /130 overlap /3 needs_geometry**. Original data now
+**673 pass /725 fold /240 overlap /4 needs_geometry**. Winding fixes **28 junction
+passes on each dataset**, plus four inverted-only cases now correctly remain
+overlap reviews. All 3,284 before/after junction records preserve exact curve,
+mapping-fold and patch-overlap metrics, with no regressions. Data selection still
+adds **509 passes** versus original under the same core. Current result adds
+537 passes versus the historical original core+data baseline (645).
+
+Current census roots: `corner_quality/a6292f2ceb4cda3cfb99` (candidate),
+`corner_quality/1e83129fef6c1eed7c18` (original). All 1,297 unique current input
+dependencies verify. `fae.../winding_verification.json` and committed
+`docs/checkpoints/phase1_27_winding_verification.json` preserve the evidence.
+Data bytes unchanged; use checkpoint26's recovery manifest. **460 junctions**
+remain unresolved. Terrain, continuation joins, structures and world acceptance
+remain open; production unchanged.
+
+Logs under Saved: `phase1_collapsed_winding_{build,numpy_tests,tool_tests,native_runner}.log`,
+`Logs/phase1_collapsed_winding_tests.log`, `phase1_surface_census_all_tool_tests.log`,
+`phase1_collapsed_{corner,sweep}_red_test.log`, `phase1_winding_{candidate,original}_corners_batchN.log`,
+`phase1_winding_census_verification.log`. Helpers `verify_winding_censuses.py`,
+`export_winding_checkpoint27.py`. Earlier source-freeze/job notes below are historical.
+
 ### Twenty-sixth checkpoint COMPLETE — 2026-09-11: ordinary-road overlap network
 
 **Current retained candidate: `Saved/Phase1/arm_network_candidates/fae0375edf30782333ac`.**

@@ -214,6 +214,15 @@ def sweep(buf: MeshBuffer, section: Section, frames: Frames, *,
             do = O[q, k1] - O[q, k]
             dh = Hh[q, k1] - Hh[q, k]
             want = side * (-dh)[:, None] * frames.n[q] + do[:, None] * frames.b[q]
+            # A section can open from a point (for example zero pavement width
+            # at one arm). Its first surviving triangle needs the end section's
+            # exposed normal; the collapsed start supplies no orientation hint.
+            collapsed = np.hypot(do, dh) <= 1e-12
+            if collapsed.any():
+                end_q = q[collapsed] + 1
+                end_do = O[end_q, k1] - O[end_q, k]
+                end_dh = Hh[end_q, k1] - Hh[end_q, k]
+                want[collapsed] = side * (-end_dh)[:, None] * frames.n[end_q] + end_do[:, None] * frames.b[end_q]
             want = np.concatenate([want, want])
             Pa, Pb, Pc = buf.v[T[:, 0]], buf.v[T[:, 1]], buf.v[T[:, 2]]
             fn = np.cross(Pb - Pa, Pc - Pa)

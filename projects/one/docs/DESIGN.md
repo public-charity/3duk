@@ -128,7 +128,8 @@ closed (closed listed clockwise in the `(o, h)` plane; open sections list the ex
 left of the walk). Rows: smooth points share a vertex row, hard interior points are emitted twice
 (`R = P + #hard_interior`, closed all-hard `2P`). Quads split on the `V_{i,k}–V_{i+1,k+1}` diagonal;
 **winding is decided geometrically** (exposed normal = left perpendicular of the section edge mapped
-to world; flip if the emitted normal opposes it) so one routine is correct for both sides. Caps close
+to world; flip if the emitted normal opposes it) so one routine is correct for both sides. When the
+starting section edge collapses, its end-station edge supplies the normal hint. Caps close
 every mask run with the ring's own vertices (watertight). UV `u = s`, `v` = metres across. Posts,
 sleepers and leaf cards are instance lists, not sweeps. Degenerate triangles (< 1e-10 m²) are skipped.
 

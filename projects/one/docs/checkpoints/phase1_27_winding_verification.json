@@ -1,0 +1,330 @@
+{
+  "checkpoint": "Phase 1 checkpoint 27; matched zero-width sweep winding fix, 2026-09-11",
+  "phase1_accepted": false,
+  "data_selection": "projects/one/docs/checkpoints/phase1_26_geometry_selection.json",
+  "data_selection_sha256": "41cfbfa673349d78884b341655b736d7c49af11bfd360205b17bd78633e7f52d",
+  "geometry_evidence": {
+    "status": "verified",
+    "phase1_accepted": false,
+    "verified_current_dependencies": 1297,
+    "datasets": [
+      {
+        "dataset": "original",
+        "before": {
+          "fold_review": 757,
+          "passed": 645,
+          "overlap_review": 236,
+          "needs_geometry": 4
+        },
+        "after": {
+          "fold_review": 725,
+          "passed": 673,
+          "overlap_review": 240,
+          "needs_geometry": 4
+        },
+        "new_passes": [
+          {
+            "document": "site_x11_y13.json",
+            "id": "junction:11_13:1"
+          },
+          {
+            "document": "site_x15_y14.json",
+            "id": "junction:15_14:18"
+          },
+          {
+            "document": "site_x15_y15.json",
+            "id": "junction:15_15:0"
+          },
+          {
+            "document": "site_x15_y15.json",
+            "id": "junction:15_15:8"
+          },
+          {
+            "document": "site_x15_y15.json",
+            "id": "junction:15_15:19"
+          },
+          {
+            "document": "site_x15_y15.json",
+            "id": "junction:15_15:32"
+          },
+          {
+            "document": "site_x16_y10.json",
+            "id": "junction:16_10:6"
+          },
+          {
+            "document": "site_x16_y6.json",
+            "id": "junction:16_6:26"
+          },
+          {
+            "document": "site_x17_y10.json",
+            "id": "junction:17_10:5"
+          },
+          {
+            "document": "site_x17_y2.json",
+            "id": "junction:17_2:3"
+          },
+          {
+            "document": "site_x17_y2.json",
+            "id": "junction:17_2:4"
+          },
+          {
+            "document": "site_x17_y4.json",
+            "id": "junction:17_4:4"
+          },
+          {
+            "document": "site_x17_y8.json",
+            "id": "junction:17_8:36"
+          },
+          {
+            "document": "site_x18_y2.json",
+            "id": "junction:18_2:3"
+          },
+          {
+            "document": "site_x18_y5.json",
+            "id": "junction:18_5:0"
+          },
+          {
+            "document": "site_x18_y7.json",
+            "id": "junction:18_7:2"
+          },
+          {
+            "document": "site_x18_y9.json",
+            "id": "junction:18_9:18"
+          },
+          {
+            "document": "site_x19_y11.json",
+            "id": "junction:19_11:0"
+          },
+          {
+            "document": "site_x19_y4.json",
+            "id": "junction:19_4:1"
+          },
+          {
+            "document": "site_x20_y11.json",
+            "id": "junction:20_11:0"
+          },
+          {
+            "document": "site_x20_y4.json",
+            "id": "junction:20_4:9"
+          },
+          {
+            "document": "site_x21_y3.json",
+            "id": "junction:21_3:5"
+          },
+          {
+            "document": "site_x21_y3.json",
+            "id": "junction:21_3:8"
+          },
+          {
+            "document": "site_x21_y4.json",
+            "id": "junction:21_4:5"
+          },
+          {
+            "document": "site_x22_y9.json",
+            "id": "junction:22_9:13"
+          },
+          {
+            "document": "site_x23_y11.json",
+            "id": "junction:23_11:6"
+          },
+          {
+            "document": "site_x23_y9.json",
+            "id": "junction:23_9:8"
+          },
+          {
+            "document": "site_x5_y11.json",
+            "id": "junction:5_11:4"
+          }
+        ],
+        "regressions": [],
+        "curve_and_mapping_and_overlap_metrics_exact": true
+      },
+      {
+        "dataset": "candidate",
+        "before": {
+          "passed": 1154,
+          "fold_review": 359,
+          "overlap_review": 126,
+          "needs_geometry": 3
+        },
+        "after": {
+          "passed": 1182,
+          "fold_review": 327,
+          "overlap_review": 130,
+          "needs_geometry": 3
+        },
+        "new_passes": [
+          {
+            "document": "site_x11_y13.json",
+            "id": "junction:11_13:1"
+          },
+          {
+            "document": "site_x15_y14.json",
+            "id": "junction:15_14:18"
+          },
+          {
+            "document": "site_x15_y15.json",
+            "id": "junction:15_15:0"
+          },
+          {
+            "document": "site_x15_y15.json",
+            "id": "junction:15_15:8"
+          },
+          {
+            "document": "site_x15_y15.json",
+            "id": "junction:15_15:19"
+          },
+          {
+            "document": "site_x15_y15.json",
+            "id": "junction:15_15:32"
+          },
+          {
+            "document": "site_x16_y10.json",
+            "id": "junction:16_10:6"
+          },
+          {
+            "document": "site_x16_y6.json",
+            "id": "junction:16_6:26"
+          },
+          {
+            "document": "site_x17_y10.json",
+            "id": "junction:17_10:5"
+          },
+          {
+            "document": "site_x17_y2.json",
+            "id": "junction:17_2:3"
+          },
+          {
+            "document": "site_x17_y2.json",
+            "id": "junction:17_2:4"
+          },
+          {
+            "document": "site_x17_y4.json",
+            "id": "junction:17_4:4"
+          },
+          {
+            "document": "site_x17_y8.json",
+            "id": "junction:17_8:36"
+          },
+          {
+            "document": "site_x18_y2.json",
+            "id": "junction:18_2:3"
+          },
+          {
+            "document": "site_x18_y5.json",
+            "id": "junction:18_5:0"
+          },
+          {
+            "document": "site_x18_y7.json",
+            "id": "junction:18_7:2"
+          },
+          {
+            "document": "site_x18_y9.json",
+            "id": "junction:18_9:18"
+          },
+          {
+            "document": "site_x19_y11.json",
+            "id": "junction:19_11:0"
+          },
+          {
+            "document": "site_x19_y4.json",
+            "id": "junction:19_4:1"
+          },
+          {
+            "document": "site_x20_y11.json",
+            "id": "junction:20_11:0"
+          },
+          {
+            "document": "site_x20_y4.json",
+            "id": "junction:20_4:9"
+          },
+          {
+            "document": "site_x21_y3.json",
+            "id": "junction:21_3:5"
+          },
+          {
+            "document": "site_x21_y3.json",
+            "id": "junction:21_3:8"
+          },
+          {
+            "document": "site_x21_y4.json",
+            "id": "junction:21_4:5"
+          },
+          {
+            "document": "site_x22_y9.json",
+            "id": "junction:22_9:13"
+          },
+          {
+            "document": "site_x23_y11.json",
+            "id": "junction:23_11:6"
+          },
+          {
+            "document": "site_x23_y9.json",
+            "id": "junction:23_9:8"
+          },
+          {
+            "document": "site_x5_y11.json",
+            "id": "junction:5_11:4"
+          }
+        ],
+        "regressions": [],
+        "curve_and_mapping_and_overlap_metrics_exact": true
+      }
+    ],
+    "data_selection_new_passes": 509,
+    "data_selection_regressions": [],
+    "native": {
+      "automation_tests": 46,
+      "raw_engine_exit": 0,
+      "mesh_station_arrays": 102,
+      "max_vertex_difference_m": 5.68434188608e-14
+    }
+  },
+  "numpy_tests": 166,
+  "tool_tests": 93,
+  "native_tests": 46,
+  "native_engine_exit": 0,
+  "compared_mesh_station_arrays": 102,
+  "max_array_difference": 5.68434188608e-14,
+  "all_face_indices_exact": true,
+  "implementation_sha256": {
+    "projects/one/Tools/blender/streetscape/blender_main.py": "5ab7e3f6b5230b293a82438fc07facffb538d70769c8b1380b165b1a9b5d3dc2",
+    "projects/one/Tools/blender/streetscape/bpy_bridge.py": "6f1d3358d53e5c4515ca6d366c641463d59232513588648fec1159a5e9db2a41",
+    "projects/one/Tools/blender/streetscape/build.py": "f7e9a596ce689ba7bb17884180dcbbb791a2b0eabd8253df4ca88c231c344b6e",
+    "projects/one/Tools/blender/streetscape/conform.py": "1482200e610aeb94afa3030063042f27d3c5a07a160fa74d5f6c1c3c717b0e89",
+    "projects/one/Tools/blender/streetscape/edge.py": "fbaaf31092df65b6ca8d493644dc1d588bf352b7f97f22260aad8b706e904a36",
+    "projects/one/Tools/blender/streetscape/fusion.py": "250004030201e840d0ad94303dfabf17c7d4f988f408cf474a7a1a74da85d2d5",
+    "projects/one/Tools/blender/streetscape/hedge.py": "4492a2f624eb1eeb672da32c57caaa8bec868e9596e4d3283d7e277921778169",
+    "projects/one/Tools/blender/streetscape/instance.py": "ab03a8b50cbc3a8338ed714b3711b71e9141dbbd03acfa976f583cc96f236416",
+    "projects/one/Tools/blender/streetscape/io_json.py": "8320cf11314e78a359e0c110a6387596f69fe4b2f681d7c6929d9a20cafd1e2d",
+    "projects/one/Tools/blender/streetscape/mesh.py": "295c9fa22c6c05edc646830b46104a601009bb25b8de83629b6f475e65d6052d",
+    "projects/one/Tools/blender/streetscape/noise.py": "6068df0c2438a2c02e1c9f988c71c08a0940fdb54ae02338c6ba040f1d57d044",
+    "projects/one/Tools/blender/streetscape/rail.py": "d70afca2d6526633fdf8a7dacb839b1d169700c3753424fa243e86f425025acb",
+    "projects/one/Tools/blender/streetscape/render.py": "deabb1e0036aac39d0d8f574e4b3d8f4c24a90e571a2c357054100434bbec6b9",
+    "projects/one/Tools/blender/streetscape/road.py": "d53cdc726dcdeb5d5ecb5f9d543c9c236f92379620969f34c3078f56e1318a6e",
+    "projects/one/Tools/blender/streetscape/schema.py": "bd366119dcb96721eff1534deccdd37b1ead927cb8905374aa38bfbdef2d5f13",
+    "projects/one/Tools/blender/streetscape/spline.py": "679fa1b5f5d9b86e83e61b4cc6ea6821f3d82dc9cc13a22364e5bb1452caa8c7",
+    "projects/one/Tools/blender/streetscape/support.py": "eb2c3afdbdc014d4c08f38d8fe705ea222f8a7c8c80d5826597ab910ebd0853f",
+    "projects/one/Tools/blender/streetscape/sweep.py": "e19a7f88a7712db51cf3be1f5d28c6c3c90033525351674047eb911a0ac04f00",
+    "projects/one/Tools/blender/streetscape/terrain.py": "cdb8d7355e7623fe8453374ca81a4f1d8d930b01bbd79eb5a4b00d44afb1b236",
+    "projects/one/Tools/blender/streetscape/__init__.py": "e53f3d8c3c90f4e76d09e86c6978ce6a91cbc79e0c99c9149447e466a11eeac5",
+    "projects/one/Plugins/Streetscape/Source/Streetscape/Private/StreetGeometry.cpp": "6907117b5bfaaabbf844143c7570f16a4bd3a7ac8107709804c07b3e2c0e50e2",
+    "projects/one/Plugins/Streetscape/Source/Streetscape/Private/Tests/StreetSweepTests.cpp": "f82da76228a190a7dd948acc0d6db6b3ee84f3d36c88f2ddbd24b157f6ea4e94",
+    "projects/one/Plugins/Streetscape/Source/Streetscape/Private/Tests/StreetJunctionArmTrimTests.cpp": "2a0275494aa358d72b066793c8986a359fffe92e5139fa8e29923e7bb1d75c70",
+    "projects/one/Tools/blender/tests/fixtures/junction_collapsed_pavement.json": "48693f8d2b46d53b2d254d713cbe0e66412039780caff1009786aaf79ab47d31",
+    "projects/one/Tools/ue/numpy_parity_dump.py": "4ff3450f5b7c2fcb5f2540a40be29e71eebe1b077e6dce30f11f3f91835ec8d8"
+  },
+  "evidence_sha256": {
+    "projects/one/Saved/Phase1/arm_network_candidates/fae0375edf30782333ac/winding_verification.json": "92b364f1b2deaaea2b2d53df264126452306bd114fec1edee95fd31f92dcc511",
+    "projects/one/Saved/phase1_collapsed_winding_native_runner.log": "bd052692ced6d6a6449e86a44a3b80f08d8f1f18ee7e19baa85f965a49939bc4",
+    "projects/one/Saved/Logs/phase1_collapsed_winding_tests.log": "94348de6f1648903c4141a8eba7f5b6a7c0a5d944008ae85f32624a7e5dbce43",
+    "projects/one/Saved/phase1_collapsed_winding_build.log": "d12648f3b87e96410b7b8b2f48a8fb48864df379be5a83d41faeb926dd240b8a",
+    "projects/one/Saved/phase1_collapsed_winding_numpy_tests.log": "ebf480ec00b99907e0272b8d00df042ca0fa720923fdec455600e1e5d6f3d13a",
+    "projects/one/Saved/phase1_surface_census_all_tool_tests.log": "8e9577c9127745a99e272400ae422aac148191742c7ed4ca0fda35c5b968a075",
+    "projects/one/Saved/phase1_collapsed_corner_red_test.log": "4a42b24fe0b5d713a3f5b4212ba059c216559985dff1c3a66d371babcc58112b",
+    "projects/one/Saved/phase1_collapsed_sweep_red_test.log": "de4543b2cb5d2c31f12fb54f2210f6ee757f5f8317b13e218038246f1421ba61",
+    "projects/one/Saved/Phase1/corner_quality/a6292f2ceb4cda3cfb99/state.json": "5ed060310f26abf2065dd1a5c62980da4857f58d756e5925ce725360dccabcb0",
+    "projects/one/Saved/Phase1/corner_quality/1e83129fef6c1eed7c18/state.json": "5ff2b04445109abcb2a4da8b4aad2514c2d202f6568b53eb806c4e29424e3d4f"
+  },
+  "limits": "460 unresolved junctions. Full body census in progress; terrain, road-road intersections, continuation seams, structures and native world acceptance still open."
+}

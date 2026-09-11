@@ -109,6 +109,25 @@ class TestSweep(unittest.TestCase):
         sweep(buf, sec, sp.frames, side=+1, point_o=O, cap_start=False, cap_end=False)
         self.assertEqual(buf.validate(), [])
 
+    def test_opening_and_closing_sections_keep_outward_normals_on_both_sides(self):
+        s=np.arange(3,dtype=float)
+        positions=np.column_stack([s,np.zeros(3),np.full(3,10.)])
+        tangent=np.tile([1.,0.,0.],(3,1))
+        section=open_section([(0.,.125,'paving'),(.8,.145,'paving')],smooth=True)
+        for side in (-1,1):
+            for bank in (-12.,0.,12.):
+                for closing in (False,True):
+                    with self.subTest(side=side,bank=bank,closing=closing):
+                        frames=SP.Frames.build(s,positions,tangent,np.full(3,bank))
+                        width=np.array([0.,.4,.8]);width=width[::-1] if closing else width
+                        offsets=np.column_stack([np.zeros(3),width]);heights=.125+.025*offsets
+                        mesh=MeshBuffer()
+                        sweep(mesh,section,frames,side=side,point_o=offsets,point_h=heights,
+                              cap_start=False,cap_end=False,group='pavement')
+                        self.assertEqual(len(mesh.f),3)
+                        want=frames.b[0]-side*.025*frames.n[0]
+                        self.assertTrue(np.all(mesh.face_normals()@want>0))
+
 
 class TestMesh(unittest.TestCase):
     def test_triangulate_kerb_polygon(self):

@@ -770,7 +770,10 @@ Algorithm:
    order:** the exposed normal in section space is the left perpendicular of the edge direction,
    `(−Δh, Δo)`, mapped to world as `side·(−Δh)·n_i + Δo·b_i`; if the emitted triangle normal points
    against it the triangle is flipped. This makes the same routine correct for left and right sides
-   and for centre sweeps.
+   and for centre sweeps. If the starting section edge collapses (length <= 1e-12),
+   use the edge direction and frame at station i+1 instead. This gives pavement
+   opening from zero width a nonzero orientation hint without changing vertices
+   or triangle coverage; completely degenerate triangles are still discarded.
 4. Caps: each maximal run of `mask == True` (or the whole sweep) gets a cap at its first and last
    station if `cap_start`/`cap_end`: the section polygon (open sections are closed by the implicit
    edge last→first) is triangulated in `(o, h)` space by `mesh.triangulate_polygon_2d` (ear clipping,

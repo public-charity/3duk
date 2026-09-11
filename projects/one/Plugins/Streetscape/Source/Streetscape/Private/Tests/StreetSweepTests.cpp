@@ -128,6 +128,31 @@ bool FStreetSweepManifoldTest::RunTest(const FString& Parameters)
 		TestTrue(TEXT("two-sided names recorded"), Buf.TwoSided.Contains(A) && Buf.TwoSided.Contains(B));
 		TestEqual(TEXT("station values = the frames' s"), FStreetGeometry::StationValues(Buf).Num(), N);
 	}
+	// Opening and closing pavement widths must keep outward winding on both
+	// sides, including bank. A collapsed starting edge supplies no normal hint.
+	for (int32 Side : { -1, 1 })
+	for (double Bank : { -12., 0., 12. })
+	for (bool bClosing : { false, true })
+	{
+		const auto Fr = StraightFrames(3, 1., Bank);
+		const FName Paving(TEXT("paving"));
+		const auto Section = FStreetSection::Make(false,
+			{ MakeTuple(0., .125, Paving), MakeTuple(.8, .145, Paving) }, { true, true });
+		FStreetSweepParams Pr;
+		Pr.Side = Side; Pr.bCapStart = false; Pr.bCapEnd = false;
+		for (int32 I=0; I<3; ++I)
+		{
+			const double Width = .4 * (bClosing ? 2-I : I);
+			Pr.PointO.Add(0.); Pr.PointO.Add(Width);
+			Pr.PointH.Add(.125); Pr.PointH.Add(.125+.025*Width);
+		}
+		FStreetMeshBuilder Mesh;
+		FStreetSweep::Sweep(Mesh, Section, Fr, Pr);
+		TestEqual(TEXT("collapsed endpoint: three surviving triangles"), Mesh.F.Num(), 3);
+		const FVector3d Want = Fr.B[0] - Side*.025*Fr.N[0];
+		for (int32 I=0; I<Mesh.F.Num(); ++I)
+			TestTrue(TEXT("opening/closing pavement faces outward"), FVector3d::DotProduct(Mesh.FaceNormal(I), Want)>0.);
+	}
 	// RunsToQuadMask
 	{
 		TArray<double> S = { 0, 1, 2, 3, 4, 5 };

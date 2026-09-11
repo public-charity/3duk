@@ -5,6 +5,24 @@ Thanet base suitable for high-quality building overlays. Survey registration, te
 roads, rail, junctions and their transitions belong to Phase 1. Hero buildings and
 decorative presentation remain later work.
 
+## Opening-section winding and full body coverage — 2026-09-11
+
+The shared sweep now uses the nonzero end section to orient a triangle when the
+starting section has zero width. Regression tests prove the old code fails; new
+opening/closing, side and bank cases pass. Build, 166 NumPy, 93 tool and 46 native
+tests pass. 102 actual mesh/station arrays agree; all face indices exact, max
+coordinate difference 5.68434e-14 m. Fresh censuses add 28 junction passes to both
+original and candidate, preserving exact curve, mapping-fold and patch-overlap
+metrics for all 3,284 paired records. No regressions. Candidate: 1,182 pass,
+327 fold, 130 overlap, three build failures. Data-only improvement remains 509.
+
+The changed-body gate does not cover inherited defects in untouched roads. A new
+full census measures all road/pavement and ballast/rail ribbons and explicitly
+counts non-road definitions. Its three-document pilot finds 96 folded bodies
+among 523 road/rail definitions. The whole-site census is running in two bounded
+partitions, with a checkpoint per document. No terrain or whole-site acceptance
+can follow from the earlier changed-body comparison alone.
+
 ## Ordinary-road overlap checkpoint — 2026-09-11
 
 The bounded 80-junction search retains 38 proposals, bringing the complete candidate

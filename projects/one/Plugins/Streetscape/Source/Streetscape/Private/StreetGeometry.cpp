@@ -571,10 +571,19 @@ FStreetSweepResult FStreetSweep::Sweep(FStreetMeshBuilder& Buf, const FStreetSec
 				for (const FQ& Qd : Ok)
 				{
 					FIndex3i Ti = bFirstHalf ? FIndex3i(Qd.A, Qd.B, Qd.C) : FIndex3i(Qd.A, Qd.C, Qd.D);
-					const double Do = O(Qd.Q, K1) - O(Qd.Q, K);
-					const double Dh = Hh(Qd.Q, K1) - Hh(Qd.Q, K);
-					const FVector3d& Nn = Frames.N[Qd.Q];
-					const FVector3d& Bb = Frames.B[Qd.Q];
+					int32 HintStation = Qd.Q;
+					double Do = O(HintStation, K1) - O(HintStation, K);
+					double Dh = Hh(HintStation, K1) - Hh(HintStation, K);
+					// A section opening from zero width has no starting normal.
+					// Orient its surviving triangle using the nonzero end section.
+					if (FMath::Sqrt(Do * Do + Dh * Dh) <= 1e-12)
+					{
+						++HintStation;
+						Do = O(HintStation, K1) - O(HintStation, K);
+						Dh = Hh(HintStation, K1) - Hh(HintStation, K);
+					}
+					const FVector3d& Nn = Frames.N[HintStation];
+					const FVector3d& Bb = Frames.B[HintStation];
 					const double Sd = Side * (-Dh);
 					const FVector3d Want(Sd * Nn.X + Do * Bb.X, Sd * Nn.Y + Do * Bb.Y, Sd * Nn.Z + Do * Bb.Z);
 					const FVector3d Fn = Cross3(Buf.V[Ti.B] - Buf.V[Ti.A], Buf.V[Ti.C] - Buf.V[Ti.A]);
