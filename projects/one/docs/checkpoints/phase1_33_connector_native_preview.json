@@ -1,0 +1,31 @@
+{
+  "status": "complete_diagnostic",
+  "phase1_accepted": false,
+  "native_transaction_pass": true,
+  "visual_gate_pass": false,
+  "source_geometry_checkpoint": "phase1_32_geometry_selection.json",
+  "actors": 58,
+  "source_junctions": 4,
+  "added_connectors": 1,
+  "unchanged_content_files": 15938,
+  "raw_engine_exit": -1073741819,
+  "runner_status": "teardown_crash_after_success",
+  "output": "C:\\Users\\Shadow\\code\\3duk\\projects\\one\\Saved\\Phase1\\native_connector_preview_wings_01",
+  "evidence_sha256": {
+    "C:\\Users\\Shadow\\code\\3duk\\projects\\one\\Saved\\Phase1\\native_connector_preview_wings_01\\baseline.json": "eed1ca238b52cc091512cb406e9976d6f1938b6acfcf3e51d75b76fdbef549e5",
+    "C:\\Users\\Shadow\\code\\3duk\\projects\\one\\Saved\\Phase1\\native_connector_preview_wings_01\\candidate_export.json": "3a9eecdf988592f301825cd2d07da2696524364e7eefa6380f2ae0894240ed64",
+    "C:\\Users\\Shadow\\code\\3duk\\projects\\one\\Saved\\Phase1\\native_connector_preview_wings_01\\content_before.json": "72793a8bc336f35828a6dddd1f52e0f3ae140883f08b3e4c9a6bb97afde5611c",
+    "C:\\Users\\Shadow\\code\\3duk\\projects\\one\\Saved\\Phase1\\native_connector_preview_wings_01\\report.json": "0d2933562a2ec662e7577dc30e5606671c83b78a7366346cf8029d6c7a068c16",
+    "C:\\Users\\Shadow\\code\\3duk\\projects\\one\\Saved\\Phase1\\native_connector_preview_wings_01\\restored.json": "eed1ca238b52cc091512cb406e9976d6f1938b6acfcf3e51d75b76fdbef549e5",
+    "C:\\Users\\Shadow\\code\\3duk\\projects\\one\\Saved\\Phase1\\native_connector_preview_wings_01\\visual_review.json": "4de21b1134328bde56bcdffd17c115221567c0693113d3b12345cf62a2668b70",
+    "C:\\Users\\Shadow\\code\\3duk\\projects\\one\\Saved\\Phase1\\native_connector_preview_wings_01\\before.png": "c6d4150d09c6e9edebefb24b9d4150eee5f622ece0be98ed56de5c80ce44cc56",
+    "C:\\Users\\Shadow\\code\\3duk\\projects\\one\\Saved\\Phase1\\native_connector_preview_wings_01\\preview.png": "bec929e58fd29a653885403abcadb82c24d0161c4c15b31099b7586c61baa7e3",
+    "C:\\Users\\Shadow\\code\\3duk\\projects\\one\\Saved\\phase1_wings_connector_native_preview_runner.log": "4406b0d139251d2775c98602ce9566f30aa7f04eef7a76a5664835e2a341f6c0",
+    "C:\\Users\\Shadow\\code\\3duk\\projects\\one\\Saved\\Logs\\phase1_wings_connector_native_preview.log": "d2e187a781a198e5fb57779cc0134549e1a5357fea86f6933332d714ba4b637c",
+    "C:\\Users\\Shadow\\code\\3duk\\projects\\one\\Saved\\Phase1\\seal_connector_native_checkpoint33.py": "2091079e5e5a54f02ec2073f3f2cbcb8e7878b7a445d013d07df32725037a329",
+    "C:\\Users\\Shadow\\code\\3duk\\projects\\one\\Tools\\ue\\diag_document_preview.py": "483819ccb609ebb8d154291d9782f9ec71c63067176f3e76c896473b3606efe5",
+    "C:\\Users\\Shadow\\code\\3duk\\projects\\one\\Saved\\Phase1\\prepare_wings_connector_preview.py": "e5bd78ff1cf10f3c6ed9916efee4cf853daf7194f05e7bdb86736469faf940a4",
+    "C:\\Users\\Shadow\\code\\3duk\\projects\\one\\Saved\\Phase1\\connector_preview_requests\\dc733d1194a37483b65f\\camera.json": "efce92345d598264713597bdb6a5a41be22a1b7ddc2e47c46884b6a722246c5b",
+    "C:\\Users\\Shadow\\code\\3duk\\projects\\one\\Saved\\Phase1\\connector_preview_requests\\dc733d1194a37483b65f\\candidate_report.json": "dfdf326c2e38208b1b52e456d7c7bedd59597ddff5abf31bc9b22f36bc295f08"
+  }
+}

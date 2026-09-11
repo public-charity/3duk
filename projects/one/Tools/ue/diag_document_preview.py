@@ -28,7 +28,7 @@ def main(argv):
     if not opts["candidate_report"] or not opts["out"] or not opts["camera_report"]:
         uc.fail(NAME,"--candidate-report, --out and --camera-report required")
     provenance_path=Path(opts["candidate_report"]).resolve()
-    provenance=json.loads(provenance_path.read_text())
+    provenance=json.loads(provenance_path.read_text(encoding='utf-8'))
     if provenance.get("status")!="complete":
         raise ValueError("candidate is not complete")
     candidate_path=Path(provenance["candidate_document"]).resolve()
@@ -38,8 +38,8 @@ def main(argv):
         if digest(path)!=expected:
             raise ValueError("candidate input changed: "+path)
     source=Path(uc.data_dir())/"streetscape"/candidate_path.name
-    original=json.loads(source.read_text())
-    candidate=json.loads(candidate_path.read_text())
+    original=json.loads(source.read_text(encoding='utf-8'))
+    candidate=json.loads(candidate_path.read_text(encoding='utf-8'))
     ids={d["id"] for d in original["splines"]}
     root=Path(opts["out"]).resolve()
     root.mkdir(parents=True,exist_ok=True)
@@ -47,14 +47,14 @@ def main(argv):
         raise ValueError("use a fresh output directory to retain interruption evidence")
     content=Path(__file__).resolve().parents[2]/"Content"
     before=snapshot(content)
-    (root/"content_before.json").write_text(json.dumps(before,sort_keys=True))
+    (root/"content_before.json").write_text(json.dumps(before,sort_keys=True),encoding='utf-8')
     report=dict(status="running",source=str(source),candidate=str(candidate_path),candidate_sha256=digest(candidate_path),
                 candidate_report_sha256=digest(provenance_path),terrain=opts["terrain"],saved=False)
     lib=unreal.StreetscapeEditorLibrary
 
     def checkpoint():
         temp=root/"report.tmp"
-        temp.write_text(json.dumps(report,indent=2,allow_nan=False))
+        temp.write_text(json.dumps(report,indent=2,allow_nan=False),encoding='utf-8')
         os.replace(str(temp),str(root/"report.json"))
 
     def require(reply,what):
@@ -66,7 +66,7 @@ def main(argv):
         path=root/(name+".json")
         if not lib.export_document_json(str(source),str(path)):
             raise ValueError("complete document export failed: "+name)
-        return json.loads(path.read_text())
+        return json.loads(path.read_text(encoding='utf-8'))
 
     checkpoint()
     try:
@@ -88,7 +88,7 @@ def main(argv):
             raise ValueError("loaded source differs from disk source")
         report["actors"]=len(actors)
         report["junctions"]=len(original.get("junctions",[]))
-        camera=json.loads(Path(opts["camera_report"]).read_text())["camera"]
+        camera=json.loads(Path(opts["camera_report"]).read_text(encoding='utf-8'))["camera"]
         report["camera"]=camera
         spec=importlib.util.spec_from_file_location("document_preview_capture",Path(__file__).with_name("05_screenshot.py"))
         capture=importlib.util.module_from_spec(spec); spec.loader.exec_module(capture)

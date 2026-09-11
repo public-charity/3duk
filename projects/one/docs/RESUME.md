@@ -29,13 +29,21 @@ iterations remain bounded and production search budgets are unchanged. Logs
 log `phase1_connector_recovery_all_tests2.log`. Native/core verification remains
 checkpoint 31 (170 NumPy /48 native /170 parity arrays); no further core edits.
 
-CURRENT NEXT ACTION: prepare a fresh Wings Close native preview (site_x23_y10.json)
-using the complete candidate, a provenance request and camera near its connector.
-Use `diag_document_preview.py` through legacy powershell.exe run_ue_python.ps1
-with -Render; this previews existing actors, exports the full candidate, captures
-before/after, restores, checks actor identity and all-Content hashes. No import/save.
-Inspect any world-load geometry errors and the raw exit; an empty image or partial
-run cannot pass. No preview run has started at this checkpoint.
+CHECKPOINT 33 NATIVE TRANSACTION COMPLETE; VISUAL GATE FAILED. Wings Close's
+58-actor complete candidate exports exactly and restores the original document
+and actor identities. All 15,938 Content files unchanged. Both captures have full
+heightmap residency and were visually inspected. The connector fixes the torn
+elbow, but terrain visibly breaks through the outer road bend. Existing internal
+bend/pavement spike remains. No terrain or Phase 1 acceptance follows.
+Evidence `native_connector_preview_wings_01`; committed manifest
+`docs/checkpoints/phase1_33_connector_native_preview.json`. Raw engine exit
+-1073741819 (0xC0000005) occurred after clean log closure; runner recorded
+teardown_crash_after_success, zero other errors and complete outputs. No active UE
+job remains. Preview tool artifact I/O is now explicitly UTF-8.
+
+CURRENT NEXT ACTION: quantify the local road/corner versus ground contact, then
+test a small protected terrain candidate. Keep original survey geometry fixed.
+Use a fresh native output directory for every retry; never reuse content_before.
 
 After a verified loaded-world preview, expand same-document connector screening
 in small per-pair checkpoints using `local_connector_inventory.json`; remeasure
@@ -87,8 +95,8 @@ two-arm `disc` records remain unbuilt. Exactly three renderers remain.
 Native PreviewDocumentJson validation permits <=8 appended connectors at unused
 reciprocal continuation ends, explicit trims <=32 m, original endpoint XY exact,
 and node within 1 mm. Existing junction topology/registration, component slots and
-spline counts remain protected. This is validator/unit-test support: a transactional
-loaded-world connector preview has NOT yet been performed.
+spline counts remain protected. Loaded-world transaction proof subsequently passed at checkpoint 33; its visual
+terrain gate failed and is tracked separately.
 
 Verification: **170 NumPy tests /99 tool tests /48 native tests PASS**. Full schema
 report zero errors; 91 negative schema cases pass. All **170 native mesh/station

@@ -11,7 +11,11 @@ Four local joins reproduce private full-document geometry through a shared expli
 connector kind, with native parity on 170 arrays. Every untouched body, old junction
 and remote-end section is exact; local meshes were visually inspected. Native
 preview additions are restricted to existing unused reciprocal continuation ends.
-170 NumPy, 99 tool and 48 native tests pass; loaded-world preview remains open.
+170 NumPy, 99 tool and 48 native tests pass. Checkpoint 33 then proves a complete
+58-actor loaded-world preview/export/restore with all 15,938 Content files exact.
+The actual images fail the visual gate: terrain breaks through the new outer
+road bend. Transaction success and full texture residency cannot certify road/
+terrain contact. Quantify that local defect before expanding the pilot.
 
 An interrupted native test exposed a launcher false success. Require agreement
 between discovered, started and completed test counts, reject fatal logs and
