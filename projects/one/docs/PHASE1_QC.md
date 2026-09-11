@@ -5,6 +5,19 @@ Thanet base suitable for high-quality building overlays. Survey registration, te
 roads, rail, junctions and their transitions belong to Phase 1. Hero buildings and
 decorative presentation remain later work.
 
+## Exact terrain-edge constraints — 2026-09-11
+
+A sampled terrain candidate passed its 25 cm edge checks but failed an independent
+exact check: 8.225 mm gap versus a 7.8125 mm limit. Keep that candidate rejected.
+Split every actual emitted edge at terrain grid/diagonal crossings and region
+boundaries; include roots where protected or positive gap limits change slope.
+This gives complete extrema for straight edges over LOD-0 piecewise planar ground.
+Regression tests cover a missed diagonal extremum, reversed/negative coordinates,
+clamped-gap extrema, protected roots, missing ground and registration rejection.
+The revised Wings Close solve uses 16 posts, clears 101 mm penetration, and passes
+an independent exact edge check with max required gap 6.91 mm. 106 workflow tests
+pass. Native visual/terrain/rollback proof is the next separate gate.
+
 ## Explicit connector pilot and complete native runs — 2026-09-11
 
 Four local joins reproduce private full-document geometry through a shared explicit

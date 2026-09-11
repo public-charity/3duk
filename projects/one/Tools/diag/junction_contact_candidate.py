@@ -28,17 +28,23 @@ from streetscape.spline import JunctionPlan, Spline
 from streetscape.terrain import Heightfield
 
 
-def bottom_points(mesh, spacing=.25):
-    """Sample actual pavement outer-face bottom edges, including banked XY."""
+def bottom_segments(mesh):
+    """Actual emitted pavement outer-face bottom segments, including banked XY."""
     faces = mesh.f[mesh.group_mask_tris(prefix="corner_pavement:")]
     segments = set()
     for face in faces:
         for a,b in zip(face, np.roll(face,-1)):
             if mesh.vh[a] < -1e-6 and mesh.vh[b] < -1e-6:
                 segments.add(tuple(sorted((int(a),int(b)))))
+    if not segments:
+        raise ValueError("no corner outer-face bottom edges")
+    return mesh.v[np.asarray(sorted(segments))]
+
+
+def bottom_points(mesh, spacing=.25):
+    """Sample actual pavement outer-face bottom edges, including banked XY."""
     points = []
-    for a,b in segments:
-        p,q = mesh.v[a],mesh.v[b]
+    for p,q in bottom_segments(mesh):
         n = max(1,int(np.ceil(np.linalg.norm(q-p)/spacing)))
         points.append(p+np.linspace(0,1,n+1)[:,None]*(q-p))
     if not points:
@@ -46,9 +52,9 @@ def bottom_points(mesh, spacing=.25):
     return np.concatenate(points)
 
 
-def ribbon_bottom_points(sp, bounds, spacing=.25):
-    """Actual banked XY/Z of emitted outer base edges, including bare skirts."""
-    points = []
+def ribbon_bottom_segments(sp, bounds):
+    """Actual banked XY/Z segments of outer base edges, including bare skirts."""
+    segments = []
     for side in (-1,1):
         spec = sp.side_spec[side]
         present = spec.present&((spec.kerb_width+spec.pavement_width)>0)
@@ -60,8 +66,16 @@ def ribbon_bottom_points(sp, bounds, spacing=.25):
         mask &= np.all(np.minimum(xyz[:-1,:2],xyz[1:,:2])<=bounds[1],axis=1)
         for i in np.flatnonzero(mask):
             p,q = xyz[i:i+2]
-            n = max(1,int(np.ceil(np.linalg.norm(q-p)/spacing)))
-            points.append(p+np.linspace(0,1,n+1)[:,None]*(q-p))
+            segments.append([p,q])
+    return np.asarray(segments).reshape(-1,2,3)
+
+
+def ribbon_bottom_points(sp, bounds, spacing=.25):
+    """Sample actual banked outer base edges, including bare skirts."""
+    points = []
+    for p,q in ribbon_bottom_segments(sp,bounds):
+        n = max(1,int(np.ceil(np.linalg.norm(q-p)/spacing)))
+        points.append(p+np.linspace(0,1,n+1)[:,None]*(q-p))
     return np.concatenate(points) if points else np.empty((0,3))
 
 

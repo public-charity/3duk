@@ -21,7 +21,8 @@ from streetscape.road import build_road,build_junction_patch,junction_boundary
 from streetscape.edge import build_edge,build_junction_corners
 from streetscape.mesh import MeshBuffer
 from diag.driving_surface_audit import top_triangles,in_bounds
-from diag.junction_contact_candidate import ribbon_bottom_points,bottom_points
+from diag.junction_contact_candidate import ribbon_bottom_segments,bottom_segments
+from diag.terrain_edge_contact import constraint_points,compare_segments
 from diag.terrain_finish import minimum_adjustment,apply_adjustments,bounded_triangles
 from diag.terrain_contact import exact_penetration
 from diag.bridge_crossing_audit import highest_triangle_z
@@ -56,13 +57,14 @@ def main():
         contact_gap=args.max_contact_gap_m
     inputs=[args.document,Path(__file__),TOOLS/'phase1_qc.py']
     inputs += [TOOLS/'diag'/f for f in ('terrain_finish.py','terrain_contact.py','driving_surface_audit.py',
-        'junction_contact_candidate.py','bridge_crossing_audit.py')]
+        'junction_contact_candidate.py','bridge_crossing_audit.py','terrain_edge_contact.py')]
     inputs += list((TOOLS/'blender/streetscape').glob('*.py'))
     for directory in (survey_dir,args.landscape):
         inputs += [directory/'landscape_manifest.json']+list(directory.glob('hm_*.r16'))+list(directory.glob('clip_*.r8'))
     config=dict(model='bounded_surface_edge_finish',document=str(args.document.resolve()),landscape=str(args.landscape.resolve()),bounds_m=bounds.tolist(),
         contact_roads=args.contact_road,max_cut_m=.5,max_raise_m=.5,clearance_m=.01,edge_gap_m=contact_gap,
-        seam_rule='clearance tapers to zero at intentional skirt bases; upper road and pavement retain 10 mm')
+        seam_rule='clearance tapers to zero at intentional skirt bases; upper road and pavement retain 10 mm',
+        edge_measurement='exact emitted segments at terrain triangle crossings, region boundaries and protected-gap roots')
     identity,hashes=content_identity(inputs,config)
     root=args.out/identity[:20]; root.mkdir(parents=True,exist_ok=True)
     report=dict(status='running',phase1_accepted=False,fingerprint=identity,input_sha256=hashes,config=config,problems=[])
@@ -81,7 +83,7 @@ def main():
             if d.source.layer not in ('roads','rail'): continue
             p=np.array([[p.x,p.y] for p in d.points])
             if np.all(p.max(axis=0)+32>=lo) and np.all(p.min(axis=0)-32<=hi):ids.add(d.id)
-        splines={}; surfaces=[]; edges=[]
+        splines={}; surfaces=[]; edges=[];edge_segments={}
         def add_surface(name,mesh,mask=None,clearance=None):
             faces=mesh.f if mask is None else mesh.f[mask]
             top=mesh.v[faces]
@@ -126,7 +128,8 @@ def main():
                 mask=(m.group_mask_tris(exact='kerb')|m.group_mask_tris(exact='pavement'))
                 mask &= np.min(m.vh[m.f],axis=1)>=-1e-8
                 add_surface(sid+':edge:'+str(side),m,mask)
-            add_edges(sid,ribbon_bottom_points(sp,(lo,hi)),sid in args.contact_road)
+            segments=ribbon_bottom_segments(sp,(lo,hi));edge_segments[sid]=segments
+            add_edges(sid,constraint_points(segments,ground,bounds,gap_roots=(contact_gap-.005,)),sid in args.contact_road)
         for j in junctions:
             if j.id not in plan.arms or any(a.spline_id not in splines for a in plan.arms[j.id]):continue
             m=MeshBuffer()
@@ -139,7 +142,9 @@ def main():
             add_surface(j.id,m,clearance=clearance)
             m=MeshBuffer();build_junction_corners(plan,j.id,splines,m)
             add_surface(j.id+':corners',m,np.min(m.vh[m.f],axis=1)>=-1e-8)
-            if any(g.startswith('corner_pavement:') for g in m.group_names):add_edges(j.id,bottom_points(m))
+            if any(g.startswith('corner_pavement:') for g in m.group_names):
+                segments=bottom_segments(m);edge_segments[j.id]=segments
+                add_edges(j.id,constraint_points(segments,ground,bounds,gap_roots=(contact_gap-.005,)))
         if set(args.contact_road)-{sid for sid,_,_,required in edges if required}:
             raise ValueError('named road has no measured outer base in rectangle')
         triangles=np.concatenate([top for _,top,_ in surfaces]); limits=np.concatenate([limit for _,_,limit in surfaces])
@@ -173,6 +178,12 @@ def main():
         clearance_check=exact_penetration(bounded_triangles(limits,bounds[:2],bounds[2:]),candidate)
         if clearance_check['max_penetration_m']>1e-7:raise ValueError('finish clearance verification failed')
         edge_rows=[]
+        exact_rows=[]
+        for sid,segments in edge_segments.items():
+            if not len(segments):continue
+            exact=compare_segments(segments,ground,candidate)
+            exact_rows.append(dict(id=sid,**exact))
+            if exact['max_gap_increase_m']>.005+1e-7:raise ValueError('exact edge protection failed: '+sid)
         for sid,points,target,required in edges:
             inside=np.all(points[:,:2]>=bounds[:2],axis=1)&np.all(points[:,:2]<=bounds[2:],axis=1)
             p=points[inside]
@@ -185,7 +196,7 @@ def main():
         if content_identity(inputs,config)[0]!=identity:raise ValueError('finish inputs changed during run')
         atomic_json(root/'posts.json',dict(status='candidate',fingerprint=identity,posts=[[x,y,z] for (x,y),z in sorted(changes.items())]))
         report.update(status='candidate',stats=stats,surface_after=after,clearance_constraints=clearance_check,
-                      edges=edge_rows,posts_sha256=sha256(root/'posts.json'))
+                      edges=edge_rows,exact_edge_protection=exact_rows,posts_sha256=sha256(root/'posts.json'))
     except BaseException as exc:
         report.update(status='failed',error=str(exc))
         if getattr(exc,'diagnostic',None):report['infeasibility_diagnostic']=exc.diagnostic

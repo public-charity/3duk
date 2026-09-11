@@ -2,6 +2,37 @@
 
 ## Current checkpoint — 2026-09-10, Phase 1 completion
 
+### Thirty-fourth checkpoint NUMERICAL PASS — 2026-09-11: Wings Close contact
+
+Exact triangle clipping found 101.450 mm penetration in the new connector patch
+against existing `landscape_conformed`. The revised 12.458 s bounded terrain solve
+changes 16 posts in one tile (maximum cut 140.625 mm, raise 15.625 mm), with zero
+surface penetration and no increased protected edge gaps. Exact required outer
+base gap max 6.90846 mm, within one encoded unit (7.8125 mm). Geometry unchanged.
+Candidate `wings_connector_ground_02`; sparse report
+`terrain_finish_candidates/b0dab1df097c1d617243/report.json`. All 2,485 product files
+verified; independent exact edge audit passes. **106 workflow tests pass (7.360 s).**
+
+QC improvement: fixed 25 cm samples missed an 8.22494 mm gap in the first 17-post
+candidate, now REJECTED (`wings_connector_ground_01`). Constraints now use actual
+emitted edge segments at every terrain grid/diagonal crossing, rectangle boundary
+and protected-gap root. Independent comparison also includes positive-gap roots.
+The old passing sampled label cannot override this stricter failed check.
+
+Committed `docs/checkpoints/phase1_34_wings_terrain_selection.json` embeds all 16
+posts and the complete source-hashed sparse report. Both recreate byte-exact;
+materialize_contact_candidate.py can rebuild the terrain under a fresh Saved path.
+
+ACTIVE JOB: combined native preview, session 93084, engine log
+`Saved/Logs/phase1_wings_connector_ground_native_preview.log`, runner
+`Saved/phase1_wings_connector_ground_native_preview_runner.log`. Output
+`native_connector_ground_preview_wings_02`; request
+`connector_ground_preview_requests/795b3a466f2b724e3208/candidate_report.json`.
+New optional native ground-probe validation checks all 676 integer posts against
+baseline, candidate and restored values; complete document/export/rollback and
+all-Content guards remain. This preview tool edit is pending native verification.
+Read current process/log/report before proceeding. No final image approval yet.
+
 ### Thirty-second checkpoint COMPLETE — 2026-09-11: recoverable network with four connectors
 
 **Current retained geometry candidate:** `connector_compositions/3b827be0962f2fbf0ae9`.
@@ -41,8 +72,8 @@ Evidence `native_connector_preview_wings_01`; committed manifest
 teardown_crash_after_success, zero other errors and complete outputs. No active UE
 job remains. Preview tool artifact I/O is now explicitly UTF-8.
 
-CURRENT NEXT ACTION: quantify the local road/corner versus ground contact, then
-test a small protected terrain candidate. Keep original survey geometry fixed.
+Historical next action completed numerically at checkpoint 34; combined native
+road/terrain preview is now running. Original survey geometry stays fixed.
 Use a fresh native output directory for every retry; never reuse content_before.
 
 After a verified loaded-world preview, expand same-document connector screening
