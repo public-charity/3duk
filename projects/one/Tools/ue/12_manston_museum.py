@@ -11,6 +11,7 @@ import json
 import hashlib
 import math
 import shutil
+import importlib.util
 from datetime import datetime, timezone
 import sys
 import unreal
@@ -169,6 +170,90 @@ def apply(manifest,report):
     return report
 
 
+def verify(manifest,report):
+    actors=museum_actors()
+    by_label={a.get_actor_label():a for a in actors}
+    expected=json.loads((REPORTS/'import_report.json').read_text())
+    if len(by_label)!=len(actors) or len(actors)!=expected['museum_actors']:
+        raise ValueError('Saved museum actors missing or duplicated')
+    samples=json.loads((IMPL/'walk_samples.json').read_text())['routes']
+    world=unreal.get_editor_subsystem(unreal.UnrealEditorSubsystem).get_editor_world()
+    landscape=unreal.StreetscapeLandscapeImporter.find_landscape()
+    routes=[]
+    route_actors=[by_label['manston:'+r['id']] for r in samples]
+    for r in samples:
+        a=by_label['manston:'+r['id']]
+        road=a.get_editor_property('road')
+        stats=json.loads(unreal.StreetscapeEditorLibrary.actor_stats_json('manston:'+r['id']))
+        xyz=r['local_xyz_m']
+        missing=[];buried=[];obstacles=[];checks=0;max_error=0.
+        # Probe the centre and both usable edges against THIS road component,
+        # so ordinary terrain cannot masquerade as a surviving museum walkway.
+        for i in range(1,len(xyz)-1,4):
+            p=xyz[i];before=xyz[max(0,i-2)];after=xyz[min(i+2,len(xyz)-1)]
+            dx,dy=after[0]-before[0],after[1]-before[1]
+            length=math.hypot(dx,dy)
+            if length<.001:
+                continue
+            for side in (-1.25,0,1.25):
+                x,y=p[0]-side*dy/length,p[1]+side*dx/length
+                hit=road.line_trace_component(vector(x,y,p[2]+2),vector(x,y,p[2]-2),True,False,False)
+                checks+=1
+                if hit is None:
+                    missing.append([i,side,x,y]);continue
+                hit_z=hit[0].z/100
+                ground=unreal.StreetscapeLandscapeImporter.probe_height_m(landscape,x,y,False)
+                if math.isfinite(ground) and hit_z < ground-.02:
+                    buried.append({'sample':i,'side':side,'depth_m':ground-hit_z})
+                if side==0:
+                    max_error=max(max_error,abs(hit_z-p[2]))
+        # Raised body sweep represents the 34 cm radius / 88 cm half-height
+        # explorer capsule, with its 45 cm step allowance. This checks obstacles,
+        # not the full CharacterMovement simulation, which still needs PIE.
+        for i in range(0,len(xyz)-1,4):
+            p,q=xyz[i],xyz[min(i+4,len(xyz)-1)]
+            hit=unreal.SystemLibrary.capsule_trace_single_by_profile(world,
+                vector(p[0],p[1],p[2]+1.33),vector(q[0],q[1],q[2]+1.33),34.,88.,
+                'Pawn',True,route_actors,unreal.DrawDebugTrace.NONE,True)
+            if hit is not None:
+                values=hit.to_tuple()
+                actor_hit=values[9]
+                obstacles.append({'sample':i,'actor':actor_hit.get_actor_label() if actor_hit else str(values),
+                    'xyz_m':p})
+        routes.append({'id':r['id'],'road_triangles':stats['buffers']['road']['tris'],
+            'collision_samples':checks,'missing_surface_hits':missing,'buried_samples':buried,
+            'capsule_obstacles':obstacles,'max_native_centre_height_error_m':max_error,
+            'material':road.get_material(0).get_path_name() if road.get_material(0) else None})
+    report.update({'saved_actor_count':len(actors),'routes':routes,
+        'full_character_walk_test':'pending; line and capsule traces are not a PIE movement test'})
+    save_json(REPORTS/'verification_report.json',report)
+    # Capture the reopened world, including signs and existing museum massing.
+    spec=importlib.util.spec_from_file_location('manston_capture',str(PROJECT/'Tools/ue/05_screenshot.py'))
+    ss=importlib.util.module_from_spec(spec);spec.loader.exec_module(ss)
+    ss.apply_cvars('landscape.OverrideLOD=0')
+    rt=ss.make_render_target(world,1600,1000)
+    photos=[]
+    welcome=next(f for f in manifest['furniture'] if f['id']=='welcome')
+    fx,fy=math.cos(math.radians(welcome['heading_deg'])),math.sin(math.radians(welcome['heading_deg']))
+    cameras=[('arrival',welcome['bng'][0]-627680+9*fx,welcome['bng'][1]-163080+9*fy,
+        welcome['surface_z_odn_m']+1.8,180-welcome['heading_deg'],-2.,65.),
+        ('museum_overview',5650.,3390.,210.,-30.,-64.,70.)]
+    for name,x,y,z,yaw,pitch,fov in cameras:
+        camera={'eye_ue':[100*x,-100*y,100*z],'roll':0.,'pitch':pitch,'yaw':yaw,'fov_deg':fov}
+        path=REPORTS/(name+'.png')
+        if not ss.capture(world,camera,rt,str(path),'final_ldr',0.,0.):
+            raise RuntimeError('Capture failed '+name)
+        size,distinct,lum=ss.force_opaque(str(path))
+        photos.append({'path':str(path),'bytes':size,'distinct_rgb':distinct,'mean_luminance':lum})
+        if distinct<12 or not 6<lum<250:
+            raise RuntimeError('Empty or overexposed museum capture')
+    report['captures']=photos
+    report['pass']=all(not r['missing_surface_hits'] and not r['buried_samples'] and not r['capsule_obstacles']
+        and r['max_native_centre_height_error_m']<.03 for r in routes)
+    save_json(REPORTS/'verification_report.json',report)
+    return report
+
+
 def save_json(path,data):
     path.parent.mkdir(parents=True,exist_ok=True)
     temp=path.with_suffix(path.suffix+'.tmp')
@@ -208,7 +293,14 @@ def main():
         save_json(REPORTS/'import_report.json',report)
         uc.report(NAME,{k:v for k,v in report.items() if k!='saved_actor_packages'})
     else:
-        raise RuntimeError('Verification implementation pending; do not treat import as validation')
+        from content_guard import snapshot,require_unchanged
+        before=snapshot(CONTENT)
+        report=verify(manifest,report)
+        report['content_guard']=require_unchanged(before,snapshot(CONTENT))
+        save_json(REPORTS/'verification_report.json',report)
+        uc.report(NAME,{'pass':report['pass'],'saved_actor_count':report['saved_actor_count'],
+            'routes':[{k:(len(v) if isinstance(v,list) else v) for k,v in r.items()} for r in report['routes']],
+            'captures':report['captures'],'content_guard':report['content_guard']})
 
 
 if __name__=='__main__':

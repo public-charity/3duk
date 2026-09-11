@@ -1,0 +1,689 @@
+{
+  "map": "/Game/Thanet/Maps/Thanet",
+  "terrain": "landscape:C:/Users/Shadow/code/3duk/data/thanet/out/unreal/landscape tile_m=512 res=513 px_m=1 n_tiles=391 origin=(627680, 163080) shift=(0, 0) xy0=(0, 0) sampling=landscape_triangulated",
+  "landscape_dir": "",
+  "gateway_height_odn_m": 38.28125,
+  "saved_actor_packages": [
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/B/QW/UBA932OVN1NIJ553U5YQAH.uasset",
+      "sha256": "c73ba918b957f2af85a058f8ed34bcad7998e186369d8ececfa70d72332017e2"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/7/FA/YF8ICV08F20PGU2AB3199D.uasset",
+      "sha256": "37d4d242dafe1903656e02d343c89b3cc63ac539447f68085ea1e0c1cd467dcd"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/8/KK/EYPQ5V0DR03UXNR419HIN6.uasset",
+      "sha256": "ab1ea850bb169e522fec068e28597506d009cfc5d07d422ad3ee083e70ca0157"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/2/BH/VQEWKQ3BNINMDBRTXB87JZ.uasset",
+      "sha256": "42d362476826f4acc1d18a0befe67692752ed25e7f5f715ab040db06c6c14702"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/1/PA/N0OX9UOCTCPO6TIF2UG3OH.uasset",
+      "sha256": "186e2213c3d1df06c0aebb1a1c4d376a1f4bdb31c4298afd2c1c70137e68b3ee"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/9/K2/PA3DQYS22AZHVYNHX1WKK3.uasset",
+      "sha256": "bda41c8bd52e168338ccfca2e27e59b7c89eaa62920c2071d801195525e11c6c"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/E/D1/LI0AZ9RWH5I6BJXGD8963J.uasset",
+      "sha256": "51f41fff4daac7b78ee3758df4b12bc249d91c9011583d62361c05e4123d443b"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/A/2I/TY6W6PLDW021423NCVKQII.uasset",
+      "sha256": "f963bf37daa487100804226adce356f1624fd99bdfff7e974b9dc8a98857f324"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/9/PR/2AN6UI988BVX3UTX4J1L5X.uasset",
+      "sha256": "54c69fbdf39c03985e1cfd6218d512679efdc5c4b1edb1b9735cf7b42292d78f"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/9/SE/TCH46T2GSSI5YK94DWAK7H.uasset",
+      "sha256": "d0646dc276c8f0949df58bce0016842d4356491e309e56e36ed5e53170b34c57"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/2/A1/BUVQ5ARK41TVKQJIGC7WUT.uasset",
+      "sha256": "aaee79e17fc7089022a0afa975173bc4a2196a77f4852b84e3c985eadbd3edb8"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/0/AT/WZCUIQ7KB35I5JN8TJ9G1F.uasset",
+      "sha256": "3cff0f2d180324edc741e3f753ea3aaacec75021ec67d389de2bec2efdb7d643"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/D/GJ/UWFTMDHZV7ASW0QZ06L082.uasset",
+      "sha256": "3d184e93a471ab31dcacb6f134d4c804d2253f64f32577b08eb6d986650ff163"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/C/XE/ZY1F7KK5EGUHDYKSZSH7QY.uasset",
+      "sha256": "e236c8826a824e7a9e76b32ce68eac2d077d69fa658bc24bd7c6404185c1ea26"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/1/IH/UQ3VRPJFFD27BH9GZ1993W.uasset",
+      "sha256": "eb9843cc4126a1ee42b0d32b1f81edbb75b16feef0bab47e4392b9b3aeeed8f9"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/7/TU/BBV5TMSXE2LRGHY02ZZIVK.uasset",
+      "sha256": "9339c7a4c162ab703ed06563479fa007aa84de47554739ca593dd0eeaaccfdca"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/2/9U/CHTPOLATLDP4ZNDW2UM54F.uasset",
+      "sha256": "a8844bcd85704b5ad3178c742210b3722c623fb50935f15afe322840bffc8ec7"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/9/8H/HM7VRM974FG8PZXIK9LDV7.uasset",
+      "sha256": "8fb52a717ee8521d6c317879c49f329acbe8e18a0451e9edec9a6ccdd7a8622b"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/7/CX/PYT9BDMRLS0L3UE0SSQ05L.uasset",
+      "sha256": "09c3fef80948b9aa6a2cad2a40c7700b38d3385ad71843d7a73829419e54a243"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/4/UX/ZM2MLP9LKDXHBZ8OOU3683.uasset",
+      "sha256": "1cc196f191e7c8c34275c56ce2ef7d6ed3c4161b786accd5de82b56f03c6389b"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/0/PL/9PVAL30E7SNC7RKEUI2T3A.uasset",
+      "sha256": "1f144e0df58c1227cb39e56f8dc87e427979aa7a5310252a327161f5b1d7e878"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/D/EB/YJ3OJIGET9HXISUYDSZ9NA.uasset",
+      "sha256": "4f6d3b24d9a54e0f8c6fad5e79a61e4748d80b50bfe29725e38e8b9a07998293"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/6/5Y/3SQPMNLNIOZ5AEMCOPQBTX.uasset",
+      "sha256": "e645bf485176c92d86ae92c0f477bf0e2feeefb9572a6e72f5f19da520c6b878"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/4/C2/XVWJECAWVA4DUMF62YBNOF.uasset",
+      "sha256": "c1593cf50eada1dccbb129b917c4820d00eeee61f4b22869bf1f547dfd479875"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/6/PG/OZLO0MKRXVAJE5SNXOE0U8.uasset",
+      "sha256": "d315ce48e52f9bceeda30847cd79b96eaad7f7cffc6d9fe50cf1a7515ae079ae"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/8/B5/TJIX5ZH51703GWMT9BX5IN.uasset",
+      "sha256": "036b1b07816df9282a39b19a15ebdf08a3383ba9ab1bcab8937995ab8d9b46dc"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/3/LY/5LYT3SGTGP6JOKUMEL4KE0.uasset",
+      "sha256": "8a6bccb454988f643f4e3af0b9479b2e272e747583e4168869fa0e4415c925c5"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/D/3L/M7LROS4RPVYJZ1SXZRY1Q5.uasset",
+      "sha256": "e00221344d2c3065389dfff748491bbfd57ce728e24ac5a5e85a4a63cb93f0bd"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/4/35/4DB46IZ2ITDPV8SF2MTTTS.uasset",
+      "sha256": "15d1f32de930ef9d61c858d8e7217f5eebcab523c77d9571bb29cc743b60547e"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/9/NA/5QUICQQPMCNFQG2ATZXYN7.uasset",
+      "sha256": "b75a2a48ae87d8d979e4566eb9a771a8cddeddf886c81bff752620d905e054c5"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/4/KY/6XMVNQ09H2KYL1KKQ85VTK.uasset",
+      "sha256": "5100081f22e926ac00cc6c1b4d88ed592508d4df39fec5b223d4eb7866dc4598"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/1/S3/E2BDVP7145NL3CH74MSGAH.uasset",
+      "sha256": "e08e900edbc0156f09df3fcffaebbc07cbcb0bd4dbfcab30d0954bf66c406003"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/E/77/HXZ68DCL46ZKU24ET7KOT3.uasset",
+      "sha256": "983efc94e82e8c752b9a326a88a25e833ba6dc875f8eb062c298403da204e17e"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/6/N7/DDBWC9E6GXO2DOWEB4VKUZ.uasset",
+      "sha256": "0912f341da88d82ff437df29c766a96860f48da7fcef9d7a2a7be3610b67673a"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/7/L5/4RBK6Y86B3ZDGM767U87JY.uasset",
+      "sha256": "ea15538c873513d24c042d60047bc29b003c730f1cc5abc058dd17cdd4317909"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/8/C7/C7T05QAFSSC3SH6AY665RC.uasset",
+      "sha256": "39ed89a2b67cd0e1a5159c7ab1f80ae96adeb376fb8495db72677c2386773436"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/7/CL/F6YOBBSHJWOSEQB9LPABIS.uasset",
+      "sha256": "60a7171a0dd2c6d9489526353574dff85bd9cb560edf736a4e027fb97face69a"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/B/0B/ZKJ9KZH4RFO43DVFQMOV8M.uasset",
+      "sha256": "516f115b5b3a4bbd0ee7dce1a3ae5d061d3ae6b532bd209e6af26da4cf00100d"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/A/OL/1P61OF0E8HKINYSGGTG3CN.uasset",
+      "sha256": "2444cabb29f345736ca77d1ac67cc5e905035764cafa14c20b17386b98280030"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/9/7M/33DF27EZASU43VQQNOLDTB.uasset",
+      "sha256": "ea5c780ec8160f64c0c6afdadd6d18f9f9f1b3177d6023a53fc48f3b449e5e32"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/D/PG/3TM0OWOUULUMNGLTGEXSJX.uasset",
+      "sha256": "8278e0f58bc89326b783984577eab624c4ab7090ffa14f3304cbcfb35f65c933"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/D/J7/9LKH2ZTO3UM2L42T6AFVI2.uasset",
+      "sha256": "8ab580d258733228e702d80f4d334f72475a6b82370c16e0d7898ecdcfbd17a0"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/E/GU/L0GFVGV4G3WHL0Y0X3KVBZ.uasset",
+      "sha256": "2556b82d6890de05cf71e1ec573f72bb730697794c0d46f4419e7eb06683d84f"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/B/GA/ZX7UKBVTF5NTVFWGHCG32X.uasset",
+      "sha256": "1b0731893b79077f7a21071c837008ec325482ab6040911df8acca3825b6b1d0"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/4/P4/AE8XZU6952RGSTVW01X9C4.uasset",
+      "sha256": "42ae5d980011171c43549ad08c3b9c0d6df0c251008c97fc6a9d608a1835ff73"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/4/XN/AOJ44ACLML1HTDMM6INR1A.uasset",
+      "sha256": "a16d699e31be6b1295ed5d9e72f002e74159ef552db59ebdd71de028bff73818"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/6/3Y/7GVWMWR6ASDII6RROWBIOR.uasset",
+      "sha256": "8d06f93d54d791514e0ebaca51bbc585ad5974aab6983a814357e87145688060"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/B/4X/6E9JJGE88Y8IEA7BMY43NM.uasset",
+      "sha256": "2c4e686d5a7c7eccdf9db93778f7d086c393a403c01f182b833e93db5ab1421a"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/7/EC/8XDXGXUJ12OFJKY03QK6U5.uasset",
+      "sha256": "9c759acfc1b3c6164786401d55be866739d8ecc1f5b31294dbf4e3819d71d43a"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/6/KA/5BXPDDHT1SOI2B08XX7Q30.uasset",
+      "sha256": "5f523ffd3ac2210c8486dfae4a108e06e7e6d10793254ac66709192dee890f23"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/A/IV/9Q2OGR8FE89WIKHM68JMTS.uasset",
+      "sha256": "017fa6fc665547e28a48432e705f90dd22e6a22f0c267905044fa071150b60e8"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/E/M8/82OZJYNUDYQF2XQT1HT4LV.uasset",
+      "sha256": "5bf4cbd7a77bb4bbcef067c21e7214115b89438bf1b40c1c87da2ba15026ea35"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/2/MM/QL6VUVJCHDGM5DZVSXEHV6.uasset",
+      "sha256": "41e17a2ba6967be1942e2e3ad9d39a6a828174824f28e0929daedfe7a4a3f6d0"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/2/VD/VP69SMCUJD2TZKA05ZV7ZV.uasset",
+      "sha256": "44266898f48a4269d888d8bc66b98729017685e153301794c93d7d83bee11dbd"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/B/8E/X835TNURNBUMBLXW5AC0UH.uasset",
+      "sha256": "c924be4985b69d7d699ca7d6fca14d2c43a24ccd1ef74668c34f47865564a544"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/B/4M/JYXKUKDH1N7ECHRAZ15B24.uasset",
+      "sha256": "8eab9d0978027c4f17d5d6d1c55766cb719a40b92605a996591d730bc305a7d1"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/9/XN/HRKE307UQWIMA10VAYPWDV.uasset",
+      "sha256": "bf09e012eeece046aef19239da0af071dc9fcd89b7570d68cec0ff649d8bfe87"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/3/9P/6TFJIVAEBH9BGM6FD1NZZX.uasset",
+      "sha256": "473d62e6e49fe8b4594bb09f3a7fd85ceb87288198d9df8274b7ab30a00f09bf"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/7/11/35RXSL072VNM815LTS7WE7.uasset",
+      "sha256": "22da8b7b92af276ff891b1d18f191577412bacb07218bcfaaf0e73bb491e3c59"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/7/VM/8RKWZK92MR89Y37WRMV1CU.uasset",
+      "sha256": "2bf8eea894c704889d0ba64a5314ce0423e7d6e24eae593a5e7593292f67fbd7"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/1/6Q/QIDQ3MH0N4YLEC80DDPKF0.uasset",
+      "sha256": "9703f337eab4cd1abd153b853b5a74bd4eb48ec7becd5d5dbfc04837c7061810"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/2/NN/R2M450014U6IT7MF07APFB.uasset",
+      "sha256": "c5b3eea680ef3c4880a3a9b92ecb905bc6357a5c418937421cafa08b9a045d3d"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/C/4L/0QT3803PIGZCEGT7PIWF7G.uasset",
+      "sha256": "a092203acaf4606347822479e3e241a83387bfef7130255f94f35466e5e45e4f"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/2/BK/RPMTGNU8SG5GHP1L43D5YA.uasset",
+      "sha256": "3a89457b67b08c5e702f2fadad7205a628f37bc2f9247766da1155a723f754f1"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/4/ZS/NWIXQ7Q50MPOGOTK5CQ1UX.uasset",
+      "sha256": "20c819179778434149661463ad91c00d93788bed939a0e5e9e9046e3d2e7abde"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/B/D8/NTIPTBG3MOL9NYYUP3UY9C.uasset",
+      "sha256": "aa6fd04f5b8c38efe8b56135838797848c2f7239c494d50e0541eaed87dbae9a"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/1/EN/QWAPGNAYEFQ0S1AN09BGBV.uasset",
+      "sha256": "7ef8d97fa7b82985d5cc4c4095e95400aba28c4a22c0962eea8fe946fcf90524"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/D/MU/0Y7635R3VSAGFMZXBKH1IZ.uasset",
+      "sha256": "557ea4aa115e73209220ff26f8305b93ba8730d49e46dee3ec5e941a87aa2201"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/3/IK/TVTFCQ6MYU8MGR9NO7P4CW.uasset",
+      "sha256": "e9056c3989b119f645d8d2e6d7f796f767188021ea6b6f99565079abc544685f"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/A/L2/E4UPCMXUWGLN0VL5Z2TY7I.uasset",
+      "sha256": "a41552499c45d672c1c7480d093bdd26518859238e31e6be401fc312d0667659"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/E/UL/R76OL7LAQ6AOI1B8T28YOP.uasset",
+      "sha256": "4aed08e5c2953d643e185bda8fd9458d9ace615ee72b07c35d1d2b63493280cb"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/2/7L/TDRSS0H2CI1LPUXA7R9ZY8.uasset",
+      "sha256": "2dc43f0bf47e8ea932d9d95d4d8d23f0fc9ffb8fa00b8df9112d7f505aa773dc"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/1/B2/4HN1O7LERNKBBU6X124KVX.uasset",
+      "sha256": "cdcf7fd11e1705a52fa5fae8b1a26cd4f5e7c9d7fa1640b5e4afc01d7b0415e9"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/B/J0/HWNTUVFEPN0RHD2S7I1KU2.uasset",
+      "sha256": "05df0ea868c47e0a7b077099053af8cb0f3063fad9e59830430a9543a82369e8"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/B/ZK/8B775VGQ7598V4HEXVLEZZ.uasset",
+      "sha256": "339bb638d027cc8b77267865bedc510c48de1e2ad4a7dcf5578b07cb55ff274c"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/1/AT/C08FSTYQOOSGS2C6N1L4IS.uasset",
+      "sha256": "321818a857227e09a8c0ebdc085696624d6064fc28588f7efbf7c4ccbba05d1f"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/B/XK/MCQ9HBTVKP06J9ONEHVWB8.uasset",
+      "sha256": "d2023c20f8e8e5dbef566dd69fe55a62d5655e4996e044b19d4b936b21fad145"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/3/Y5/WVJVHNTIXMW4K3AU3H9BP9.uasset",
+      "sha256": "c1f4040e6aaaa4f407cc19e96794ecfa3249dd5ae316ed476d67aec90f5029a1"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/9/JL/GMCILUPQT72G2BJ5URPZLP.uasset",
+      "sha256": "21947ea470825e266c743ffd9339ce46c1c6a3d2c1e6b0d7d8493b743355c824"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/F/1W/FJ9KZEAANJDE8H4PMI4NNA.uasset",
+      "sha256": "e6b447116383ad21c23e1a1a1a4bf88922d116d5019e9399513e67a507bfbe5f"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/5/XV/5T3ZJTENZY9B9PM3K7FXTK.uasset",
+      "sha256": "1216391b9b426f12e04bfabf50d9947e6a382792a9d2f92c7aa4a151ed75c26b"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/D/55/2C34CG0QGC6O6D5057EUZO.uasset",
+      "sha256": "9442fca9f1411a0e502822b5ad67de1ba41abbec798977d7081c14fd05c5b79a"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/6/H0/7FCZ8LPVL1QEWGE70YELKC.uasset",
+      "sha256": "8e3aa3763db2c7c76e377cdb0ba9a0e18a94f6b9a6c2651e052cfea4f10a2133"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/D/EU/3Z19URZMIWY2OPGH3DVC7B.uasset",
+      "sha256": "16eb4f11e7fe85f84b3a553b879a5711b8076b6707ea6f245bec446764a92274"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/8/T0/PBF882IAN1II2RCUKCI2ER.uasset",
+      "sha256": "c32fca0b2ca4ca1d5eb322e9856b84043fde3d2f7acec9848102758dca34bf11"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/B/T4/JCACMFGUFORI341REIQ5M1.uasset",
+      "sha256": "abeab0ef47143bf085078e6bc737a904760d6fdf4a2fa0a68f600f1c87fa798b"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/3/W9/LIOI6NMHBGAF6KYA9RS6KY.uasset",
+      "sha256": "e23965198e5dc1d90bf3dfdd5fc29eb324805acbe05377a038557f1617212ebb"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/4/GA/I33N3CRPKY7ZZDBBY0PXV6.uasset",
+      "sha256": "3696c2c7b0ae07574c31579f2ff09ff756a01f08923a66fd476dd98bd7de5d72"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/0/67/IQ5RG3YVTFR0AHMY00LKB9.uasset",
+      "sha256": "5f825cab99d801f4ca05c7d9412eed2e7410cc97154c2a2967231f172dfc09ee"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/4/GY/EDE31RH0D99T96SV5AVS62.uasset",
+      "sha256": "69c20e34523ad06ae4695cade9186dcd9b3a0ea86b08bbff86ade731f4a57f47"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/6/J0/PAYWL3AFQ3X42BX5RKPU5P.uasset",
+      "sha256": "998936f5594ac1abe223ea49b37c99b2b46d1134e9436d1f5474d03b99bd1221"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/0/DJ/ML028G51RYXGPJ9M3YFTOP.uasset",
+      "sha256": "dc90ed60aef1e68608946ee254418831d3ab4d9db060e5038d99c48ad1c9d9b0"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/9/HJ/UP3DOXEQEKFTFAW54W7OU8.uasset",
+      "sha256": "258d1403862dfd82582f747987218eda614f1c507cfb6639b79c8fa274e6c7fe"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/3/1X/JMASC4OH1SEDVS5KTPZKU2.uasset",
+      "sha256": "0114d348ff8ce5ff59522aced14fdd813d5314598d6f1d7d2a8435593ad15987"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/7/VW/4E63UQUH9P0D1U5RS01FJ5.uasset",
+      "sha256": "5a921c6ba3e09decf13cf7ca20a755e339333868dabe620482726b256a3d8706"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/A/Q1/VM9W2TD1ZMD452EY4HAW8B.uasset",
+      "sha256": "3249efc422b1778dd7728a2b420adf4ee37b33ee3557a1cf55780d66c76ff590"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/2/9B/72DIA7AXBSLXFXCJJHLB3M.uasset",
+      "sha256": "0948f0a62ba5c5bc27f38e404ff1928f7ab829bdc17eff4f8bb29aed2c32c53e"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/C/2Y/9DDTDOVN2YAXHBZ04I13O5.uasset",
+      "sha256": "bfe86501d5730fd49f883868033aa280bdc789cb8f2b53cb83c70015af618061"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/C/T8/Y7X5T6PF1RSWDKP73GFG9H.uasset",
+      "sha256": "558960e8b62d308b0f4bdcda540c41ea33329d2d5d89e10266e2729dc5f350e5"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/6/ZT/WQWN7OXGP5RN8J5OTOSMON.uasset",
+      "sha256": "5269c19cccb316f9ccee84c3850e3dbe9d9d49e4590cf4f4700e7fb954893947"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/E/YM/LZYDKFKB9I2PQDC6UX8K8K.uasset",
+      "sha256": "8d94485615f277cf8532e1526752e1ba81e4491c3586046b37e7d3f6c4dd7131"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/C/OG/9ZN6BELR4M9QTM56YJ8V3G.uasset",
+      "sha256": "7e3c3cbff946c2df1132583b90f608fa851cefe6e85766e5417b81e6a8f446a7"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/1/HV/G9O7WN267GM7U62BVRE57N.uasset",
+      "sha256": "abc21a6629dc1b99b762912b574d2ea1c4ad60237ef3614e65b6e44216cb4be8"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/A/2C/YCL0MLX7J6140YHMMVQP3A.uasset",
+      "sha256": "c65fe92eeecba93f6477c588dc9fbed7f2f042a1c9de794b496a5aebe00a4c56"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/6/59/Z6G1L02VHNS2D6MEVWZNKU.uasset",
+      "sha256": "e3ad51dc1a05eafc7df67ce6cdbb77ba173ca51dba9713ecc0d348595123fd2a"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/D/UW/8T1N0JEXMBEDZXRS3PLLRJ.uasset",
+      "sha256": "37d152588c14899640a074d004ac030e997151febe58dc1cbb232e54335bae1e"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/5/WB/RKD1R1MZJQP7BWCBEQFEKN.uasset",
+      "sha256": "cb9a0918480946bf93d80bbd4db82d8f39f1378f32df413702da1a5e14241ada"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/2/EF/L9TWVIE1QP13JMX5LMI9N6.uasset",
+      "sha256": "cba200c5066efd48bd8cd468dba4b70b85a10baad0d9a63bd5024ab4e6e8b4df"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/8/U9/UPRWO5WG3EIJ0YNMD2K1EG.uasset",
+      "sha256": "e6406ac0abf729ef58b95dee9dae885ec791f4e28967a902f777f6e82baf0d3b"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/5/F4/X5W2NOUH3XEUXBZRZCBNKL.uasset",
+      "sha256": "e173976a77a857fbb4e044e53a13a359fd0fd020c174ea6b0397d21b72e0e39e"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/8/LR/ULENFWTYHAP6U2YD4LGZAD.uasset",
+      "sha256": "ed202c8c56f2c82bed4c0e6b014b416bee263c153ac625e95b2ffa8b40b6c9e5"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/3/3J/5WUV1QEAB69PWSKAHWK2ZZ.uasset",
+      "sha256": "0f348c138877e2349a6957d3339f7fbb43356f75e61d1986f543f5c8172b2829"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/A/DA/2T6SKNLMSJ5SDQ7SY4C74M.uasset",
+      "sha256": "2c37335296fc1aeb877575cf8d12d89564120c0cd1bf7fb89c647480ada410df"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/C/HY/5HU152ZINWKORPQVUQ60GA.uasset",
+      "sha256": "2188d28b07e30c8ab1f6b6f57b40fb5fb44db9eeccdfe9a2b6f2482e30343da8"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/7/LZ/M8HFRT2KNNE8MSOQURXWVK.uasset",
+      "sha256": "b5a60d2a3c3c3761a4fd8b9609c93a10bd67643c6a359015f64903221af0e2c5"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/D/X0/XRT078FI89J3JVQX6B9FDG.uasset",
+      "sha256": "9f19e43e40b36254c3a2c54b687356b78ea43dc9d7a185d6ece36355f50f98b7"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/8/JQ/G15J4UYB8BA188FDQO0FUP.uasset",
+      "sha256": "d7eab792769ab21ac0b4e9fb0c19a115593508966fc35714579152b802793920"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/5/58/H9HB6RE9WVBOKH5YFJNS9X.uasset",
+      "sha256": "16760384e85bdc061e783a8313be04d140e65ab0b6f517aa180cac7aa77b2e99"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/4/Q1/M8Q5I2K1G81RPD90ZQFFJQ.uasset",
+      "sha256": "99ceeb1f15348b61034454f866694af5ab0a457cfe21acc5b8a0c8ac5015e09b"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/4/HM/5ENKHSWL675BROFTHVYC2H.uasset",
+      "sha256": "f1e0a989861cdae121ddb27e050bad5bb8f08c8fec66b5bf11fd363df639c8e6"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/5/FN/27LDPINJASFGDG08X847CZ.uasset",
+      "sha256": "f3792e392275435a1128d778a53bee3fd1833d659c762d0589c76b515f44df39"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/1/TV/NRKD8FJA0BEH2UOK6ZJA7D.uasset",
+      "sha256": "f9379d053e3285dcb9fdc4fd021ea3e5c3a82f0b86e14c7aa166c16ac31fd1a9"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/7/9M/9NE15CNXH6CQHGPHI8NPN2.uasset",
+      "sha256": "77902c68cedd19f0bfd5e9d5bf4b260c7b0421df7bb46d02ccdc0b1dfa3784a4"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/3/PB/FM5XQ8BJ8PTHB1KFQEORQA.uasset",
+      "sha256": "5a611d77e0f9c925fa792000c71ae4d76b45ca26bcad69e9273b8c8e447e8003"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/0/Y7/5I2J98K5UB746EZ5V17XMX.uasset",
+      "sha256": "8f8379d79077c8233fbab8b0d94c21060e3337178abbdf7abb1db25de91a8f12"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/A/PJ/82A6NQ71TM07RD6DJGFD16.uasset",
+      "sha256": "56b454065f95cfec9b48d32a50a4ffff71a2c27328e9bc9c405d2525cddbbe8e"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/A/8X/41KDYHQLB7RW3HYGOTICS0.uasset",
+      "sha256": "4ec34bb642e54d16fb356ea9bae2765ad6c112ed0607ad01cad13677d734e82f"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/C/QP/W6Q4D10U0ZXVLACAMOYU1S.uasset",
+      "sha256": "430660c4ff5aad547b6d13e68ee575e3efc45e5230fe4bb7ddf70e25c3559e61"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/D/AG/6B5Z52KP7GWPKOFQFWQZX7.uasset",
+      "sha256": "bd1d8729d70e9307106d216f7d6c534324dac8b0ffd4df9254ebaf03042ec39f"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/8/VP/Y49AQ5PA76YO3C1E0Y6N3R.uasset",
+      "sha256": "215300af45e1a7cc1413382879d4812bef1a482ffafa9fe0500a8bc732e2dc4e"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/2/6D/IMC02NG21E43M567ZLI70O.uasset",
+      "sha256": "1672fe8f6c90d0a91f0cd7e3066f6b6c6642f2e65ceaaa738d1a329993df8721"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/9/QF/3QWFWSRN3JYM8LVH2Y2V1K.uasset",
+      "sha256": "f62d7d719f0c1cd813fd3f0326fe7296c00567d0377d216e16225d0447509620"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/6/X4/Q066OYL0HYKJ7E6S51J4DB.uasset",
+      "sha256": "b9973afcdf8ced3a2cd510aa8fb5f55160968d980f92a03d25abe072e3be7ba8"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/9/KQ/7YVQZDO8RNJAON4CFB2AHT.uasset",
+      "sha256": "c92f92cc30a5e7924af649647a50873926679c79587d46c9f70eef6ac5464be5"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/6/71/0GZN0088IYQPQ5Z7LCJ07Z.uasset",
+      "sha256": "5a881c34a108d323a221171cf4bd983b2f449cbab361d2cae25d60689a03c283"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/2/2N/SYYZ8ZX1Q9OO6RAYO7SR0L.uasset",
+      "sha256": "7261d63e8d3352b1a16832a0733f7adfa1bc56263a5ad05e3ae7439222c11f1a"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/D/98/BDYE8XI2JWAPRUR566ZNXN.uasset",
+      "sha256": "3fca3033627491069a8730f61217ed6a46fb5f64ae3d0615fcabac52e2e5da49"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/A/MU/JN5GX4T1BGKXNRDOJTBO9H.uasset",
+      "sha256": "2cc4ffb6903c88fc60341cbd52a56eae3a2a5eccb61869f00090d1f5ca02645d"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/8/ZD/TD7FWWTBQTWZNSPWXN6L1T.uasset",
+      "sha256": "1916e5476cd1057b0627649c9d979f9a91bf9273739db99d941ef4f955fbf9af"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/B/IU/53BFZ6RFTH2NIO6J10L4S8.uasset",
+      "sha256": "070a8a32211c221e881b9eb82ae9d09fee153897c3bdd0a504519127c8ec52e8"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/2/TM/616UOED0U5FRBQYFLLMC5X.uasset",
+      "sha256": "3935e0663f22fc5f85cb068183f3f89adac95951fcb686d76340f2ee13841fb6"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/D/O9/GI0S137MMS1X6O7MLED8LO.uasset",
+      "sha256": "6950e82acd28419f6c772b47b7e3c988bf7e0aeedcf5c7668aa55d3a1135f661"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/E/5Q/4D9UNK92HEF9OU93NYES8Z.uasset",
+      "sha256": "984b63e21b066ecedfd344ea81efbe41c63a8af168b6c69dbf614518afa44d1c"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/8/L6/2EF3L65YKK8U61K7XJXN0E.uasset",
+      "sha256": "d6dd039ac5c24f2cb6a3b54486e33fdace1364da152058002f7ccd2f31fa9440"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/1/9J/UUZ8D3U4HHGP6MI6JD42PI.uasset",
+      "sha256": "127d973e2157309d54faa6df5a173a503d807b0ac772ac90abd4ee4f6734ad37"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/0/7I/0LAE49HRD8CHYEZCN2ABJ5.uasset",
+      "sha256": "e0d98ba5eb275d2d9d72f1632ba4722cd8fc723db01e255f815bc837b46e8024"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/2/9D/LID52SVPPZ1GVP7MJV0ETL.uasset",
+      "sha256": "68559612ed1745efcdad0c3a5349bed935c53fd8134a23181c1c3fa0d5f2d0e5"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/7/8J/Y2AAUYLXNLKQJGC5KY7DKB.uasset",
+      "sha256": "76f128b904a5d44ceaac6f0d5bd8fa351fd09647e4f349b9a8f511d1ab416bda"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/4/SL/WTCJEFTGABRI3OLLFQHXZZ.uasset",
+      "sha256": "71d0fd806971a48819671e5cc4e7c8cde59827e577f73f7d12a76c988c82bbd9"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/4/ET/214ASMWV3ZDMDPEY2SYO1D.uasset",
+      "sha256": "cfa414221651a5c6d91c2870f2f3d6331cd6dc724015b0fb6a8f5024fc6b83db"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/9/PY/KU9057I0ANP8JYPJ796J48.uasset",
+      "sha256": "d577b6705e8cb1eccae3f8c4853dd9913733cb0eee0a1783ada62e17c53c7688"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/2/Z9/A4JA4M2XXBC6N1RUQO1VS9.uasset",
+      "sha256": "51c8965afaa15310a54ce6f3fb24d9626122aa8b6076fa53eba286708ff89e4b"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/A/AC/7NNS3K68AGQ04YHCW9JCWX.uasset",
+      "sha256": "b590c41563fe3c00e2ddcd65e6351fcbfed0778aa2f579c1aeb824b035359518"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/4/YU/YC6H4MIF0XMFR9OHTB2RH7.uasset",
+      "sha256": "b9d8f8934e2ff039744e615c05e0caca70dd175aa198da555d99b6db1d1d8246"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/9/E2/F2SGIBZXMX07OI6R24YKO2.uasset",
+      "sha256": "f3aa707001208de91deb4e9e688d27423dc3be246713216b44e9c39a37658b24"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/D/NI/WHAUBLSKTV0ZKQVNGU92VR.uasset",
+      "sha256": "6066880a0403c2f3f41fd80e5070e42a9fbc979916666ab98e595943de2cdf9e"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/9/9E/NLANABLQ89DTUMPSZURV54.uasset",
+      "sha256": "15600e86de2ccf188ec80796436e063dff9c1c11a467fdcb416f5543d7289584"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/9/4E/QXR47TCPSOH1WRPWN03F7J.uasset",
+      "sha256": "3479e5b116933b774346512227f54b20321f9a4ceedc7c947434b4d3d8dea862"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/D/9D/OV3DTSOWCAS5FSQBCROW6Q.uasset",
+      "sha256": "a06bd7263340d162936911f698903a6a0d81564c19059c186ba6a7d477c22deb"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/5/PL/N6FYQAR2JKWUSP8BELK3PJ.uasset",
+      "sha256": "33cf95d618e2a072e1b197a35d4fb08aa7d08b73d2e0f63204049dd8789457f0"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/3/ZE/A7PHORWOV37VX7RGTBWPMC.uasset",
+      "sha256": "774d7b18d39f4bca6fd75fbb7236f1aa839af77270f73ccda282eefa7343a889"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/6/XF/M0E06VEWJ2XFK35G6JETKA.uasset",
+      "sha256": "ff77b34bc734693e5706dc810f6e5196a46ff3042537d656c35e66c850623f05"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/7/WK/IW4WPLUMPDT9ZYHYFG8GOE.uasset",
+      "sha256": "a7f4aef8885c28decff6018f6048343bae4b326cf543aa1de4256d94c8bbe26e"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/7/CV/WX65MMJ0HAFU48V51Q29NN.uasset",
+      "sha256": "07191590a7674670b442baafb1c30a95f861d6fb7314ea8d0396be45fbd6762d"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/6/7M/G5NCRVURK63ZOZ5DPJ1DAP.uasset",
+      "sha256": "6a691d109f1548635f1a868478dfab5ebefa365bac701921aeffb1d8e5ce6981"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/1/IE/YZQ02F5TVUUY9Y5VP3ML6Y.uasset",
+      "sha256": "1928871e47bce4134d663f0a6f6619ec804730506d795b39083302fa52d55e4f"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/F/2Z/C95U7C70UA46NXUOWCDQ7L.uasset",
+      "sha256": "07ef80175f24f3043ebe12dc83da460d3a6e4f6d4ecccc53f94053c2c41717fb"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/8/FT/5C94IMSOJ3XOUC4JHEBI6X.uasset",
+      "sha256": "2b2c761664af5f9e23fa1b7dd6eb0db990913ae7a02f4973db32f118b9faac4f"
+    },
+    {
+      "path": "__ExternalActors__/Thanet/Maps/Thanet/7/8H/CLPJKW7KWFZ3OFAHPK7SUQ.uasset",
+      "sha256": "67a013ae8d50c5a39d8b59c8a7aa055d5a205c0dd78afdb9b6c68e5eee15a788"
+    }
+  ],
+  "museum_actors": 169,
+  "checkpoint": "C:\\Users\\Shadow\\code\\3duk\\projects\\one\\Saved\\Manston\\checkpoints\\20260911T210607Z",
+  "routes_imported": 2,
+  "rest_stops": 25,
+  "interpretation_boards": 8
+}
