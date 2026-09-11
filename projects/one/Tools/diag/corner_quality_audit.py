@@ -28,8 +28,20 @@ def pavement_top_stats(mesh):
     triangles=mesh.v[mesh.f[mask]]
     normal=np.cross(triangles[:,1]-triangles[:,0],triangles[:,2]-triangles[:,0])
     inverted=normal[:,2]<-1e-8
+    # Sweep corrects triangle winding toward the exposed section normal. That
+    # can conceal a ribbon folded back over itself: both sides then face up.
+    # A valid upright sweep preserves orientation from (station, signed offset)
+    # to world XY. Comparing the two signed areas is invariant to triangle order.
+    if len(mesh.vs)!=len(mesh.v) or len(mesh.vd)!=len(mesh.v):
+        raise ValueError('pavement mapping audit requires sweep station/offset attributes')
+    sd=np.column_stack([mesh.vs,mesh.vd])[mesh.f[mask]]
+    a,b=sd[:,1]-sd[:,0],sd[:,2]-sd[:,0]
+    parameter_area=a[:,0]*b[:,1]-a[:,1]*b[:,0]
+    folded=(normal[:,2]*parameter_area<0)&(abs(normal[:,2])>1e-8)&(abs(parameter_area)>1e-12)
     return dict(top_triangles=len(triangles),inverted_top_triangles=int(inverted.sum()),
-        inverted_area_m2=float(np.linalg.norm(normal[inverted],axis=1).sum()*.5))
+        inverted_area_m2=float(np.linalg.norm(normal[inverted],axis=1).sum()*.5),
+        folded_top_triangles=int(folded.sum()),
+        folded_top_area_m2=float(np.linalg.norm(normal[folded],axis=1).sum()*.5))
 
 
 def pending_documents(documents,root,records):
@@ -74,9 +86,12 @@ def audit_document(path,survey):
                 row['curves'].append(dict(corner=k,arms=[a.spline.id,b.spline.id],rings=len(p),
                     length_m=float(length.sum()),max_segment_m=float(length.max()),max_turn_deg=float(turns.max()),
                     min_up_z=float(fr.b[:,2].min())))
-            mesh=MeshBuffer();build_junction_corners(plan,j.id,splines,mesh)
+            mesh=MeshBuffer();corner=build_junction_corners(plan,j.id,splines,mesh)
+            row['corner_build']=corner
+            if corner['skipped_incompatible']:raise ValueError('incompatible corner sections')
             row['pavement']=pavement_top_stats(mesh)
-            folded=row['pavement']['inverted_top_triangles']>0 or any(c['min_up_z']<=0 for c in row['curves'])
+            folded=(row['pavement']['inverted_top_triangles']>0 or row['pavement']['folded_top_triangles']>0
+                    or any(c['min_up_z']<=0 for c in row['curves']))
             row['status']='fold_review' if folded else 'overlap_review' if row['patch_overlap_area_m2']>1e-4 else 'passed'
         except ValueError as exc:
             row.update(status='needs_geometry',error=str(exc))

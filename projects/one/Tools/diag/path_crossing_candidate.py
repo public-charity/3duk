@@ -302,6 +302,8 @@ def main():
                 raise ValueError('candidate junction overlap increased: '+row['id'])
             if row.get('pavement',{}).get('inverted_area_m2',0)>old.get('pavement',{}).get('inverted_area_m2',0)+1e-6:
                 raise ValueError('candidate pavement fold increased: '+row['id'])
+            if row.get('pavement',{}).get('folded_top_area_m2',0)>old.get('pavement',{}).get('folded_top_area_m2',0)+1e-6:
+                raise ValueError('candidate pavement mapping fold increased: '+row['id'])
         if content_identity(inputs,config)[0]!=identity:raise ValueError('crossing candidate inputs changed during run')
         report.update(status="complete",stats=stats,after_max_rise_m=worst,candidate_document=str(root/path.name),
                       junction_quality=dict(before=before_corners['totals'],after=after_corners['totals'],regressions=0),

@@ -105,8 +105,9 @@ def audit_document(path, survey, terrain, spacing):
                        corner_build=corner,geometry=geometry)
             # No expensive terrain pass can make an overlapping or folded surface
             # acceptable. Retain the junction in coverage and fix its geometry first.
-            if patch["overlap_area_m2"]>1e-4 or geometry["inverted_top_triangles"] or corner["skipped_incompatible"]:
-                row.update(status="needs_geometry",reason="patch overlap, inverted pavement or incompatible corner section")
+            if (patch["overlap_area_m2"]>1e-4 or geometry["inverted_top_triangles"]
+                    or geometry["folded_top_triangles"] or corner["skipped_incompatible"]):
+                row.update(status="needs_geometry",reason="patch overlap, folded/inverted pavement or incompatible corner section")
                 rows.append(row);continue
             top=np.empty((0,3,3))
             if len(edge.f):

@@ -12,6 +12,19 @@ import synthetic
 
 
 class JunctionInteriorTest(unittest.TestCase):
+    def test_upward_facing_folded_pavement_stays_out_of_terrain_checks(self):
+        doc=synthetic.junction_crossroads();doc['junctions'][0]['trim_radius_m']=4.
+        site=io_json.site_from_dict(doc);terrain=synthetic.junction_terrain_for(doc)
+        with patch('diag.junction_mesh_audit.io_json.load_site',return_value=site), \
+             patch('diag.junction_mesh_audit.surface_stats',side_effect=AssertionError('folded pavement must be gated')):
+            report=audit_document(Path('folded_pavement.json'),terrain,terrain,.25)
+        row=report['results'][0]
+        self.assertEqual(report['totals'],{'needs_geometry':1})
+        self.assertLessEqual(row['overlap_area_m2'],1e-4)
+        self.assertEqual(row['geometry']['inverted_top_triangles'],0)
+        self.assertGreater(row['geometry']['folded_top_triangles'],0)
+        self.assertNotIn('patch',row)
+
     def test_overlapping_junction_stays_in_coverage_without_expensive_terrain_checks(self):
         doc=synthetic.junction_doc('overlapping',[0,30,180],widths=[10,10,10],radius_m=1.)
         doc['junctions'][0]['trim_radius_m']=1.

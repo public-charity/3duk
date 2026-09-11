@@ -2,6 +2,53 @@
 
 ## Current checkpoint — 2026-09-10, Phase 1 completion
 
+### Twenty-first checkpoint IN PROGRESS — 2026-09-11: winding-invariant pavement QC
+
+**Verification complete; no jobs running.** All **76 tool tests pass**, including
+a real crossroads whose patch has zero overlap and all pavement triangles face up,
+but reversed pavement mapping correctly prevents any terrain sampling.
+Both 246-document / 1,642-junction censuses completed:
+- Baseline `9969ee73aaeab33a1028`: **645 pass / 757 fold / 236 overlap / 4 curve failures**.
+- Width candidate `420a620141998ae68e97`: **703 pass / 764 fold / 172 overlap / 3 curve failures**.
+`abc30.../geometry_comparison.json`: 59 new passes, **27 regressions**. Keep the
+candidate unaccepted. A width change also changes automatic trims, so width and
+trim must now be evaluated jointly; simply reverting widths abandons useful road
+evidence while leaving the widespread original pavement folds.
+
+Bounded probe `Saved/Phase1/probe_mapping_trim.py`, results
+`corner_topology/mapping_trim_probe/results.json`: original J15_14:4 folds;
+4/5/6/7/8 m trials regress, 10 m reduces folding without regression, **12 m passes**
+with no whole-document regressions. Seven full-document trials take about 11 s.
+Next build a resumable bounded trim search, cache unchanged arm geometry, verify
+every junction affected by shared trim changes, and independently re-audit each
+retained complete document. Preserve centrelines/profiles and use the existing
+bounded trim field/native preview API; no renderer changes needed for this step.
+
+The progress text below is historical; use the completed figures above.
+
+Latest verified commit **`ea8de62`**. New uncommitted QC changes detect reversed
+sweep mapping using signed world XY and (station, offset) triangle areas.
+An actual 1 m radius pavement sweep with 2 m inward offset proves this gate catches
+folds hidden by automatic winding correction; a valid .4 m offset passes. Reversing
+triangle order preserves the result. Missing sweep attributes fail. All **75 tool
+tests pass** (`phase1_pavement_mapping_tool_tests.log`). No renderer change.
+
+The stronger check gates corner census and expensive terrain contact; the local
+crossing candidate also rejects increased mapping-fold area. Incompatible corner
+sections are explicit geometry failures. Whole-site baseline and retained width
+candidate `abc30fa75f91e84168c3` are being re-audited in <=16-document batches.
+Baseline **`corner_quality/9969ee73aaeab33a1028`**, 16/246 completed. Candidate first
+batch running, log `phase1_mapping_width_census_batch01.log` gives its fingerprint.
+Resume `corner_quality_audit.py --max-docs 16`, and separately with
+`--streetscape projects/one/Saved/Phase1/connected_width_candidates/abc30fa75f91e84168c3`.
+Do not edit core/audit dependencies while these run. Logs
+`phase1_mapping_{baseline,width}_census_batchNN.log`.
+
+Comparison helper now accepts a third directory argument for the new baseline and
+compares mapping-fold area as well as older metrics. The baseline and candidate
+must both complete all 246 docs / 1,642 junctions before comparison. The earlier
+width selection is immutable evidence, not yet geometry accepted under this gate.
+
 ### Twentieth checkpoint — 2026-09-11: width holds; stronger pavement QC needed
 
 **No jobs running.** New independent diagnosis finds that the sweep builder's

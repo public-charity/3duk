@@ -7,6 +7,14 @@ decorative presentation remain later work.
 
 ## Pavement mapping diagnosis — 2026-09-11
 
+**Gate implemented and verified:** 76 tool tests pass, including an actual folded
+sweep and a crossroads proving folded pavement cannot reach expensive contact
+sampling despite zero patch overlap and upward normals. Full baseline now records
+645 passes, 757 folds, 236 overlaps and four curve failures across all 1,642
+junctions. The retained width candidate records 703 passes, 764 folds, 172 overlaps
+and three curve failures: 59 new passes but 27 regressions. These supersede the
+older normal-only census. Evaluate widths and bounded trims jointly before rollout.
+
 The sweep builder corrects each triangle's winding toward the exposed surface.
 An upward-facing mesh can therefore still fold back over itself. A new independent
 diagnosis compares signed world XY area with signed (station, offset) area; this
