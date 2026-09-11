@@ -2,6 +2,58 @@
 
 ## Current checkpoint — 2026-09-10, Phase 1 completion
 
+### Nineteenth checkpoint IN PROGRESS — 2026-09-11: full connected-width candidate
+
+**Complete verification; no jobs running.** Full candidate census:
+1,289 pass / 106 fold / 243 overlap / 4 curve failures, all 1,642 junctions.
+Compared with baseline: **75 new passes but 11 regressions**; do not promote this
+unfiltered candidate. One prior failure (:16_9:25) becomes buildable; new failure
+:15_15:28 appears. `144f.../geometry_comparison.json` and
+`phase1_global_width_comparison.log` list every status/area change and direct groups.
+One indirect regression at :17_10:0 has no directly edited arm, so trace neighbouring
+junction/continuation effects or conservatively hold all edited groups in that doc.
+Next implement an explicit held-group decision file, regenerate the remaining
+candidate, and recheck all junctions before terrain work.
+
+Independent preservation proof PASSED: all 246 documents / 15,422 source splines,
+278 modelled splines in 49 documents, all 252 source inputs verified. Normalizing
+only width fields/profile references reconstructs every original complete document
+exactly. `144f.../independent_verification.json`, helper
+`Saved/Phase1/verify_connected_width_documents.py`, log
+`phase1_global_width_independent_verification.log`. Tests remain 73/73 passing.
+
+**Latest:** all 246 candidate documents materialized and hashed. Geometry census
+running at `corner_quality/df68f831332a08299a4a/state.json`, 64/246 complete,
+170 pass / 14 fold / 34 overlap so far. Batches 05..08 now running; resume
+`corner_quality_audit.py --streetscape projects/one/Saved/Phase1/connected_width_candidates/144f23ef8518eb1e0350 --max-docs 16`
+until 246/246. Logs `phase1_global_width_census_batchNN.log`.
+Then run `Saved/Phase1/compare_width_census.py`; it verifies both report sets and
+retains every junction, lists new passes and all status/area regressions, attributing
+directly changed width groups. No core or audit dependency edits during this census.
+
+Latest verified commit **`24c2164`**, geometry-first contact gate below. No native
+changes/jobs. New `Tools/diag/connected_width_candidates.py` prepares complete
+Thanet document copies under Saved/Phase1 using explicit one-way lane evidence,
+whole reciprocal continuation components, no widening and no structures. Missing
+lane evidence, incompatible width transitions, open/contextless endpoints and
+structure groups stay on a review list. Source documents/OSM/survey are unchanged.
+73 tool tests pass (`phase1_global_width_tool_tests.log`).
+
+Catalogue: **226 candidate groups / 278 selected splines; 63 groups need context**.
+`Saved/Phase1/connected_width_candidates/144f23ef8518eb1e0350/catalogue.json`.
+Materialization state in the same directory: 32/246 documents completed; remaining
+batches 02..08 running, logs `Saved/phase1_global_width_candidate_batchNN.log`.
+Each batch handles <=32 documents, takes ~4 s; each document checkpoint includes
+its output hash. Missing/corrupt outputs or catalogue are regenerated on resume.
+Resume `& projects/one/Tools/python.ps1 projects/one/Tools/diag/connected_width_candidates.py --max-docs 32`.
+
+Next: complete the 246-document candidate, then run `corner_quality_audit.py`
+against this directory in <=16-document batches and compare every junction against
+baseline `corner_quality/60fe03b94c711092b03a`. Do not regard evidence-backed
+widths as geometry acceptance: record all new regressions and improvements before
+choosing candidate groups/trim corrections. This candidate has no local crossing
+height or :0 trim overrides from checkpoint 17; those are separate proven examples.
+
 ### Eighteenth checkpoint IN PROGRESS — 2026-09-11: geometry before contact
 
 **Verification complete; no jobs running:** new geometry-first recheck took

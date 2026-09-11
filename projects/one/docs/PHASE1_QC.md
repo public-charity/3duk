@@ -5,6 +5,21 @@ Thanet base suitable for high-quality building overlays. Survey registration, te
 roads, rail, junctions and their transitions belong to Phase 1. Hero buildings and
 decorative presentation remain later work.
 
+## Whole-network width candidate — 2026-09-11
+
+A checkpointed full-document candidate applies 226 connected lane-width groups
+(278 splines across 49 documents); 63 groups need more context. Independent
+verification accounts for all 246 documents and 15,422 source spline definitions,
+preserving IDs, centrelines, junctions, continuations and every non-width field.
+73 tool tests pass. Geometry census retains all 1,642 junctions: 1,289 pass,
+106 fold reviews, 243 overlap reviews and four curve failures.
+
+The candidate earns 75 new geometry passes but causes 11 regressions, including
+one new unbuildable curve and one indirect junction effect. This unfiltered
+candidate must not be promoted. Hold affected connected groups and recheck the
+whole network; totals alone cannot excuse local regression. Detailed comparison
+and preservation evidence are in `connected_width_candidates/144f23ef8518eb1e0350`.
+
 ## Geometry-first contact gate — 2026-09-11
 
 Check surface geometry before spending time on terrain. Junction overlaps,
