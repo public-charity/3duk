@@ -3101,10 +3101,10 @@
       "text": "Battle Headquarters\nHistorical location nearby\nRestoration planned",
       "source_id": "MKE98027",
       "bng": [
-        633573.2631270102,
-        166590.85785314877
+        633576.2559997839,
+        166590.65118297585
       ],
-      "surface_z_odn_m": 45.22713808385197,
+      "surface_z_odn_m": 45.295775542133896,
       "heading_deg": -123.95023829813177
     },
     {
@@ -3114,10 +3114,10 @@
       "text": "Civilian control tower\nHistorical location nearby\nRestoration planned",
       "source_id": "MKE98021",
       "bng": [
-        633448.202554891,
-        165813.7257419564
+        633446.6565822336,
+        165811.76106169168
       ],
-      "surface_z_odn_m": 51.21950806386212,
+      "surface_z_odn_m": 51.270065332868114,
       "heading_deg": 21.801409486283003
     },
     {
@@ -3140,10 +3140,10 @@
       "text": "E-type fighter pen\nHistorical location nearby\nRestoration planned",
       "source_id": "MKE98024",
       "bng": [
-        633068.6105864791,
-        166337.1051950198
+        633070.4681258993,
+        166342.2820229387
       ],
-      "surface_z_odn_m": 42.97277493890988,
+      "surface_z_odn_m": 42.83202892440525,
       "heading_deg": 160.2610961120603
     },
     {
@@ -3188,10 +3188,10 @@
       "kind": "bench",
       "name": "Rest stop",
       "bng": [
-        633556.4933212518,
-        166633.47253319848
+        633557.8020552807,
+        166635.60260719765
       ],
-      "surface_z_odn_m": 44.9889250031606,
+      "surface_z_odn_m": 45.00312812132418,
       "heading_deg": -121.56688917306671
     },
     {

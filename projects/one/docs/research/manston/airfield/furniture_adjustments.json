@@ -1,0 +1,130 @@
+{
+  "original_manifest_sha256": "dc90b5fd081211b09a044708e1666d53a36d39149a2ee6fd5e105a5f3caa39c9",
+  "revised_manifest_sha256": "0b9c4a25cf7396e8adc02d006cb5ca0fbfd04043fbd7992dc6109ae58a5e018b",
+  "changes": [
+    {
+      "id": "sign_MKE98027",
+      "kind": "sign",
+      "old": {
+        "id": "sign_MKE98027",
+        "kind": "sign",
+        "name": "Battle Headquarters",
+        "text": "Battle Headquarters\nHistorical location nearby\nRestoration planned",
+        "source_id": "MKE98027",
+        "bng": [
+          633573.2631270102,
+          166590.85785314877
+        ],
+        "surface_z_odn_m": 45.22713808385197,
+        "heading_deg": -123.95023829813177
+      },
+      "new": {
+        "id": "sign_MKE98027",
+        "kind": "sign",
+        "name": "Battle Headquarters",
+        "text": "Battle Headquarters\nHistorical location nearby\nRestoration planned",
+        "source_id": "MKE98027",
+        "bng": [
+          633576.2559997839,
+          166590.65118297585
+        ],
+        "surface_z_odn_m": 45.295775542133896,
+        "heading_deg": -123.95023829813177
+      },
+      "movement_m": 2.9999999999999716,
+      "minimum_footprint_to_route_centre_m": 2.1417934543371238
+    },
+    {
+      "id": "sign_MKE98021",
+      "kind": "sign",
+      "old": {
+        "id": "sign_MKE98021",
+        "kind": "sign",
+        "name": "Civilian control tower",
+        "text": "Civilian control tower\nHistorical location nearby\nRestoration planned",
+        "source_id": "MKE98021",
+        "bng": [
+          633448.202554891,
+          165813.7257419564
+        ],
+        "surface_z_odn_m": 51.21950806386212,
+        "heading_deg": 21.801409486283003
+      },
+      "new": {
+        "id": "sign_MKE98021",
+        "kind": "sign",
+        "name": "Civilian control tower",
+        "text": "Civilian control tower\nHistorical location nearby\nRestoration planned",
+        "source_id": "MKE98021",
+        "bng": [
+          633446.6565822336,
+          165811.76106169168
+        ],
+        "surface_z_odn_m": 51.270065332868114,
+        "heading_deg": 21.801409486283003
+      },
+      "movement_m": 2.50000000000013,
+      "minimum_footprint_to_route_centre_m": 2.1192453392306922
+    },
+    {
+      "id": "sign_MKE98024",
+      "kind": "sign",
+      "old": {
+        "id": "sign_MKE98024",
+        "kind": "sign",
+        "name": "E-type fighter pen",
+        "text": "E-type fighter pen\nHistorical location nearby\nRestoration planned",
+        "source_id": "MKE98024",
+        "bng": [
+          633068.6105864791,
+          166337.1051950198
+        ],
+        "surface_z_odn_m": 42.97277493890988,
+        "heading_deg": 160.2610961120603
+      },
+      "new": {
+        "id": "sign_MKE98024",
+        "kind": "sign",
+        "name": "E-type fighter pen",
+        "text": "E-type fighter pen\nHistorical location nearby\nRestoration planned",
+        "source_id": "MKE98024",
+        "bng": [
+          633070.4681258993,
+          166342.2820229387
+        ],
+        "surface_z_odn_m": 42.83202892440525,
+        "heading_deg": 160.2610961120603
+      },
+      "movement_m": 5.499999999999925,
+      "minimum_footprint_to_route_centre_m": 2.1472700828295426
+    },
+    {
+      "id": "rest_R1_1",
+      "kind": "bench",
+      "old": {
+        "id": "rest_R1_1",
+        "kind": "bench",
+        "name": "Rest stop",
+        "bng": [
+          633556.4933212518,
+          166633.47253319848
+        ],
+        "surface_z_odn_m": 44.9889250031606,
+        "heading_deg": -121.56688917306671
+      },
+      "new": {
+        "id": "rest_R1_1",
+        "kind": "bench",
+        "name": "Rest stop",
+        "bng": [
+          633557.8020552807,
+          166635.60260719765
+        ],
+        "surface_z_odn_m": 45.00312812132418,
+        "heading_deg": -121.56688917306671
+      },
+      "movement_m": 2.4999999999997526,
+      "minimum_footprint_to_route_centre_m": 2.1855916589493884
+    }
+  ]
+}

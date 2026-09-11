@@ -51,3 +51,11 @@ User direction: complete all visible runway/airfield surfaces and investigate Li
 - Saved checkpoint `Saved/ManstonAirfield/checkpoints/20260911T223349Z/`. The importer updated the same 124 actor identities and six dedicated materials, saving in batches of eight. No added/deleted Content files and no modification outside those 130 owned files.
 - Import Python completed, with the two inherited road-junction errors and known process-teardown `0xC0000005` still reported by the wrapper. This is not a clean global engine result.
 - The final reopen now runs both airfield surface validation and the established R1/R2 museum floor/body-capsule checks in the same loaded world. Packaging refuses a stale or failed museum regression. Final report and visual review pending.
+
+## 07 — museum circulation correction
+
+- The final airfield surface check passed all 7,279 floor probes and 999 full-runway probes, with no missing/buried visible pavement. The reviewed west-end render shows continuous threshold stripes, numbers, edges and aiming marks. The overview and northern dispersal close-up confirm the recovered surfaces.
+- The broader loaded and rendered world exposed six raised-body sweep hits against four existing museum furniture groups: signs MKE98027/MKE98021/MKE98024 and bench R1_1. No new airfield surface obstructed those body sweeps. All 3,837 existing museum floor probes still passed.
+- Moved those four complete furniture groups by 2.5–5.5 m, checking their full footprints against both routes and buildings. Minimum footprint-to-route-centre distance is now over 2 m. Canonical museum furniture positions and restart hashes were updated; future museum generation preserves these explicit corrections or rejects them if the underlying route placement changes.
+- Nineteen existing component actors saved in `Saved/ManstonAirfield/furniture_checkpoints/20260911T224215Z/`; no other Content files changed. Both before/after copies and a batch-save journal are retained. The earlier failed circulation report remains `Saved/ManstonAirfield/museum_before_clearance.json`.
+- Reopen both airfield and museum collision checks before packaging. Full manual CharacterMovement traversal remains a separate unperformed check.

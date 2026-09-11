@@ -97,6 +97,11 @@ def verify(manifest,state):
  if imp['manifest_sha256']!=state['manifest_sha256']:raise ValueError('Verification source differs from saved import')
  for r in imp['saved_files']:
   if sha(CONTENT/r['path'])!=r['sha256']:raise ValueError('Saved assets changed since import')
+ if (OUT/'furniture_adjustments.json').exists():
+  furniture=json.loads((SAVED/'furniture_import_report.json').read_text())
+  if furniture['revised_manifest_sha256']!=sha(OUT.parent/'implementation/museum_manifest.json'):raise ValueError('Furniture import is stale')
+  for r in furniture['saved_files']:
+   if sha(CONTENT/r['path'])!=r['sha256']:raise ValueError('Furniture assets changed since correction')
  by={a.get_actor_label():a for a in owned()};missing=[];buried=[];max_error=0.;max_lift=0.;minimum_clearance=100.;landscape=unreal.StreetscapeLandscapeImporter.find_landscape()
  triangle_counts={row['id']:by[row['id']].get_dynamic_mesh_component().get_dynamic_mesh().get_triangle_count() for row in manifest['caches']}
  if any(triangle_counts[row['id']]!=row['triangles'] for row in manifest['caches']):raise ValueError('Saved mesh triangle count differs from its cache')

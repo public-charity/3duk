@@ -291,6 +291,16 @@ def build(landscape_dir):
     if p:
         furniture.append(dict(id='welcome',kind='sign',name='Manston Museum',
             text='MANSTON\nRAF HERITAGE MUSEUM\nMuseum walk  R1\nAirfield walk  R2\nRestoration work in progress',**p))
+    # Explicit placement corrections from the broader, fully rendered airfield walk check.
+    # Preserve these authored groups on regeneration; changed routing requires a new review.
+    adjustments=RESEARCH/'airfield/furniture_adjustments.json'
+    if adjustments.exists():
+        by_id={f['id']:f for f in furniture}
+        for change in json.loads(adjustments.read_text())['changes']:
+            f=by_id.get(change['id'])
+            if f!=change['old']:
+                raise ValueError('Furniture correction is stale after route/source change: '+change['id'])
+            f.clear();f.update(change['new'])
     manifest={'schema':'manston-implementation-0.1','phase':'Phase 0 placed; Phase 1 blockout candidate',
         'origin':doc['origin'],'crs':'EPSG:27700','vertical_datum':'ODN',
         'terrain_dir':str(landscape_dir.relative_to(ROOT)).replace('\\','/'),
