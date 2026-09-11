@@ -172,10 +172,10 @@ def main():
    z=ground.hf.sample(q[:,0]-ORIGIN[0],q[:,1]-ORIGIN[1]);missing=~np.isfinite(z)
    if missing.any():extension.append(unary_union(shapely.box(q[missing,0]-4,q[missing,1]-4,q[missing,0]+4,q[missing,1]+4)).intersection(p))
  extension=unary_union(extension).difference(paved)
- caches=[];probes=[]
- def cache(id,xy,f,mat,paved_surface=True,paint=False):
+ caches=[];probes=[];floor_triangles=[];paint_checks=[]
+ def cache(id,xy,f,mat,paved_surface=True,paint=False,supplied_z=None):
   if not len(f):return
-  z=ground.at(xy,paved_surface)+(0.009 if paint else 0.)
+  z=ground.at(xy,paved_surface) if supplied_z is None else supplied_z
   origin=np.r_[np.mean(xy,axis=0)-ORIGIN,0.]
   v=np.round(np.c_[xy-ORIGIN,z]-origin,5)
   a=v[f[:,1],:2]-v[f[:,0],:2];b=v[f[:,2],:2]-v[f[:,0],:2]
@@ -186,11 +186,13 @@ def main():
   data=dict(frame=FRAME,vertices=v.tolist(),triangles=np.c_[f,np.zeros(len(f),int)].tolist(),materials=[MATS[mat]])
   path=CACHE/(id+'.json');save(path,data)
   caches.append(dict(id='manston_airfield:'+id,file=path.name,sha256=sha(path),origin_local_m=origin.tolist(),material=mat,vertices=len(v),triangles=len(f),paint=paint,collapsed_precision_slivers_removed=removed))
+  if paved_surface and not paint:floor_triangles.append((v+origin)[f])
   if not paint:
    # Triangle centroid height is independently known from exported vertices.
    indices=np.unique(np.linspace(0,len(f)-1,min(len(f),75)).astype(int));tri=f[indices]
    for p,h in zip(xy[tri].mean(axis=1),z[tri].mean(axis=1)):
-    probes.append(dict(actor='manston_airfield:'+id,xy_local_m=(p-ORIGIN).tolist(),z_m=float(h),kind=mat))
+    probes.append(dict(actor='manston_airfield:'+id,xy_local_m=(p-ORIGIN).tolist(),z_m=float(h),kind=mat,
+     native_landscape_present=bool(np.isfinite(ground.hf.sample(p[0]-ORIGIN[0],p[1]-ORIGIN[1])))))
  for mat,poly,step in [('grass',extension,4.),('concrete',concrete,2.),('apron',apron,2.),('asphalt',asphalt,2.)]:
   for X in range(631400,634850,256):
    for Y in range(165050,167250,256):
@@ -198,11 +200,31 @@ def main():
     if cut.area<.001:continue
     xy,f=triangulate(cut,step);cache('%s_%s_%s'%(mat,X,Y),xy,f,mat,mat!='grass')
   print(mat,'complete',flush=True)
- # Paint is generated in the road mesh pass, then clipped off the runway exclusion area for taxiways.
+ # Paint uses Renderer A's footprint, intersected with the actual exported floor triangles.
+ # Each paint face is parallel to its supporting floor face, preventing the holes caused by
+ # independently interpolating a raster across a differently tessellated surface.
+ floors=np.concatenate(floor_triangles);floor_polys=shapely.polygons(floors[:,:,:2]);tree=shapely.STRtree(floor_polys)
  for i,(mat,xy,f) in enumerate(paints):
-  if mat=='yellow_paint':
-   centres=xy[f].mean(axis=1);f=f[~shapely.contains_xy(shapes['runway'].buffer(12),centres[:,0],centres[:,1])]
-  cache('paint_'+str(i),xy,f,mat,True,True)
+  footprint=shapely.union_all(shapely.polygons((xy-ORIGIN)[f]))
+  if mat=='yellow_paint':footprint=footprint.difference(shapely.transform(shapes['runway'].buffer(12),lambda p:p-ORIGIN))
+  vertices=[];faces=[];covered_area=0.
+  for index in tree.query(footprint,predicate='intersects'):
+   cut=footprint.intersection(floor_polys[index])
+   if cut.area<1e-9:continue
+   a,b,c=floors[index];ab=b[:2]-a[:2];ac=c[:2]-a[:2];det=ab[0]*ac[1]-ab[1]*ac[0]
+   for t in shapely.get_parts(shapely.constrained_delaunay_triangles(cut)):
+    q=np.array(t.exterior.coords)[:3];delta=q-a[:2]
+    u=(delta[:,0]*ac[1]-delta[:,1]*ac[0])/det;v=(ab[0]*delta[:,1]-ab[1]*delta[:,0])/det
+    z=a[2]+u*(b[2]-a[2])+v*(c[2]-a[2])+.009
+    signed=np.cross(q[1]-q[0],q[2]-q[0]).item()
+    if abs(signed)<1e-8:continue
+    face=list(range(len(vertices),len(vertices)+3));faces.append(face if signed>0 else face[::-1])
+    vertices.extend(np.c_[q+ORIGIN,z]);covered_area+=abs(signed)/2
+  if not vertices:continue
+  v=np.array(vertices);cache('paint_'+str(i),v[:,:2],np.array(faces),mat,True,True,v[:,2])
+  paint_checks.append(dict(id='paint_'+str(i),footprint_area_m2=footprint.area,covered_area_m2=covered_area,offset_m=.009))
+  if abs(footprint.area-covered_area)>max(.1,footprint.area*1e-4):raise ValueError('Paint footprint is not supported by pavement')
+ print('paint conformed to exported floor triangles',flush=True)
  # Full width and threshold coverage checks, including the section formerly beyond the terrain clip.
  checks=[]
  for s in np.linspace(0,L,140):
@@ -213,7 +235,7 @@ def main():
  source_counts=dict(Counter(a['tags'].get('aeroway') for a in aeros))
  report=dict(frame=FRAME,source_counts=source_counts,features=features,runway_length_m=L,runway_width_m=61,
   historic_pavement_width_m=230,areas_m2={k:round(v.area,1) for k,v in [('paved',paved),('terrain_extension',extension),('asphalt',asphalt),('apron',apron),('historic_concrete',concrete)]},
-  caches=caches,probes=probes,runway_coverage_points=len(q),runway_coverage_pass=True,
+  caches=caches,probes=probes,paint_contact_checks=paint_checks,runway_coverage_points=len(q),runway_coverage_pass=True,
   source_sha256={str(p.relative_to(R)).replace('\\','/'):sha(p) for p in [OUT/'airfield.streetscape.json',OUT.parent/'basemap.bng.json',R/'data/thanet/interim/dtm.vrt']},
   terrain_note='Paved surfaces drape onto local upper envelope of existing conformed ground with raw EA DTM fallback outside the original crop; no global landscape edits.',
   limitations=['Runway/taxiway widths and apron infill edges are reconstruction estimates, not a measured airport survey.',

@@ -31,3 +31,16 @@ User direction: complete all visible runway/airfield surfaces and investigate Li
 - The first reopened verification failed every floor probe and showed no new surface from above. The initial symptom looked like a persistence problem. Inspection of the existing `FStreetGeometry::ToDynamicMesh` identified the actual conversion mistake: GeometryCore uses a left-handed face normal, so the source triangle indices must be kept when reflecting Y. The new uploader had reversed them a second time.
 - Corrected triangle order to match the existing converter and supplied complete UV/normal overlays. Added a top-face collision check for every ground/pavement cache before its next save, and a saved-triangle-count check on reopening.
 - The failed report is retained as `Saved/ManstonAirfield/verification_before_winding_fix.json`. All original map Content remained unchanged by that read-only check. The corrected import/reopen cycle is the next acceptance gate.
+
+## 04 — corrected surfaces saved
+
+- Latest native checkpoint: `Saved/ManstonAirfield/checkpoints/20260911T222019Z/`. All non-paint caches passed top-face collision checks before being saved. Existing airfield actor identities were preserved; no Content outside the declared airfield scope changed.
+- This checkpoint's `after/` is the corrected output. Its `before/` is the preceding, unverified reversed-face attempt and should not be used as a visually accepted airfield restoration. The initial import's `before.json` records the original map baseline.
+- Reopened full-width runway checks, saved triangle counts and render review are in progress. Museum path collision regression is next because some new paved surfaces cross the museum circulation.
+
+## 05 — surface contact diagnosis and marking correction
+
+- Reopened all 526,551 saved triangles; all 7,279 component floor traces and 999 independent full-runway traces hit their intended surfaces. The overview and close views show the restored airfield.
+- The apparent 157 buried samples are all outside the original landscape visibility clip: independent Heightfield sampling returns NaN for every one. Unreal's editor height query still reports filled, invisible heightmap texels there. The contact check now explicitly uses the source visibility mask and reports the excluded count; visible terrain retains the same 2 cm failure threshold.
+- Paint sampled directly from the raster crossed the differently tessellated floor, producing small holes in white markings. Revised baking intersects Renderer A's marking footprints with the exact exported pavement triangles and offsets each resulting face 9 mm above its supporting face. Footprint area coverage is checked during generation.
+- Revised geometry generation is running. Reimport/reopen and museum-walk regression remain required; this is not the final accepted checkpoint.

@@ -22,7 +22,7 @@ def capture(label):
  spec=importlib.util.spec_from_file_location('airfield_capture',str(P/'Tools/ue/05_screenshot.py'));ss=importlib.util.module_from_spec(spec);spec.loader.exec_module(ss)
  world=unreal.get_editor_subsystem(unreal.UnrealEditorSubsystem).get_editor_world()
  rt=ss.make_render_target(world,1800,1150);results=[]
- for name,xy,z,yaw,pitch,fov in [('overview',[5450,3050],2800,-90,-90,70),('runway_west',[4120,2760],95,-9,-5,80),('dispersals',[5690,3050],260,-55,-55,80)]:
+ for name,xy,z,yaw,pitch,fov in [('overview',[5450,3050],2800,-90,-90,70),('runway_west',[4120,2760],95,-9,-5,80),('dispersals',[5210,3000],240,-45,-45,80)]:
   path=SAVED/(label+'_'+name+'.png');camera=dict(eye_ue=[xy[0]*100,-xy[1]*100,z*100],roll=0.,pitch=pitch,yaw=yaw,fov_deg=fov)
   if not ss.capture(world,camera,rt,str(path),'final_ldr',0.,0.):raise RuntimeError('Capture failed')
   size,colours,lum=ss.force_opaque(str(path));results.append(dict(file=path.name,bytes=size,colours=colours,luminance=lum))
@@ -107,7 +107,10 @@ def verify(manifest,state):
   if hit is None:missing.append(p);continue
   hz=hit[0].z/100;max_error=max(max_error,abs(hz-z))
   terrain=unreal.StreetscapeLandscapeImporter.probe_height_m(landscape,x,y,False)
-  if math.isfinite(terrain) and p['kind']!='grass':
+  # GetHeightAtLocation(Editor) reports filled heightmap texels even in visibility holes.
+  # Only the source clip's surviving landscape may occlude the pavement; the restored
+  # airport extension deliberately occupies the previously hidden side of this boundary.
+  if p['native_landscape_present'] and math.isfinite(terrain) and p['kind']!='grass':
    clearance=hz-terrain;max_lift=max(max_lift,clearance);minimum_clearance=min(minimum_clearance,clearance)
    if clearance<-.02:buried.append(dict(**p,burial_m=-clearance))
  # Independent regular grid across the full marked runway, including its formerly absent western half.
@@ -125,6 +128,7 @@ def verify(manifest,state):
  photos=capture('after');guard=require_unchanged(baseline,snapshot(CONTENT))
  report=dict(pass_checks=not missing and not buried and not runway_missing and max_error<.005,checkpoint=imp['checkpoint'],manifest_sha256=state['manifest_sha256'],probes=len(manifest['probes']),
   runway_width_and_length_probes=runway_checks,missing_runway_probes=runway_missing,saved_triangle_count=sum(triangle_counts.values()),
+  hidden_landscape_probe_count=sum(not p['native_landscape_present'] for p in manifest['probes']),
   missing=missing,buried=buried,maximum_cache_collision_error_m=max_error,maximum_pavement_lift_m=max_lift,minimum_pavement_clearance_m=minimum_clearance,captures=photos,content_guard=guard)
  save(SAVED/'verification_report.json',report)
  uc.report(NAME,{k:v for k,v in report.items() if k not in ('missing','buried')})
