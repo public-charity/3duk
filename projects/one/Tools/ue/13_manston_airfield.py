@@ -102,8 +102,21 @@ def verify(manifest,state):
   if math.isfinite(terrain) and p['kind']!='grass':
    clearance=hz-terrain;max_lift=max(max_lift,clearance);minimum_clearance=min(minimum_clearance,clearance)
    if clearance<-.02:buried.append(dict(**p,burial_m=-clearance))
+ # Independent regular grid across the full marked runway, including its formerly absent western half.
+ runway=json.loads((OUT/'airfield.streetscape.json').read_text())['splines'][0]['points'];w,e=runway
+ dx,dy=e['x']-w['x'],e['y']-w['y'];length=math.hypot(dx,dy);ux,uy=dx/length,dy/length
+ runway_missing=[];runway_checks=0
+ for i in range(111):
+  s=.1+(length-.2)*i/110
+  for j in range(9):
+   d=-30.4+60.8*j/8;x=w['x']+ux*s-uy*d;y=w['y']+uy*s+ux*d
+   tx=631400+256*math.floor((x+627680-631400)/256);ty=165050+256*math.floor((y+163080-165050)/256)
+   a=by.get('manston_airfield:asphalt_%d_%d'%(tx,ty));runway_checks+=1
+   if a is None or a.get_dynamic_mesh_component().line_trace_component(vec([x,y,150]),vec([x,y,-10]),True,False,False) is None:
+    runway_missing.append([x,y])
  photos=capture('after');guard=require_unchanged(baseline,snapshot(CONTENT))
- report=dict(pass_checks=not missing and not buried and max_error<.005,checkpoint=imp['checkpoint'],manifest_sha256=state['manifest_sha256'],probes=len(manifest['probes']),
+ report=dict(pass_checks=not missing and not buried and not runway_missing and max_error<.005,checkpoint=imp['checkpoint'],manifest_sha256=state['manifest_sha256'],probes=len(manifest['probes']),
+  runway_width_and_length_probes=runway_checks,missing_runway_probes=runway_missing,
   missing=missing,buried=buried,maximum_cache_collision_error_m=max_error,maximum_pavement_lift_m=max_lift,minimum_pavement_clearance_m=minimum_clearance,captures=photos,content_guard=guard)
  save(SAVED/'verification_report.json',report)
  uc.report(NAME,{k:v for k,v in report.items() if k not in ('missing','buried')})
@@ -114,6 +127,8 @@ def main():
  if sum(bool(v) for v in opts.values())!=1:raise ValueError('Choose --apply or --verify')
  state=json.loads((OUT/'build_state.json').read_text())
  if state.get('state')!='ready' or sha(OUT/'airfield_manifest.json')!=state['manifest_sha256']:raise ValueError('Incomplete airfield generation')
+ checked=json.loads((OUT/'geometry_verification.json').read_text())
+ if not checked['pass_checks'] or checked['manifest_sha256']!=state['manifest_sha256']:raise ValueError('Geometry checks do not match this generation')
  manifest=json.loads((OUT/'airfield_manifest.json').read_text());SAVED.mkdir(parents=True,exist_ok=True)
  if not unreal.get_editor_subsystem(unreal.LevelEditorSubsystem).load_level(MAP):raise RuntimeError('Map load failed')
  unreal.StreetscapeEditorLibrary.load_region(unreal.Vector(545000,-305000,0),220000.)

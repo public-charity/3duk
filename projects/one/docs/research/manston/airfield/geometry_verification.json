@@ -1,0 +1,8 @@
+{
+  "pass_checks": true,
+  "manifest_sha256": "3ba7c3be876de75701375b51794ff49b3c8fe11241c7d21aa68be434cbd859f3",
+  "caches": 124,
+  "triangles": 526551,
+  "runway_coverage_points": 1260,
+  "source_features_accounted_for": 49
+}

@@ -177,10 +177,15 @@ def main():
   if not len(f):return
   z=ground.at(xy,paved_surface)+(0.009 if paint else 0.)
   origin=np.r_[np.mean(xy,axis=0)-ORIGIN,0.]
-  v=np.c_[xy-ORIGIN,z]-origin
-  data=dict(frame=FRAME,vertices=np.round(v,5).tolist(),triangles=np.c_[f,np.zeros(len(f),int)].tolist(),materials=[MATS[mat]])
+  v=np.round(np.c_[xy-ORIGIN,z]-origin,5)
+  a=v[f[:,1],:2]-v[f[:,0],:2];b=v[f[:,2],:2]-v[f[:,0],:2]
+  signed=a[:,0]*b[:,1]-a[:,1]*b[:,0]
+  if np.any(signed< -1e-8):raise ValueError('Inverted cache triangle '+id)
+  # Marking interval boundaries can emit microscopic slivers that collapse at 10-micron storage precision.
+  removed=int((signed<=1e-8).sum());f=f[signed>1e-8]
+  data=dict(frame=FRAME,vertices=v.tolist(),triangles=np.c_[f,np.zeros(len(f),int)].tolist(),materials=[MATS[mat]])
   path=CACHE/(id+'.json');save(path,data)
-  caches.append(dict(id='manston_airfield:'+id,file=path.name,sha256=sha(path),origin_local_m=origin.tolist(),material=mat,vertices=len(v),triangles=len(f),paint=paint))
+  caches.append(dict(id='manston_airfield:'+id,file=path.name,sha256=sha(path),origin_local_m=origin.tolist(),material=mat,vertices=len(v),triangles=len(f),paint=paint,collapsed_precision_slivers_removed=removed))
   if not paint:
    # Triangle centroid height is independently known from exported vertices.
    indices=np.unique(np.linspace(0,len(f)-1,min(len(f),75)).astype(int));tri=f[indices]
@@ -202,7 +207,8 @@ def main():
  checks=[]
  for s in np.linspace(0,L,140):
   for d in np.linspace(-30.5,30.5,9):checks.append(W+u*s+n*d)
- q=np.array(checks);covered=shapely.covers(paved,shapely.points(q))
+ # One micrometre accommodates round-off at the exact threshold boundary in BNG coordinates.
+ q=np.array(checks);covered=shapely.covers(paved.buffer(1e-6),shapely.points(q))
  if not covered.all():raise ValueError('Runway coverage incomplete')
  source_counts=dict(Counter(a['tags'].get('aeroway') for a in aeros))
  report=dict(frame=FRAME,source_counts=source_counts,features=features,runway_length_m=L,runway_width_m=61,
@@ -219,10 +225,13 @@ def main():
  img=Image.new('RGB',(1726,1101),'#b4c89b');draw=ImageDraw.Draw(img)
  def coords(ring):return [((p[0]-B[0])/2,(B[3]-p[1])/2) for p in ring]
  for poly,color in [(concrete,'#b0aaa0'),(apron,'#92998f'),(asphalt,'#3b4043')]:
+  mask=Image.new('L',img.size,0);md=ImageDraw.Draw(mask)
   for p in shapely.get_parts(poly):
    if p.geom_type!='Polygon':continue
-   draw.polygon(coords(p.exterior.coords),fill=color)
-   for hole in p.interiors:draw.polygon(coords(hole.coords),fill='#b4c89b')
+   md.polygon(coords(p.exterior.coords),fill=255)
+   for hole in p.interiors:md.polygon(coords(hole.coords),fill=0)
+  img.paste(color,(0,0),mask)
+ draw=ImageDraw.Draw(img)
  for a in base['buildings']:draw.polygon(coords(a['rings'][0]['pts']),fill='#77786f')
  draw.text((30,30),'MANSTON: complete airfield surface plan / north up / 2 m per pixel',fill='black')
  draw.text((30,50),'EA LiDAR (OGL); OSM contributors (ODbL); authored reconstruction estimates',fill='black')
