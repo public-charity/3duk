@@ -1,6 +1,7 @@
 """Author museum fence openings from saved native definitions, preserving the baseline."""
 from pathlib import Path
 import copy
+import hashlib
 import json
 import sys
 import numpy as np
@@ -53,7 +54,9 @@ def main():
     if errors:
         raise ValueError(errors)
     save(OUT/'museum_gates.streetscape.json',candidate)
-    save(OUT/'gate_schedule.json',{'baseline':path.name,'openings':records,'barrier_actors':len(candidate['splines'])})
+    save(OUT/'gate_schedule.json',{'baseline':path.name,'openings':records,'barrier_actors':len(candidate['splines']),
+        'walk_samples_sha256':hashlib.sha256((OUT/'walk_samples.json').read_bytes()).hexdigest(),
+        'gate_document_sha256':hashlib.sha256((OUT/'museum_gates.streetscape.json').read_bytes()).hexdigest()})
     print(json.dumps({'adapted_barriers':len(candidate['splines']),'openings':len(records),
         'opening_lengths_m':[r['opening_length_along_fence_m'] for r in records]}))
 

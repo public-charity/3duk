@@ -158,5 +158,7 @@
       "status": "New museum circulation opening; not a historical entrance"
     }
   ],
-  "barrier_actors": 7
+  "barrier_actors": 7,
+  "walk_samples_sha256": "c8cdc68a74e2156d056a232241336e6db8c140963d24dd8a5c1925b596695f4e",
+  "gate_document_sha256": "0d507c583346cd37364f79b4f4d7389ffeccd2fc7c82e3510304c329ada0851b"
 }

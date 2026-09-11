@@ -103,15 +103,47 @@ def apply(manifest,report):
     errors=list(lib.validate_streetscape_json(str(IMPL/'museum_walks.streetscape.json')))
     if errors:
         raise ValueError(errors)
-    count=lib.import_streetscape_json(str(IMPL/'museum_walks.streetscape.json'),False,False,0)
+    if 'manston:R1' in by_label and 'manston:R2' in by_label:
+        # A missing final target must reject the entire update before R1 changes.
+        # Check the saved definitions exported from memory, not just actor counts.
+        good=IMPL/'museum_walks.streetscape.json'
+        guard_before=backup/'guard_before.json'
+        if not lib.export_document_json(str(good),str(guard_before)):
+            raise RuntimeError('Could not export update-guard baseline')
+        guard_hash=hashlib.sha256(guard_before.read_bytes()).hexdigest()
+        negative=json.loads(good.read_text())
+        negative['splines'][-1]['id']='manston:MissingPreflightTarget'
+        invalid=backup/'invalid_missing_actor.json';save_json(invalid,negative)
+        rejected=json.loads(unreal.StreetDocumentPatchLibrary.apply_independent_document(str(invalid)))
+        guard_after=backup/'guard_after.json'
+        if rejected.get('ok') or not lib.export_document_json(str(good),str(guard_after)) or hashlib.sha256(guard_after.read_bytes()).hexdigest()!=guard_hash:
+            raise RuntimeError('Missing-target preflight changed existing definitions')
+        report['patch_preflight_missing_target_preserved_definitions']=True
+    def patch(path,expected):
+        identities={a.get_actor_label():a.get_path_name() for a in eas.get_all_level_actors()
+            if a.get_actor_label() in {s['id'] for s in json.loads(path.read_text())['splines']}}
+        result=json.loads(unreal.StreetDocumentPatchLibrary.apply_independent_document(str(path)))
+        if not result.get('ok') or result.get('actors')!=expected:
+            raise RuntimeError('Existing actor update failed: '+str(result))
+        after={a.get_actor_label():a.get_path_name() for a in eas.get_all_level_actors() if a.get_actor_label() in identities}
+        if after!=identities:
+            raise RuntimeError('A document update changed actor identities')
+        return expected
+    existing_routes=sum(label in by_label for label in ('manston:R1','manston:R2'))
+    if existing_routes==2:
+        count=patch(IMPL/'museum_walks.streetscape.json',2)
+    elif existing_routes==0:
+        # The legacy importer is used only for first creation, never replacement.
+        count=lib.import_streetscape_json(str(IMPL/'museum_walks.streetscape.json'),False,False,0)
+    else:
+        raise RuntimeError('Partial route checkpoint: recover the missing actor before applying')
     if count != 2:
         raise RuntimeError('Expected two museum walk actors, got '+str(count))
     for a in museum_actors():
         a.tags=[TAG]
         by_label[a.get_actor_label()]=a
     if gate_ids:
-        if lib.import_streetscape_json(str(gate_path),False,False,0)!=len(gate_ids):
-            raise RuntimeError('Gate adaptation failed')
+        patch(gate_path,len(gate_ids))
     cube=unreal.load_asset('/Engine/BasicShapes/Cube.Cube')
     def material(name,rgb):
         path='/Game/Thanet/Manston/Materials/'+name
@@ -366,6 +398,12 @@ def main():
         export_barriers()
         return
     if opts['apply']:
+        state=json.loads((IMPL/'build_state.json').read_text())
+        if state.get('state')!='ready' or any(hashlib.sha256((IMPL/n).read_bytes()).hexdigest()!=h for n,h in state['sha256'].items()):
+            raise RuntimeError('Incomplete or changed museum generation; rebuild before importing')
+        gates=json.loads((IMPL/'gate_schedule.json').read_text())
+        if gates['walk_samples_sha256']!=state['sha256']['walk_samples.json'] or gates['gate_document_sha256']!=hashlib.sha256((IMPL/'museum_gates.streetscape.json').read_bytes()).hexdigest():
+            raise RuntimeError('Gate schedule does not match the current walks; rebuild gates')
         from content_guard import snapshot,differences
         before=snapshot(CONTENT)
         report=apply(manifest,report)

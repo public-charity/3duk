@@ -154,6 +154,7 @@ class Router:
 
 
 def build(landscape_dir):
+    save(OUT/'build_state.json',{'state':'building','resume':'Re-run build_museum.py; importing an incomplete generation is refused.'})
     basemap=json.loads((RESEARCH/'basemap.bng.json').read_text())
     proposal=json.loads((RESEARCH/'museum_proposal.bng.json').read_text())
     evidence=json.loads((RESEARCH/'features.bng.json').read_text())
@@ -302,8 +303,10 @@ def build(landscape_dir):
             'Walks avoid mapped building footprints; fences and entrances still need detailed survey.',
             'Real gameplay and saved-world collision checks pending.',
             'Unknown historical footprints, underground portals, floor depths and links remain unmodelled.']}
-    save(OUT/'museum_manifest.json',manifest)
     save(OUT/'walk_samples.json',{'routes':path_samples})
+    save(OUT/'museum_manifest.json',manifest)
+    save(OUT/'build_state.json',{'state':'ready','sha256':{name:hashlib.sha256((OUT/name).read_bytes()).hexdigest()
+        for name in ('museum_walks.streetscape.json','walk_samples.json','museum_manifest.json')}})
     print(json.dumps({'output':str(OUT),'routes':metrics,'anchors':len(anchors)}))
     return manifest
 
