@@ -48,7 +48,7 @@ BugItGo 412000 -276000 6000 0 -9 0
 
 This navigation shortcut has not been tested in a manual Play-in-Editor session. The explorer's F key toggles flight.
 
-Read `PROGRESS.md` before continuing. From the repository root, use `C:/Users/Shadow/code/3duk-env/env/python.exe`:
+Read `PROGRESS.md` before continuing. From the repository root, use `C:/Users/Shadow/code/3duk-env/env/python.exe`. The generator uses the existing NumPy/SciPy/GDAL environment plus Pillow and Shapely 2.1 or newer:
 
 1. Run `projects/one/Tools/manston/build_airfield.py` and `check_airfield.py`.
 2. If native sources changed, build with `powershell.exe -NoProfile -File projects/one/Tools/build.ps1`.
@@ -56,7 +56,7 @@ Read `PROGRESS.md` before continuing. From the repository root, use `C:/Users/Sh
 4. Reopen/check using the same command with `-Args "--verify"`.
 5. Package with `projects/one/Tools/manston/package_airfield.py` after reviewing the renders and runner verdict.
 
-The generator writes its ready state last. The importer rejects stale geometry checks/caches and saves every eight actor updates. Latest native checkpoint: `{checkpoint.name}`. Its journal lists saved IDs. Before and after asset copies are included in the ZIP; generated caches are included with hashes. Recover only declared paths while the project has no active writer. The archive requires the existing Thanet world; it is not a standalone game.
+The generator writes its ready state last. The importer rejects stale geometry checks/caches and saves every eight actor updates. Latest native checkpoint: `{checkpoint.name}`. Its journal lists saved IDs. Existing owned assets are copied before updates; this first import records their prior absence in `before.json`. Resulting assets and generated caches are included in the ZIP with hashes. Recover only declared paths while the project has no active writer. The archive requires the existing Thanet world; it is not a standalone game.
 
 ## Sources
 

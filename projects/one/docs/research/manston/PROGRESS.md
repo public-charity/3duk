@@ -64,3 +64,7 @@ Current next step: inspect the sign/collision detail diagnostics, finish the vis
 4. Advance Phases 2–3 only with the evidence gates in `MANSTON_MUSEUM_PLAN.md`: separate sunken hangars, railway/War Flight/FIDO layers, and individually evidenced underground features. Keep unknown portal/depth/connectivity fields unknown.
 
 Source and implementation checkpoints are in Git on `thanet-explorer`; stage only Manston-owned files and preserve the other active road/vehicle work.
+
+## Checkpoint 05 — full airfield surfaces saved
+
+The user's next direction was to fill all runway surfaces and recover airfield features visible in LiDAR, cross-checking aerial imagery. The work is saved in the existing explorer as a separate, scoped overlay. See `airfield/PROGRESS.md` for the newest validation state and recovery point. It includes the full runway, broad historic pavement, taxiways, aprons, dispersal pads and a local raw-LiDAR terrain extension. Museum architecture and unknown underground geometry remain at checkpoint 04's state.

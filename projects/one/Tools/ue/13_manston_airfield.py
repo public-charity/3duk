@@ -54,6 +54,8 @@ def apply(manifest,state):
  if not (SAVED/'before_overview.png').exists():capture('before')
  materials();eas=unreal.get_editor_subsystem(unreal.EditorActorSubsystem)
  complete=[];pending=[];identities={k:a.get_path_name() for k,a in by.items()};current=set()
+ first_probes={}
+ for p in manifest['probes']:first_probes.setdefault(p['actor'],p)
  def flush():
   if pending and not unreal.EditorLoadingAndSavingUtils.save_packages([a.get_package() for a in pending],False):raise RuntimeError('Airfield checkpoint save failed')
   for a in pending:
@@ -68,6 +70,10 @@ def apply(manifest,state):
   if not result['ok']:raise RuntimeError(key+': '+str(result))
   if row['paint']:
    a.set_actor_enable_collision(False);a.get_dynamic_mesh_component().set_cast_shadow(False)
+  else:
+   p=first_probes[key];x,y=p['xy_local_m'];z=p['z_m']
+   if a.get_dynamic_mesh_component().line_trace_component(vec([x,y,z+3]),vec([x,y,z-3]),True,False,False) is None:
+    raise RuntimeError('Immediate top-face collision failed before save: '+key)
   pending.append(a);complete.append(key)
   if len(pending)==8:flush()
  for k,a in by.items():
@@ -92,6 +98,8 @@ def verify(manifest,state):
  for r in imp['saved_files']:
   if sha(CONTENT/r['path'])!=r['sha256']:raise ValueError('Saved assets changed since import')
  by={a.get_actor_label():a for a in owned()};missing=[];buried=[];max_error=0.;max_lift=0.;minimum_clearance=100.;landscape=unreal.StreetscapeLandscapeImporter.find_landscape()
+ triangle_counts={row['id']:by[row['id']].get_dynamic_mesh_component().get_dynamic_mesh().get_triangle_count() for row in manifest['caches']}
+ if any(triangle_counts[row['id']]!=row['triangles'] for row in manifest['caches']):raise ValueError('Saved mesh triangle count differs from its cache')
  for p in manifest['probes']:
   a=by.get(p['actor'])
   if a is None:raise ValueError('Missing airfield actor '+p['actor'])
@@ -116,7 +124,7 @@ def verify(manifest,state):
     runway_missing.append([x,y])
  photos=capture('after');guard=require_unchanged(baseline,snapshot(CONTENT))
  report=dict(pass_checks=not missing and not buried and not runway_missing and max_error<.005,checkpoint=imp['checkpoint'],manifest_sha256=state['manifest_sha256'],probes=len(manifest['probes']),
-  runway_width_and_length_probes=runway_checks,missing_runway_probes=runway_missing,
+  runway_width_and_length_probes=runway_checks,missing_runway_probes=runway_missing,saved_triangle_count=sum(triangle_counts.values()),
   missing=missing,buried=buried,maximum_cache_collision_error_m=max_error,maximum_pavement_lift_m=max_lift,minimum_pavement_clearance_m=minimum_clearance,captures=photos,content_guard=guard)
  save(SAVED/'verification_report.json',report)
  uc.report(NAME,{k:v for k,v in report.items() if k not in ('missing','buried')})

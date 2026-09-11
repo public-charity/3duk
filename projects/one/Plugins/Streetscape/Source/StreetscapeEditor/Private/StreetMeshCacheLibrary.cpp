@@ -10,8 +10,9 @@
 #include "Engine/CollisionProfile.h"
 
 // UE 5.8: DynamicMeshActor.h:26, DynamicMeshComponent.h:210/722,
-// GeometryCore/Public/DynamicMesh/MeshNormals.h:141/188. Coordinates are local metres,
-// north positive; reflection and winding reversal happen only at this engine boundary.
+// GeometryCore/Public/DynamicMesh/MeshNormals.h:188. Coordinates are local metres,
+// north positive. Match FStreetGeometry::ToDynamicMesh: KEEP indices when reflecting Y;
+// GeometryCore's left-handed front-face normal already reverses the cross-product order.
 FString UStreetMeshCacheLibrary::ApplyMeshCache(ADynamicMeshActor* Actor, const FString& JsonPath)
 {
     using namespace UE::Geometry;
@@ -48,14 +49,18 @@ FString UStreetMeshCacheLibrary::ApplyMeshCache(ADynamicMeshActor* Actor, const 
         if (Q[0]>=Verts->Num()||Q[1]>=Verts->Num()||Q[2]>=Verts->Num()||Q[3]>=Materials.Num()) return Fail(TEXT("Out of range index"));
         if (FVector3d::CrossProduct(Mesh.GetVertex(Q[1])-Mesh.GetVertex(Q[0]),Mesh.GetVertex(Q[2])-Mesh.GetVertex(Q[0])).SquaredLength()<1e-8)
             return Fail(TEXT("Degenerate triangle"));
-        int32 T=Mesh.AppendTriangle(Q[0],Q[2],Q[1]); if(T<0) return Fail(TEXT("Nonmanifold or duplicate triangle"));
+        int32 T=Mesh.AppendTriangle(Q[0],Q[1],Q[2]); if(T<0) return Fail(TEXT("Nonmanifold or duplicate triangle"));
         Mesh.Attributes()->GetMaterialID()->SetValue(T,Q[3]);
+        auto* UV=Mesh.Attributes()->PrimaryUV();
+        FIndex3i U;
+        for(int K=0;K<3;++K) {const auto P=Mesh.GetVertex(Q[K]);U[K]=UV->AppendElement(FVector2f(float(P.X/400.),float(-P.Y/400.)));}
+        UV->SetTriangle(T,U);
     }
-    FMeshNormals::QuickComputeVertexNormals(Mesh);
-    FMeshNormals::InitializeOverlayToPerVertexNormals(Mesh.Attributes()->PrimaryNormals(),true);
+    FMeshNormals::InitializeOverlayToPerVertexNormals(Mesh.Attributes()->PrimaryNormals(),false);
     // All parsing, materials and mesh topology have passed before altering the supplied actor.
     Actor->Modify(); auto* C=Actor->GetDynamicMeshComponent(); C->Modify();
     C->SetMesh(MoveTemp(Mesh));
+    C->SetTangentsType(EDynamicMeshComponentTangentsMode::AutoCalculated);
     for(int32 I=0;I<Materials.Num();++I) C->SetMaterial(I,Materials[I]);
     C->SetCollisionProfileName(UCollisionProfile::BlockAll_ProfileName);
     C->SetComplexAsSimpleCollisionEnabled(true,true);

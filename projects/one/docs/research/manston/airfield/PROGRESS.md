@@ -25,3 +25,9 @@ User direction: complete all visible runway/airfield surfaces and investigate Li
 - Native checkpoint `Saved/ManstonAirfield/checkpoints/20260911T220935Z/` contains the initial import. All 124 mesh actors and six dedicated materials are saved; the journal reached `saved`.
 - Content guard: 130 added files, no deleted files and no modified existing files. The museum, roads and global landscape assets remain byte-identical.
 - The before overview confirms the original runway area had no pavement mesh and its western half was beyond the diagonal terrain cut. Read-only saved-map collision and after-render checks are now the next gate; do not call this verified until their report is complete.
+
+## 03 — native facing correction
+
+- The first reopened verification failed every floor probe and showed no new surface from above. The initial symptom looked like a persistence problem. Inspection of the existing `FStreetGeometry::ToDynamicMesh` identified the actual conversion mistake: GeometryCore uses a left-handed face normal, so the source triangle indices must be kept when reflecting Y. The new uploader had reversed them a second time.
+- Corrected triangle order to match the existing converter and supplied complete UV/normal overlays. Added a top-face collision check for every ground/pavement cache before its next save, and a saved-triangle-count check on reopening.
+- The failed report is retained as `Saved/ManstonAirfield/verification_before_winding_fix.json`. All original map Content remained unchanged by that read-only check. The corrected import/reopen cycle is the next acceptance gate.
