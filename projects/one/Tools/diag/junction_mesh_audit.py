@@ -26,6 +26,7 @@ from streetscape.edge import build_junction_corners
 from streetscape.spline import JunctionPlan, Spline
 from streetscape.terrain import Heightfield
 from diag.bridge_crossing_audit import highest_triangle_z
+from diag.corner_quality_audit import pavement_top_stats
 
 
 def surface_stats(triangles, terrain, spacing=.25, cover_triangles=None):
@@ -71,10 +72,11 @@ def surface_stats(triangles, terrain, spacing=.25, cover_triangles=None):
 def audit_document(path, survey, terrain, spacing):
     site=io_json.load_site(str(path))
     plan=JunctionPlan(site)
-    arms={}
+    arms={};arm_errors={}
     for sid in sorted({a.spline_id for values in plan.arms.values() for a in values}):
         definition=site.spline(sid)
-        arms[sid]=Spline(definition,site,survey,trim=plan.trim_for(sid))
+        try:arms[sid]=Spline(definition,site,survey,trim=plan.trim_for(sid))
+        except ValueError as exc:arm_errors[sid]=str(exc)
     rows=[]
     arm_meshes={}
     for junction in site.junctions:
@@ -86,12 +88,26 @@ def audit_document(path, survey, terrain, spacing):
                  (site.spline(a.spline_id).flags.bridge or site.spline(a.spline_id).flags.tunnel)
                  for a in plan.arms[jid]):
             row.update(status="needs_structure_model",arms=[a.spline_id for a in plan.arms[jid]])
+        elif any(a.spline_id in arm_errors for a in plan.arms[jid]):
+            row.update(status="needs_geometry",reason="arm build failed",
+                errors={a.spline_id:arm_errors[a.spline_id] for a in plan.arms[jid] if a.spline_id in arm_errors})
         else:
             road,edge=MeshBuffer(),MeshBuffer()
-            patch=build_junction_patch(plan,jid,arms,road)
-            corner=build_junction_corners(plan,jid,arms,edge)
+            try:
+                patch=build_junction_patch(plan,jid,arms,road)
+                corner=build_junction_corners(plan,jid,arms,edge)
+            except ValueError as exc:
+                row.update(status="needs_geometry",reason=str(exc));rows.append(row);continue
             if not patch["built"]:
-                raise ValueError(jid+": planned patch did not build")
+                row.update(status="needs_geometry",reason="planned patch did not build");rows.append(row);continue
+            geometry=pavement_top_stats(edge)
+            row.update(patch_area_m2=patch["area_m2"],overlap_area_m2=patch["overlap_area_m2"],
+                       corner_build=corner,geometry=geometry)
+            # No expensive terrain pass can make an overlapping or folded surface
+            # acceptable. Retain the junction in coverage and fix its geometry first.
+            if patch["overlap_area_m2"]>1e-4 or geometry["inverted_top_triangles"] or corner["skipped_incompatible"]:
+                row.update(status="needs_geometry",reason="patch overlap, inverted pavement or incompatible corner section")
+                rows.append(row);continue
             top=np.empty((0,3,3))
             if len(edge.f):
                 triangles=edge.v[edge.f]
@@ -137,7 +153,7 @@ def main():
     selected=[p for p in selected if json.loads(p.read_text()).get("junctions")]
     if not selected:
         raise ValueError("no junction documents")
-    inputs=paths+[spec,Path(__file__),TOOLS/"phase1_qc.py",TOOLS/"diag/bridge_crossing_audit.py"]
+    inputs=paths+[spec,Path(__file__),TOOLS/"phase1_qc.py",TOOLS/"diag/bridge_crossing_audit.py",TOOLS/"diag/corner_quality_audit.py"]
     inputs+=list((TOOLS/"blender/streetscape").glob("*.py"))
     for directory in (survey_dir,args.landscape):
         inputs += [directory/"landscape_manifest.json"]+list(directory.glob("hm_*.r16"))+list(directory.glob("clip_*.r8"))

@@ -5,6 +5,24 @@ Thanet base suitable for high-quality building overlays. Survey registration, te
 roads, rail, junctions and their transitions belong to Phase 1. Hero buildings and
 decorative presentation remain later work.
 
+## Geometry-first contact gate — 2026-09-11
+
+Check surface geometry before spending time on terrain. Junction overlaps,
+inverted pavement, missing arms, incompatible sections and unresolved curves
+now remain explicit `needs_geometry` results. They cannot gain a terrain pass
+or disappear from coverage. On the 51-junction pilot, contact work fell from
+112.763 s elapsed to 17.852 s; all 40 measured reports remained exactly equal.
+The result is 39 terrain passes, one failure and 11 geometry failures, rather
+than giving misleading terrain-only passes to bad meshes. 72 tool tests pass.
+A spatial-index experiment was rejected after it proved slower on this case.
+
+The four unbuildable curves all involve short fragments: a 2.399 m connector
+between roundabout junctions, a 2.999 m road ending at a tile boundary, a 2.035 m
+stair fragment, and a 0.747 m path. Three have explicit longer continuations.
+Plan connected paths before imposing per-document trim limits; use a connected
+junction model for the tiny roundabout connector and a landing/structure model
+for the stairs. Preserve the existing curve quality limits and registration.
+
 ## Connected road-width checkpoint — 2026-09-11
 
 Explicit one-lane roundabout pieces were 10 m wide from road-class defaults.

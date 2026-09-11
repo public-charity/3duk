@@ -232,7 +232,7 @@ def main():
     if np.any(lo<tile[:2]) or np.any(hi>tile[2:]):
         raise ValueError("path neighbourhood reaches a document boundary")
     survey_dir=REPO/"data/thanet/out/unreal/landscape"
-    inputs=[path,original_osm,tuning_path,Path(__file__),TOOLS/"phase1_qc.py",TOOLS/"diag/driving_surface_audit.py",TOOLS/"diag/terrain_contact.py",TOOLS/"diag/structure_inventory.py",TOOLS/"diag/corner_quality_audit.py"]
+    inputs=[path,original_osm,tuning_path,Path(__file__),TOOLS/"phase1_qc.py",TOOLS/"diag/driving_surface_audit.py",TOOLS/"diag/terrain_contact.py",TOOLS/"diag/structure_inventory.py",TOOLS/"diag/corner_quality_audit.py",TOOLS/"diag/bridge_crossing_audit.py"]
     inputs+=list((TOOLS/"blender/streetscape").glob("*.py"))
     inputs+=[survey_dir/"landscape_manifest.json"]+list(survey_dir.glob("hm_*.r16"))+list(survey_dir.glob("clip_*.r8"))
     config=dict(document=args.document,path=args.path_id,lane_width_models=width_models,junction_trim_models=trim_models,max_lower_m=.5,max_blend_grade=.10,clearance_m=.01,fairing_length_m=2.,

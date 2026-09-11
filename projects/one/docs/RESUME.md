@@ -2,6 +2,48 @@
 
 ## Current checkpoint — 2026-09-10, Phase 1 completion
 
+### Eighteenth checkpoint IN PROGRESS — 2026-09-11: geometry before contact
+
+**Verification complete; no jobs running:** new geometry-first recheck took
+17.852 s versus prior 112.763 s elapsed (about 6.3x faster). All 51 junctions
+retained: 39 terrain passes / 1 terrain failure / 11 needs_geometry. All 40
+measured rows are exactly identical to their earlier report values. Evidence
+`a2cc.../geometry_first_contact_equivalence.json`,
+`a2cc.../junction_ground_check_gated.json`; 72 tool tests pass. Ready to commit.
+
+Latest verified commit **`aa8a383`**, checkpoint 17 below. No engine job running.
+A cKDTree contact-lookup experiment preserved every old report value but took
+153.256 s versus 112.763 s for the earlier full document run. It was REJECTED and
+its implementation/test reverted. Historical proof `a2cc.../indexed_lookup_equivalence.json`
+and `phase1_indexed_contact_recheck.log` remain; do not reinstate that optimization.
+
+New uncommitted `junction_mesh_audit.py` gates expensive terrain sampling on
+geometry first. Overlaps, inverted pavement, incompatible sections, missing arms
+or failed curves remain explicit `needs_geometry` rows; none disappear from
+coverage or receive a terrain pass. Candidate fingerprinting now also hashes the
+transitive triangle lookup provider. All 72 tool tests pass
+(`phase1_geometry_first_contact_tests.log`). Full recheck of the same 51-junction
+candidate running in session 84471, `phase1_geometry_first_contact_recheck.log`;
+helper `Saved/Phase1/recheck_gated_junctions.py` requires identical prior values
+for every still-measured row and retains the others as geometry failures.
+
+**Four curve failures diagnosed in 5.4 s:** all have short source fragments,
+not oversized long curves. `Saved/Phase1/inspect_failed_curves.py`,
+`corner_topology/failed_curves.json`, `phase1_failed_curve_diagnosis.log`.
+- :16_9:25 has a 2.399 m roundabout connector between :51 and :25, trimmed to
+  leave 1 m. Requires a connected/compound-junction model.
+- :18_4:6 has a 2.999 m Southwood Road fragment ending at the tile boundary;
+  continues as roads:27384437:1, with overrun point at (9394.71,2006.14).
+- :23_9:18 has a 2.035 m stair fragment continuing as roads:1118884970:0;
+  the short piece rises ~3.69 m in the original survey samples, so a flat road
+  junction is inappropriate. Include the stair/landing structure model.
+- :5_12:8 has a 0.747 m path fragment continuing from roads:319390538:0;
+  fixed min_remaining_m makes it untrimmable despite a longer connected path.
+
+Do not weaken the curve quality gate. Plan joined source continuations across
+fragment/document boundaries before choosing trim stations; nearby junctions
+sharing tiny connectors need one connected model. Keep raw registration/IDs.
+
 ### Seventeenth checkpoint — 2026-09-11: connected widths and bounded trim preview
 
 **No jobs are running. Latest prior commit `ebfcdea` is milestone 16.** Current

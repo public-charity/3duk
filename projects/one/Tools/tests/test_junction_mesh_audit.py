@@ -1,13 +1,37 @@
 import sys
 from pathlib import Path
 import unittest
+from unittest.mock import patch
 import numpy as np
 
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
-from diag.junction_mesh_audit import surface_stats
+from diag.junction_mesh_audit import surface_stats,audit_document
+from streetscape import io_json
+sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'blender/tests'))
+import synthetic
 
 
 class JunctionInteriorTest(unittest.TestCase):
+    def test_overlapping_junction_stays_in_coverage_without_expensive_terrain_checks(self):
+        doc=synthetic.junction_doc('overlapping',[0,30,180],widths=[10,10,10],radius_m=1.)
+        doc['junctions'][0]['trim_radius_m']=1.
+        site=io_json.site_from_dict(doc);terrain=synthetic.junction_terrain_for(doc)
+        with patch('diag.junction_mesh_audit.io_json.load_site',return_value=site), \
+             patch('diag.junction_mesh_audit.surface_stats',side_effect=AssertionError('contact check should be gated')):
+            report=audit_document(Path('overlapping.json'),terrain,terrain,.25)
+        self.assertEqual(report['junctions'],1)
+        self.assertEqual(report['totals'],{'needs_geometry':1})
+        self.assertGreater(report['results'][0]['overlap_area_m2'],1e-4)
+        self.assertNotIn('patch',report['results'][0])
+
+    def test_failed_curve_is_an_explicit_junction_result(self):
+        doc=synthetic.junction_crossroads();site=io_json.site_from_dict(doc);terrain=synthetic.junction_terrain_for(doc)
+        with patch('diag.junction_mesh_audit.io_json.load_site',return_value=site), \
+             patch('diag.junction_mesh_audit.build_junction_patch',side_effect=ValueError('unresolved cusp')):
+            report=audit_document(Path('cusp.json'),terrain,terrain,.25)
+        self.assertEqual(report['totals'],{'needs_geometry':1})
+        self.assertEqual(report['results'][0]['reason'],'unresolved cusp')
+
     def test_interior_penetration_detected_when_vertices_are_clear(self):
         triangle=np.array([[[0,0,1],[2,0,1],[0,2,1]]],dtype=float)
         class Hill:
