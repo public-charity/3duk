@@ -2,6 +2,47 @@
 
 ## Current checkpoint — 2026-09-10, Phase 1 completion
 
+### Sixteenth milestone — 2026-09-11: shared corner quality and complete census
+
+**Current verified checkpoint:** shared corner sampling, bank transport, and
+partial-junction-rebuild rejection are implemented in both cores. **160/160 Python
+geometry, 45/45 native, 69/69 tool tests passed.** Native rebuild 153.01 s,
+automation 37 s with raw engine exit 0. Point/tangent/normal/up parity <=1e-9
+(worst point 1.819e-12 m). Logs: `phase1_corner_frame_build.log`,
+`phase1_corner_frame_numpy_full.log`, `phase1_corner_frame_native_tests.runner.log`,
+`phase1_corner_frame_tool_tests.log`. No engine or census job is running.
+
+**Full census COMPLETE: 246/246 documents, all 1,642 junctions accounted for:**
+1,215 passed / 106 fold reviews / 317 overlap reviews / 4 geometry failures.
+`Saved/Phase1/corner_quality/60fe03b94c711092b03a/state.json`, per-document hashed
+reports and `Saved/phase1_corner_census_verified_batch01..16.log`. Resume command
+`& projects/one/Tools/python.ps1 projects/one/Tools/diag/corner_quality_audit.py --max-docs 16`.
+Each document is atomic; missing/corrupt reports lose their completion credit.
+A curve/mesh pass is explicitly not terrain, structures or Phase 1 acceptance.
+
+Core changes: preserve shared uniform parameter stations, use analytic cubic
+bounds for <=1 m segments / <=10 mm chord error, and derivative-control cones for
+actual turns <= profile corner_step_deg. Maximum 4,096 segments; unresolved cusps
+fail explicitly. Parallel-tangent handle uses its continuous chord/3 limit.
+Transport the horizontal normal along the actual tangent and blend signed bank
+angles; old world-normal interpolation could invert up.z to -0.998 inside S bends.
+End rings remain exact. A failed owned junction now prevents publishing partial
+actor buffers. Frozen counts updated only after seam and overlap checks.
+
+Pilot site_x16_y8: 35 pass / 16 overlap reviews, no downward frame flips. Boundary
+topology inspection finds 13 of those 16 have proper self-intersections; several
+arm end rows cross each other. Triangulation alone cannot fix those boundaries.
+Diagnostic `Saved/Phase1/inspect_corner_topology.py`, results `corner_topology/pilot.json`,
+log `phase1_corner_topology_pilot.log`. The three with no proper crossing are :22,
+:28, :42; still need touch/collinearity validation before classifying as simple.
+Next: bounded trim/width experiments, then address true pavement offset folds and
+simple concave triangulation. No triangulation changes have been made.
+
+All prior terrain/crossing candidate fingerprints are stale after this core edit.
+Regenerate local candidates before preview. Production JSON, survey and Content
+unchanged. Milestone 16 source is ready to commit; prior commit `c43b008` is milestone 15.
+Historical milestone notes below preserve diagnoses and attempts, not live jobs.
+
 ### Fifteenth milestone — 2026-09-11: bounded terrain finish and native verification
 
 **Verified completion of this tool/candidate milestone:** native preview PASSED in

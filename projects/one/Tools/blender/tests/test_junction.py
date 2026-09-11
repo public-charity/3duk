@@ -31,7 +31,7 @@ from streetscape import io_json, schema as S  # noqa: E402
 from streetscape.build import build_all, junction_audit  # noqa: E402
 from streetscape.mesh import NON_STATION_PREFIXES, station_values  # noqa: E402
 from streetscape.road import junction_boundary, junction_surface, junction_target_z  # noqa: E402
-from streetscape.spline import JunctionPlan, arm_station_index  # noqa: E402
+from streetscape.spline import JunctionPlan, Spline, arm_station_index  # noqa: E402
 
 EXPECTED = syn.load_json(os.path.join(syn.FIXTURES_DIR, "expected.json"))
 GAP_TOL_M = 1e-9          # the tolerance the no-crack claim is made at
@@ -357,8 +357,10 @@ class TestDegenerate(unittest.TestCase):
             doc = self._doc(length)
             site = io_json.site_from_dict(doc)
             plan = JunctionPlan(site)
-            res = build_all(site, syn.junction_terrain_for(doc), plan=plan)
-            sp = res["authored:arm0"].spline
+            # This checks the shared trim, independently of whether two overlapping
+            # junction discs can form a valid fillet around the remaining stub.
+            sp = Spline(site.spline("authored:arm0"),site,syn.junction_terrain_for(doc),
+                        trim=plan.trim_for("authored:arm0"))
             t0, t1 = sp.s_trim
             self.assertLess(t0, t1, "L=%g: the trim inverted" % length)
             self.assertGreaterEqual(int(sp.active.sum()), 2, "L=%g: the spline vanished" % length)
@@ -375,6 +377,14 @@ class TestDegenerate(unittest.TestCase):
         rep = junction_audit(plan, res)
         self.assertLessEqual(rep["worst_patch_gap_m"], GAP_TOL_M, str(rep["worst_patch_gap_at"]))
         self.assertLessEqual(rep["worst_corner_gap_m"], GAP_TOL_M, str(rep["worst_corner_gap_at"]))
+
+    def test_folded_corner_between_overlapping_junctions_is_rejected(self):
+        # The 2 m stub produced a near reversal inside a sub-millimetre radius.
+        # Sampling it coarsely concealed that invalid pavement geometry.
+        doc=self._doc(2.)
+        site=io_json.site_from_dict(doc)
+        with self.assertRaisesRegex(ValueError,'cannot meet quality limits'):
+            build_all(site,syn.junction_terrain_for(doc),plan=JunctionPlan(site))
 
 
 class TestValidation(unittest.TestCase):

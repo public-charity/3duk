@@ -293,17 +293,18 @@ struct STREETSCAPE_API FStreetJunctionMath
 	 * circle to 2e-4 of its radius, and where it does not the curve is still G1 at both ends. HandleFrac caps the
 	 * handle at a fraction of the endpoint's distance to the node so the fillet can never fold back through it.
 	 *
-	 * OutP[0] == A and OutP.Last() == B exactly.
+	 * Uniform parameter stations also bound segment length to 1 m and cubic/chord deviation to 10 mm.
+	 * Derivative control cones bound internal turn by StepDeg. False clears outputs for invalid inputs,
+	 * oversized curves or unresolved cusps after at most 4096 segments.
+	 * OutP[0] == A and OutP.Last() == B exactly on success.
 	 */
-	static void CornerCurve(const FVector3d& A, const FVector3d& B, const FVector2d& Dir0, const FVector2d& Dir1,
+	static bool CornerCurve(const FVector3d& A, const FVector3d& B, const FVector2d& Dir0, const FVector2d& Dir1,
 		const FVector2d& NodeXY, double StepDeg, double HandleFrac, TArray<FVector3d>& OutP, TArray<FVector3d>& OutT);
 
 	/**
-	 * spline.corner_frames - frames along a corner: positions P, tangents T, and the INWARD normal lerped from N0 to
-	 * N1, orthogonalised against the tangent and renormalised (the rule FStreetFrames::At already uses), so a corner
-	 * is banked the way the two straights it joins are. B = T x N then points up, and a sweep with Side = -1 puts the
-	 * section's outward o away from the junction. The endpoints are forced to N0 / N1 exactly so the corner's first
-	 * and last rings coincide with the arms' own rings. S carries the cumulative plan length along the corner.
+	 * spline.corner_frames - transport the horizontal normal along T and interpolate signed endpoint banks.
+	 * Unlike blending world normals, this preserves an upright frame through internal S bends. Projected N0/N1
+	 * stay exact at the endpoints; Side=-1 sweeps away from the junction. S is cumulative plan length.
 	 */
 	static FStreetFrames CornerFrames(const TArray<FVector3d>& P, const TArray<FVector3d>& T, const FVector3d& N0, const FVector3d& N1);
 };

@@ -1158,8 +1158,8 @@ bool FStreetRenderBuild::JunctionBoundary(const FStreetJunctionSpec& Spec, const
 		const FStreetArmFrame& Nx = OutFrames[(K + 1) % NA];
 		FStreetJunctionCornerSpec Cs;
 		Cs.A = K; Cs.B = (K + 1) % NA;
-		FStreetJunctionMath::CornerCurve(Af.PHi, Nx.PLo, FVector2d(-Af.U.X, -Af.U.Y), FVector2d(Nx.U.X, Nx.U.Y), Node,
-			Cfg.CornerStepDeg, Cfg.CornerHandleFrac, Cs.P, Cs.T);
+		if (!FStreetJunctionMath::CornerCurve(Af.PHi, Nx.PLo, FVector2d(-Af.U.X, -Af.U.Y), FVector2d(Nx.U.X, Nx.U.Y), Node,
+			Cfg.CornerStepDeg, Cfg.CornerHandleFrac, Cs.P, Cs.T)) return false;
 		Cs.Fr = FStreetJunctionMath::CornerFrames(Cs.P, Cs.T, Af.NHi, Nx.NLo);
 		const double Ov0 = Af.Spline->OverlapM[Af.I], Ov1 = Nx.Spline->OverlapM[Nx.I];
 		const double Sd0 = Af.Spline->SkirtDropM[Af.I], Sd1 = Nx.Spline->SkirtDropM[Nx.I];
@@ -1334,8 +1334,8 @@ FStreetJunctionInfo FStreetRenderBuild::BuildJunctionCorners(const FStreetJuncti
 		if (Sa->ArcPoints != Sb->ArcPoints) { ++Out.CornersSkippedIncompatible; continue; }
 
 		TArray<FVector3d> P, T;
-		FStreetJunctionMath::CornerCurve(Af.PHi, Nx.PLo, FVector2d(-Af.U.X, -Af.U.Y), FVector2d(Nx.U.X, Nx.U.Y), Node,
-			Cfg.CornerStepDeg, Cfg.CornerHandleFrac, P, T);
+		if (!FStreetJunctionMath::CornerCurve(Af.PHi, Nx.PLo, FVector2d(-Af.U.X, -Af.U.Y), FVector2d(Nx.U.X, Nx.U.Y), Node,
+			Cfg.CornerStepDeg, Cfg.CornerHandleFrac, P, T)) return Out;
 		FStreetFrames Fr = FStreetJunctionMath::CornerFrames(P, T, Af.NHi, Nx.NLo);
 		const double SBase = Af.Spline->S[Af.I];       // UV u keeps running in metres across the join
 		for (int32 Q = 0; Q < Fr.S.Num(); ++Q) Fr.S[Q] += SBase;

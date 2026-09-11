@@ -277,11 +277,11 @@ bool AStreetscapeActor::RebuildAllChecked(FString* Error)
 		{
 			UE_LOG(LogStreetscape, Warning, TEXT("%s: junction skipped: %s"), *StreetId, *Why);
 		}
-		if (JunctionStats.Built == 0)
+		if (JunctionStats.Built != OwnedJunctions.Num())
 		{
-			// the defect this whole layer exists to close: an owner that draws no junction must say so, not pass
-			if (Error) *Error = FString::Printf(TEXT("%s owns %d junction(s) and built none (%s)"), *StreetId,
-				OwnedJunctions.Num(), LastJunctionSkips.Num() ? *FString::Join(LastJunctionSkips, TEXT("; ")) : TEXT("no reason recorded"));
+			// A partly rebuilt document must retain its last complete buffers too.
+			if (Error) *Error = FString::Printf(TEXT("%s owns %d junction(s) and built only %d (%s)"), *StreetId,
+				OwnedJunctions.Num(), JunctionStats.Built, LastJunctionSkips.Num() ? *FString::Join(LastJunctionSkips, TEXT("; ")) : TEXT("no reason recorded"));
 			return false;
 		}
 	}

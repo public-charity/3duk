@@ -15,6 +15,7 @@ import argparse
 import json
 import os
 import sys
+import numpy as np
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ONE = os.path.dirname(os.path.dirname(HERE))
@@ -77,10 +78,21 @@ def main():
         out["twist_" + rule] = arrays(build("sine_5_50", field))
     for kind in ("batter","retaining_wall"):
         out["support_"+kind] = support_meshes(kind)
+    out['corner_curves']={}
+    for name,a,b,d0,d1,node in (
+        ('long_shallow',[0,0,51.7],[.13,25.22,51.3],[-.063,.998],[-.311,.950],[-3.9,16.5]),
+        ('parallel_s',[0,0,10],[30,10,11],[1,0],[1,0],[15,5]),
+        ('translated_s',[8370,4480,10],[8400,4490,11],[1,0],[1,0],[8385,4485])):
+        p,t=SP.corner_curve(a,b,d0,d1,node,10.,.75)
+        n0=np.cos(.05)*np.array([-t[0,1],t[0,0],0])+np.array([0,0,np.sin(.05)])
+        n1=np.cos(-.08)*np.array([-t[-1,1],t[-1,0],0])+np.array([0,0,np.sin(-.08)])
+        fr=SP.corner_frames(p,t,n0,n1)
+        out['corner_curves'][name]=dict(points=p.ravel().tolist(),tangents=t.ravel().tolist(),
+                                       normals=fr.n.ravel().tolist(),up=fr.b.ravel().tolist())
     os.makedirs(os.path.dirname(args.out), exist_ok=True)
     with open(args.out, "w", encoding="utf-8", newline="\n") as fh:
         json.dump(out, fh, indent=1)
-    print("wrote %s: %s" % (args.out, {k:len(v["s"]) if "s" in v else "support meshes" for k,v in out.items()}))
+    print("wrote %s: %s" % (args.out, {k:len(v["s"]) if "s" in v else "geometry arrays" for k,v in out.items()}))
 
 
 if __name__ == "__main__":

@@ -479,12 +479,16 @@ bool FStreetJunctionMath::ResolveArmFrames(const FStreetJunctionSpec& Spec, cons
 	return Out.Num() > 0;
 }
 
-void FStreetJunctionMath::CornerCurve(const FVector3d& A, const FVector3d& B, const FVector2d& Dir0, const FVector2d& Dir1,
+bool FStreetJunctionMath::CornerCurve(const FVector3d& A, const FVector3d& B, const FVector2d& Dir0, const FVector2d& Dir1,
 	const FVector2d& NodeXY, double StepDeg, double HandleFrac, TArray<FVector3d>& OutP, TArray<FVector3d>& OutT)
 {
 	OutP.Reset();
 	OutT.Reset();
+	for (double Value : { A.X,A.Y,A.Z,B.X,B.Y,B.Z,Dir0.X,Dir0.Y,Dir1.X,Dir1.Y,NodeXY.X,NodeXY.Y,StepDeg,HandleFrac })
+		if (!FMath::IsFinite(Value)) return false;
+	if (StepDeg<=0.0 || StepDeg>90.0 || HandleFrac<=0.0) return false;
 	const FVector2d U0 = Unit2Safe(Dir0), U1 = Unit2Safe(Dir1);
+	if (U0.Size()<0.5 || U1.Size()<0.5) return false;
 	const FVector3d D0(U0.X, U0.Y, 0.0), D1(U1.X, U1.Y, 0.0);
 	const double Chord = std::hypot(B.X - A.X, B.Y - A.Y);
 	const double Tau = std::atan2(D0.X * D1.Y - D0.Y * D1.X, D0.X * D1.X + D0.Y * D1.Y);
@@ -492,41 +496,70 @@ void FStreetJunctionMath::CornerCurve(const FVector3d& A, const FVector3d& B, co
 	{
 		OutP.Add(A); OutP.Add(B);
 		OutT.Add(D0); OutT.Add(D1);
-		return;
+		return true;
 	}
-	double Mh = 0.0;
+	double Mh = Chord/3.0;
 	int32 M = 1;
 	if (FMath::Abs(Tau) >= 1e-6)
 	{
 		const double R = Chord / (2.0 * std::sin(FMath::Abs(Tau) / 2.0));
 		Mh = (4.0 / 3.0) * std::tan(FMath::Abs(Tau) / 4.0) * R;
-		const double Cap = HandleFrac * FMath::Min(std::hypot(A.X - NodeXY.X, A.Y - NodeXY.Y), std::hypot(B.X - NodeXY.X, B.Y - NodeXY.Y));
-		Mh = FMath::Min(Mh, Cap);
-		M = FMath::Max(2, (int32)FMath::CeilToDouble(FMath::Abs(Tau) * (180.0 / kPiJ) / StepDeg));
+		const double Angular=FMath::Abs(Tau)*(180.0/kPiJ)/StepDeg;
+		if (!FMath::IsFinite(Angular) || Angular>4096.0) return false;
+		M = FMath::Max(2, (int32)FMath::CeilToDouble(Angular));
 	}
+	const double Cap = HandleFrac * FMath::Min(std::hypot(A.X - NodeXY.X, A.Y - NodeXY.Y), std::hypot(B.X - NodeXY.X, B.Y - NodeXY.Y));
+	Mh = FMath::Min(Mh, Cap);
 	const FVector3d P0 = A, P3 = B;
 	const FVector3d P1(A.X + Mh * D0.X, A.Y + Mh * D0.Y, A.Z + Mh * D0.Z);
 	const FVector3d P2(B.X - Mh * D1.X, B.Y - Mh * D1.Y, B.Z - Mh * D1.Z);
-	OutP.SetNum(M + 1);
-	OutT.SetNum(M + 1);
-	for (int32 K = 0; K <= M; ++K)
+	const double Speed = 3.0*FMath::Max3((P1-P0).Size(),(P2-P1).Size(),(P3-P2).Size());
+	const double Accel = 6.0*FMath::Max((P2-P1*2.0+P0).Size(),(P3-P2*2.0+P1).Size());
+	const double Need = FMath::Max(Speed,std::sqrt(Accel/(8.0*0.01)));
+	if (!FMath::IsFinite(Need) || Need>4096.0+1e-10) return false;
+	M=FMath::Max(M,(int32)FMath::CeilToDouble(Need-1e-10));
+	const double Cosine = std::cos(StepDeg*kPiJ/180.0);
+	TArray<FVector3d> Derivative;
+	bool bQuality=false;
+	for (; M<=4096; M*=2)
 	{
-		const double T = LinspaceUnit(K, M + 1);
-		const double Om = 1.0 - T;
-		const double C0 = Om * Om * Om, C1 = 3.0 * Om * Om * T, C2 = 3.0 * Om * T * T, C3 = T * T * T;
-		OutP[K] = FVector3d(C0 * P0.X + C1 * P1.X + C2 * P2.X + C3 * P3.X,
-			C0 * P0.Y + C1 * P1.Y + C2 * P2.Y + C3 * P3.Y,
-			C0 * P0.Z + C1 * P1.Z + C2 * P2.Z + C3 * P3.Z);
-		const double G0 = 3.0 * Om * Om, G1 = 6.0 * Om * T, G2 = 3.0 * T * T;
-		double Dx = G0 * (P1.X - P0.X) + G1 * (P2.X - P1.X) + G2 * (P3.X - P2.X);
-		double Dy = G0 * (P1.Y - P0.Y) + G1 * (P2.Y - P1.Y) + G2 * (P3.Y - P2.Y);
-		double Nrm = std::hypot(Dx, Dy);
-		if (Nrm < 1e-12)
+		OutP.SetNum(M + 1);
+		Derivative.SetNum(M + 1);
+		for (int32 K=0;K<=M;++K)
 		{
-			Dx = B.X - A.X; Dy = B.Y - A.Y;
-			Nrm = std::hypot(Dx, Dy);
+			const double T = LinspaceUnit(K, M + 1);
+			const double Om = 1.0 - T;
+			const double C0 = Om * Om * Om, C1 = 3.0 * Om * Om * T, C2 = 3.0 * Om * T * T, C3 = T * T * T;
+			OutP[K] = FVector3d(C0 * P0.X + C1 * P1.X + C2 * P2.X + C3 * P3.X,
+				C0 * P0.Y + C1 * P1.Y + C2 * P2.Y + C3 * P3.Y,
+				C0 * P0.Z + C1 * P1.Z + C2 * P2.Z + C3 * P3.Z);
+			const double G0 = 3.0 * Om * Om, G1 = 6.0 * Om * T, G2 = 3.0 * T * T;
+			Derivative[K] = FVector3d(G0 * (P1.X-P0.X) + G1 * (P2.X-P1.X) + G2 * (P3.X-P2.X),
+				G0 * (P1.Y-P0.Y) + G1 * (P2.Y-P1.Y) + G2 * (P3.Y-P2.Y),
+				G0 * (P1.Z-P0.Z) + G1 * (P2.Z-P1.Z) + G2 * (P3.Z-P2.Z));
 		}
-		OutT[K] = FVector3d(Dx / Nrm, Dy / Nrm, 0.0);
+		bQuality=true;
+		for (int32 K=0;K<M && bQuality;++K)
+		{
+			const FVector3d Q1=OutP[K]+Derivative[K]/(3.0*M), Q2=OutP[K+1]-Derivative[K+1]/(3.0*M);
+			const FVector2d C[3]={FVector2d(Derivative[K].X,Derivative[K].Y)/(3.0*M),
+				FVector2d(Q2.X-Q1.X,Q2.Y-Q1.Y),FVector2d(Derivative[K+1].X,Derivative[K+1].Y)/(3.0*M)};
+			for (int32 I=0;I<3 && bQuality;++I) for (int32 J=I+1;J<3;++J)
+			{
+				const double Na=C[I].Size(), Nb=C[J].Size();
+				if (Na>1e-12 && Nb>1e-12 && C[I].X*C[J].X+C[I].Y*C[J].Y<(Cosine-1e-12)*Na*Nb)
+				{ bQuality=false; break; }
+			}
+		}
+		if (bQuality) break;
+	}
+	if (!bQuality) { OutP.Reset(); OutT.Reset(); return false; }
+	OutT.SetNum(M+1);
+	for (int32 K=0;K<=M;++K)
+	{
+		double Dx=Derivative[K].X,Dy=Derivative[K].Y,Nrm=std::hypot(Dx,Dy);
+		if (Nrm<1e-12) { Dx=B.X-A.X; Dy=B.Y-A.Y; Nrm=std::hypot(Dx,Dy); }
+		OutT[K]=FVector3d(Dx/Nrm,Dy/Nrm,0.0);
 	}
 	if (Mh > 0.0)
 	{
@@ -535,6 +568,7 @@ void FStreetJunctionMath::CornerCurve(const FVector3d& A, const FVector3d& B, co
 	}
 	OutP[0] = A;
 	OutP[M] = B;
+	return true;
 }
 
 FStreetFrames FStreetJunctionMath::CornerFrames(const TArray<FVector3d>& P, const TArray<FVector3d>& T, const FVector3d& N0, const FVector3d& N1)
@@ -547,22 +581,20 @@ FStreetFrames FStreetJunctionMath::CornerFrames(const TArray<FVector3d>& P, cons
 	F.NFlat.SetNum(M);
 	F.B.SetNum(M);
 	F.S.SetNum(M);
+	const FVector3d First=FStreetSplineMath::Unit3(N0-FVector3d::DotProduct(N0,T[0])*T[0]);
+	const FVector3d Last=FStreetSplineMath::Unit3(N1-FVector3d::DotProduct(N1,T.Last())*T.Last());
+	const FVector3d Flat0(-T[0].Y,T[0].X,0.0), Flat1(-T.Last().Y,T.Last().X,0.0);
+	const double Bank0=std::atan2(First.Z,FVector3d::DotProduct(First,Flat0));
+	const double Bank1=std::atan2(Last.Z,FVector3d::DotProduct(Last,Flat1));
 	for (int32 K = 0; K < M; ++K)
 	{
 		const double Tt = LinspaceUnit(K, M);
-		FVector3d Nn((1.0 - Tt) * N0.X + Tt * N1.X, (1.0 - Tt) * N0.Y + Tt * N1.Y, (1.0 - Tt) * N0.Z + Tt * N1.Z);
-		const double Dp = Nn.X * T[K].X + Nn.Y * T[K].Y + Nn.Z * T[K].Z;
-		Nn = FVector3d(Nn.X - Dp * T[K].X, Nn.Y - Dp * T[K].Y, Nn.Z - Dp * T[K].Z);
-		F.N[K] = FStreetSplineMath::Unit3(Nn);
+		const double Bank=(1.0-Tt)*Bank0+Tt*Bank1;
+		const FVector3d Flat=FStreetSplineMath::Unit3(FVector3d(-T[K].Y,T[K].X,0.0));
+		F.N[K]=FVector3d(std::cos(Bank)*Flat.X,std::cos(Bank)*Flat.Y,std::sin(Bank));
 	}
-	{
-		const FVector3d& T0 = T[0];
-		const double D0 = N0.X * T0.X + N0.Y * T0.Y + N0.Z * T0.Z;
-		F.N[0] = FStreetSplineMath::Unit3(FVector3d(N0.X - D0 * T0.X, N0.Y - D0 * T0.Y, N0.Z - D0 * T0.Z));
-		const FVector3d& Tl = T[M - 1];
-		const double Dl = N1.X * Tl.X + N1.Y * Tl.Y + N1.Z * Tl.Z;
-		F.N[M - 1] = FStreetSplineMath::Unit3(FVector3d(N1.X - Dl * Tl.X, N1.Y - Dl * Tl.Y, N1.Z - Dl * Tl.Z));
-	}
+	F.N[0]=First;
+	F.N[M-1]=Last;
 	for (int32 K = 0; K < M; ++K)
 	{
 		F.B[K] = FVector3d(T[K].Y * F.N[K].Z - T[K].Z * F.N[K].Y,

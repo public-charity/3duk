@@ -5,6 +5,30 @@ Thanet base suitable for high-quality building overlays. Survey registration, te
 roads, rail, junctions and their transitions belong to Phase 1. Hero buildings and
 decorative presentation remain later work.
 
+## Shared corner quality checkpoint — 2026-09-11
+
+Long shallow junction corners previously had only three rings over 25–35 m.
+Both geometry cores now enforce <=1 m segments, <=10 mm cubic chord error and
+actual tangent turn <= the profile limit, within 4,096 segments. Signed bank
+transport preserves exact end seams and removes internal downward frame flips.
+An actor rebuild rejects any missing owned junction before replacing its buffers.
+Verification: 160 Python geometry, 45 native and 69 tool tests pass; native
+point/tangent/normal/up parity <=1e-9, worst point difference 1.819e-12 m.
+
+The new geometry-only census includes inverted pavement tops in its coverage.
+All 246 documents / 1,642 junctions completed with atomic per-document reports:
+1,215 passes, 106 pavement fold reviews, 317 patch overlap reviews, four curves
+unable to satisfy the bounded quality gate. This supersedes the earlier geometry
+census, whose positive-normal filter could hide inverted tops. Report identity:
+`Saved/Phase1/corner_quality/60fe03b94c711092b03a/state.json`.
+Passing geometry alone never grants terrain/structure or Phase 1 acceptance.
+
+The pilot has no downward frames, but 13 of its 16 overlapping patch boundaries
+have proper self-intersections, including crossing road end rows. Fix the trim,
+width or connected junction model before attempting triangulation. Previous local
+terrain/crossing candidate fingerprints are historical after this shared-core edit;
+regenerate them before native previews. Saved production geometry remains unchanged.
+
 ## Structure rollout checkpoint — 2026-09-10
 
 **Preview correction:** the first preview implementation reused the production

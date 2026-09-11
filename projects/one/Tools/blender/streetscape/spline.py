@@ -1007,33 +1007,64 @@ def corner_curve(A, B, dir0, dir1, node_xy, step_deg: float, handle_frac: float)
     requires.  ``handle_frac`` caps the handle at a fraction of the endpoint's distance to the node so
     the fillet can never fold back through the junction.
 
+    Sampling also bounds segment length to 1 m and cubic-to-chord deviation to
+    10 mm. Endpoint angle alone misses long curves and internal S bends. Uniform
+    parameter spacing preserves the shared bank/profile interpolation in A and B.
+    Derivative control cones bound actual turn, including between sample points.
+
     Returns ``(P (M+1, 3), T (M+1, 3))`` -- points and horizontal unit tangents, ``P[0] == A`` and
     ``P[-1] == B`` exactly."""
     A = np.asarray(A, dtype=np.float64)
     B = np.asarray(B, dtype=np.float64)
+    if not np.isfinite(np.r_[A,B,dir0,dir1,node_xy,step_deg,handle_frac]).all() or not 0<step_deg<=90 or handle_frac<=0:
+        raise ValueError("invalid corner curve inputs")
     d0 = np.array([dir0[0], dir0[1], 0.0]); d0 /= max(float(np.hypot(d0[0], d0[1])), 1e-18)
     d1 = np.array([dir1[0], dir1[1], 0.0]); d1 /= max(float(np.hypot(d1[0], d1[1])), 1e-18)
+    if np.linalg.norm(d0)<.5 or np.linalg.norm(d1)<.5:raise ValueError('invalid corner direction')
     chord = float(np.linalg.norm(B[:2] - A[:2]))
     tau = float(np.arctan2(d0[0] * d1[1] - d0[1] * d1[0], d0[0] * d1[0] + d0[1] * d1[1]))
     if chord < 1e-9:
         return np.vstack([A, B]), np.vstack([d0, d1])
     if abs(tau) < 1e-6:
-        m = 0.0
+        m = chord/3.  # continuous circular-handle limit; retains parallel-end tangency
         M = 1
     else:
         r = chord / (2.0 * np.sin(abs(tau) / 2.0))
         m = (4.0 / 3.0) * np.tan(abs(tau) / 4.0) * r
-        cap = handle_frac * min(float(np.linalg.norm(A[:2] - np.asarray(node_xy))),
-                                float(np.linalg.norm(B[:2] - np.asarray(node_xy))))
-        m = min(m, cap)
-        M = max(2, int(np.ceil(np.degrees(abs(tau)) / float(step_deg))))
+        angular=np.degrees(abs(tau))/float(step_deg)
+        if not np.isfinite(angular) or angular>4096:raise ValueError('corner turn resolution exceeds 4096 segments')
+        M = max(2, int(np.ceil(angular)))
+    cap = handle_frac * min(float(np.linalg.norm(A[:2] - np.asarray(node_xy))),
+                            float(np.linalg.norm(B[:2] - np.asarray(node_xy))))
+    m = min(m, cap)
     P0, P3 = A, B
     P1 = A + m * d0
     P2 = B - m * d1
-    t = np.linspace(0.0, 1.0, M + 1)[:, None]
-    om = 1.0 - t
-    P = om ** 3 * P0 + 3 * om ** 2 * t * P1 + 3 * om * t ** 2 * P2 + t ** 3 * P3
-    dP = 3 * om ** 2 * (P1 - P0) + 6 * om * t * (P2 - P1) + 3 * t ** 2 * (P3 - P2)
+    # ||C'|| <= 3 max control-leg length; ||C''|| <= 6 max second difference.
+    # The linear interpolation error is <= max ||C''|| * dt^2 / 8.
+    speed = 3*max(np.linalg.norm(P1-P0),np.linalg.norm(P2-P1),np.linalg.norm(P3-P2))
+    accel = 6*max(np.linalg.norm(P2-2*P1+P0),np.linalg.norm(P3-2*P2+P1))
+    if not np.isfinite([speed,accel]).all() or speed>4096 or accel>8*.01*4096**2:
+        raise ValueError('corner length/deviation resolution exceeds 4096 segments')
+    M=max(M,int(np.ceil(speed-1e-10)),int(np.ceil(np.sqrt(accel/(8*.01))-1e-10)))
+    cosine=np.cos(np.radians(step_deg))
+    while M<=4096:
+        t = np.linspace(0.0, 1.0, M + 1)[:, None]
+        om = 1.0 - t
+        P = om ** 3 * P0 + 3 * om ** 2 * t * P1 + 3 * om * t ** 2 * P2 + t ** 3 * P3
+        dP = 3 * om ** 2 * (P1 - P0) + 6 * om * t * (P2 - P1) + 3 * t ** 2 * (P3 - P2)
+        q1=P[:-1]+dP[:-1]/(3*M);q2=P[1:]-dP[1:]/(3*M)
+        control=np.stack([dP[:-1,:2]/(3*M),q2[:,:2]-q1[:,:2],dP[1:,:2]/(3*M)],axis=1)
+        norm=np.linalg.norm(control,axis=2)
+        valid=True
+        for a,b in ((0,1),(1,2),(0,2)):
+            use=(norm[:,a]>1e-12)&(norm[:,b]>1e-12)
+            dot=np.sum(control[:,a]*control[:,b],axis=1)
+            if np.any(dot[use] < (cosine-1e-12)*norm[use,a]*norm[use,b]):valid=False;break
+        if valid:break
+        M*=2
+    else:
+        raise ValueError("corner curve cannot meet quality limits within 4096 segments; possible cusp or oversized corner")
     dP[:, 2] = 0.0
     nrm = np.hypot(dP[:, 0], dP[:, 1])
     bad = nrm < 1e-12
@@ -1051,12 +1082,11 @@ def corner_curve(A, B, dir0, dir1, node_xy, step_deg: float, handle_frac: float)
 
 
 def corner_frames(P: np.ndarray, T: np.ndarray, n0, n1) -> Frames:
-    """A ``Frames`` along a corner: positions ``P``, tangents ``T``, and the INWARD normal lerped from
-    ``n0`` to ``n1``, orthogonalised against the tangent and renormalised -- the rule ``Frames.at``
-    already uses for interpolated stations, so a corner is banked the way the two straights it joins
-    are.  ``b = T x n`` then points up, and a sweep with ``side = -1`` puts the section's outward ``o``
-    away from the junction, which is what the kerb section means.  The endpoints are forced to ``n0``
-    and ``n1`` exactly so the corner's first and last rings coincide with the arms' own rings.
+    """Frames along the actual corner tangents, with transported horizontal normals
+    and a linear blend of the endpoint bank angles. Blending world normals can
+    reverse the frame inside an S bend. ``b = T x n`` stays up for upright endpoint
+    banks; ``side = -1`` puts the extrusion away from the junction. Projected endpoint
+    normals remain exact, preserving the arm/corner seam.
 
     ``Frames.s`` carries the cumulative plan length along the corner, so the sweep's UV u keeps running
     in metres across the join."""
@@ -1064,12 +1094,18 @@ def corner_frames(P: np.ndarray, T: np.ndarray, n0, n1) -> Frames:
     n1 = np.asarray(n1, dtype=np.float64)
     M = len(T)
     t = np.linspace(0.0, 1.0, M)[:, None]
-    n = (1.0 - t) * n0 + t * n1
-    n = _unit(n - np.sum(n * T, axis=1, keepdims=True) * T)
-    n[0] = _unit((n0 - np.dot(n0, T[0]) * T[0])[None, :])[0]
-    n[-1] = _unit((n1 - np.dot(n1, T[-1]) * T[-1])[None, :])[0]
+    n_flat = _unit(np.cross(np.broadcast_to(Z_AXIS, T.shape), T))
+    first = _unit((n0 - np.dot(n0, T[0]) * T[0])[None, :])[0]
+    last = _unit((n1 - np.dot(n1, T[-1]) * T[-1])[None, :])[0]
+    # Interpolating world normals can reverse the frame on a long/S-shaped bend.
+    # Transport the horizontal left normal along the actual tangent, blending
+    # only the signed bank angle. Endpoint rings remain exactly coincident.
+    bank0=np.arctan2(first[2],np.dot(first,n_flat[0]))
+    bank1=np.arctan2(last[2],np.dot(last,n_flat[-1]))
+    bank=(1-t)*bank0+t*bank1
+    n=np.cos(bank)*n_flat+np.sin(bank)*Z_AXIS
+    n[0],n[-1]=first,last
     b = np.cross(T, n)
     seg = np.hypot(np.diff(P[:, 0]), np.diff(P[:, 1]))
     s = np.concatenate([[0.0], np.cumsum(seg)])
-    n_flat = _unit(np.cross(np.broadcast_to(Z_AXIS, T.shape), T))
     return Frames(s, P, T, n_flat, n, b)
