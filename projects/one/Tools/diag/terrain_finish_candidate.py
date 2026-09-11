@@ -20,7 +20,7 @@ from streetscape.terrain import Heightfield
 from streetscape.road import build_road,build_junction_patch,junction_boundary
 from streetscape.edge import build_edge,build_junction_corners
 from streetscape.mesh import MeshBuffer
-from diag.driving_surface_audit import top_triangles,in_bounds
+from diag.terrain_surface_coverage import projected_surface_mask
 from diag.junction_contact_candidate import ribbon_bottom_segments,bottom_segments
 from diag.terrain_edge_contact import constraint_points,compare_segments
 from diag.terrain_finish import minimum_adjustment,apply_adjustments,bounded_triangles
@@ -42,13 +42,13 @@ def main():
         raise ValueError('invalid terrain finish bounds')
     if not args.out.resolve().is_relative_to((TOOLS.parent/'Saved/Phase1').resolve()):
         raise ValueError('finish output must be under Saved/Phase1')
-    raw=json.loads(args.document.read_text())
+    raw=json.loads(args.document.read_text(encoding='utf-8'))
     tile=np.array(raw['_tile']['bounds_local'])
     if np.any(bounds[:2]-32<tile[:2]) or np.any(bounds[2:]+32>tile[2:]):
         raise ValueError('finish neighbourhood needs adjacent documents')
     survey_dir=REPO/'data/thanet/out/unreal/landscape'
     # Contact cannot sensibly target less than one declared height encoding unit.
-    manifest=json.loads((args.landscape/'landscape_manifest.json').read_text())
+    manifest=json.loads((args.landscape/'landscape_manifest.json').read_text(encoding='utf-8'))
     contact_gap=1./float(manifest['heightmap']['z_encoding']['per_unit'])
     if not 0<contact_gap<=.02:raise ValueError('unsupported terrain encoding for contact finish')
     if args.max_contact_gap_m is not None:
@@ -57,14 +57,15 @@ def main():
         contact_gap=args.max_contact_gap_m
     inputs=[args.document,Path(__file__),TOOLS/'phase1_qc.py']
     inputs += [TOOLS/'diag'/f for f in ('terrain_finish.py','terrain_contact.py','driving_surface_audit.py',
-        'junction_contact_candidate.py','bridge_crossing_audit.py','terrain_edge_contact.py')]
+        'junction_contact_candidate.py','bridge_crossing_audit.py','terrain_edge_contact.py','terrain_surface_coverage.py')]
     inputs += list((TOOLS/'blender/streetscape').glob('*.py'))
     for directory in (survey_dir,args.landscape):
         inputs += [directory/'landscape_manifest.json']+list(directory.glob('hm_*.r16'))+list(directory.glob('clip_*.r8'))
     config=dict(model='bounded_surface_edge_finish',document=str(args.document.resolve()),landscape=str(args.landscape.resolve()),bounds_m=bounds.tolist(),
         contact_roads=args.contact_road,max_cut_m=.5,max_raise_m=.5,clearance_m=.01,edge_gap_m=contact_gap,
         seam_rule='clearance tapers to zero at intentional skirt bases; upper road and pavement retain 10 mm',
-        edge_measurement='exact emitted segments at terrain triangle crossings, region boundaries and protected-gap roots')
+        edge_measurement='exact emitted segments at terrain triangle crossings, region boundaries and protected-gap roots',
+        surface_measurement='all supplied semantic height-graph faces regardless of slope or winding; vertical XY faces explicitly counted')
     identity,hashes=content_identity(inputs,config)
     root=args.out/identity[:20]; root.mkdir(parents=True,exist_ok=True)
     report=dict(status='running',phase1_accepted=False,fingerprint=identity,input_sha256=hashes,config=config,problems=[])
@@ -87,9 +88,10 @@ def main():
         def add_surface(name,mesh,mask=None,clearance=None):
             faces=mesh.f if mask is None else mesh.f[mask]
             top=mesh.v[faces]
-            normal=np.cross(top[:,1]-top[:,0],top[:,2]-top[:,0])
-            keep=normal[:,2]>.5*np.linalg.norm(normal,axis=1)
-            keep &= np.all(top[:,:,:2].max(axis=1)>=lo,axis=1)&np.all(top[:,:,:2].min(axis=1)<=hi,axis=1)
+            nearby=np.all(top[:,:,:2].max(axis=1)>=lo,axis=1)&np.all(top[:,:,:2].min(axis=1)<=hi,axis=1)
+            faces=faces[nearby];top=top[nearby]
+            keep,coverage=projected_surface_mask(top)
+            report.setdefault('surface_coverage',[]).append(dict(id=name,**coverage))
             top=top[keep]
             if not len(top):return
             limit=top.copy()

@@ -5,6 +5,28 @@ Thanet base suitable for high-quality building overlays. Survey registration, te
 roads, rail, junctions and their transitions belong to Phase 1. Hero buildings and
 decorative presentation remain later work.
 
+## Steep surfaces and internal bends — 2026-09-11
+
+Do not use a driving-obstruction slope filter for terrain clearance. It omitted
+an entire steep stair branch. Contact now covers every supplied semantic face
+with nonzero XY area, regardless of slope or winding. Report vertical/degenerate
+exclusions explicitly. Tests plant a steep penetrating face that the old filter
+misses. All 124 workflow tests pass. Wings Close's stronger 17,008-vertex contact
+proof gives the same 16 encoded edits; all 676 materialized posts match, so reuse
+its prior native local proof. The stair geometry proposal remains held because
+its 45 cm penetration and metre-scale inherited gaps require a structural model.
+
+The next full network candidate has 158 connectors, 1,340 passing junctions and
+1,915 folded bodies. It reconstructs exactly from checkpoint 39. Keep the 81 new
+joins' terrain/native coverage separate from their complete document proof.
+
+Private internal-bend feasibility retains one spline's original stations and
+semantic distances. Garrard Avenue loses 16.7 m2 of fold; 8,136 retained body
+triangles remain exact, 36 new edge caps are confined to the cut sections, and
+finished A/B seams pass. Explicit mandatory cuts preserve all original station
+and mesh arrays in this sample. Serialized masks, interior ports, markings,
+instances and native parity remain prerequisites for retaining that prototype.
+
 ## Exact reuse and bounded numerical differences — 2026-09-11
 
 Checkpoint 38 retains 39 more connectors across 29 complete document proofs;

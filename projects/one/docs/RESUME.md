@@ -2,9 +2,71 @@
 
 ## Current checkpoint — 2026-09-10, Phase 1 completion
 
+### Thirty-ninth checkpoint COMPLETE — 2026-09-11: 158 connectors, steep-surface coverage
+
+**Current retained geometry:** `connector_compositions/22be108669967d058e1e`.
+246 documents /15,422 definitions /1,800 junctions. **11,182 passing bodies /
+1,915 folds /2,325 non-road; 1,340 passing junctions /327 fold /130 overlap /
+3 needs_geometry.** Adds 81 connectors and removes 12 body folds, no regressions.
+51 complete document proofs; 195 unchanged files reused exactly. Fresh proofs
+preserve 5,564 untouched bodies /78,941 arrays /3,573 old junction groups exactly.
+Three other bodies /five position arrays /27 old groups differ by <=5.301e-12 m;
+all topology and station/offset/height/material/group attributes stay exact.
+Four actual-mesh plan comparisons inspected: site_x19_y7, site_x21_y10, Upton
+Grange, Frances Gardens. All new A/B seams <=1 nm. Terrain/native for 81 additions
+remain open. Maximum connectors per document is eight (current preview limit).
+
+Manifest `docs/checkpoints/phase1_39_geometry_selection.json`, SHA fbccd2c12de0b4e2b16631b3b1db22dacbc71cb34f750d85c20542613bc63de4.
+All 246 files reconstructed byte-exact in eight <=32-document calls under
+`restored_geometry_selection/fbccd2c12de0b4e2b166`. Logs `phase1_connector39_restore_batch1..8.log`.
+First-200 grouped proof `connector_group_verification/797fa7a8882d2b4e5061`
+complete 54 docs: 51 pass /three source-build failures held (eight proposals).
+The individually held stair proposal is also excluded. No production promotion.
+
+**Stronger terrain coverage:** `terrain_surface_coverage.py` retains all supplied
+semantic height-graph faces, including >60-degree and downward ones; finite data
+and vertical/degenerate exclusions are explicit. `terrain_finish_candidate.py`
+uses it. **124 workflow tests PASS, 12.628 s**, log `phase1_steep_surface_all_tool_tests.log`.
+Wings recheck `terrain_finish_candidates/7ff72b74f194d10ba1fd` passes in 17.434 s:
+17,008 contact vertices (+970), 96 formerly omitted steep faces. Identical 16
+post edits and all 676 materialized heights verified; independent exact edge
+check passes. Native checkpoint 35 can be reused for this identical local terrain.
+`stronger_terrain_coverage_verification.json` records the bounded reuse.
+
+**Stair remains held:** trim 6 builds the patch with no body/other-J regression,
+but ground penetrates it by 0.45349 m. All-slope diagnosis includes the previously
+omitted short branch: 2.405–4.214 m above terrain; another existing branch reaches
+7.565 m. Requires actual stair/landing/support design, not a small conform patch.
+`stair_contact_all_slopes/07c07b80ef63339b03ce`; no stair change retained.
+
+**Next geometry approach:** private Garrard Avenue internal-bend mask fixes
+16.7013 m2 of fold without splitting/rebasing the source spline or adding actors.
+`internal_bend_mask_probe/18cd63170fd4b23c6660`, 18 trials /1.667 s. Radius 6 /cap
+.65 passes, mask stations 169.98862492653382–183.28417134830087. All 8,136 retained
+body triangles and their station/offset/height data stay exact; 36 added B end-cap
+faces lie only on the two cut sections. A seam zero, B seam <=2.034e-12 m; simple
+footprint, zero fold/overlap. Actual plan image inspected. Adding those two cuts
+as existing `sampling.extra_stations_m` preserves all 152 stations and 21 A/B
+mesh arrays exactly. This is a PRIVATE prototype, no serialized/native bend
+support yet. Preserve one spline's timeline; implement interior trim masks,
+explicit interior junction ports, and marking/instance mask handling through the
+existing three renderers. Do not revive the old split/rebased-definition approach.
+All prototype/helper sources and full diagnostics are committed inside
+`docs/checkpoints/phase1_39_diagnostics.json` for recovery if Saved is lost.
+
+ACTIVE: search finished **300/2,176 pairs, 236 proposals**, batches 52..76.
+Snapshot `connector_search_snapshots/b9c3e703ba3ea15f2bc8.json`, SHA
+26818c618d4df3242c35cce0aef419ee7c45c0d16b2c3eb29921662c32955661.
+Grouped first-300 proof against checkpoint 39 STARTED; see
+`phase1_connector_groups300_batch1.log` for its root and count, then resume <=2
+documents per invocation. Search is idle at 300; next batch is 77. Do not change
+hashed core/checker inputs during grouping. Other user tasks may run UE/imports;
+check processes, never interrupt them, and use fresh all-Content native guards.
+Phase 1 is NOT accepted. Native core/parity baseline remains checkpoint 31.
+
 ### Thirty-eighth checkpoint COMPLETE — 2026-09-11: 77 connectors, exact network recovery
 
-**Current retained geometry:** `connector_compositions/1d8b94b5d18bd335bc4e`.
+**Historical retained geometry:** `connector_compositions/1d8b94b5d18bd335bc4e`.
 246 documents /15,422 definitions /1,719 junctions. **11,170 passing bodies /
 1,927 folds /2,325 non-road; 1,259 passing junctions /327 fold /130 overlap /
 3 needs_geometry.** Adds 39 connectors, removes three body folds, no regressions.
@@ -31,7 +93,7 @@ missing vertices and even geometrically equivalent changed triangle indices.
 **122 workflow tests PASS, 14.343 s**, log `phase1_connector_roundoff_all_tool_tests.log`.
 This is a measured tolerance policy, not a waiver for failed geometry.
 
-ACTIVE: first-200 search COMPLETE (163 proposals /200 of 2,176 screened), logs
+Historical work after checkpoint 38 (completed at checkpoint 39): first-200 search COMPLETE (163 proposals /200 of 2,176 screened), logs
 `phase1_local_connector_search_batch27..51.log`. Frozen snapshot
 `connector_search_snapshots/32fabe72770463a279fe.json`, SHA
 175c02baf2e5f757d364bdb3f9f5b6c499cbbf51087b78fba404ebe381d1bbc8.
