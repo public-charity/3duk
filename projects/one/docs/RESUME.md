@@ -36,6 +36,27 @@ selected results are sealed in `road_control_snapshots/603da4ccf2bcb9b32d86.json
 The three largest actual mesh repairs were visually inspected; the full candidate
 diagram is byte-identical to that inspected pilot. Production remains unchanged.
 
+### Thirty-first checkpoint IN PROGRESS — explicit local connectors
+
+Four complete surrounding documents now pass the private no-regression screen:
+`two_arm_full_documents/9794b8789f92f0c79055/state.json`, all 4 complete. Every
+unchanged body and old junction metric is exact; the eight far-end road/kerb/
+pavement sections move exactly zero. Finished mesh comparison was visually
+inspected (`two_arm_continuation_mesh/a4428c1bf76f4aba3d23/comparison.png`): angled
+overlaps and torn road/pavement ends become joined curves. Some older body folds
+and one-sided pavement transitions remain. No native or terrain acceptance.
+Durable evidence: `docs/checkpoints/phase1_connector_feasibility.json`.
+Logs `phase1_two_arm_full_document_batch1b.log`, then batches 2–4. Initial batch 1
+failed only in the private function-cloning helper before any geometry work.
+
+CURRENT WORK: add explicit `kind: connector` (exactly two distinct road splines)
+and optional per-junction `corner_handle_frac` in both cores. Existing `disc`
+minimum remains three; no global handle change. Add fixtures, source round-trip
+and bad-input checks, finished mesh parity, and bounded preview support for added
+connectors between existing reciprocal continuation ends. Production untouched.
+An unrelated headless police-car import was active at PID 1244; check current
+processes before any native build/test and do not interrupt or alter that work.
+
 ### Next checkpoint — local continuation connectors and sharp bends
 
 The refreshed global continuation-context hypothesis was **REJECTED EARLY**:
