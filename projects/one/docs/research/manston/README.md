@@ -2,7 +2,7 @@
 
 Start with [the museum plan](MANSTON_MUSEUM_PLAN.md) and [the source chest](SOURCE_CHEST.md).
 The typeset approval report is at `output/pdf/manston_museum_approval_plan.pdf` from the repository root.
-Research date: 11 September 2026. Status: **concept for approval; no Unreal changes made**.
+Research date: 11 September 2026. The user approved starting implementation. **Phases 0–1 are underway**; see [the saved checkpoints](PROGRESS.md) for the current state and resume action. The original approval report remains a dated research/concept record.
 
 The recommendation is selected restoration within today's mapped landscape, with a museum gateway, a short command loop, an aircraft/engineering circuit and optional archaeology/runway trails.
 The underground records support separate features. Unknown coordinates, depths and connectivity are not fabricated.
@@ -39,4 +39,4 @@ Before creating/editing the PDF, follow the available PDF skill's artifact-opera
 
 ## Validation completed
 
-Checked unique IDs and inventory counts, coordinate round-trips, null unknown geometries, route-length calculations, footnote definitions and image links. Rendered and visually reviewed all 15 PDF pages, including full-size inspection of dense tables and sources. No gameplay, terrain, project schema or existing source-data files were modified.
+For the research pack: checked unique IDs and inventory counts, coordinate round-trips, null unknown geometries, route-length calculations, footnote definitions and image links. Rendered and visually reviewed all 15 PDF pages, including full-size inspection of dense tables and sources. Implementation checks and changes to the explorer are recorded separately in `PROGRESS.md` and `implementation/`.

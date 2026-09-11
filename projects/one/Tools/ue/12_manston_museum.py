@@ -292,7 +292,7 @@ def verify(manifest,report):
         road=a.get_editor_property('road')
         stats=json.loads(unreal.StreetscapeEditorLibrary.actor_stats_json('manston:'+r['id']))
         xyz=r['local_xyz_m']
-        missing=[];buried=[];obstacles=[];checks=0;max_error=0.
+        missing=[];buried=[];obstacles=[];checks=0;max_error=0.;worst=None
         # Probe the centre and both usable edges against THIS road component,
         # so ordinary terrain cannot masquerade as a surviving museum walkway.
         for i in range(1,len(xyz)-1,4):
@@ -312,7 +312,9 @@ def verify(manifest,report):
                 if math.isfinite(ground) and hit_z < ground-.02:
                     buried.append({'sample':i,'side':side,'depth_m':ground-hit_z})
                 if side==0:
-                    max_error=max(max_error,abs(hit_z-p[2]))
+                    if abs(hit_z-p[2])>max_error:
+                        max_error=abs(hit_z-p[2])
+                        worst={'sample':i,'xyz_m':p,'hit_z_m':hit_z,'signed_offset_m':hit_z-p[2]}
         # Raised body sweep represents the 34 cm radius / 88 cm half-height
         # explorer capsule, with its 45 cm step allowance. This checks obstacles,
         # not the full CharacterMovement simulation, which still needs PIE.
@@ -329,9 +331,17 @@ def verify(manifest,report):
         routes.append({'id':r['id'],'road_triangles':stats['buffers']['road']['tris'],
             'collision_samples':checks,'missing_surface_hits':missing,'buried_samples':buried,
             'capsule_obstacles':obstacles,'max_native_centre_height_error_m':max_error,
-            'material':road.get_material(0).get_path_name() if road.get_material(0) else None})
+            'worst_height_comparison':worst,'triangles_per_material':stats['buffers']['road']['per_material'],
+            'material_slots':[road.get_material(i).get_path_name() if road.get_material(i) else None for i in range(road.get_num_materials())]})
     report.update({'saved_actor_count':len(actors),'routes':routes,
         'full_character_walk_test':'pending; line and capsule traces are not a PIE movement test'})
+    welcome_text=by_label['manston:welcome_text'];tc=welcome_text.text_render
+    report['text_debug']={'actor_location':str(welcome_text.get_actor_location()),'actor_rotation':str(welcome_text.get_actor_rotation()),
+        'forward':str(welcome_text.get_actor_forward_vector()),'world_size':str(tc.get_text_world_size()),
+        'text':str(tc.get_editor_property('text')),'visible':tc.get_editor_property('visible'),
+        'hidden_in_scene_capture':tc.get_editor_property('hidden_in_scene_capture'),
+        'font':str(tc.get_editor_property('font')),'material':str(tc.get_editor_property('text_material')),
+        'board_location':str(by_label['manston:welcome_board'].get_actor_location())}
     save_json(REPORTS/'verification_report.json',report)
     # Capture the reopened world, including signs and existing museum massing.
     spec=importlib.util.spec_from_file_location('manston_capture',str(PROJECT/'Tools/ue/05_screenshot.py'))
@@ -353,6 +363,15 @@ def verify(manifest,report):
         photos.append({'path':str(path),'bytes':size,'distinct_rgb':distinct,'mean_luminance':lum})
         if distinct<12 or not 6<lum<250:
             raise RuntimeError('Empty or overexposed museum capture')
+    board=by_label['manston:welcome_board'].static_mesh_component
+    board.set_visibility(False)
+    try:
+        _,x,y,z,yaw,pitch,fov=cameras[0]
+        camera={'eye_ue':[100*x,-100*y,100*z],'roll':0.,'pitch':pitch,'yaw':yaw,'fov_deg':fov}
+        ss.capture(world,camera,rt,str(REPORTS/'arrival_text_debug.png'),'final_ldr',0.,0.)
+        ss.force_opaque(str(REPORTS/'arrival_text_debug.png'))
+    finally:
+        board.set_visibility(True)
     report['captures']=photos
     report['pass']=all(not r['missing_surface_hits'] and not r['buried_samples'] and not r['capsule_obstacles']
         and r['max_native_centre_height_error_m']<.03 for r in routes)

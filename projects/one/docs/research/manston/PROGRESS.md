@@ -1,5 +1,7 @@
 # Manston implementation checkpoints
 
+Read the newest checkpoint at the end of this file for the current resume action; earlier entries record the history.
+
 User direction, 11 September 2026: start the approved phases and save progress frequently. Restore selected historic buildings within today's landscape.
 
 ## Checkpoint 00 — research preserved; implementation started
@@ -32,3 +34,14 @@ Next: inspect terrain and engine import interfaces, produce the terrain/obstacle
 - The runner returned a failure because loading the wider existing map also logged two unrelated road-junction rebuild errors (`roads:101767724:0`, `roads:1154393739:0`). Do not describe this as a clean whole-project pass. The museum import itself reported success; saved-world checks are running next.
 
 Current next step: finish the reopened collision/obstacle checks and inspect the rendered arrival view. Preserve any failures in the report and fix the museum routes before calling the circuit walkable.
+
+## Checkpoint 03 — preserved identities and clear fence crossings
+
+- Revised R1: 768.7 m; R2: 2,694.3 m. Rounded bends keep the full walk width clear. Both retain the same gateway and close back on themselves. There are now 19 active rest stops and 8 information boards; unused older benches remain hidden, non-colliding editor-only recovery objects.
+- Seven existing fence actors have 13 explicitly authored museum openings. Their original definitions are preserved in `implementation/barriers.saved_baseline.streetscape.json`; only added `manston_gate_` segment overrides alter them.
+- An attempted update exposed the legacy importer's replacement/deletion behaviour. Restored all nine affected packages from the pre-update copy, then implemented `StreetDocumentPatchLibrary` to update existing independent splines in place. Its build succeeded. The missing-target negative test preserved every existing definition; positive updates preserved actor identities.
+- Current saved asset checkpoint: `Saved/Manston/checkpoints/20260911T212133Z/after/`. The import's Content guard found **no changes outside the declared museum/fence package scope**.
+- Reopened world: 3,837 centre/edge floor probes found no missing or buried path surface; the continuous body sweeps found no obstacles. The stricter reference-height comparison has a maximum 3.8 cm discrepancy still under investigation. The arrival sign's lettering is not yet visible in the capture, so visual acceptance is still open.
+- `Tools/manston/check_checkpoint.py` passed both schemas, both closed/connected loops, all seven preserved baseline fence definitions, all 32 unknown underground geometry fields, and the complete-generation hashes. Interrupted builds are refused by the importer.
+
+Current next step: inspect the sign/collision detail diagnostics, finish the visual check, and save the final validation report. Do not mark the museum phase complete: historical shells, detailed entrances/interiors, path supports/crossings and a full in-game walking session remain.
