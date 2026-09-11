@@ -33,9 +33,11 @@ The updater preserved actor identities and rejected a missing-target edit withou
 The import changed no Content files outside its declared museum/fence scope. Read-only verification changed none.
 The arrival and overview captures were reviewed.
 
-Two pre-existing road-junction rebuild errors elsewhere in the map still make the headless runner return failure.
-They are `roads:101767724:0` and `roads:1154393739:0`. The museum's narrower result is in
-`implementation/verification_report.json`; this is not a clean whole-project test pass.
+The complete headless run still fails. It logs two pre-existing road-junction rebuild errors,
+`roads:101767724:0` and `roads:1154393739:0`, and returns `0xC0000005` at process teardown
+after the completed report and clean log shutdown. The runner documents this existing World Partition
+teardown issue. The museum's narrower result is in `implementation/verification_report.json`;
+this is not a clean whole-project test pass.
 
 ## Resume and reproduce
 

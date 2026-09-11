@@ -54,7 +54,7 @@ Current next step: inspect the sign/collision detail diagnostics, finish the vis
 - The reopened museum checks pass: **3,837 floor probes**, no missing/buried path samples, no capsule-sweep obstacles, and maximum independent mesh/native collision residual under **0.025 mm**. This tiny residual describes computational agreement, not historical survey accuracy. The full CharacterMovement/Play-in-Editor walk and accessibility assessment remain unperformed.
 - Latest asset checkpoint: **`Saved/Manston/checkpoints/20260911T213333Z/`**. Its `Content/` holds pre-update copies and `after/` holds resulting assets. Native updates preserved identities; the negative missing-target test preserved all existing definitions. No files outside the declared museum/fence scope changed. Verification left all 16,111 Content files unchanged.
 - Current guide: `IMPLEMENTATION_GUIDE.md`. Distributable restart archive: repository-root `output/manston_phase1_checkpoint.zip`. The archive includes source recipes, native updater, reviewed renders, reports, hashes, and before/after package copies. It requires this existing Thanet world/data.
-- The two unrelated pre-existing road-junction load errors remain; the museum's positive report is not a clean whole-project engine verdict.
+- The two unrelated pre-existing road-junction load errors remain. The final wrapper verdict also records `0xC0000005` at process teardown after the completed report and clean log shutdown, consistent with the existing World Partition teardown issue documented by the runner. The museum's positive report is not a clean whole-project engine verdict.
 
 ### Resume from here
 
