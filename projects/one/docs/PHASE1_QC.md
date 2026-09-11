@@ -7,6 +7,16 @@ decorative presentation remain later work.
 
 ## Pavement mapping diagnosis — 2026-09-11
 
+**Bounded trim search:** actual A/B meshes drive <=30 trials per junction, with
+unchanged plan curves/arm geometry cached. Every affected neighbouring junction
+is checked; a retained proposal must exactly match a fresh full-document audit.
+Short arms retain the existing half-length bound. Immutable step files and atomic
+state checkpoint each junction. 80 tool tests pass. The 44-junction pilot improves
+from 13 width-only passes to 26 combined passes using 13 trims, with no regression
+against its input; one inherited width regression versus original geometry remains
+at J15_14:22. Exact source preservation and all 807 input hashes verify. Actual-mesh
+plan diagrams confirm the removed folds. Phase 1/native/terrain acceptance remains open.
+
 **Gate implemented and verified:** 76 tool tests pass, including an actual folded
 sweep and a crossroads proving folded pavement cannot reach expensive contact
 sampling despite zero patch overlap and upward normals. Full baseline now records

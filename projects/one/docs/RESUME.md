@@ -2,6 +2,55 @@
 
 ## Current checkpoint — 2026-09-10, Phase 1 completion
 
+### Twenty-second checkpoint IN PROGRESS — 2026-09-11: cached bounded trim candidates
+
+**Pilot complete and independently verified; no jobs running.** 13 retained trims
+improve the 44-junction width document from **13 to 26 passes**, 29->17 folds,
+2->1 overlaps, **zero regressions against its width input**. All 807 input hashes,
+complete-document preservation, saved result hashes and fresh whole-document
+measurements verify. Compared with original unmodified geometry (8 pass / 29 fold /
+7 overlap), one inherited width regression remains at **J15_14:22**, group
+roads:29140883:0. Keep this combined candidate unaccepted until that is resolved.
+Final candidate `24681a486340421661c8/step_0031/site_x15_y14.json`, SHA
+`d52bd3db583aae89f5df0183711186141e0236da4827a53777589afc25283271`.
+`independent_verification.json`, `phase1_trim_search_independent_verification.log`.
+Resume reuse makes no changes or new trials (`phase1_trim_search_resume.log`).
+
+Actual-mesh diagrams were generated and viewed for :16 and :17; before folds
+and clean retained corners are visible in `corner_topology/trim_diagram.png`.
+JSON records both immutable input hashes. These are plan geometry, not a native
+terrain preview. 80 tool tests pass. Next broaden bounded trim work across the
+width candidate, compare against original geometry, hold any surviving width
+regressions as complete continuation components, and separately solve short
+connected junction geometry. No shared-renderer change in this checkpoint.
+
+The progress text below is historical; use completed figures above.
+
+Latest verified commit **`1f2fb1b`** (strong pavement mapping QC). New tool
+`Tools/diag/junction_trim_candidates.py` changes only existing bounded trim fields
+in complete Saved documents. It tests <=30 radii, respects the planner's half-arm
+length bound, checks every junction affected by shared arm trims, and independently
+audits the entire document before retaining a proposal. Cached plan curves/splines
+make trials fast; every accepted incremental metric must equal the full audit.
+Immutable step documents/reports plus an atomic state pointer checkpoint each
+junction. 80 tool tests pass (`phase1_trim_search_tool_tests.log`), including real
+cached/full equality, neighbour regression rejection, preservation and length limits.
+
+Original J15_14:4 found a clean **11 m** trim in 2.517 s, one new full-document pass
+and no regressions. `junction_trim_candidates/site_x15_y14/a2b22b654fb96e874ea9`.
+This improves the earlier seven-full-audit probe (~11 s) while checking more radii.
+
+Wider pilot uses complete width candidate `abc30.../site_x15_y14.json`:
+**`junction_trim_candidates/site_x15_y14/24681a486340421661c8/state.json`**.
+First four junctions: :12 accepts 7.5 m; :10/:13/:14 remain unresolved. Many :10
+trials hit the existing half-length limit, so do not relax it merely to get a pass;
+short connected streets need geometry/context work. Batches 02..05 running now,
+logs `phase1_trim_search_width15_14_batchNN.log`. Resume same command with
+`--document projects/one/Saved/Phase1/connected_width_candidates/abc30fa75f91e84168c3/site_x15_y14.json --max-junctions 4`.
+No engine jobs or production changes. Do not edit tool/core dependencies while
+this pilot runs. Complete the pilot, compare all 44 junctions against both its width
+input and original source, verify restart reuse, then checkpoint before broadening.
+
 ### Twenty-first checkpoint IN PROGRESS — 2026-09-11: winding-invariant pavement QC
 
 **Verification complete; no jobs running.** All **76 tool tests pass**, including
