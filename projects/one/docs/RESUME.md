@@ -36,12 +36,30 @@ candidate's `search_snapshot.json`; independent proofs remain in search root's
 `full_verification`. Helper `compose_local_connector_checkpoint36.py` uses atomic
 file copies and preserves full original document payloads except appended joins.
 
-CURRENT NEXT ACTION: continue the existing bounded search from pair 10 using
-`Tools/diag/local_connector_candidates.py --max-pairs 4` (same source/config).
-Keep individual screening distinct from combined per-document verification,
-especially when future proposals share a spline or a document. The six new joins
-still need terrain/native coverage. Wings Close's separate contact candidate and
-native proof remain checkpoints 34/35. No Phase 1 production promotion occurred.
+ACTIVE WORK AFTER CHECKPOINT 36: search batches 4..13 finished 50/2,176 pairs,
+37 local proposals. Frozen snapshot `connector_search_snapshots/52bdc4c87b0f26c2a2ff.json`
+SHA 0034193569c0af454df3b440ebae6ce6d6e7e0465e547c1dce81091badb70aec.
+Six proposals already retained, one individually held; 30 new proposals combine
+into 24 documents against checkpoint 36. New `connector_document_checks.py` and
+`verify_connector_groups.py` build complete source/candidate documents, preserve
+old meshes, and check EACH new finished junction seam separately so a worse old
+gap cannot mask a new gap. A test combines two joins sharing one road and rejects
+an invalid corner. **120 workflow tests pass (10.367 s).**
+
+Grouped verification is RUNNING at
+`connector_group_verification/2b0f03275f7fac1bcb7e`; first 2/24 documents pass.
+Driver logs `phase1_connector_groups50_batch2..12.log`, <=2 documents per call,
+checkpointed per document. Read live state/process before resuming; held geometry
+is a review result even if the CLI exits zero. Never reuse existing driver log
+names. Do not change checker/core inputs while these reports are being generated.
+The 30 additions are NOT yet in the retained network candidate.
+
+After grouped checks, retain only complete passing document combinations and
+reconstruct the complete selection byte-exact. Continue local search from pair 50
+using the SAME source/config after freezing any progress used as evidence. The
+six recently retained joins still need terrain/native coverage. Wings Close's
+separate contact candidate and native proof remain checkpoints 34/35. No Phase 1
+production promotion occurred.
 Other user tasks are actively importing Manston/police-car assets; check CIM before
 any native run and take fresh Content hashes. Never interrupt their UE processes.
 
