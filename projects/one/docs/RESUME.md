@@ -2,6 +2,52 @@
 
 ## Current checkpoint — 2026-09-10, Phase 1 completion
 
+### Thirteenth milestone — 2026-09-11: support source and unsaved terrain preview
+
+- Latest commit **`64a86c8`**, fully verified bank-aware support core below.
+- Working native edits add optional `AStreetscapeSiteActor.SupportTerrainSource`;
+  Renderer B receives that source while the spline and other renderers retain the
+  original survey source. Unset retains backwards compatibility; a configured
+  source that fails to load fails the rebuild. Built and focused integration passed.
+- Implemented commandlet-only `PreviewLandscapeHeightsJson` and
+  `RestoreLandscapePreviewJson` in `StreetscapeTerrainPreview.cpp`: <=512 m rectangle,
+  loaded-post coverage, one base edit layer, matching CRS/datum/origin/grid/transform,
+  height snapshot before mutation, exact uint16 readback and restoration, original
+  package dirty flags restored. No spawn/delete/save calls. VERIFIED in the real level.
+  Existing landscape importer remains unsuitable for preview.
+- New transient-world native `Streetscape.Edge.SupportTerrainSeparation` test checks
+  an 8 m support ground under a 10 m survey road: road vertices/elevations unchanged,
+  footing 7.7 m, failed support rebuild retains last complete buffers. PASSED in
+  31 s, raw engine exit 0: `Saved/phase1_support_source_test.runner.log`.
+- Build PASSED, 83.78 s: `Saved/phase1_terrain_preview_build.log`.
+- First tiny guarded read/apply/restore proof completed: `diag_terrain_preview.py`,
+  `Saved/Phase1/terrain_preview_proof/report.json`, runner log
+  `Saved/phase1_terrain_preview_proof.runner.log`. Reads 81 posts independently from
+  candidate bytes, compares composed editor/collision values, restores exactly,
+  checks actor identities and all Content hashes. `content_before.json` survives
+  interrupted engine runs for a separate integrity check. 19/81 posts changed, max
+  0.109375 m. Native uint16 readback and restoration EXACT; all 15,913 Content files
+  unchanged. Diagnostic initially FAILED its too-strict 1 micrometre height-query
+  tolerance: measured composed/collision error 0.053711 mm (the float query precision).
+  Revised query-only tolerance to 0.1 mm; exact uint16/restore checks remain exact.
+- 64 m ordinary-corner before/after proof PASSED: `terrain_preview_camera/report.json`,
+  `Saved/phase1_terrain_preview_camera.runner.log`. Includes 4,225 posts, both query
+  sources, captures with heightmap readiness, exact query restoration and Content
+  integrity. 497 posts changed, max 0.109375 m; max query error 0.058594 mm. Restored
+  editor/collision heights identical; 540 actor paths retained; all 15,913 Content
+  files unchanged. 112 s including the known post-success teardown crash, explicitly
+  reported by the runner. **42/42 native regression tests pass**, raw engine exit 0:
+  `Saved/phase1_terrain_preview_native_tests.runner.log`. Final saved terrain unchanged.
+- Visual QC: `terrain_preview_camera/before.png` and `preview.png` expose pavement
+  strips crossing the New Haine Road approach and other overlap at the Haine Road
+  roundabout. This area is NOT accepted just because terrain contact passes. Relevant
+  source: `site_x16_y8.json`, junctions :0..:4/:26/:28. Single-lane tagged roads
+  30453661 and 921070154 still carry adapter-default 10 m widths. Footway 886487211
+  crosses both approaches independently. Diagnose exact owning meshes before fixes.
+  Also the first capture shows a smooth hedge and the second foliage cards: capture
+  material/instance readiness needs examination before attributing every pixel change
+  to terrain. No guessed width or junction edits have been applied.
+
 ### Twelfth milestone — 2026-09-11: bank-aware Renderer B supports
 
 - Latest commit **`1dc9cf5`** contains the bounded corner repair milestone below.

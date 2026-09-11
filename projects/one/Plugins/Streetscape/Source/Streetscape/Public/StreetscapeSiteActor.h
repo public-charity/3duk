@@ -28,6 +28,8 @@ public:
 	/** Survey origin (E, N) every document must match. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Streetscape") FVector2D OriginEN = FVector2D::ZeroVector;
 	UPROPERTY(EditAnywhere, Instanced, BlueprintReadWrite, Category = "Streetscape") TObjectPtr<UStreetTerrainSourceBase> TerrainSource;
+	/** Ground used by edge supports. Set to the conformed/rendered terrain while TerrainSource remains the survey. */
+	UPROPERTY(EditAnywhere, Instanced, BlueprintReadWrite, Category = "Streetscape") TObjectPtr<UStreetTerrainSourceBase> SupportTerrainSource;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Streetscape") TArray<TObjectPtr<UStreetProfileBase>> Profiles;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Streetscape") TObjectPtr<UStreetMaterialTable> Materials;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Streetscape") bool bShowOverlay = true;
@@ -45,6 +47,8 @@ public:
 
 	/** Terrain source ready to sample documents authored at OriginEN (SetDocumentOrigin applied). */
 	const IStreetTerrainSource* TerrainForOrigin(double E, double N);
+	/** Explicit support ground when configured; otherwise the existing survey source for backwards compatibility. */
+	const IStreetTerrainSource* SupportTerrainForOrigin(double E, double N);
 
 	/** The site's assets as an FStreetSiteProfiles (the fallback the loader uses when a document lacks a profile). */
 	FStreetSiteProfiles AssetProfiles() const;

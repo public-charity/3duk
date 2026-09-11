@@ -55,6 +55,14 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Streetscape|Diagnostics")
 	static FString LandscapeHeightmapResidencyJson(bool bMakeResident = false);
 
+	/** Commandlet-only preview of a loaded <=512 m terrain rectangle. Never creates/deletes/saves actors or assets. */
+	UFUNCTION(BlueprintCallable, Category = "Streetscape|Diagnostics")
+	static FString PreviewLandscapeHeightsJson(const FString& LandscapeDir, double MinXM, double MinYM, double MaxXM, double MaxYM);
+
+	/** Restore the height samples held by the current commandlet's single terrain preview. */
+	UFUNCTION(BlueprintCallable, Category = "Streetscape|Diagnostics")
+	static FString RestoreLandscapePreviewJson();
+
 	// -- phase 3: the actors ---------------------------------------------------------------------------------------
 
 	/** The level's site actor (created and populated from the asset registry when missing). */

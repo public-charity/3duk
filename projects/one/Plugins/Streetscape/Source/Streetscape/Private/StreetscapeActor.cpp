@@ -178,6 +178,12 @@ bool AStreetscapeActor::RebuildAllChecked(FString* Error)
 
 	AStreetscapeSiteActor* Site = AStreetscapeSiteActor::Get(GetWorld());
 	const IStreetTerrainSource* Terrain = Site ? Site->TerrainForOrigin(DocOriginEN.X, DocOriginEN.Y) : nullptr;
+	const IStreetTerrainSource* SupportTerrain = Site ? Site->SupportTerrainForOrigin(DocOriginEN.X, DocOriginEN.Y) : Terrain;
+	if (Site && Site->SupportTerrainSource && !SupportTerrain)
+	{
+		if (Error) *Error = TEXT("configured support terrain could not be loaded");
+		return false;
+	}
 	const UStreetMaterialTable* Materials = Site ? Site->Materials.Get() : nullptr;
 	const FStreetSiteProfiles Profiles = ResolveProfiles();
 
@@ -216,7 +222,7 @@ bool AStreetscapeActor::RebuildAllChecked(FString* Error)
 		UStreetRendererBase* R = Rs[K];
 		if (!R) continue;
 		FStreetRenderResult& Res = Results[K];
-		R->BuildFrom(*Samples, Terrain, Res);
+		R->BuildFrom(*Samples, (K == 1 || K == 2) ? SupportTerrain : Terrain, Res);
 		if (Res.Problems.Num() > 0)
 		{
 			if (Error) *Error = FString::Printf(TEXT("%s: %s: %s"), *StreetId, RNames[K], *FString::Join(Res.Problems, TEXT(" | ")));

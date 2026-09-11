@@ -47,6 +47,19 @@ use connected alignments across those segments before claiming continuity.
 
 ## Working strategy
 
+**2026-09-11 support/preview integration:** Renderer B can now sample a separately
+configured ground source, leaving the survey-derived road vertices unchanged.
+The transient-world integration test and full 42-test native suite pass. A bounded
+commandlet-only landscape preview was exercised over 4,225 real posts: 497 changed,
+max 109.375 mm; composed/collision queries agree within 0.059 mm, then restore
+identically. Native encoded heights remain exact. All 15,913 Content files remain
+byte-identical. Evidence: `terrain_preview_camera/report.json` and its two images.
+Those images also reveal road/pavement overlap at New Haine Road's roundabout
+approach. This is a geometry failure despite passing terrain contact. Inspect the
+actual obstructing mesh and default widths, not just terrain statistics. The hedge
+appearance changes between first and second capture; stabilize all rendered resources
+before using pixel differences as terrain-only evidence. See RESUME.md for next steps.
+
 **Renderer B support correction, 2026-09-11:** actual banked world edge positions
 now drive support selection. Batter toes solve their intersection with terrain;
 retaining walls stay vertical and explicitly support downhill road edges. Missing

@@ -79,6 +79,21 @@ const IStreetTerrainSource* AStreetscapeSiteActor::TerrainForOrigin(double E, do
 	return Src;
 }
 
+const IStreetTerrainSource* AStreetscapeSiteActor::SupportTerrainForOrigin(double E, double N)
+{
+	if (!SupportTerrainSource) return TerrainForOrigin(E, N);
+	if (UStreetHeightfieldTerrain* Hf = Cast<UStreetHeightfieldTerrain>(SupportTerrainSource))
+	{
+		if (!Hf->IsLoaded() && !Hf->Load())
+		{
+			UE_LOG(LogStreetscape, Error, TEXT("StreetscapeSiteActor: configured support terrain failed: %s"), *Hf->Describe());
+			return nullptr;
+		}
+	}
+	SupportTerrainSource->SetDocumentOrigin(E, N);
+	return SupportTerrainSource;
+}
+
 FStreetSiteProfiles AStreetscapeSiteActor::AssetProfiles() const
 {
 	FStreetSiteProfiles Out;

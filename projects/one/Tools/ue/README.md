@@ -682,3 +682,27 @@ registered as `unrealMCP` targets 55557; driving this project interactively need
 at 55558 (out of scope for now). `UNREAL_MCP_PORT=<n>` in the environment overrides the configured port.
 `EditorStartupMap` is `/Game/Thanet/Maps/Thanet`, so run `01_bootstrap.py` once before the first GUI start.
 The GUI start on this machine shows the VC++ redistributable dialog first (advisory - dismiss it).
+# Bounded terrain previews
+
+`StreetscapeEditorLibrary.preview_landscape_heights_json(directory, min_x_m,
+min_y_m, max_x_m, max_y_m)` temporarily replaces loaded terrain posts from a
+matching candidate product. It is restricted to commandlets and rectangles no
+larger than 512 m per dimension. Call `restore_landscape_preview_json()` in a
+`finally` block. There is one active snapshot; concurrent/nested previews fail.
+Both application and restoration require exact encoded-height readback. The API
+does not import, spawn, delete or save actors/packages. Do not use `ImportSite`
+or `ImportStreetscapeJson` as preview substitutes.
+
+`diag_terrain_preview.py --candidate <directory> --out <fresh-directory>` exercises
+an 8 m square in the real map through the `-Render` runner. Optional
+`--bounds 8350,4408,8414,4472 --capture` produces a fixed before/after camera over
+a 64 m square. It independently reads candidate raster posts, checks composed and
+collision heights, exact restoration, actor paths and all saved Content hashes.
+`content_before.json` survives an interrupted run for an external integrity check.
+Passing this diagnostic establishes preview behavior, not whole-scene acceptance.
+
+`StreetscapeSiteActor.SupportTerrainSource` optionally supplies the conformed ground
+to Renderer B supports while `TerrainSource` retains the survey used for road
+elevation/bank. An unset support source keeps existing behavior. A configured
+source that cannot load, or a required support probe with missing ground, rejects
+the rebuild and retains the last complete renderer buffers.
