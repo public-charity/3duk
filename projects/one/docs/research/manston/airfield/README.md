@@ -1,0 +1,58 @@
+# Manston airfield completion
+
+Saved in `/Game/Thanet/Maps/Thanet`. This is the museum reconstruction in the explorer.
+
+[Before](before_overview.png) · [Completed overview](after_overview.png) · [Runway threshold](after_runway_west.png) · [Dispersal pads](after_dispersals.png) · [LiDAR findings](LIDAR_FINDINGS.md)
+
+- Complete 2,750 m × 61 m runway 10/28, including the western half previously removed by the map crop.
+- Approximately 230 m broad historic pavement envelope, with separate old concrete and asphalt materials.
+- White thresholds, runway numbers, centre dashes, edges and aiming marks; yellow taxiway centre lines.
+- All 23 taxiway references and 24 mapped apron areas, including the northern dispersal pads and northeastern paved strip.
+- One additional central apron interpreted from aerial imagery, approximately 71,368 m² before surface overlap removal.
+- Total pavement 836,289 m² and 461,309 m² of restored ground on the clipped side of the airport.
+
+The whole-island landscape crop and original roads were not rewritten. A local terrain mesh restores the airport land from raw Environment Agency DTM. The source JSON splines drive the runway/taxiways; joined footprint caches eliminate coplanar pavement overlaps. The same road renderer generates the marking footprints, which are fitted 9 mm above their exact supporting pavement triangles.
+
+The combined walk test found three existing interpretation boards and one bench close to another part of the winding paths. Their 19 component actors were moved together by 2.5–5.5 m, preserving identities and updating the canonical museum recipe. Their full footprints now have at least 2 m clearance from both route centrelines. The saved museum paths and fences were preserved.
+
+## Evidence and interpretation
+
+The [LiDAR comparison](lidar_references.png) reveals the broad runway and dispersal pads. Esri World Imagery was inspected at the whole-airfield scale and in a runway close-up. Its imagery capture date is unknown. The [Manston layout history](https://www.manstonhistory.org.uk/manston-layout-history/) corroborates the emergency-runway history; the [2018 masterplan](https://rsp.co.uk/wp-content/uploads/2018/01/04-Masterplan-2018.pdf) identifies redundant runway pavement. Proposed new development on that plan was not copied into the museum.
+
+Widths and the central apron boundary are authored reconstruction estimates, not a new measured airport survey. LiDAR dark/light anomalies are not assumed to be structures. The exact function of the northeastern paved strip remains unconfirmed; no new underground geometry is inferred.
+
+## Validation
+
+Geometry checks passed 124 caches / 565,258 triangles, including finite coordinates, triangle orientation, duplicate-face rejection, source hashes and 1,260 whole-runway footprint checks.
+
+The saved map was reopened. 7,279 surface probes and 999 additional runway probes passed. No missing runway samples or buried pavement samples were found. Maximum native/cache collision discrepancy: 0.000006 m. This is computational agreement, not LiDAR accuracy. Verification changed no Content files. The visual review and complete engine runner verdict are recorded in PROGRESS.md.
+
+The original landscape's visibility clip excludes 3,306 samples from the terrain-occlusion comparison; Unreal's editor height query reports filled texels even where that landscape is hidden. Surface collision remains checked at all samples. The existing R1/R2 museum walks also passed 3,837 floor checks and the raised body-capsule obstruction checks with the new airfield loaded. A full manual character walk remains untested.
+
+## Visit and resume
+
+Open `projects/one/Thanet.uproject`, load Thanet and fly to Manston. For the western runway, use the Unreal console command:
+
+```text
+BugItGo 412000 -276000 6000 0 9 0
+```
+
+This navigation shortcut has not been tested in a manual Play-in-Editor session. The explorer's F key toggles flight.
+
+Read `PROGRESS.md` before continuing. From the repository root, use `C:/Users/Shadow/code/3duk-env/env/python.exe`. The generator uses the existing NumPy/SciPy/GDAL environment plus Pillow and Shapely 2.1 or newer:
+
+1. Run `projects/one/Tools/manston/build_airfield.py` and `check_airfield.py`.
+2. If native sources changed, build with `powershell.exe -NoProfile -File projects/one/Tools/build.ps1`.
+3. Import with `powershell.exe -NoProfile -File projects/one/Tools/ue/run_ue_python.ps1 -Script 13_manston_airfield.py -Args "--apply" -Render`.
+4. Reopen/check using the same command with `-Args "--verify"`.
+5. Package with `projects/one/Tools/manston/package_airfield.py` after reviewing the renders and runner verdict.
+
+The generator writes its ready state last. The importer rejects stale geometry checks/caches and saves every eight actor updates. Latest native checkpoint: `20260911T223349Z`. Its journal lists saved IDs. Existing owned assets are copied before updates; `before/` contains the preceding iteration and `after/` contains this verified result. The original absence of these airfield assets is recorded separately in `initial_before.json`. Resulting assets and generated caches are included in the ZIP with hashes. Recover only declared paths while the project has no active writer. The archive requires the existing Thanet world; it is not a standalone game.
+
+The archive also includes the four furniture corrections, their 19 before/after actor packages and the revised museum manifest. `furniture_import_report.json` identifies their separate native checkpoint. Those updates are part of this verified state.
+
+## Sources
+
+- Environment Agency LiDAR DTM and existing conformed terrain: Open Government Licence. Raw crop E631400–634850, N165050–167250; EPSG:27700 / ODN.
+- OpenStreetMap contributors: ODbL; source snapshot and full metadata in the research chest.
+- [Esri aerial review](https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/export?bbox=631400,165050,634850,167250&bboxSR=27700&imageSR=27700&size=1800,1150&format=png&f=image): visual corroboration only; imagery is not bundled or applied as a texture.

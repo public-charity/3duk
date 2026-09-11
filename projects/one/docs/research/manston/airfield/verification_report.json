@@ -1,0 +1,42 @@
+{
+  "pass_checks": true,
+  "surface_checks_pass": true,
+  "museum_regression_pass": true,
+  "checkpoint": "C:\\Users\\Shadow\\code\\3duk\\projects\\one\\Saved\\ManstonAirfield\\checkpoints\\20260911T223349Z",
+  "manifest_sha256": "f01d3002ac86740465e14e3be56fc608f76373a4b3825f9aa2b4ed319da0a64f",
+  "probes": 7279,
+  "runway_width_and_length_probes": 999,
+  "missing_runway_probes": [],
+  "saved_triangle_count": 565258,
+  "hidden_landscape_probe_count": 3306,
+  "missing": [],
+  "buried": [],
+  "maximum_cache_collision_error_m": 6.079673774195271e-06,
+  "maximum_pavement_lift_m": 0.585875391960144,
+  "minimum_pavement_clearance_m": 0.06502441406249915,
+  "captures": [
+    {
+      "file": "after_overview.png",
+      "bytes": 2347500,
+      "colours": 30739,
+      "luminance": 105.18147414102377
+    },
+    {
+      "file": "after_runway_west.png",
+      "bytes": 2100792,
+      "colours": 58622,
+      "luminance": 110.35848917014341
+    },
+    {
+      "file": "after_dispersals.png",
+      "bytes": 2041247,
+      "colours": 33247,
+      "luminance": 126.15334094444836
+    }
+  ],
+  "content_guard": {
+    "unchanged": true,
+    "files": 16241,
+    "sha256": "5c6fb829bda0e158024952ca407db52c8dcd21d538237dd3488ceccd2a6860de"
+  }
+}

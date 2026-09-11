@@ -3,6 +3,8 @@
 The first museum blockout is saved in the existing `/Game/Thanet/Maps/Thanet` explorer map.
 This is a proposed museum reuse, not a map of present public access.
 
+The later [airfield completion checkpoint](airfield/README.md) adds the full runway, taxiways, aprons and dispersals. It also supersedes four furniture placements in this initial checkpoint: three boards and one bench were moved clear of the walking routes. Use its recovery archive for the latest combined state.
+
 ## What is in the map
 
 - R1 museum/command loop: 768.7 m (about 15 minutes at 3 km/h).

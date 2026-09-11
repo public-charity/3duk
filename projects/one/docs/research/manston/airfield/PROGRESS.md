@@ -59,3 +59,14 @@ User direction: complete all visible runway/airfield surfaces and investigate Li
 - Moved those four complete furniture groups by 2.5–5.5 m, checking their full footprints against both routes and buildings. Minimum footprint-to-route-centre distance is now over 2 m. Canonical museum furniture positions and restart hashes were updated; future museum generation preserves these explicit corrections or rejects them if the underlying route placement changes.
 - Nineteen existing component actors saved in `Saved/ManstonAirfield/furniture_checkpoints/20260911T224215Z/`; no other Content files changed. Both before/after copies and a batch-save journal are retained. The earlier failed circulation report remains `Saved/ManstonAirfield/museum_before_clearance.json`.
 - Reopen both airfield and museum collision checks before packaging. Full manual CharacterMovement traversal remains a separate unperformed check.
+
+## 08 — combined saved-world validation passed
+
+- Accepted airfield checkpoint: `20260911T223349Z`, plus furniture checkpoint `20260911T224215Z`. Final surface and museum reports both pass for the current manifests.
+- Saved 565,258 surface triangles reopened correctly. All 7,279 component floor probes and 999 independent full-runway probes hit. No visible-terrain burial; minimum sampled pavement clearance 0.065 m. All 3,837 museum floor probes passed and both routes have zero raised-body capsule obstructions. Verification left all 16,241 Content files unchanged.
+- Reviewed the final overview, western threshold and northern dispersal renders, plus the museum overview. White markings are continuous; the full runway, northern pads and connected aprons remain visible. Surface materials and historic widths are still reconstruction/blockout treatments, not detailed archaeological fabric.
+- The final Python script reported success. The two inherited road-junction errors remain; the runner's full exit classification is kept in `Saved/ManstonAirfield/verify_runner4.log`. Do not describe this as a clean whole-project engine run.
+- Package command: `Tools/manston/package_airfield.py`. It refuses mismatched reports, source hashes, airfield/furniture asset hashes, or a failed museum regression, and verifies the ZIP CRC after writing. Current guide and recovery archive are `airfield/README.md` and repository-root `output/manston_airfield_checkpoint.zip`.
+- Next museum work: manual full character traversal and crossing/support detail, followed by the historically evidenced building restorations already in the phased plan. No new subsurface connectivity, floor levels or portals were invented for this surface completion.
+
+Final runner verdict: `unknown_exit`, raw `-1073741819` / `0xC0000005`, Python success true, two inherited road errors, no crash markers, clean log shutdown true, 150.7 s. The task-specific validation passed; the known World Partition teardown fault remains outside this change.

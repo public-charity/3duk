@@ -23,6 +23,8 @@ def main():
 
 Saved in `/Game/Thanet/Maps/Thanet`. This is the museum reconstruction in the explorer.
 
+[Before](before_overview.png) · [Completed overview](after_overview.png) · [Runway threshold](after_runway_west.png) · [Dispersal pads](after_dispersals.png) · [LiDAR findings](LIDAR_FINDINGS.md)
+
 - Complete 2,750 m × 61 m runway 10/28, including the western half previously removed by the map crop.
 - Approximately 230 m broad historic pavement envelope, with separate old concrete and asphalt materials.
 - White thresholds, runway numbers, centre dashes, edges and aiming marks; yellow taxiway centre lines.
@@ -107,6 +109,8 @@ The archive also includes the four furniture corrections, their 19 before/after 
   for name,p in sorted(files.items()):z.write(p,name)
   z.writestr('archive_manifest.json',json.dumps({'checkpoint':checkpoint.name,'hashes':{n:sha(p) for n,p in files.items()}},indent=2))
  with zipfile.ZipFile(temp) as z:assert z.testzip() is None
- temp.replace(archive);print(json.dumps(dict(archive=str(archive),files=len(files),bytes=archive.stat().st_size)))
+ temp.replace(archive)
+ archive.with_suffix('.zip.sha256').write_text(sha(archive)+'  '+archive.name+'\n',encoding='ascii')
+ print(json.dumps(dict(archive=str(archive),files=len(files),bytes=archive.stat().st_size,sha256=sha(archive))))
 
 if __name__=='__main__':main()

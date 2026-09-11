@@ -68,3 +68,7 @@ Source and implementation checkpoints are in Git on `thanet-explorer`; stage onl
 ## Checkpoint 05 — full airfield surfaces saved
 
 The user's next direction was to fill all runway surfaces and recover airfield features visible in LiDAR, cross-checking aerial imagery. The work is saved in the existing explorer as a separate, scoped overlay. See `airfield/PROGRESS.md` for the newest validation state and recovery point. It includes the full runway, broad historic pavement, taxiways, aprons, dispersal pads and a local raw-LiDAR terrain extension. Museum architecture and unknown underground geometry remain at checkpoint 04's state.
+
+## Checkpoint 06 — complete airfield validated with museum circulation
+
+The full 2,750 m runway, broad historic pavement, all retrieved taxiway/apron references, interpreted central apron and LiDAR-visible dispersal pads are saved. Read `airfield/README.md` and `airfield/LIDAR_FINDINGS.md` for evidence, uncertainty and previews. Combined validation passed 7,279 airfield surface probes, 999 additional runway probes and 3,837 museum floor probes with no raised-body sweep obstructions. Three boards and one bench were moved clear of the paths, with 19 existing component actors preserved and saved separately. The latest combined recovery archive is `output/manston_airfield_checkpoint.zip`; earlier phase archives remain dated checkpoints. Manual gameplay traversal and detailed museum architecture remain outstanding.

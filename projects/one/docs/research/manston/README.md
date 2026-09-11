@@ -6,7 +6,7 @@ Research date: 11 September 2026. The user approved starting implementation. **P
 
 Use [the implementation guide](IMPLEMENTATION_GUIDE.md) to visit the saved museum blockout, reproduce it, or recover from the packaged checkpoint.
 
-The subsequent runway and airfield completion work is recorded in [the airfield checkpoints](airfield/PROGRESS.md), including the local terrain extension needed to recover the runway beyond the original map crop.
+The subsequent runway and airfield completion work is recorded in [the airfield guide](airfield/README.md), [LiDAR findings](airfield/LIDAR_FINDINGS.md) and [saved checkpoints](airfield/PROGRESS.md), including the local terrain extension needed to recover the runway beyond the original map crop. The latest airfield checkpoint also includes four museum furniture clearance corrections.
 
 The recommendation is selected restoration within today's mapped landscape, with a museum gateway, a short command loop, an aircraft/engineering circuit and optional archaeology/runway trails.
 The underground records support separate features. Unknown coordinates, depths and connectivity are not fabricated.
