@@ -92,8 +92,18 @@ bool StreetDocumentEdit::ValidatePreview(const FStreetSiteDoc& Source, const FSt
 		if (const TSharedPtr<FJsonValue> Value = All->TryGetField(TEXT("junctions"))) Only->SetField(TEXT("junctions"),Value);
 		return FStreetscapeJson::Canonical(Only);
 	};
-	if (JunctionText(Source) != JunctionText(Candidate))
-	{ Error = TEXT("preview must preserve the complete junction definitions"); return false; }
+	FStreetSiteDoc Comparable = Candidate;
+	if (Source.Junctions.Num() != Candidate.Junctions.Num())
+	{ Error = TEXT("preview must preserve all junctions"); return false; }
+	for (int32 I=0; I<Candidate.Junctions.Num(); ++I)
+	{
+		const auto& Trim = Candidate.Junctions[I].TrimRadiusM;
+		if (Trim.IsSet() && (!FMath::IsFinite(Trim.GetValue()) || Trim.GetValue()<=0. || Trim.GetValue()>32.))
+		{ Error = TEXT("preview junction trim must be finite and within (0,32] m"); return false; }
+		Comparable.Junctions[I].TrimRadiusM = Source.Junctions[I].TrimRadiusM;
+	}
+	if (JunctionText(Source) != JunctionText(Comparable))
+	{ Error = TEXT("preview must preserve junction topology and registration; only trim radius may change"); return false; }
 	TSet<FString> Seen;
 	for (const FStreetSplineDef& D : Candidate.Splines)
 	{
@@ -112,6 +122,7 @@ bool StreetDocumentEdit::ValidatePreview(const FStreetSiteDoc& Source, const FSt
 
 namespace
 {
+const TArray<FStreetJunction>* PreviewJunctions(const FString& SourcePath);
 bool CurrentDocument(const FString& SourcePath, FStreetSiteDoc& Source, FStreetSiteDoc& Current,
 	TArray<AStreetscapeActor*>& Actors, FString& Error)
 {
@@ -122,6 +133,9 @@ bool CurrentDocument(const FString& SourcePath, FStreetSiteDoc& Source, FStreetS
 	if (!World || !FStreetscapeJson::LoadFile(SourcePath, Obj, &ReadError) ||
 		!FStreetscapeJson::ReadSite(Obj.ToSharedRef(), Source, Problems))
 	{ Error = ReadError.ToString() + FString::Join(Problems, TEXT("; ")); return false; }
+	// The active preview owns its complete junction settings in memory. Never write
+	// them over the source document; exports/refreshes use the same preview model.
+	if (const auto* Junctions = PreviewJunctions(SourcePath)) Source.Junctions = *Junctions;
 	AStreetscapeSiteActor* Site = AStreetscapeSiteActor::Get(World);
 	if (!Site || Site->SiteName != Source.Site || Site->Crs != Source.Crs || Site->VerticalDatum != Source.VerticalDatum ||
 		!FMath::IsNearlyEqual(Site->OriginEN.X, Source.Origin.E, 1e-6) ||
@@ -230,12 +244,22 @@ namespace
 struct FDocumentPreviewSnapshot
 {
 	FString SourcePath;
+	TArray<FStreetJunction> Junctions;
+	bool bRestoring = false;
 	TArray<TWeakObjectPtr<AStreetscapeActor>> Actors;
 	TArray<FStreetSplineDef> Definitions;
 	TArray<FStreetSiteProfiles> Profiles;
 	TArray<TPair<TWeakObjectPtr<UPackage>,bool>> Dirty;
 };
 TUniquePtr<FDocumentPreviewSnapshot> DocumentPreview;
+
+const TArray<FStreetJunction>* PreviewJunctions(const FString& SourcePath)
+{
+	if (DocumentPreview && !DocumentPreview->bRestoring &&
+		FPaths::IsSamePath(FPaths::ConvertRelativePathToFull(SourcePath),FPaths::ConvertRelativePathToFull(DocumentPreview->SourcePath)))
+		return &DocumentPreview->Junctions;
+	return nullptr;
+}
 
 FString PreviewReply(const TSharedRef<FJsonObject>& Report, const FString& Error = FString())
 {
@@ -263,6 +287,7 @@ FString UStreetscapeEditorLibrary::RestoreDocumentPreviewJson()
 	}
 	for (const auto& Weak : DocumentPreview->Actors)
 		if (!Weak.IsValid()) return PreviewReply(Report,TEXT("preview actor no longer loaded"));
+	DocumentPreview->bRestoring = true;
 	for (int32 I=0;I<DocumentPreview->Actors.Num();++I)
 	{
 		AStreetscapeActor* A = DocumentPreview->Actors[I].Get();
@@ -301,6 +326,7 @@ FString UStreetscapeEditorLibrary::PreviewDocumentJson(const FString& SourcePath
 	if (!PlanCurrent(Source,Candidate,Trims,Owned,Error)) return PreviewReply(Report,Error);
 	auto Snapshot = MakeUnique<FDocumentPreviewSnapshot>();
 	Snapshot->SourcePath = SourcePath;
+	Snapshot->Junctions = Candidate.Junctions;
 	int32 Changed = 0;
 	for (AStreetscapeActor* A : Actors)
 	{

@@ -16,6 +16,14 @@ bool FStreetDocumentPreviewValidationTest::RunTest(const FString&)
 	const FString Id = Candidate.Splines[0].ProfileIds.Road;
 	Candidate.Profiles.Road.FindChecked(Id).WidthM -= 1;
 	TestTrue(TEXT("profile changes accepted without replacing components"),StreetDocumentEdit::ValidatePreview(Source,Candidate,Error));
+	Candidate.Junctions[0].TrimRadiusM = 8.;
+	TestTrue(TEXT("bounded junction trim accepted"),StreetDocumentEdit::ValidatePreview(Source,Candidate,Error));
+	Candidate.Junctions[0].TrimRadiusM = 33.;
+	TestFalse(TEXT("oversized preview trim rejected"),StreetDocumentEdit::ValidatePreview(Source,Candidate,Error));
+	Candidate.Junctions[0].TrimRadiusM = 8.;
+	Candidate.Junctions[0].X += .1;
+	TestFalse(TEXT("moved junction rejected"),StreetDocumentEdit::ValidatePreview(Source,Candidate,Error));
+	Candidate = Source;
 	Candidate.Origin.E += 1;
 	TestFalse(TEXT("origin change rejected"),StreetDocumentEdit::ValidatePreview(Source,Candidate,Error));
 	Candidate = Source;

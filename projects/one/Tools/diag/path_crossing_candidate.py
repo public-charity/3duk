@@ -29,26 +29,51 @@ from streetscape.terrain import Heightfield
 from diag.driving_surface_audit import PATHS, top_triangles, in_bounds
 from diag.terrain_contact import clip_triangle, barycentric, cross2
 from diag.structure_inventory import read_osm_way_tags
+from diag.corner_quality_audit import audit_document
 
 
 def lane_width_candidate(raw, ids, tags, tuning):
     """Use existing project lane assumptions for explicitly tagged one-way arms.
 
     This is an inference, not surveyed width. Fixed raw lane evidence, unchanged
-    centreline, and both endpoint junctions are required for the bounded pilot.
+    centreline, and junctions or jointly modelled continuations at both endpoints
+    are required. Preflight the complete selection before mutating the candidate.
     """
-    rows=[]
+    if len(set(ids))!=len(ids):raise ValueError("duplicate width pilot ID")
+    definitions={d["id"]:d for d in raw["splines"]}
+    selected=set(ids);prepared={}
     for sid in ids:
-        definition=next(d for d in raw["splines"] if d["id"]==sid)
+        if sid not in definitions:raise ValueError("unknown width pilot ID: "+sid)
+        definition=definitions[sid]
         evidence=tags[definition["source"]["osm_id"]]
         count=evidence.get("lanes","")
         if evidence.get("oneway")!="yes" or not count.isdigit() or not 1<=int(count)<=4 or "width" in evidence:
             raise ValueError("width pilot requires unambiguous one-way lane count and no explicit width: "+sid)
-        if not definition.get("junction_start") or not definition.get("junction_end"):
-            raise ValueError("width pilot requires junctions at both ends: "+sid)
         n=int(count); lane=float(tuning["lane_width_m"]); margin=float(tuning["lane_margin_m"])
         quantum=float(tuning["width_quantum_m"])
         width=round((n*lane+margin)/quantum)*quantum
+        prepared[sid]=(n,lane,margin,width,evidence)
+    for sid in ids:
+        definition=definitions[sid]
+        for end,point,link,other_end,other_point,back in (
+            ("start",0,"continues_from","end",-1,"continues_to"),
+            ("end",-1,"continues_to","start",0,"continues_from")):
+            if definition.get("junction_"+end):continue
+            neighbour=definition.get(link)
+            if neighbour not in selected:
+                raise ValueError("width pilot requires junctions or jointly selected continuations at both ends: "+sid)
+            other=definitions[neighbour]
+            if other.get(back)!=sid or other.get("junction_"+other_end):
+                raise ValueError("width continuation is not reciprocal: "+sid)
+            a,b=definition["points"][point],other["points"][other_point]
+            if np.hypot(a["x"]-b["x"],a["y"]-b["y"])>1e-3:
+                raise ValueError("width continuation endpoints disagree: "+sid)
+            if abs(prepared[sid][3]-prepared[neighbour][3])>1e-9:
+                raise ValueError("width continuation needs a width transition: "+sid)
+    rows=[]
+    for sid in ids:
+        definition=definitions[sid]
+        n,lane,margin,width,evidence=prepared[sid]
         original=[float(p["width_m"]) for p in definition["points"]]
         profile=copy.deepcopy(raw["profiles"]["road"][definition["profile_ids"]["road"]])
         profile.update(lanes=n,lane_widths_m=[lane]*n,width_m=width)
@@ -165,6 +190,7 @@ def main():
     ap.add_argument("--document",required=True)
     ap.add_argument("--path-id",required=True)
     ap.add_argument("--lane-width-road",action="append",default=[],help="explicit one-way approach ID to remodel with existing project lane-width tuning")
+    ap.add_argument("--junction-trim",action="append",default=[],help="bounded reviewed trim override, JUNCTION_ID=METRES; topology and coordinates stay fixed")
     ap.add_argument("--out",type=Path,default=TOOLS.parent/"Saved/Phase1/path_crossing_candidates")
     args=ap.parse_args()
     source=REPO/"data/thanet/out/unreal/streetscape"
@@ -181,6 +207,17 @@ def main():
     tuning_path=REPO/"sources/config/tuning.json"
     tuning=json.loads(tuning_path.read_text())["roads"]
     width_models=lane_width_candidate(raw,args.lane_width_road,tags,tuning)
+    trim_models=[];trim_seen=set()
+    for value in args.junction_trim:
+        jid,metres=value.rsplit("=",1);radius=float(metres)
+        if jid in trim_seen or not np.isfinite(radius) or not 0<radius<=32:
+            raise ValueError("junction trim must be unique and within (0,32] metres")
+        junction=next((j for j in raw.get("junctions",[]) if j["id"]==jid),None)
+        if junction is None:raise ValueError("unknown trim junction: "+jid)
+        trim_seen.add(jid)
+        trim_models.append(dict(id=jid,old_trim_radius_m=junction.get("trim_radius_m"),trim_radius_m=radius,
+            kind="reviewed geometry trim; fixed junction topology and survey registration"))
+        junction["trim_radius_m"]=radius
     definition=next(s for s in raw["splines"] if s["id"]==args.path_id)
     if definition.get("elevation_profile"):
         raise ValueError("path already has an explicit elevation model")
@@ -195,10 +232,10 @@ def main():
     if np.any(lo<tile[:2]) or np.any(hi>tile[2:]):
         raise ValueError("path neighbourhood reaches a document boundary")
     survey_dir=REPO/"data/thanet/out/unreal/landscape"
-    inputs=[path,original_osm,tuning_path,Path(__file__),TOOLS/"phase1_qc.py",TOOLS/"diag/driving_surface_audit.py",TOOLS/"diag/terrain_contact.py",TOOLS/"diag/structure_inventory.py"]
+    inputs=[path,original_osm,tuning_path,Path(__file__),TOOLS/"phase1_qc.py",TOOLS/"diag/driving_surface_audit.py",TOOLS/"diag/terrain_contact.py",TOOLS/"diag/structure_inventory.py",TOOLS/"diag/corner_quality_audit.py"]
     inputs+=list((TOOLS/"blender/streetscape").glob("*.py"))
     inputs+=[survey_dir/"landscape_manifest.json"]+list(survey_dir.glob("hm_*.r16"))+list(survey_dir.glob("clip_*.r8"))
-    config=dict(document=args.document,path=args.path_id,lane_width_models=width_models,max_lower_m=.5,max_blend_grade=.10,clearance_m=.01,fairing_length_m=2.,
+    config=dict(document=args.document,path=args.path_id,lane_width_models=width_models,junction_trim_models=trim_models,max_lower_m=.5,max_blend_grade=.10,clearance_m=.01,fairing_length_m=2.,
                 model="inferred smooth crossing height below existing vehicle mesh; unchanged endpoint heights and bank")
     identity,hashes=content_identity(inputs,config)
     root=args.out/identity[:20]
@@ -250,7 +287,24 @@ def main():
         if not np.allclose(built.z_ref[[0,-1]],sp.z_ref[[0,-1]],rtol=0,atol=1e-8):
             raise ValueError("path endpoints moved")
         atomic_json(root/path.name,candidate)
+        before_corners=audit_document(path,survey)
+        after_corners=audit_document(root/path.name,survey)
+        atomic_json(root/'junctions_before.json',before_corners)
+        atomic_json(root/'junctions_after.json',after_corners)
+        before_by_id={r['id']:r for r in before_corners['results']}
+        if set(before_by_id)!={r['id'] for r in after_corners['results']}:
+            raise ValueError('candidate lost junction coverage')
+        for row in after_corners['results']:
+            old=before_by_id[row['id']]
+            if (old['status']=='passed' and row['status']!='passed') or row['status']=='needs_geometry':
+                raise ValueError('candidate junction quality regressed: '+row['id'])
+            if row.get('patch_overlap_area_m2',0)>old.get('patch_overlap_area_m2',0)+1e-4:
+                raise ValueError('candidate junction overlap increased: '+row['id'])
+            if row.get('pavement',{}).get('inverted_area_m2',0)>old.get('pavement',{}).get('inverted_area_m2',0)+1e-6:
+                raise ValueError('candidate pavement fold increased: '+row['id'])
+        if content_identity(inputs,config)[0]!=identity:raise ValueError('crossing candidate inputs changed during run')
         report.update(status="complete",stats=stats,after_max_rise_m=worst,candidate_document=str(root/path.name),
+                      junction_quality=dict(before=before_corners['totals'],after=after_corners['totals'],regressions=0),
                       candidate_sha256=sha256(root/path.name),seconds=round(time.time()-started,3),
                       next_gate="reconform candidate ground, contact/support checks, native preview; not accepted")
     except BaseException as exc:

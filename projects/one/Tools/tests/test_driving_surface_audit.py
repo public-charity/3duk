@@ -1,4 +1,5 @@
 import sys
+import copy
 from pathlib import Path
 import unittest
 import numpy as np
@@ -60,6 +61,29 @@ class DrivingSurfaceTest(unittest.TestCase):
         self.assertEqual(fair[-1],0)
         mesh.v[:,2]-=np.repeat(fair,2)
         self.assertLessEqual(max(float(r.max()) for _,_,r in overlap_constraints(mesh,road)),-.01+1e-8)
+
+    def test_connected_widths_preserve_seams_and_reject_partial_or_conflicting_edits(self):
+        raw={"profiles":{"road":{"primary":{"width_m":10.,"markings":[]}}},"splines":[
+            dict(id="a",source={"osm_id":"1"},profile_ids={"road":"primary"},junction_start="j0",continues_to="b",
+                 points=[dict(x=0,y=0,width_m=10.),dict(x=10,y=0,width_m=10.)]),
+            dict(id="b",source={"osm_id":"2"},profile_ids={"road":"primary"},continues_from="a",junction_end="j1",
+                 points=[dict(x=10,y=0,width_m=10.),dict(x=20,y=0,width_m=10.)])]}
+        tags={k:dict(lanes="1",oneway="yes") for k in ("1","2")}
+        tuning=dict(lane_width_m=3.,lane_margin_m=1.,width_quantum_m=.5)
+        candidate=copy.deepcopy(raw)
+        lane_width_candidate(candidate,["a","b"],tags,tuning)
+        self.assertEqual(candidate["splines"][0]["points"][-1],candidate["splines"][1]["points"][0])
+        for kind in ("partial","different_width","offset","one_direction"):
+            with self.subTest(kind=kind):
+                candidate=copy.deepcopy(raw);evidence=copy.deepcopy(tags);ids=["a","b"]
+                if kind=="partial":ids=["a"]
+                if kind=="different_width":evidence["2"]["lanes"]="2"
+                if kind=="offset":candidate["splines"][1]["points"][0]["x"]+=.1
+                if kind=="one_direction":candidate["splines"][1].pop("continues_from")
+                before=copy.deepcopy(candidate)
+                with self.assertRaisesRegex(ValueError,"width"):
+                    lane_width_candidate(candidate,ids,evidence,tuning)
+                self.assertEqual(candidate,before)
 
     def test_explicit_single_lane_model_can_reduce_class_default_without_moving_points(self):
         raw={"profiles":{"road":{"primary":{"lanes":2,"lane_widths_m":[3.,3.],"width_m":10.,"markings":[{"id":"centre"}]}}},

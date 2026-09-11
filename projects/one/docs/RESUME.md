@@ -2,6 +2,63 @@
 
 ## Current checkpoint — 2026-09-10, Phase 1 completion
 
+### Seventeenth checkpoint — 2026-09-11: connected widths and bounded trim preview
+
+**No jobs are running. Latest prior commit `ebfcdea` is milestone 16.** Current
+source is tested and ready to commit: connected width preflight, complete-candidate
+junction regression checks, and reversible numeric junction trim previews.
+70/70 tool tests and 45/45 native tests pass; native build 28.43 s, tests 55 s,
+raw native test exit 0. Logs `phase1_connected_roundabout_tool_tests.log`,
+`phase1_junction_trim_preview_build.log`, `phase1_junction_trim_preview_tests_legacy.runner.log`.
+Use `powershell.exe -NoProfile -ExecutionPolicy Bypass -File` for UE runners.
+Direct invocation from PowerShell 7 double-quotes ExecCmds and launches an idle
+engine with no tests; that failed launch was verified and stopped.
+
+**Candidate:** `path_crossing_candidates/a2cc641c88cc43a0a9f8`, generated in 10.143 s.
+Eleven explicit one-way lane widths infer 4/7 m from existing tuning, including
+reciprocal 921070153 -> 921070151. Complete selection is checked before mutation;
+partial, displaced, nonreciprocal or unequal-width continuation pairs fail.
+Original OSM centrelines/source remain fixed. Junction :0 uses explicit 8 m trim
+with unchanged topology/registration. Bounded probe found 7.5–8.5 m clean, versus
+0.8415 m2 overlap at automatic 11.441 m. Evidence helpers:
+`Saved/Phase1/test_pilot_widths.py`, `probe_pilot_trim.py`, and `corner_topology/`.
+All 51 candidate junctions compared with source: 35->40 geometry passes,
+16->11 overlap reviews, zero regressions; all eight local junctions have zero
+fan overlap, proper crossings or inverted pavement tops. Crossing lowering max
+196.685 mm, exact road-overlap clearance 10 mm, endpoints fixed. Driving screen
+passes all 19 local drivers (`driving_surface_qc/a5e2f88e0812a9e2a2a5/report.json`).
+
+**Terrain:** LOCAL-ONLY one-document `connected_roundabout_ground`, checkpoint
+`connected_roundabout_conform_state/6f52fdd238aea83f42ad/state.json`, 61 s stamping.
+Contact audit: 50 pass / 1 fail (:3 pavement still buried 55.720 mm); previous :2
+296 mm burial removed. Full denser document contact audit now takes ~3 minutes:
+optimize its point/triangle lookup before global repetition. Candidate directory
+contains `junction_ground_check.json` and `edge_comparison.json`. Four road-edge
+gaps regressed: road62 86.3 mm, 921070151 162.3 mm, 921070152 296.9 mm, 921070155
+146.7 mm. Joint 42x50 m terrain finish failed fast (4.055 s), explicit conflict:
+roundabout 921070152 base versus lower service road1393541236 surface at
+(8333.339628,4486.697263), 67.630 mm incompatible with 15.625 mm contact target.
+`terrain_finish_candidates/6610f8a6199db6166dd7/report.json` and
+`phase1_connected_roundabout_finish.log`. Correct geometry/connection first.
+
+**Native preview transaction verified, overall runner FAILED — do not label green.**
+`connected_roundabout_native_preview/report.json` is complete: 239 actors / 51
+junctions, candidate export includes the 8 m trim, all restored exactly; 8,343
+landscape posts, 3,458 changed, max 0.90625 m, exact restoration; stable actor paths;
+all 15,913 Content files byte-identical (digest 7afbb4eae62a31d1ccc9ac0927829a8d7df3bc2f4ae51fed28edba863a11ec27).
+Before/after images inspected: clearer roundabout and no broad raised crossing,
+but long tapering pavement, edge gaps and small disconnected patches remain.
+Runner `phase1_connected_roundabout_native.runner.log` correctly fails: world load
+hit two of the four known unbuildable curves (junction:23_9:18 owner101767724 and
+junction:16_9:25 owner1154393739), then known teardown access violation. Python work
+167.5 s, total 257.9 s. Do not waive these real rebuild errors. Other census failures
+are junction:18_4:6 and junction:5_12:8. No production JSON, survey or Content writes.
+
+**Next work:** optimize dense contact lookup with reference equivalence; diagnose
+four unbuildable junctions and connected lane-width candidates across the network;
+resolve service-road connection and remaining :3 pavement/edge contact. Full Phase 1
+remains unaccepted. Preserve this checkpoint before making more core changes.
+
 ### Sixteenth milestone — 2026-09-11: shared corner quality and complete census
 
 **Current verified checkpoint:** shared corner sampling, bank transport, and

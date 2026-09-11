@@ -5,6 +5,26 @@ Thanet base suitable for high-quality building overlays. Survey registration, te
 roads, rail, junctions and their transitions belong to Phase 1. Hero buildings and
 decorative presentation remain later work.
 
+## Connected road-width checkpoint — 2026-09-11
+
+Explicit one-lane roundabout pieces were 10 m wide from road-class defaults.
+A complete-document candidate infers 4/7 m widths from existing lane tuning,
+preserves centrelines, and changes reciprocal continuation pieces together.
+One bounded 8 m trim removes an automatic-solver overlap. All eight local
+junction boundaries are clean; whole-document geometry improves 35->40 passes,
+16->11 overlap reviews, with no regression. All 19 local driving screens pass.
+Terrain contact improves 49->50 passing junctions out of 51; a 55.720 mm pavement
+burial and four larger road-edge gaps remain. A fast terrain repair rejects a
+67.630 mm conflict with a lower overlapping service road instead of burying it.
+
+70 tool and 45 native tests pass. The reversible native preview restores all
+239 actors, 51 junctions (including the trim override) and 8,343 terrain posts
+exactly; all 15,913 Content files unchanged. Both images were inspected. The
+overall engine run nevertheless fails because world loading reaches two known
+unbuildable junctions outside this candidate. Keep transaction proof separate
+from engine/world acceptance. Candidate, images, failed solver and precise restart
+state are in the seventeenth checkpoint of `RESUME.md`; Phase 1 remains open.
+
 ## Shared corner quality checkpoint — 2026-09-11
 
 Long shallow junction corners previously had only three rings over 25–35 m.
