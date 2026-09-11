@@ -23,15 +23,36 @@ Committed `docs/checkpoints/phase1_34_wings_terrain_selection.json` embeds all 1
 posts and the complete source-hashed sparse report. Both recreate byte-exact;
 materialize_contact_candidate.py can rebuild the terrain under a fresh Saved path.
 
-ACTIVE JOB: combined native preview, session 93084, engine log
-`Saved/Logs/phase1_wings_connector_ground_native_preview.log`, runner
-`Saved/phase1_wings_connector_ground_native_preview_runner.log`. Output
-`native_connector_ground_preview_wings_02`; request
-`connector_ground_preview_requests/795b3a466f2b724e3208/candidate_report.json`.
-New optional native ground-probe validation checks all 676 integer posts against
-baseline, candidate and restored values; complete document/export/rollback and
-all-Content guards remain. This preview tool edit is pending native verification.
-Read current process/log/report before proceeding. No final image approval yet.
+CHECKPOINT 35 COMBINED NATIVE/LOCAL VISUAL PASS. Output
+`native_connector_ground_preview_wings_03`; manifest
+`docs/checkpoints/phase1_35_wings_native_contact.json`. All 676 baseline/candidate/
+restored probes match nearest 1/128 m codes, max probe difference 0.305176 mm.
+Native raw terrain write and restoration are exact; 16 changed posts. Full
+58-actor candidate export/restore and unchanged actor identities pass. All 15,938
+Content files unchanged. Both images inspected: the outer-bend breakthrough is
+gone and the local road/pavement join is continuous. Existing internal bend spike,
+one-sided pavement termination and modest fan shading remain explicit.
+
+Native script 33.7 s; raw engine teardown AV after clean log closure, runner
+teardown_crash_after_success with zero other errors. No active native job remains.
+**109 workflow tests pass (11.139 s).** Terrain checkpoint 34 stays a small isolated
+candidate. This is one connector/local rectangle, not whole-document acceptance.
+
+CURRENT NEXT ACTION: expand same-document continuation screening in small batches
+from `local_connector_inventory.json`, remeasure current A/B sections and add
+boundary-simplicity checks before retaining any join. Preserve endpoint/body and
+affected-junction gates; terrain and native follow independently. Cross-document
+ownership and internal bends still need a separate geometry design.
+
+Previous native output `_wings_02` FAILED BEFORE ANY EDIT: its 10 micrometre ground
+probe tolerance mistook Chaos collision compression (max 0.305176 mm) for wrong
+terrain. UE5.8 LandscapeCollision.cpp GetHeightAtLocation(Editor) routes through
+Chaos's separately quantized FHeightField (HeightField.h MinValue+code*HeightPerUnit).
+The revised gate requires identical nearest 1/128 m height codes AND <=0.5 mm
+probe error, tested against a whole-code mismatch and excessive compression.
+Native PreviewLandscapeHeightsJson still compares raw uint16 writes and restores
+exactly. First run has python_error, raw teardown AV; do NOT waive the Python
+failure. All Content bytes remained unchanged; no document/terrain edit occurred.
 
 ### Thirty-second checkpoint COMPLETE — 2026-09-11: recoverable network with four connectors
 

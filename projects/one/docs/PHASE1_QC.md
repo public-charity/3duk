@@ -16,7 +16,12 @@ Regression tests cover a missed diagonal extremum, reversed/negative coordinates
 clamped-gap extrema, protected roots, missing ground and registration rejection.
 The revised Wings Close solve uses 16 posts, clears 101 mm penetration, and passes
 an independent exact edge check with max required gap 6.91 mm. 106 workflow tests
-pass. Native visual/terrain/rollback proof is the next separate gate.
+pass. Checkpoint 35 then passes the combined native/local visual gate: intrusion
+gone, complete document restored, all 676 raw terrain posts restored, and all
+15,938 Content files unchanged. The 676 Editor height probes agree with encoded
+heights within 0.305 mm; Chaos compression means these float probes are separate
+from the exact raw uint16 terrain write/restore check. 109 workflow tests pass.
+Existing internal bends and whole-site acceptance remain open.
 
 ## Explicit connector pilot and complete native runs — 2026-09-11
 

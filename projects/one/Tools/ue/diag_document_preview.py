@@ -7,6 +7,7 @@ successful and failed runs. An optional bounded terrain preview is restored too.
 import hashlib
 import importlib.util
 import json
+import math
 import os
 from pathlib import Path
 import sys
@@ -15,6 +16,7 @@ import unreal
 import ue_common as uc
 from content_guard import snapshot, require_unchanged
 from diag_document_roundtrip import canonical
+from ground_probe_checks import compare_ground_posts
 
 NAME="diag_document_preview"
 
@@ -24,7 +26,7 @@ def digest(path):
 
 
 def main(argv):
-    opts=uc.parse_args(argv,options={"candidate_report":"", "out":"", "camera_report":"", "terrain":"", "bounds":"8320,4408,8400,4510"})
+    opts=uc.parse_args(argv,options={"candidate_report":"", "out":"", "camera_report":"", "terrain":"", "ground_probes":"", "bounds":"8320,4408,8400,4510"})
     if not opts["candidate_report"] or not opts["out"] or not opts["camera_report"]:
         uc.fail(NAME,"--candidate-report, --out and --camera-report required")
     provenance_path=Path(opts["candidate_report"]).resolve()
@@ -37,6 +39,19 @@ def main(argv):
     for path,expected in provenance["input_sha256"].items():
         if digest(path)!=expected:
             raise ValueError("candidate input changed: "+path)
+    ground_probes=None
+    if opts["ground_probes"]:
+        probe_path=Path(opts["ground_probes"]).resolve()
+        if str(probe_path) not in provenance["input_sha256"]:
+            raise ValueError("ground probes must be included in candidate provenance")
+        ground_probes=json.loads(probe_path.read_text(encoding='utf-8'))
+        if not 1<=len(ground_probes['points'])<=4096:
+            raise ValueError("ground probe count must be 1..4096")
+        for point in ground_probes['points']:
+            if len(point)!=4 or not all(math.isfinite(v) for v in point):
+                raise ValueError("ground probes require finite x,y,baseline_z,candidate_z")
+            if any(abs(v-round(v))>1e-8 for v in point[:2]):
+                raise ValueError("ground verification probes require integer metre posts")
     source=Path(uc.data_dir())/"streetscape"/candidate_path.name
     original=json.loads(source.read_text(encoding='utf-8'))
     candidate=json.loads(candidate_path.read_text(encoding='utf-8'))
@@ -106,6 +121,23 @@ def main(argv):
             checkpoint()
 
         picture("before")
+
+        def verify_ground(tag,column):
+            if ground_probes is None:return
+            importer=unreal.StreetscapeLandscapeImporter
+            landscape=importer.find_landscape()
+            if landscape is None:raise ValueError("ground probe landscape missing")
+            measured=[]
+            for point in ground_probes['points']:
+                actual=importer.probe_height_m(landscape,point[0],point[1],False)
+                if not math.isfinite(actual):raise ValueError("missing native ground probe")
+                measured.append(actual)
+            comparison=compare_ground_posts(ground_probes['points'],measured,column)
+            report.setdefault('ground_verification',{})[tag]=dict(comparison,heights_m=measured)
+            checkpoint()
+            if not comparison['ok']:raise ValueError("native ground differs from expected registered posts: "+tag)
+
+        verify_ground('baseline',2)
         report["preview"]=require(json.loads(lib.preview_document_json(str(source),str(candidate_path))),"document preview")
         checkpoint()
         current=exported("candidate_export")
@@ -115,8 +147,10 @@ def main(argv):
             bounds=list(map(float,opts["bounds"].split(",")))
             report["terrain_preview"]=require(json.loads(lib.preview_landscape_heights_json(opts["terrain"],*bounds)),"terrain preview")
         picture("preview")
+        verify_ground('candidate',3 if opts['terrain'] else 2)
         report["document_restore"]=require(json.loads(lib.restore_document_preview_json()),"document restore")
         report["terrain_restore"]=require(json.loads(lib.restore_landscape_preview_json()),"terrain restore")
+        verify_ground('restored',2)
         restored=exported("restored")
         if canonical(restored)!=canonical(baseline):
             raise ValueError("restored complete document differs from baseline")
