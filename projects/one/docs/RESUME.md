@@ -2,66 +2,78 @@
 
 ## Current checkpoint — 2026-09-10, Phase 1 completion
 
-### Thirtieth checkpoint IN PROGRESS — 2026-09-11: whole-network redundant controls
+### Thirtieth checkpoint COMPLETE — 2026-09-11: 538 verified road-body repairs
 
-Continue search from the unchanged fae input (NOT from the newer pilot):
-`Tools/python.ps1 Tools/diag/road_control_candidates.py --streetscape Saved/Phase1/arm_network_candidates/fae0375edf30782333ac --census Saved/Phase1/road_surface_census/68a2bc3b5fffa79d7a76 --max-splines 16`
-Paths above relative to projects/one; invoke from repo with full relative paths.
-State: `road_control_candidates/97dee31510fc77ddc4fb/state.json`.
-Search COMPLETE: all 988 eligible roads attempted in 62 bounded calls, **538
-retained** across 168 documents. Logs `Saved/phase1_road_control_optimized_batchN.log`.
-Complete materialized candidate: `road_control_compositions/a0f002414e871ded1639`,
-all 246 documents /15,422 definitions. Immutable search snapshot
-`road_control_snapshots/603da4ccf2bcb9b32d86.json`. Composition log
-`phase1_road_control_network_composition.log`. No production rollout; the fully
-verified pilot below is still the current retained checkpoint.
+**Current retained geometry candidate:** `road_control_compositions/a0f002414e871ded1639`.
+All 246 documents /15,422 definitions /1,642 junctions preserved. The complete
+988-road search retained 538 repairs in 168 documents, including the previous
+38-road pilot. **11,164 passing bodies /1,933 folds /2,325 non-road definitions**.
+Junction geometry inputs and metrics remain exact: **1,182 pass /327 fold /
+130 overlap /3 needs_geometry**. Zero body regressions; all 308 unique affected
+continuation pairs have no increased actual road-edge, kerb or pavement gap.
+Largest conservative dense-polyline deviation bound 49.879 mm; largest absolute
+length change 9.752 mm. Original endpoints, retained point dictionaries and all
+other document data remain exact. This does not close every existing seam.
 
-CURRENT JOBS: independent network verification batches1–4 (8 edited documents per
-call; expect21 total calls for168 edited docs), logs
-`phase1_road_control_network_verify_batchN.log`. Check candidate `verification/state.json`
-and revalidate live process/handle before resuming. A separate PRIVATE context
-reprobe started on the complete candidate: `reprobe_cleaned_continuation_context.py
---source <candidate root> --max-pairs 5`, log `phase1_cleaned_context_reprobe_batch1.log`.
-It reuses the earlier50-pair sample, refreshes neighbour overruns and measures full
-road/rail bodies plus actual endpoint sections. No bank pinning or junction
-acceptance is implied by this diagnostic. Do not change core/QC tools while the
-verification runs are active.
+Verification `verification_fast/state.json` is COMPLETE (246 documents /538 bodies).
+It contains 78 byte-exact unchanged documents; 8 independent fast/full build
+comparisons; 88 reused completed full-document builds (308 changed bodies); and
+72 fresh changed-body document checks with exact unmodified geometry input reuse.
+The frozen full-build snapshot and every source/report SHA were verified. Do not
+claim that the fast path rebuilt every unchanged mesh. Logs
+`phase1_road_control_fast_verify_batch1..10.log`; prior full-build logs
+`phase1_road_control_network_verify_batch1..12.log`. No verification jobs remain.
+Helpers `verify_road_control_composition_fast.py`, `seed_fast_control_verification.py`,
+`export_control_checkpoint30.py`; proof `geometry_verification.json` in candidate.
+Existing 99 tool tests pass; no core/native changes since checkpoint 27.
 
-PRIVATE NEXT-GEOMETRY DIAGNOSIS: a two-arm bend can reuse the existing A/B patch
-and pavement sweep, but the present schema/core require at least three arms.
-`probe_two_arm_bend.py` changes minimum-arm guards only in memory: 30 synthetic
-angle/radius cases show shallow bends can pass; ordinary right-angle cases need
-different handle/trim treatment. `probe_real_two_arm_bend.py` splits Garrard Avenue
-roads:4590601:0 at original control5 (s=176.46636m, turn90.572deg). Before:16.70127m2
-folds. Private handle cap0.65 with6–7m trims, or cap1 with6–8m trims, produces two
-passing road bodies and a passing pavement/patch (zero folds/overlap). This is NOT
-serializable or accepted: no source/core/schema/native changes. Full source and
-timeline splitting, continuation preservation, seam/terrain checks and native
-parity/preview support would be required. Results `real_two_arm_bend_feasibility.json`,
-`two_arm_bend_feasibility.json`; logs `phase1_{real_,}two_arm_bend_feasibility.log`.
+**Exact recovery:** `docs/checkpoints/phase1_30_geometry_selection.json`
+SHA b28d31b66c907a0668165190f00c016eb83acfd0701d0e5ccf83d8db16392f28.
+All 246 files recreated byte-exact in eight <=32-document calls at
+`restored_geometry_selection/b28d31b66c907a066816`. Logs
+`phase1_control_network_restore_batch1..8.log`. All 988 search attempts and 538
+selected results are sealed in `road_control_snapshots/603da4ccf2bcb9b32d86.json`.
+The three largest actual mesh repairs were visually inspected; the full candidate
+diagram is byte-identical to that inspected pilot. Production remains unchanged.
 
-Before designing new topology, retest the earlier rejected continuation-context
-prototype on the completed control-cleanup candidate. The earlier47/96 body
-regressions may include centimetre-control artefacts now removed; this is only a
-hypothesis. Recompute stored overruns from the actual retained reciprocal neighbour
-controls (old overrun points can be stale after pruning), and measure full bodies,
-actual continuation sections, bank-rate limits and all affected junctions together.
-Do not adopt context curves merely because their seam positions improve.
+### Next checkpoint — local continuation connectors and sharp bends
 
-After all attempts finish, run `Saved/Phase1/compose_road_control_candidate.py
---search projects/one/Saved/Phase1/road_control_candidates/97dee31510fc77ddc4fb`.
-It verifies inputs and seals an immutable search snapshot, then creates complete
-246-doc output. Run `verify_road_control_composition.py --candidate <root>
---max-docs 4` repeatedly. This independently rebuilds every body and junction in
-changed documents, reuses unchanged reports only with exact hashes, and checks
-every combined actual road-edge/kerb/pavement continuation section. Finally export
-a new retained-point selection manifest, restore all246 byte-exact, and checkpoint.
-Do not edit the existing pilot helper/evidence while its manifest references them;
-create new export helpers for the next checkpoint instead.
+The refreshed global continuation-context hypothesis was **REJECTED EARLY**:
+all first 5 difficult pairs regress road bodies, despite cleaner retained controls
+and refreshed neighbour overruns. Stop after 5; do not run the remaining 45.
+`cleaned_context_reprobe/44a176f65d2577e0fff5/decision.json` records rejection;
+the state correctly records only 5/50 tested. No source/core changes.
+
+PRIVATE two-arm A/B junction math is more promising. `probe_two_arm_bend.py`
+changes three minimum-arm guards only in memory. `probe_real_two_arm_bend.py`
+splits Garrard Avenue roads:4590601:0 at original control 5 (s=176.46636 m,
+turn=90.572 deg). Original folded area 16.70127 m2; cap 0.65 with 6–7 m trims
+or cap 1 with 6–8 m trims yields passing bodies and corner/patch. No serialized
+topology, timelines, remote ends, terrain or native acceptance yet.
+
+`probe_two_arm_continuation.py` screens the same five failed context pairs:
+four have local patch/corner passes with no body regression; some bodies retain
+older folds. The first pair has no pass in 33 trials. The four selected joins
+also pass actual finished A/B seam measurements (`verify_two_arm_continuation_mesh.py`,
+`two_arm_continuation_mesh/*/state.json`): zero road gap, maximum pavement/kerb
+gap 4.068e-12 m. This remains PRIVATE; all four happen to be same-document pairs.
+
+Next: verify full affected documents and remote-end stability for these four,
+inspect their meshes, then add an explicit two-arm connector variant in the shared
+schema/Python/native core if those checks justify it. Preserve the three renderers;
+do not globally change corner handles. Per-join handle configuration may be needed.
+Cross-document ownership and internal-bend source/timeline splitting need separate
+proof. Existing native PreviewDocumentJson rejects added junctions/spline counts;
+extend its bounded transactional validation before any new-topology native preview.
+Never use production ImportStreetscapeJson for preview. Native work must coexist
+with the unrelated police-car task; leave its files and assets untouched.
+
+Phase 1 remains open: 1,933 body folds, 460 junctions, continuation gaps, cross-road
+overlaps, terrain, structures and whole-world/native visual acceptance.
 
 ### Twenty-ninth checkpoint COMPLETE — 2026-09-11: 38 verified road-body repairs
 
-**Current retained geometry candidate:** `road_control_compositions/b41bd78bd0277681c93f`.
+**Historical pilot geometry candidate:** `road_control_compositions/b41bd78bd0277681c93f`.
 All246 docs /15,422 definitions /1,642 junctions preserved. 38 roads repaired in
 32 docs: **10,664 passed /2,433 folded /2,325 non-road definitions**. All junction
 measurements remain EXACT: **1,182 pass /327 fold /130 overlap /3 needs_geometry**.

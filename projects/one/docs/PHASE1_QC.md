@@ -5,6 +5,28 @@ Thanet base suitable for high-quality building overlays. Survey registration, te
 roads, rail, junctions and their transitions belong to Phase 1. Hero buildings and
 decorative presentation remain later work.
 
+## Complete control cleanup and exact reuse — 2026-09-11
+
+All 988 eligible ordinary roads tested; 538 repairs retained across 168 documents.
+Full coverage proves 11,164 passing bodies, 1,933 folds and 2,325 non-road definitions;
+all 1,642 junction metrics unchanged. Zero body regressions and no increased actual
+road-edge/kerb/pavement gap across 308 affected continuation pairs. Conservative
+centreline deviation <=49.879 mm; length change <=9.752 mm. Every original endpoint
+and retained point dictionary preserved. All 246 candidate files reconstruct
+byte-exact from checkpoint 30's committed selection manifest.
+
+Reuse geometry only when its complete inputs are exact: shared profiles, terrain,
+core, definitions, junction bindings and bound-arm geometry. Eight independently
+rebuilt documents compare exactly with full builds; 88 already completed full
+builds were retained and the remaining 72 edited documents rebuilt every changed
+body. Hash every reused report and freeze the prior state. Report fresh and reused
+coverage separately. This avoids minutes rebuilding untouched streets.
+
+Reject speculative approaches on an early adversarial sample: refreshed global
+continuation curves regress all first five pairs and are stopped. Four private
+two-arm local joins pass finished mesh seams, but full-document, topology, terrain
+and native proofs remain necessary. Neither result implies Phase 1 acceptance.
+
 ## Bounded road-control repairs — 2026-09-11
 
 A complete candidate repairs 38 folded road bodies by removing redundant interior
