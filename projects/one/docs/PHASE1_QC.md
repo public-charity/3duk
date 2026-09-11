@@ -5,6 +5,23 @@ Thanet base suitable for high-quality building overlays. Survey registration, te
 roads, rail, junctions and their transitions belong to Phase 1. Hero buildings and
 decorative presentation remain later work.
 
+## Combined connectors at document scope — 2026-09-11
+
+Individual proposals can interact on a shared road. Rebuild complete source and
+combined candidate documents, require old junction mesh groups and all untouched
+body arrays exact, and measure each new junction seam separately. A large old gap
+must not mask a smaller new gap in an aggregate maximum. Tests cover two joins on
+one road, an invalid second corner, and protected source payloads. The new checker
+also reproduces the earlier independent large/small full-document proofs.
+
+Of 30 new proposals across 24 documents, 28 across 23 pass. Two are held because
+the source stair junction itself cannot build; another proposal there was already
+held. The passing combinations preserve 2,673 bodies, 38,388 mesh arrays and 1,914
+old junction groups exactly. Four actual-mesh plan comparisons were inspected.
+All 246 documents reconstruct byte-exact from checkpoint 37. Body passes rise to
+11,167, folds fall to 1,930, junction passes rise to 1,220; no regressions. The 38
+connectors remain a geometry candidate; terrain/native coverage stays separate.
+
 ## Bounded continuation screening and full-document proof — 2026-09-11
 
 Measure current actual sections; old nominal gaps only prioritize the queue. Each

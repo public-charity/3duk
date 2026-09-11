@@ -2,9 +2,57 @@
 
 ## Current checkpoint — 2026-09-10, Phase 1 completion
 
+### Thirty-seventh checkpoint COMPLETE — 2026-09-11: 38 connectors, combined document proof
+
+**Current retained geometry candidate:** `connector_compositions/8870292dfb9009b5277a`.
+All 246 documents /15,422 definitions /1,680 junctions. **11,167 passing bodies /
+1,930 folds /2,325 non-road; 1,220 passing junctions /327 fold /130 overlap /3
+needs_geometry.** Twenty-eight additional joins and three fewer folded bodies;
+zero body regressions. Total explicit connectors: 38.
+
+The first 50 screened pairs produce 37 local proposals. Six were already retained
+at checkpoint 36, one held individually, and 30 were combined across 24 documents.
+**23 documents /28 additions pass** complete combined builds. One document's two
+other proposals are held because the inherited stair junction prevents the SOURCE
+build. All three local proposals in site_x23_y9 remain excluded. Every new junction
+has its own finished mesh seam check (<=1 nm), simple footprint and no corner fold.
+No inherited gap elsewhere can mask a new local seam error.
+
+Fresh combined proofs preserve 2,673 untouched bodies, 38,388 mesh arrays and 1,914
+old junction mesh groups exactly. Other 223 documents reuse checkpoint 36 bytes.
+Four largest actual-gap plan views were inspected (St Benedicts Lawn, Queens Road,
+Inverary Court, site_x15_y10); torn/crossed target pavement ends are replaced with
+continuous curves. Nearby inherited defects remain. These are geometry plan views,
+not terrain/native acceptance. `connector_group_verification/2b0f03275f7fac1bcb7e`
+is complete; logs `phase1_connector_groups50_batch1..12.log`, diagram `visual_top4`.
+The grouped checker matches the previous independent large/small document proof
+metrics and exact-array counts. **120 workflow tests pass (10.367 s).**
+
+Recovery manifest `docs/checkpoints/phase1_37_geometry_selection.json`
+SHA 7dcaf80eb01ab7cfa8a92ab4e65bca119332622e3bedf0a5e5e9988d7c1dc56a. All 246 files recreated byte-exact under
+`restored_geometry_selection/7dcaf80eb01ab7cfa8a9` in eight <=32-document calls; logs
+`phase1_connector37_restore_batch1..8.log`. No production promotion occurred.
+Wings Close's separate terrain/native contact proof remains checkpoints 34/35.
+The 28 new additions still need terrain/native coverage, and 460 original
+junction defects, 1,930 body folds, structures and cross-document joins remain.
+
+CURRENT ACTIVE WORK: search batches 14..26 are COMPLETE at **100/2,176 pairs,
+86 local proposals**. Frozen first-100 snapshot
+`connector_search_snapshots/ec24ce6a90d55f2c94fc.json`, SHA
+05751c84d0e0a528bcd013c413a681c1435b3f4088399c59122f7f4f63dd13c8.
+Grouped verification of this snapshot against checkpoint 37 has STARTED:
+`verify_connector_groups.py --snapshot .../ec24ce6a90d55f2c94fc.json --manifest
+docs/checkpoints/phase1_37_geometry_selection.json --max-docs 2`.
+Initial session 89544, log `phase1_connector_groups100_batch1.log`.
+Inspect its current state/root before continuing; do not alter hashed checker
+inputs while it runs. The existing search can later resume from pair 100 using
+the same source/config; do not overwrite existing logs. No other Phase 1 job is
+active. Other user tasks may independently run UE/import Content; never interrupt
+their processes and use a fresh all-Content baseline for each native preview.
+
 ### Thirty-sixth checkpoint COMPLETE — 2026-09-11: ten verified local connectors
 
-**Current retained geometry candidate:** `connector_compositions/34110f2359c7883dedc8`.
+**Historical retained geometry candidate:** `connector_compositions/34110f2359c7883dedc8`.
 All 246 documents /15,422 definitions /1,652 junctions. Six new joins extend the
 four-connector checkpoint 32. **11,164 passing bodies /1,933 folds /2,325 non-road;
 1,192 passing junctions /327 fold /130 overlap /3 needs_geometry.** No body
@@ -36,7 +84,7 @@ candidate's `search_snapshot.json`; independent proofs remain in search root's
 `full_verification`. Helper `compose_local_connector_checkpoint36.py` uses atomic
 file copies and preserves full original document payloads except appended joins.
 
-ACTIVE WORK AFTER CHECKPOINT 36: search batches 4..13 finished 50/2,176 pairs,
+Historical search/proof notes after checkpoint 36 (completed at checkpoint 37): search batches 4..13 finished 50/2,176 pairs,
 37 local proposals. Frozen snapshot `connector_search_snapshots/52bdc4c87b0f26c2a2ff.json`
 SHA 0034193569c0af454df3b440ebae6ce6d6e7e0465e547c1dce81091badb70aec.
 Six proposals already retained, one individually held; 30 new proposals combine
@@ -46,13 +94,20 @@ old meshes, and check EACH new finished junction seam separately so a worse old
 gap cannot mask a new gap. A test combines two joins sharing one road and rejects
 an invalid corner. **120 workflow tests pass (10.367 s).**
 
-Grouped verification is RUNNING at
-`connector_group_verification/2b0f03275f7fac1bcb7e`; first 2/24 documents pass.
-Driver logs `phase1_connector_groups50_batch2..12.log`, <=2 documents per call,
+Grouped verification is COMPLETE at
+`connector_group_verification/2b0f03275f7fac1bcb7e`; 23/24 pass, one inherited source-build failure.
+Driver session 98949, logs `phase1_connector_groups50_batch2..12.log`, <=2 documents per call,
 checkpointed per document. Read live state/process before resuming; held geometry
 is a review result even if the CLI exits zero. Never reuse existing driver log
 names. Do not change checker/core inputs while these reports are being generated.
-The 30 additions are NOT yet in the retained network candidate.
+The 30 additions are NOT yet in the retained network candidate. The grouped
+checker also reproduces the previous independent large/small document proofs
+exactly (`grouped_connector_verifier_crosscheck.json`).
+
+Independent search is COMPLETE: session 54198, batches 14..26, reaching
+100 screened pairs (<=4 per call, final call 2). Its mutable state can advance
+without changing the frozen first-50 grouped inputs. Do not rerun existing log
+names or create a second concurrent writer for the same search state.
 
 After grouped checks, retain only complete passing document combinations and
 reconstruct the complete selection byte-exact. Continue local search from pair 50
