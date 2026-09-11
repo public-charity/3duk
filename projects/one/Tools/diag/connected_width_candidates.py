@@ -65,14 +65,22 @@ def width_components(definitions,tags,tuning):
 def main():
     ap=argparse.ArgumentParser(description=__doc__)
     ap.add_argument('--max-docs',type=int,default=8)
+    ap.add_argument('--hold-groups',type=Path,help='JSON decision file with a groups list; keeps complete components at source widths')
     ap.add_argument('--out',type=Path,default=TOOLS.parent/'Saved/Phase1/connected_width_candidates')
     args=ap.parse_args()
     if not 1<=args.max_docs<=32:raise ValueError('max-docs must be 1..32')
     if not args.out.resolve().is_relative_to((TOOLS.parent/'Saved/Phase1').resolve()):raise ValueError('candidate output must stay under Saved/Phase1')
     source=REPO/'data/thanet/out/unreal/streetscape';paths=sorted(source.glob('site_x*_y*.json'))
+    if not paths:raise ValueError('no source documents; empty coverage is not a candidate')
     osm=REPO/'data/thanet/raw/thanet.osm';tuning_path=REPO/'sources/config/tuning.json'
     inputs=paths+[osm,tuning_path,Path(__file__),TOOLS/'phase1_qc.py',TOOLS/'diag/path_crossing_candidate.py',TOOLS/'diag/structure_inventory.py']
     config=dict(site='thanet',scope='complete-document data candidates; geometry not accepted',model='explicit one-way lanes with complete reciprocal continuations')
+    held=[]
+    if args.hold_groups:
+        decision=json.loads(args.hold_groups.read_text());held=decision.get('groups')
+        if not isinstance(held,list) or any(not isinstance(i,str) for i in held) or len(set(held))!=len(held):
+            raise ValueError('hold decision must contain unique string group IDs')
+        held=sorted(held);inputs.append(args.hold_groups);config['held_groups']=held
     identity,hashes=content_identity(inputs,config);root=args.out/identity[:20];root.mkdir(parents=True,exist_ok=True)
     with run_lock(root/'run.lock'):
         started=time.time();state_path=root/'state.json'
@@ -92,6 +100,11 @@ def main():
             definitions=[d for raw in docs.values() for d in raw['splines'] if d['source']['layer']=='roads' and d['profile_ids'].get('road')]
             tags=read_osm_way_tags(osm,{d['source']['osm_id'] for d in definitions})
             tuning=json.loads(tuning_path.read_text())['roads'];groups=width_components(definitions,tags,tuning)
+            eligible={g['id'] for g in groups if g['status']=='candidate'}
+            if set(held)-eligible:raise ValueError('hold decision contains unknown or ineligible width groups')
+            for group in groups:
+                if group['id'] in held:
+                    group['status']='held_for_geometry';group['reasons'].append('held by geometry comparison: '+str(args.hold_groups))
             selected=sorted(i for g in groups if g['status']=='candidate' for i in g['ids'])
             road_profiles={}
             for raw in docs.values():

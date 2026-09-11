@@ -5,6 +5,22 @@ Thanet base suitable for high-quality building overlays. Survey registration, te
 roads, rail, junctions and their transitions belong to Phase 1. Hero buildings and
 decorative presentation remain later work.
 
+## Pavement mapping diagnosis — 2026-09-11
+
+The sweep builder corrects each triangle's winding toward the exposed surface.
+An upward-facing mesh can therefore still fold back over itself. A new independent
+diagnosis compares signed world XY area with signed (station, offset) area; this
+detects reversed mapping despite the winding correction. Four documents contain
+42 affected junctions, including previous geometry passes. A pavement-aware trim
+prototype reduces these to 23; no renderer change has been accepted. Next prove
+this stronger gate on an actual folded sweep and add it to geometry/contact QC.
+Earlier normal-only census pass counts are insufficient for acceptance.
+
+The retained width selection is now 210 groups / 261 splines, with 16 whole groups
+held after two full comparisons. All 246 candidate documents preserve the complete
+source apart from intended width fields. Regenerate both baseline and candidate
+censuses under the stronger gate before promotion. See current RESUME checkpoint.
+
 ## Whole-network width candidate — 2026-09-11
 
 A checkpointed full-document candidate applies 226 connected lane-width groups
