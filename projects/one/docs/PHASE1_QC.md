@@ -7,6 +7,17 @@ decorative presentation remain later work.
 
 ## Per-arm trim checkpoint — 2026-09-11
 
+The serialized search pilot retains 3/8 proposals: three of four overlap cases,
+zero of four fold-status cases. This directs the next bounded search toward the
+80 unsearched ordinary-road overlap cases. The retained candidate reaches 1,116
+passes (471 more than original), with zero junction or body regressions across
+1,411 changed bodies. Three freshly audited documents and 243 exact report reuses
+take 10.054 s. All 62 junction meshes in those three documents have zero patch
+gaps and corner seam error below 6e-12 m; the actual mesh diagram was inspected.
+90 tool tests pass, including a planted body regression that blocks a junction
+improvement. A completed real search resumes without repeating its evaluations.
+Checkpoint 25 exactly reconstructs all 246 documents from raw data in eight batches.
+
 Six optional end trim requests resolve two more junctions while preserving shared
 A/B/C stations. The fresh whole-site result is 1,113 passing junctions, 468 more
 than original, with no local junction or road-body regressions. All 1,404 changed
@@ -26,7 +37,7 @@ road-body checks plus an independent full-document audit. Shrink feasible radii
 under the same gates. Record each attempt atomically; partial improvements remain
 diagnostic, and final composition must also pass the original-base comparison.
 
-## Pavement mapping diagnosis â€” 2026-09-11
+## Pavement mapping diagnosis — 2026-09-11
 
 **Verified retained selection:** 168 complete width groups (213 splines) and 420
 trims preserve all 246 documents and improve original junction passes from 645 to
@@ -94,7 +105,7 @@ held after two full comparisons. All 246 candidate documents preserve the comple
 source apart from intended width fields. Regenerate both baseline and candidate
 censuses under the stronger gate before promotion. See current RESUME checkpoint.
 
-## Whole-network width candidate â€” 2026-09-11
+## Whole-network width candidate — 2026-09-11
 
 A checkpointed full-document candidate applies 226 connected lane-width groups
 (278 splines across 49 documents); 63 groups need more context. Independent
@@ -109,7 +120,7 @@ candidate must not be promoted. Hold affected connected groups and recheck the
 whole network; totals alone cannot excuse local regression. Detailed comparison
 and preservation evidence are in `connected_width_candidates/144f23ef8518eb1e0350`.
 
-## Geometry-first contact gate â€” 2026-09-11
+## Geometry-first contact gate — 2026-09-11
 
 Check surface geometry before spending time on terrain. Junction overlaps,
 inverted pavement, missing arms, incompatible sections and unresolved curves
@@ -127,7 +138,7 @@ Plan connected paths before imposing per-document trim limits; use a connected
 junction model for the tiny roundabout connector and a landing/structure model
 for the stairs. Preserve the existing curve quality limits and registration.
 
-## Connected road-width checkpoint â€” 2026-09-11
+## Connected road-width checkpoint — 2026-09-11
 
 Explicit one-lane roundabout pieces were 10 m wide from road-class defaults.
 A complete-document candidate infers 4/7 m widths from existing lane tuning,
@@ -147,9 +158,9 @@ unbuildable junctions outside this candidate. Keep transaction proof separate
 from engine/world acceptance. Candidate, images, failed solver and precise restart
 state are in the seventeenth checkpoint of `RESUME.md`; Phase 1 remains open.
 
-## Shared corner quality checkpoint â€” 2026-09-11
+## Shared corner quality checkpoint — 2026-09-11
 
-Long shallow junction corners previously had only three rings over 25â€“35 m.
+Long shallow junction corners previously had only three rings over 25–35 m.
 Both geometry cores now enforce <=1 m segments, <=10 mm cubic chord error and
 actual tangent turn <= the profile limit, within 4,096 segments. Signed bank
 transport preserves exact end seams and removes internal downward frame flips.
@@ -171,7 +182,7 @@ width or connected junction model before attempting triangulation. Previous loca
 terrain/crossing candidate fingerprints are historical after this shared-core edit;
 regenerate them before native previews. Saved production geometry remains unchanged.
 
-## Structure rollout checkpoint â€” 2026-09-10
+## Structure rollout checkpoint — 2026-09-10
 
 **Preview correction:** the first preview implementation reused the production
 replace-by-ID importer. That importer deletes saved external actor packages immediately;
@@ -193,7 +204,7 @@ Connected approach modelling doubled the passing rail candidates from eight to s
 without relaxing the DSM gate. It follows tile fragments, joins short bridge connectors
 with matching endpoint heights/tangents, preserves signed bank under reversal and rejects
 conflicting overlapping edits. A union generation produces 50 spline definitions in 6.7 s.
-The two Broadley Road crossings still have only 1.78â€“1.97 m nominal clearance above the
+The two Broadley Road crossings still have only 1.78–1.97 m nominal clearance above the
 current road mesh; these remain unresolved despite positive, non-intersecting envelopes.
 
 `Tools/diag/structure_workflow.py` screens at most four rail candidates per invocation
@@ -208,7 +219,7 @@ Current ledger `Saved/Phase1/structures/c6e5169baf705bcf9ea1/state.json`:
 Repeat invocation reuses all results in 7.4 s; 36 tool tests pass. All remain candidates.
 Original tunnel tags distinguish 14 building passages, two covered passages, and nine
 rail sidings requiring cover review. Do not model these all as underground tunnels.
-Several bridge pairs have 9â€“13 m ground connectors, and tile stubs can be under a metre:
+Several bridge pairs have 9–13 m ground connectors, and tile stubs can be under a metre:
 use connected alignments across those segments before claiming continuity.
 
 ## Working strategy
@@ -439,7 +450,7 @@ Two Minnis railway spans and four 40 m approaches now use an explicit shared
 elevation/bank profile. The same profile is read, built and written by NumPy and
 Unreal; all new parity arrays are bit-identical. Geometry regression is 151 NumPy
 tests and 35 Unreal tests. Candidate generation takes 2.1 seconds. The p95 DSM
-residual on adjusted approaches is 3.5â€“7.2 cm, with maximum approach grade 1.381%.
+residual on adjusted approaches is 3.5–7.2 cm, with maximum approach grade 1.381%.
 
 The fixed-camera preview has continuous rail above the road. Sampled nominal
 ballast-base clearance is at least 4.633 m. The saved level is unchanged: delta

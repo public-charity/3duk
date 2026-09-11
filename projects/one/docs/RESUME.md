@@ -1,6 +1,64 @@
 # Resume here
 
-## Current checkpoint â€” 2026-09-10, Phase 1 completion
+## Current checkpoint — 2026-09-10, Phase 1 completion
+
+### Twenty-sixth checkpoint IN PROGRESS — 2026-09-11: ordinary-road overlap network
+
+Bounded search of 80 remaining ordinary-road overlap junctions in 38 documents,
+starting from checkpoint-25 candidate 8abe below. Previously searched pilot targets
+excluded. Longest minimum arms first. Batch 1 completed: **7 attempted /4 retained**.
+CURRENT JOB batch 2, session48807, `Saved/phase1_arm_overlap_batch2.log`.
+Selection/state: `Saved/Phase1/arm_overlap_network_{selection,run}.json`.
+Driver `Saved/Phase1/run_arm_overlap_network.py` runs at most four document jobs
+with two Python processes; each tool invocation handles at most two junctions,
+20 s search budget apiece, atomic completion after each. Repeat driver until all
+80 are attempted, inspecting logs and preserving source hashes. Do not change
+tool/core while this search runs. Compose final document states, independently
+compare original junction/body geometry, verify actual meshes/seams, and export
+a recoverable selection before retaining the result. Partial outputs stay separate.
+
+### Twenty-fifth checkpoint COMPLETE — 2026-09-11: serialized bounded arm search
+
+Current retained candidate **`Saved/Phase1/arm_network_candidates/8abe75ce4814c0cf44ab`**:
+all 246 documents; 168 width groups /420 common trims /15 end trims at five junctions.
+**1,116 pass /359 fold /164 overlap /3 needs_geometry**: 471 new junction passes
+versus original, **ZERO junction/body regressions**, all 1,411 changed bodies checked.
+Fresh verification of three changed documents plus hash-proved reuse of 243 takes
+10.054 s. `geometry_verification.json`, `verification/{corners,bodies}`.
+Independent actual meshes: all 62 junction patches in the three pilot documents,
+zero patch gaps, max corner seam gap **5.53224e-12 m**; all changed-end length
+bounds hold. `mesh_seam_verification.json`. Actual mesh diagram inspected:
+`actual_mesh_diagram.png` (three paired before/after plan views).
+
+New tool
+`Tools/diag/junction_arm_trim_candidates.py` uses actual end fields, observed
+pre-reconciliation requests, exact baseline reproduction, all changed-end length
+bounds, neighbour/body gates, full-document verification, immutable step files
+and atomic state. 20 s search budget, at most two junctions per invocation.
+Checks compare accumulated changes to the input as well as the current step.
+Only full junction passes survive. **90 tool tests PASS** (8.113 s), including a
+planted body regression that blocks retention. Real J14_12:5 independently
+reproduced in 4.972 s /96 evaluations at
+`junction_arm_trim_candidates/site_x14_y12/26f5d8cf589680052312`.
+
+Eight-case pilot completed: **3/8 retained**, all from overlap cases (3/4);
+four fold-status cases and J16_6:14 remain rejected. New passes J16_3:6,
+J17_8:40 and J20_15:9 take 6.475–11.893 s each including process setup.
+Logs `phase1_arm_search_pilot_batch{1,2}.log`. Selection/state:
+`Saved/Phase1/arm_search_pilot_{selection,run}.json`; driver
+`Saved/Phase1/run_arm_search_pilot.py` runs at most four jobs, resumes each result,
+and each underlying tool checkpoints every junction. Repeat completed J14_12:5
+invocation verifies checkpoint reuse (`phase1_arm_search_resume.log`).
+Full tool suite completed: `Saved/phase1_arm_search_all_tool_tests.log`.
+Documentation reads/writes must explicitly use UTF-8 on this Windows Python.
+
+**Recovery:** committed `docs/checkpoints/phase1_25_geometry_selection.json` plus
+`restore_geometry_selection.py --manifest projects/one/docs/checkpoints/phase1_25_geometry_selection.json`
+recreates all 246 documents byte for byte in eight bounded batches. Verified at
+`restored_geometry_selection/6e94d9f3dc433097cef9`; logs
+`phase1_arm_pilot_restore_batchN.log`. No native/core change since checkpoint24.
+526 junctions, continuation seams, terrain, structures and world acceptance remain
+open. Production untouched; this is a recoverable geometry candidate.
 
 ### Twenty-fourth checkpoint COMPLETE — 2026-09-11: shared per-arm trim and exact recovery
 
@@ -61,7 +119,7 @@ radii must be captured BEFORE degenerate short-link scaling; final arm radii do
 not reproduce the input. Use a CachedPlan `_arm_at` observation hook, then assert
 whole-plan trim equality before searching. Do not port the old prototype monkeypatch.
 
-### Twenty-third checkpoint COMPLETE â€” 2026-09-11: verified width/trim selection and body QC
+### Twenty-third checkpoint COMPLETE — 2026-09-11: verified width/trim selection and body QC
 
 **Current retained data candidate:** `Saved/Phase1/filtered_combined_geometry/e11cde079c92c23a2aae`.
 All 246 documents / 15,422 spline definitions / 1,642 junctions preserved, with
@@ -93,7 +151,7 @@ Recreation is data recovery, not acceptance under later geometry-core changes.
 `remaining_corner_inventory.json` classifies actual arm lengths/source context:
 287 ordinary-road junctions, 143 with an arm under 8 m, 84 mixed road/path,
 14 structure/steps, 3 path-only. Categories prioritize structure, then short links,
-then path mix. Many ordinary-road cases also have 9â€“12 m links. Investigate a bounded
+then path mix. Many ordinary-road cases also have 9–12 m links. Investigate a bounded
 per-arm/compound junction model and the continuation seams before new terrain work.
 Use current candidate above as the starting point; do not repeat the finished width
 or common-radius searches. Shared A/B seams, real road bodies and every affected
@@ -120,7 +178,7 @@ First filtered full fresh corner/body audits: `corner_quality/083bcde409706cde6c
 `road_body_quality/ac7f68b0dccc4b1946ea`; final complete reports under current
 candidate `verification/{corners,bodies}`. No production rollout.
 
-**Rejected private prototypes â€” don't repeat blindly:**
+**Rejected private prototypes — don't repeat blindly:**
 - Continuation builders ignore overrun controls. Census finds 5,110 reciprocal
   pairs (5,100 untrimmed), 2,367 nominal direction-induced edge offsets >5 cm.
   5,099 controls match actual neighbour points within 1 mm. Contextual Catmull-Rom
@@ -138,7 +196,7 @@ candidate `verification/{corners,bodies}`. No production rollout.
   regression. Do not relax half-length bounds to manufacture a pass.
 All prototypes live under Saved/Phase1; shared renderer source remains unchanged.
 
-### Twenty-second checkpoint IN PROGRESS â€” 2026-09-11: cached bounded trim candidates
+### Twenty-second checkpoint IN PROGRESS — 2026-09-11: cached bounded trim candidates
 
 **Pilot complete and independently verified; no jobs running.** 13 retained trims
 improve the 44-junction width document from **13 to 26 passes**, 29->17 folds,
@@ -187,7 +245,7 @@ No engine jobs or production changes. Do not edit tool/core dependencies while
 this pilot runs. Complete the pilot, compare all 44 junctions against both its width
 input and original source, verify restart reuse, then checkpoint before broadening.
 
-### Twenty-first checkpoint IN PROGRESS â€” 2026-09-11: winding-invariant pavement QC
+### Twenty-first checkpoint IN PROGRESS — 2026-09-11: winding-invariant pavement QC
 
 **Verification complete; no jobs running.** All **76 tool tests pass**, including
 a real crossroads whose patch has zero overlap and all pavement triangles face up,
@@ -234,7 +292,7 @@ compares mapping-fold area as well as older metrics. The baseline and candidate
 must both complete all 246 docs / 1,642 junctions before comparison. The earlier
 width selection is immutable evidence, not yet geometry accepted under this gate.
 
-### Twentieth checkpoint â€” 2026-09-11: width holds; stronger pavement QC needed
+### Twentieth checkpoint — 2026-09-11: width holds; stronger pavement QC needed
 
 **No jobs running.** New independent diagnosis finds that the sweep builder's
 per-triangle winding correction hides pavement folds from an upward-normal test.
@@ -292,7 +350,7 @@ It checks all 1,642 junctions against unchanged original baseline; any remaining
 regressions need another cumulative held-group or trim decision. No terrain
 rebuild or production promotion until the retained selection passes this gate.
 
-### Nineteenth checkpoint IN PROGRESS â€” 2026-09-11: full connected-width candidate
+### Nineteenth checkpoint IN PROGRESS — 2026-09-11: full connected-width candidate
 
 **Complete verification; no jobs running.** Full candidate census:
 1,289 pass / 106 fold / 243 overlap / 4 curve failures, all 1,642 junctions.
@@ -344,7 +402,7 @@ widths as geometry acceptance: record all new regressions and improvements befor
 choosing candidate groups/trim corrections. This candidate has no local crossing
 height or :0 trim overrides from checkpoint 17; those are separate proven examples.
 
-### Eighteenth checkpoint IN PROGRESS â€” 2026-09-11: geometry before contact
+### Eighteenth checkpoint IN PROGRESS — 2026-09-11: geometry before contact
 
 **Verification complete; no jobs running:** new geometry-first recheck took
 17.852 s versus prior 112.763 s elapsed (about 6.3x faster). All 51 junctions
@@ -386,7 +444,7 @@ Do not weaken the curve quality gate. Plan joined source continuations across
 fragment/document boundaries before choosing trim stations; nearby junctions
 sharing tiny connectors need one connected model. Keep raw registration/IDs.
 
-### Seventeenth checkpoint â€” 2026-09-11: connected widths and bounded trim preview
+### Seventeenth checkpoint — 2026-09-11: connected widths and bounded trim preview
 
 **No jobs are running. Latest prior commit `ebfcdea` is milestone 16.** Current
 source is tested and ready to commit: connected width preflight, complete-candidate
@@ -403,7 +461,7 @@ Eleven explicit one-way lane widths infer 4/7 m from existing tuning, including
 reciprocal 921070153 -> 921070151. Complete selection is checked before mutation;
 partial, displaced, nonreciprocal or unequal-width continuation pairs fail.
 Original OSM centrelines/source remain fixed. Junction :0 uses explicit 8 m trim
-with unchanged topology/registration. Bounded probe found 7.5â€“8.5 m clean, versus
+with unchanged topology/registration. Bounded probe found 7.5–8.5 m clean, versus
 0.8415 m2 overlap at automatic 11.441 m. Evidence helpers:
 `Saved/Phase1/test_pilot_widths.py`, `probe_pilot_trim.py`, and `corner_topology/`.
 All 51 candidate junctions compared with source: 35->40 geometry passes,
@@ -425,7 +483,7 @@ roundabout 921070152 base versus lower service road1393541236 surface at
 `terrain_finish_candidates/6610f8a6199db6166dd7/report.json` and
 `phase1_connected_roundabout_finish.log`. Correct geometry/connection first.
 
-**Native preview transaction verified, overall runner FAILED â€” do not label green.**
+**Native preview transaction verified, overall runner FAILED — do not label green.**
 `connected_roundabout_native_preview/report.json` is complete: 239 actors / 51
 junctions, candidate export includes the 8 m trim, all restored exactly; 8,343
 landscape posts, 3,458 changed, max 0.90625 m, exact restoration; stable actor paths;
@@ -443,7 +501,7 @@ four unbuildable junctions and connected lane-width candidates across the networ
 resolve service-road connection and remaining :3 pavement/edge contact. Full Phase 1
 remains unaccepted. Preserve this checkpoint before making more core changes.
 
-### Sixteenth milestone â€” 2026-09-11: shared corner quality and complete census
+### Sixteenth milestone — 2026-09-11: shared corner quality and complete census
 
 **Current verified checkpoint:** shared corner sampling, bank transport, and
 partial-junction-rebuild rejection are implemented in both cores. **160/160 Python
@@ -484,7 +542,7 @@ Regenerate local candidates before preview. Production JSON, survey and Content
 unchanged. Milestone 16 source is ready to commit; prior commit `c43b008` is milestone 15.
 Historical milestone notes below preserve diagnoses and attempts, not live jobs.
 
-### Fifteenth milestone â€” 2026-09-11: bounded terrain finish and native verification
+### Fifteenth milestone — 2026-09-11: bounded terrain finish and native verification
 
 **Verified completion of this tool/candidate milestone:** native preview PASSED in
 118.6 s (`phase1_crossing_finished_native.runner.log`, documented post-success
@@ -558,7 +616,7 @@ corner :2 at (8370.133664,4484.906830,51.344798), :3 at
   claim zero residual. `materialize_contact_candidate.py` now supports validated
   bounded fills as well as historical cuts, preserving signed survey deltas.
 
-### Fourteenth milestone â€” 2026-09-11: visible road obstructions and safe document previews
+### Fourteenth milestone — 2026-09-11: visible road obstructions and safe document previews
 
 **Latest numerical iteration:** `path_crossing_candidates/43a2f4e73ddefae8c6a0/`
 fits a fair height profile (2 m curvature/displacement scale) under the same exact
@@ -675,7 +733,7 @@ Earlier running/not-run notes below are historical and superseded by this block.
   preview and fixed camera from `terrain_preview_camera/report.json`. Not run yet;
   finish native tests first. Candidate report remains `4f698623fac024d7623f/report.json`.
 
-### Thirteenth milestone â€” 2026-09-11: support source and unsaved terrain preview
+### Thirteenth milestone — 2026-09-11: support source and unsaved terrain preview
 
 - Latest commit **`64a86c8`**, fully verified bank-aware support core below.
 - Working native edits add optional `AStreetscapeSiteActor.SupportTerrainSource`;
@@ -721,7 +779,7 @@ Earlier running/not-run notes below are historical and superseded by this block.
   material/instance readiness needs examination before attributing every pixel change
   to terrain. No guessed width or junction edits have been applied.
 
-### Twelfth milestone â€” 2026-09-11: bank-aware Renderer B supports
+### Twelfth milestone — 2026-09-11: bank-aware Renderer B supports
 
 - Latest commit **`1dc9cf5`** contains the bounded corner repair milestone below.
 - Working changes: new NumPy `streetscape/support.py`; Renderer B starts from the
@@ -767,7 +825,7 @@ Earlier running/not-run notes below are historical and superseded by this block.
   fresh candidate/preview. Do not restart the 23-minute conform merely for a helper
   hash change.
 
-### Eleventh milestone â€” 2026-09-11: bounded corner terrain contact
+### Eleventh milestone — 2026-09-11: bounded corner terrain contact
 
 - Latest committed milestone **`dd9ee22`**, full junction QC census. No engine job.
 - New working tools `diag/terrain_contact.py` and `diag/junction_contact_candidate.py`
@@ -1090,14 +1148,14 @@ Earlier running/not-run notes below are historical and superseded by this block.
 - Candidate generation also requires 80% of changed stations to match DSM within
   0.25 m. Supported span fits alone cannot certify unsupported approaches.
 - **36/36 tool tests pass**, `Saved/phase1_tools_36.log`. Completed 24 rail-fit jobs,
-  about 4.6â€“5.4 s each: **8 candidates, 16 requiring approach work**. All 133 groups
+  about 4.6–5.4 s each: **8 candidates, 16 requiring approach work**. All 133 groups
   accounted for: also 34 deck-fit reviews, 25 road-approach models, 50 context models.
   State: `Saved/Phase1/structures/c6e5169baf705bcf9ea1/state.json`. Logs:
   `phase1_structure_batch1.log`, `phase1_structure_remaining.log`; repeated invocation
   reused every result in 7.4 s (`phase1_structure_resume.log`). None of the eight
   candidates share a changed approach; crossing/support/visual checks remain open.
-- Short approaches are real: several bridge pairs have only 9â€“13 m between them,
-  and tile-boundary stubs can be 0.5â€“3 m. They need a connected alignment across
+- Short approaches are real: several bridge pairs have only 9–13 m between them,
+  and tile-boundary stubs can be 0.5–3 m. They need a connected alignment across
   segments, not a forced 40 m transition on each segment. Other failures need
   locally supported curvature/grade handling; do not relax gates to turn them green.
 - Next: resolve short/shared approach cases, then
@@ -1116,12 +1174,12 @@ Earlier running/not-run notes below are historical and superseded by this block.
   (`Saved/phase1_elevation_tests.runner.log`). All five new profile parity arrays are
   **56/56 bit-identical**. Do not reuse the old seven-case parity JSON.
 - `Tools/diag/bridge_profile_candidate.py` builds explicitly selected, passing rail
-  DSM fits with supported 40â€“120 m Hermite approach blends. Missing/ambiguous anchors,
+  DSM fits with supported 40–120 m Hermite approach blends. Missing/ambiguous anchors,
   excessive grade/bank rate, stale source documents and conflicting profiles fail.
   The initial two Minnis spans plus four approaches generate in **2.1 seconds**:
   `Saved/Phase1/minnis_bridge_candidate/candidate_manifest.json` (delta scope).
   All four blends are 40 m; maximum grade 1.381%; changed-approach DSM residual p95
-  3.5â€“7.2 cm. Profile endpoints match exactly in height/bank; remote approach geometry
+  3.5–7.2 cm. Profile endpoints match exactly in height/bank; remote approach geometry
   remains at its earlier reference. Bridge spans have zero modelled bank.
 - Reproduce: `& projects/one/Tools/python.ps1 projects/one/Tools/diag/bridge_profile_candidate.py --group rail:310977210:0 --group rail:4596560:0 --out projects/one/Saved/Phase1/minnis_bridge_candidate`.
 - `Tools/diag/bridge_crossing_audit.py` samples the nominal ballast base against
@@ -1243,7 +1301,7 @@ This section supersedes the historical September 9 handover below. Read
   `Saved/Logs/phase1_tests.log`. The handover's 32-test count was stale.
 - QC sample: 48 documents, 2,868 selected splines = 2,843 measured + 24 structures
   explicitly excluded + one named no-terrain stub. Twelve chunks took 111.34 seconds
-  of audit time, about 7â€“13 seconds each. A second invocation reused all twelve in
+  of audit time, about 7–13 seconds each. A second invocation reused all twelve in
   ~5 seconds. State: `Saved/Phase1/sample/70b1f1ab251bc2f0c187/state.json`.
 - Numerical baseline: 133,265 stations / 192.737 km; LOD 0 has zero penetration above
   5 mm, but **11.638%** of stations float over 125 mm (max 4.475 m). Penetrated length:
@@ -1281,7 +1339,7 @@ This section supersedes the historical September 9 handover below. Read
 
 The VM this is built on drops without warning, and it has already taken the session down five
 times. This file is the handover: read it first after any disconnect, and it should be enough to
-pick the work up cold. Keep it current â€” it is the only file that claims to describe *now*.
+pick the work up cold. Keep it current — it is the only file that claims to describe *now*.
 
 Last updated: 2026-09-09, at the end of the "roads above ground, joined properly" round, by the
 integrity agent. Sections 3 and 8 are the ones that go stale first.
@@ -1302,9 +1360,9 @@ hedge), with every variant expressed as profile JSON and arc-length segment list
 | | |
 |---|---|
 | Branch | `thanet-explorer` (not merged to `main`) |
-| Last commit | `44f36bd` â€” a fixed set of 45 viewpoints rendered at every commit, and the road defect finally explained |
+| Last commit | `44f36bd` — a fixed set of 45 viewpoints rendered at every commit, and the road defect finally explained |
 | Before that | `b1cd3e5` conform + seams + honest gates + the whole isle in the level, `b1a7c52` this file + `TERRAIN_ROADS.md`, `3e26561` integrity fixes, `4bfee9d` massing + explorer pawn, `bc08e22` renderers + landscape import |
-| Re-measured 2026-09-09 by the integrity pass (at `44f36bd` + working tree) | `dryrun.py` **167 passed, 0 failed** Â· `test_unreal_adapter.py` **Ran 47 â€¦ OK** Â· numpy suite **Ran 116 â€¦ OK** Â· `build.ps1` **Result: Succeeded** Â· `run_ue_tests.ps1` **26 `Result={Success}`, 0 failures** (`Saved/Logs/tests.log`) Â· Margate gate **green** (below) |
+| Re-measured 2026-09-09 by the integrity pass (at `44f36bd` + working tree) | `dryrun.py` **167 passed, 0 failed** · `test_unreal_adapter.py` **Ran 47 … OK** · numpy suite **Ran 116 … OK** · `build.ps1` **Result: Succeeded** · `run_ue_tests.ps1` **26 `Result={Success}`, 0 failures** (`Saved/Logs/tests.log`) · Margate gate **green** (below) |
 
 **The Margate regression gate passes again**, and it can still fail:
 
@@ -1315,96 +1373,96 @@ export PY=C:/Users/Shadow/code/3duk-env/env/python.exe
 ./sources/tests/regress_outputs.sh selftest margate                      # 12 cases, 0 failed
 ```
 
-`before` and `fixer_before` are **superseded snapshots and are still red on purpose** â€” see
+`before` and `fixer_before` are **superseded snapshots and are still red on purpose** — see
 `docs/STAGES.md` note (a). Use `terrain_fix_before` or `baseline_2026-09-08`.
 
-**Data on disk (all git-ignored, hours to rebuild â€” do not delete):**
+**Data on disk (all git-ignored, hours to rebuild — do not delete):**
 
-- `data/thanet/raw/` 3.9 GB â€” 988 LIDAR rasters and the 30 MB OSM extract. Re-fetching costs ~6 min
+- `data/thanet/raw/` 3.9 GB — 988 LIDAR rasters and the 30 MB OSM extract. Re-fetching costs ~6 min
   for LIDAR and one Overpass call, but the OSM extract will differ from the one everything was built
   against (`sources/provenance/thanet.osm.json` records its sha256).
-- `data/thanet/out/` â€” the survey products: 391 terrain tiles, roads, massing, coast, furniture, rail
+- `data/thanet/out/` — the survey products: 391 terrain tiles, roads, massing, coast, furniture, rail
   and barriers.
-- `data/thanet/out/unreal/` â€” the engine products: `landscape/` (391 `hm_*.r16`, 391 `clip_*.r8`,
+- `data/thanet/out/unreal/` — the engine products: `landscape/` (391 `hm_*.r16`, 391 `clip_*.r8`,
   31 `vis_*.r8`, weightmaps), 246 streetscape documents (~15,422 splines), massing, furniture, **and
-  `landscape_conformed/`** â€” see Â§4. `landscape_clean/` and `landscape_seam/` are 25-file 2Ã—2 cutouts
+  `landscape_conformed/`** — see §4. `landscape_clean/` and `landscape_seam/` are 25-file 2×2 cutouts
   left behind by `Tools/ue/gate_proofs.py`; they are scratch, not products.
-- `projects/one/Content/` 2.1 GB â€” the generated level: landscape (2,067 components, 140 proxies),
+- `projects/one/Content/` 2.1 GB — the generated level: landscape (2,067 components, 140 proxies),
   216 massing actors, 15,423 streetscape actors. **Regenerable** by the `Tools/ue` scripts, which is
   why it is ignored; regenerating the landscape costs ~6 minutes plus editor startup.
-- `renders/<commit>/` â€” the fixed 45-viewpoint render set, committed via LFS with a `manifest.json`
+- `renders/<commit>/` — the fixed 45-viewpoint render set, committed via LFS with a `manifest.json`
   holding each camera transform and each image's sha256. `renders/b1cd3e5/INDEX.md` is the
   defect-by-defect reading of what the model looks like.
 
 ## 3. What this round did, agent by agent
 
-Three agents worked in parallel on Alex's request â€” *"fix the roads so they are all above ground as
-necessary and make sure they join together properly â€¦ make this a solid foundation"*. The binding
+Three agents worked in parallel on Alex's request — *"fix the roads so they are all above ground as
+necessary and make sure they join together properly … make this a solid foundation"*. The binding
 architectural call was:
 
 > A junction is road **surface**, so filling it is **Renderer A**. There is no fourth renderer.
 > The **trimming** of a spline end back to a junction belongs one level lower, in the **shared spline
 > layer**, so Renderer A and Renderer B read one trimmed extent and cannot drift. Renderer B stops the
-> kerb and pavement at the trim and turns the corner with a radius. Junctions are **data** â€” 1,642
+> kerb and pavement at the trim and turns the corner with a radius. Junctions are **data** — 1,642
 > `_junction` records already in `data/thanet/out/networks/roads_*.jsonl`, already carried into every
-> site document as `junctions[]` â€” use them, do not invent a parallel mechanism.
+> site document as `junctions[]` — use them, do not invent a parallel mechanism.
 
-- **Geometry / spline** â€” `Tools/blender/streetscape/{spline,schema,road,edge,hedge,mesh,build,
+- **Geometry / spline** — `Tools/blender/streetscape/{spline,schema,road,edge,hedge,mesh,build,
   terrain,conform}.py`, `tests/synthetic.py`, `tests/test_conform.py`, `Tools/conform_landscape.py`,
   `Tools/road_fusion_audit.py`, `schema/streetscape.schema.json`. A `JunctionPlan` resolves the trim
   once per site; `Spline` takes `trim=(t_start, t_end)` as a **mask on `s`**, not a re-basing (so every
   segment list and every `s`-ranged override keeps its meaning), and both trim stations are added to
   the mandatory station set so they exist exactly in every renderer's list. `resolve_widths` became
   the one definition of half-width that `Spline` and `JunctionPlan` both call.
-- **Clearance / adapter** â€” `sources/adapters/unreal.py` gained `derived_products()`, so
+- **Clearance / adapter** — `sources/adapters/unreal.py` gained `derived_products()`, so
   `unreal_manifest.json` finally indexes `landscape_conformed`: what wrote it, when, at which commit,
   how many cells it changed, and that its heights inside the corridor are the road and not the survey.
   An absent directory yields `present: false` rather than no entry, so "not built yet" and "not known
   about" cannot be confused.
-- **Integrity** (this file's author) â€” `sources/tests/regress_outputs.sh`, `sources/OUTPUT.md`,
-  `README.md`, `Tools/ue/run_ue_python.ps1`, `docs/STAGES.md`, `docs/RESUME.md`. See Â§5 and Â§6.
+- **Integrity** (this file's author) — `sources/tests/regress_outputs.sh`, `sources/OUTPUT.md`,
+  `README.md`, `Tools/ue/run_ue_python.ps1`, `docs/STAGES.md`, `docs/RESUME.md`. See §5 and §6.
 
 **Both of the other two were still mid-flight when this was written.** `git status --short` and
-`git diff --stat` first, then run the suites in Â§2 before believing any of it.
+`git diff --stat` first, then run the suites in §2 before believing any of it.
 
 ## 4. The defects, and where each one stands
 
 `docs/TERRAIN_ROADS.md` is the measured analysis; `renders/b1cd3e5/INDEX.md` is what it looks like.
 
-**D1 â€” tile-boundary seams. FIXED** (`b1cd3e5`). Step 05 no longer nearest-fills open sea and no
+**D1 — tile-boundary seams. FIXED** (`b1cd3e5`). Step 05 no longer nearest-fills open sea and no
 longer fills per tile; the fill is decided once over the site mosaic, and `terrain_manifest.json`
 gained a `shared_edges` block that step 05 exits non-zero on. Thanet: 737 pairs, **0 of 378,081**
 shared samples disagreeing, worst 0.0 m (was 29,188 cells and 5.34 m). Margate: 162 pairs, 0 of
 83,106.
 
-**D2 â€” "two terrain truths" was a misdiagnosis.** The heightfield and the ALandscape are the same
+**D2 — "two terrain truths" was a misdiagnosis.** The heightfield and the ALandscape are the same
 data, agreeing at every grid post to 0.53 mm; they differ only between posts, bilinear versus the
 landscape's triangle pairs, bounded by `|twist|/4` (max 6.12 m over the site, 0.026 % of quads over
-0.5 m). `Streetscape.Terrain.Triangulated` exists and passes. **The Â§3.5 recommendation was NOT
+0.5 m). `Streetscape.Terrain.Triangulated` exists and passes. **The §3.5 recommendation was NOT
 carried out** and this is easy to assume otherwise: `StreetTerrainSource.h:53` and `:138` still
 default to `EStreetHeightSampling::Bilinear`, and `Tools/blender/streetscape/terrain.py`'s
-`Heightfield.sample` is still bilinear only â€” so the conform was burned against the bilinear rule
+`Heightfield.sample` is still bilinear only — so the conform was burned against the bilinear rule
 while the ground the player sees and collides with is triangulated. Checked 2026-09-09; it is a
-coordinated change (`DESIGN.md` Â§8 specifies bilinear and the frozen fixtures move with it).
+coordinated change (`DESIGN.md` §8 specifies bilinear and the frozen fixtures move with it).
 
-**D3 â€” roads fusing with the ground. FIXED in the data** (`b1cd3e5`). The corridor conform burns the
+**D3 — roads fusing with the ground. FIXED in the data** (`b1cd3e5`). The corridor conform burns the
 road's own built surface into a copy of the landscape. Whole isle, 13,097 splines, 666,314 stations:
-stations with ground above the built surface **565,545 â†’ 0**, carriageway penetrated **826.7 km â†’
-0.000 km**, worst penetration **13.826 m â†’ 0.000000 m**.
+stations with ground above the built surface **565,545 → 0**, carriageway penetrated **826.7 km →
+0.000 km**, worst penetration **13.826 m → 0.000000 m**.
 
-**D3b â€” and yet the road is not in the picture. OPEN, and it is now the headline.** Measured over the
+**D3b — and yet the road is not in the picture. OPEN, and it is now the headline.** Measured over the
 45-frame set at `b1cd3e5`: of the 31 frames that stand on or look along a road, **the carriageway is
-drawn in 15 and missing in 16**. It is not the geometry â€” a downward trace at those same cameras hits
-the street 2.7â€“6.0 cm above the landscape, and hiding the `LandscapeProxy` actors brings the whole
+drawn in 15 and missing in 16**. It is not the geometry — a downward trace at those same cameras hits
+the street 2.7–6.0 cm above the landscape, and hiding the `LandscapeProxy` actors brings the whole
 street back (`Tools/ue/diag_road_visibility.py`, `Saved/RoadVisibility/`). **The surface the landscape
 rasterises is not the surface its own height query returns**, and the drawn ground wins wherever a
 1 m quad holds more than the conform's 3 cm sink. Pinning LOD 0 removes it in a capture
 (`05_screenshot.py --landscape-lod0-screen-size`) but not at runtime. Deepening the sink is not free:
 the kerb tuck is 0.03 m, so a deeper sink shows daylight under the kerb.
 
-**D4 â€” dishonest gates. FIXED** (`b1cd3e5` for the import gates, this round for the two below).
+**D4 — dishonest gates. FIXED** (`b1cd3e5` for the import gates, this round for the two below).
 
-**D5 â€” the network is in the level.** 15,423 streetscape actors, 216 massing actors, 140 proxies,
+**D5 — the network is in the level.** 15,423 streetscape actors, 216 massing actors, 140 proxies,
 `PlayerStart`, game mode and pawn set, `problems: []` (`Saved/Tests/d5_assert_final.json`).
 
 ## 5. The two integrity defects closed this round
@@ -1419,15 +1477,15 @@ snapshot, so one changed digit still fails. What actually changed is in `docs/ST
 with the byte counts. `selftest` breaks twelve things on purpose and requires the exact verdict for
 each.
 
-**The headless runner was reporting crashes as successes â€” read this before trusting any THANET_OK.**
+**The headless runner was reporting crashes as successes — read this before trusting any THANET_OK.**
 `Tools/ue/run_ue_python.ps1` used to attribute *every* non-zero exit to this machine's VC++
 redistributable advisory. There are two causes, not one, and they were measured on 2026-09-09:
 
 | what the run did | raw exit | why |
 |---|---|---|
 | `ue_common.py`, with and without `-Render` | **1** | the VC++ advisory, counted as an error by the commandlet framework |
-| `04_probe.py --points â€¦ ` (no `--landscape`, `regions_loaded 0`) | **1** | the same |
-| `04_probe.py --points â€¦ --landscape` (`regions_loaded 1`) | **0xC0000005** | access violation at teardown |
+| `04_probe.py --points … ` (no `--landscape`, `regions_loaded 0`) | **1** | the same |
+| `04_probe.py --points … --landscape` (`regions_loaded 1`) | **0xC0000005** | access violation at teardown |
 | `07_assert_level.py --census-only` (streams the whole world) | **0xC0000005** | the same |
 | all nine `render_set.ps1` batches at `b1cd3e5` | **0xC0000005** | the same (`renders/b1cd3e5/manifest.json`) |
 
@@ -1438,35 +1496,35 @@ the way through the Warning/Error Summary to `LogExit: Exiting.` and `Log file c
 marker anywhere. **No output is lost.** There is also **no callstack**: UE writes no
 `Saved/Crashes/` entry and Windows writes no dump, because the fault is after the crash handler has
 been torn down. Getting a stack would mean attaching a debugger (procdump/windbg, neither installed)
-to the commandlet â€” that is the next step if it ever starts costing work rather than exit codes.
+to the commandlet — that is the next step if it ever starts costing work rather than exit codes.
 
 The runner now names the NTSTATUS, waives the teardown crash **only** against positive proof that the
-work finished (Python succeeded, â‰¥1 `THANET_OK`, no `THANET_FAIL`, no crash marker, clean shutdown),
+work finished (Python succeeded, ≥1 `THANET_OK`, no `THANET_FAIL`, no crash marker, clean shutdown),
 prints a banner when it does, writes a `VERDICT` line and a row in
 `Saved/Logs/run_ue_python_verdicts.tsv`, refuses the waiver under `-StrictExit`, and fails loudly with
-a 40-line log excerpt for anything else. Verified on four cases: advisory â†’ 0, teardown crash â†’ 0 with
-the banner, teardown crash `-StrictExit` â†’ non-zero, deliberate Python failure â†’ non-zero.
+a 40-line log excerpt for anything else. Verified on four cases: advisory → 0, teardown crash → 0 with
+the banner, teardown crash `-StrictExit` → non-zero, deliberate Python failure → non-zero.
 
 ## 6. Rules that cost previous sessions hours
 
 - **PATH must use the `/c/` form**: `export PATH="/c/Users/Shadow/code/3duk-env/env/Library/bin:$PATH"`.
-  A `C:/...` entry is invisible to bash â€” GDAL disappears and numpy's LAPACK dies silently with no
+  A `C:/...` entry is invisible to bash — GDAL disappears and numpy's LAPACK dies silently with no
   output at all.
 - **Python is only** `C:/Users/Shadow/code/3duk-env/env/python.exe`. The `python`/`python3` on PATH
-  are broken Microsoft Store stubs. `regress_outputs.sh` needs one too â€” `export PY=` it.
+  are broken Microsoft Store stubs. `regress_outputs.sh` needs one too — `export PY=` it.
 - **`run_ue_python.ps1` exit 0 is not proof.** Read the `VERDICT` line it prints and confirm the
-  output files exist. Â§5 says why.
+  output files exist. §5 says why.
 - **UE 5.8 prints `Test Completed. Result={Success}`**, not `{Passed}`.
 - **Close the GUI editor before headless work.** Both processes fight over asset locks in `Content/`.
 - **Never launch the GUI from an agent**; it blocks on a modal dialog with no one to click it.
 - **`--max-components 256` on the landscape import.** With `0` the importer tries all 2,067 components
   in one `Import` call and the D3D12 device dies with `E_OUTOFMEMORY` after ~12 minutes.
 - **Blender headless renders with EEVEE only** in `-b` mode on this machine, and its scripts must sit
-  on a short path â€” the session scratchpad path is 270 characters and Blender cannot open files there.
+  on a short path — the session scratchpad path is 270 characters and Blender cannot open files there.
 - **Long jobs must run in the background with a log.** The Bash tool caps at 600 s; a landscape import
   is ~6 min, the conform ~13.5 min, the 45-frame render set ~19 min, the first editor start several
   minutes.
-- **Never `git commit/stash/checkout/reset` from an agent** â€” the orchestrator commits between phases.
+- **Never `git commit/stash/checkout/reset` from an agent** — the orchestrator commits between phases.
 
 ## 7. If you are starting completely cold
 
@@ -1475,7 +1533,7 @@ cd /c/Users/Shadow/code/3duk && git log --oneline -6 && git status --short && gi
 ```
 
 Then read, in order: this file, `docs/BRIEF.md` sections 1.1, 4 and 7, `docs/TERRAIN_ROADS.md`
-sections 1 and 8, `renders/b1cd3e5/INDEX.md`, and `docs/STAGES.md` Â§0 for what each stage's acceptance
+sections 1 and 8, `renders/b1cd3e5/INDEX.md`, and `docs/STAGES.md` §0 for what each stage's acceptance
 command is and what was last seen to pass. Confirm the tree is still green before changing anything:
 
 ```bash
@@ -1490,7 +1548,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File projects/one/Tools/build.ps1
 powershell -NoProfile -ExecutionPolicy Bypass -File projects/one/Tools/ue/run_ue_tests.ps1 | tail -5
 ```
 
-To look at the world rather than rebuild it, open the editor on the saved level â€” but only when no
+To look at the world rather than rebuild it, open the editor on the saved level — but only when no
 headless job is running:
 
 ```bash
@@ -1501,7 +1559,7 @@ headless job is running:
 
 Agents write into the working tree and the orchestrator commits between phases, so after a crash
 there will usually be uncommitted changes from the agents that were mid-flight. They are not
-necessarily broken â€” check them, build, run the tests, and commit what passes rather than discarding
+necessarily broken — check them, build, run the tests, and commit what passes rather than discarding
 it. `git status --short` and `git diff --stat` are the first two commands after any disconnect.
 
 At the moment this file was written the tree held, uncommitted: the geometry track's junction trim
@@ -1512,4 +1570,4 @@ At the moment this file was written the tree held, uncommitted: the geometry tra
 file), an unrelated edit to `sources/fetch/photos.py`, and `sources/config/thanet_towns.json`
 untracked. The trim work changes the geometry the conform is burned from, so
 **`Tools/conform_landscape.py` and `Tools/road_fusion_audit.py` have to be re-run and the landscape
-re-imported before the level matches the splines again** â€” a `conform_v2` run was in progress.
+re-imported before the level matches the splines again** — a `conform_v2` run was in progress.
