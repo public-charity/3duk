@@ -1,0 +1,335 @@
+{
+  "status": "FOR APPROVAL - counterfactual museum reuse",
+  "crs": "EPSG:27700",
+  "origin": {
+    "E": 627680,
+    "N": 163080
+  },
+  "date": "2026-09-11T20:22:45.989514+00:00",
+  "gates": [
+    {
+      "id": "G1",
+      "name": "Main museum gateway",
+      "bng": [
+        633315,
+        166510
+      ],
+      "role": "Walk/cycle arrival, parking/drop-off orientation and start of every core itinerary."
+    },
+    {
+      "id": "G2",
+      "name": "Eastern visitor gate",
+      "bng": [
+        634030,
+        166370
+      ],
+      "role": "Proposed link from Manston village approach to War Flight trail; verify road crossing in blockout."
+    },
+    {
+      "id": "G3",
+      "name": "Western service gate",
+      "bng": [
+        632730,
+        166260
+      ],
+      "role": "Proposed restoration/delivery access toward T2 apron; separate from visitor promenade."
+    },
+    {
+      "id": "G4",
+      "name": "Western heritage trail threshold",
+      "bng": [
+        632390,
+        166340
+      ],
+      "role": "Proposed connection to Alland Grange trail; not a present property entrance."
+    }
+  ],
+  "routes": [
+    {
+      "id": "R1",
+      "name": "Museum and command loop",
+      "kind": "short",
+      "points": [
+        [
+          633315,
+          166510
+        ],
+        [
+          633420,
+          166535
+        ],
+        [
+          633500,
+          166570
+        ],
+        [
+          633570,
+          166580
+        ],
+        [
+          633575,
+          166630
+        ],
+        [
+          633460,
+          166640
+        ],
+        [
+          633335,
+          166565
+        ],
+        [
+          633315,
+          166510
+        ]
+      ],
+      "length_m": 636,
+      "walking_minutes_at_3kmh": 13,
+      "geometry_status": "authored concept alignment, not current public access or a collision-checked route",
+      "closed_loop": true,
+      "z_status": "terrain and gradients not yet sampled; no floor/portal elevation implied"
+    },
+    {
+      "id": "R2",
+      "name": "Aircraft and engineering circuit",
+      "kind": "core",
+      "points": [
+        [
+          633315,
+          166510
+        ],
+        [
+          633170,
+          166510
+        ],
+        [
+          633040,
+          166480
+        ],
+        [
+          633000,
+          166390
+        ],
+        [
+          633060,
+          166340
+        ],
+        [
+          632930,
+          166260
+        ],
+        [
+          632880,
+          166170
+        ],
+        [
+          632930,
+          166050
+        ],
+        [
+          633180,
+          165950
+        ],
+        [
+          633460,
+          165820
+        ],
+        [
+          633540,
+          166070
+        ],
+        [
+          633510,
+          166300
+        ],
+        [
+          633420,
+          166430
+        ],
+        [
+          633315,
+          166510
+        ]
+      ],
+      "length_m": 2203,
+      "walking_minutes_at_3kmh": 44,
+      "geometry_status": "authored concept alignment, not current public access or a collision-checked route",
+      "closed_loop": true,
+      "z_status": "terrain and gradients not yet sampled; no floor/portal elevation implied"
+    },
+    {
+      "id": "R3",
+      "name": "War Flight and FIDO extension",
+      "kind": "long",
+      "points": [
+        [
+          633315,
+          166510
+        ],
+        [
+          633680,
+          166480
+        ],
+        [
+          633900,
+          166435
+        ],
+        [
+          634030,
+          166370
+        ],
+        [
+          633990,
+          166280
+        ],
+        [
+          634010,
+          166140
+        ],
+        [
+          634080,
+          165900
+        ],
+        [
+          634300,
+          165640
+        ],
+        [
+          634510,
+          165280
+        ],
+        [
+          634460,
+          165190
+        ],
+        [
+          634300,
+          165280
+        ],
+        [
+          633970,
+          165360
+        ],
+        [
+          633650,
+          165520
+        ],
+        [
+          633460,
+          165820
+        ]
+      ],
+      "length_m": 3322,
+      "walking_minutes_at_3kmh": 66,
+      "geometry_status": "authored concept alignment, not current public access or a collision-checked route",
+      "closed_loop": false,
+      "z_status": "terrain and gradients not yet sampled; no floor/portal elevation implied"
+    },
+    {
+      "id": "R4",
+      "name": "Sunken hangars and railway trail",
+      "kind": "long",
+      "points": [
+        [
+          633315,
+          166510
+        ],
+        [
+          633160,
+          166560
+        ],
+        [
+          632930,
+          166610
+        ],
+        [
+          632860,
+          166660
+        ],
+        [
+          632650,
+          166790
+        ],
+        [
+          632410,
+          166740
+        ],
+        [
+          632300,
+          166600
+        ],
+        [
+          632310,
+          166470
+        ],
+        [
+          632390,
+          166340
+        ],
+        [
+          632610,
+          166350
+        ],
+        [
+          632810,
+          166450
+        ],
+        [
+          633040,
+          166480
+        ],
+        [
+          633315,
+          166510
+        ]
+      ],
+      "length_m": 2390,
+      "walking_minutes_at_3kmh": 48,
+      "geometry_status": "authored concept alignment, not current public access or a collision-checked route",
+      "closed_loop": true,
+      "z_status": "terrain and gradients not yet sampled; no floor/portal elevation implied"
+    },
+    {
+      "id": "R5",
+      "name": "Northern unfinished hangar branch",
+      "kind": "optional",
+      "points": [
+        [
+          633335,
+          166565
+        ],
+        [
+          633700,
+          166655
+        ],
+        [
+          634100,
+          166880
+        ],
+        [
+          634210,
+          167160
+        ],
+        [
+          634170,
+          167250
+        ],
+        [
+          634070,
+          167305
+        ],
+        [
+          633970,
+          167420
+        ]
+      ],
+      "length_m": 1501,
+      "walking_minutes_at_3kmh": 30,
+      "geometry_status": "authored concept alignment, not current public access or a collision-checked route",
+      "closed_loop": false,
+      "z_status": "terrain and gradients not yet sampled; no floor/portal elevation implied"
+    }
+  ],
+  "new_paths": "All route polylines are design proposals that may cross current parcels or require new paths. Do not use for real-site navigation.",
+  "modern_camp": "Historical museum scenario only; no current processing-centre layout or security arrangements modelled."
+}

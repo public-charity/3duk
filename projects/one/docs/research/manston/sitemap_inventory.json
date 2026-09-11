@@ -1,0 +1,902 @@
+{
+  "retrieved_utc": "2026-09-11T20:19:19.331545+00:00",
+  "sitemaps": [
+    "https://www.manstonhistory.org.uk/sitemap-misc.xml",
+    "https://www.manstonhistory.org.uk/category-sitemap.xml",
+    "https://www.manstonhistory.org.uk/producttags-sitemap.xml",
+    "https://www.manstonhistory.org.uk/productcat-sitemap.xml",
+    "https://www.manstonhistory.org.uk/post-sitemap.xml",
+    "https://www.manstonhistory.org.uk/page-sitemap.xml"
+  ],
+  "urls": [
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/sitemap-misc.xml",
+      "url": "https://www.manstonhistory.org.uk/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/sitemap-misc.xml",
+      "url": "https://www.manstonhistory.org.uk/sitemap.html"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/category-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/category/units/137-sqn/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/category-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/category/units/143-sqn/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/category-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/category/units/17-sqn/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/category-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/category/units/198-sqn/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/category-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/category/units/22-sqn-asr/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/category-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/category/units/264-sqn/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/category-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/category/units/266-sqn/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/category-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/category/units/274-sqn/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/category-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/category/units/296-sqn/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/category-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/category/units/297-sqn/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/category-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/category/units/303-sqn/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/category-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/category/units/406-sqn/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/category-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/category/units/406th-fighter-interceptor-wing/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/category-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/category/455-sqn/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/category-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/category/units/48-sqn/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/category-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/category/489-sqn/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/category-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/category/units/500-sqn/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/category-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/category/units/501-sqn/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/category-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/category/units/54-sqn/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/category-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/category/units/56-sqn/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/category-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/category/units/600-sqn/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/category-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/category/units/605-sqn/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/category-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/category/units/609-sqn/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/category-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/category/units/616-sqn/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/category-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/category/units/617-sqn/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/category-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/category/units/65-sqn/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/category-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/category/units/66th-air-rescue-squadron/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/category-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/category/units/80-sqn/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/category-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/category/units/825-sqn-faa/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/category-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/category/air-sea-rescue/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/category-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/category/artwork/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/category-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/category/aircraft/avro-anson/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/category-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/category/aircraft/avro-lancaster/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/category-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/category/battle-of-britain/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/category-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/category/booknews/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/category-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/category/books/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/category-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/category/aircraft/boulton-paul-defiant/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/category-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/category/aircraft/bristol-beaufighter/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/category-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/category/aircraft/bristol-blenheim/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/category-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/category/aircraft/de-havilland-mosquito/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/category-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/category/espionage/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/category-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/category/aircraft/f-86d-sabre/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/category-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/category/aircraft/fairey-swordfish/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/category-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/category/featured/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/category-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/category/aircraft/gloster-meteor/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/category-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/category/aircraft/gotha/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/category-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/category/aircraft/handley-page-o100/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/category-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/category/aircraft/hawker-typhoon/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/category-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/category/insight/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/category-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/category/books/manston-references/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/category-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/category/books/manston-specific/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/category-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/category/units/manston-war-flight/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/category-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/category/models/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/category-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/category/books/multiple-airfields/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/category-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/category/on-this-day/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/category-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/category/other-airfields-2/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/category-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/category/books/otherbooks/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/category-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/category/books/other-airfields/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/category-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/category/aircraft/sopwith-camel/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/category-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/category/aircraft/sopwith-pup/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/category-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/category/aircraft/sopwith-triplane/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/category-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/category/aircraft/supermarine-spitfire/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/category-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/category/usaf/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/category-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/category/world-war-i/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/category-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/category/world-war-ii/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/producttags-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/product-tag/book/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/productcat-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/product-category/books/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/post-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/post-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/the-history-of-raf-manston-fo-w-fraser/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/post-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/the-story-of-609-squadron-under-the-white-rose/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/post-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/kent-airfields-in-the-battle-of-britain/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/post-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/hawkinge-1912-1961-an-in-depth-history-of-the-former-royal-air-force-station-hawkinge/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/post-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/the-manston-spitfire/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/post-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/the-history-of-raf-manston/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/post-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/kent-airfields-remembered/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/post-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/raf-manston-in-old-photographs/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/post-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/wings-over-westgate/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/post-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/raf-manston-in-old-photographs-a-second-selection/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/post-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/kent-airfields-in-the-second-world-war/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/post-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/to-live-among-heroes/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/post-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/raf-manston-album/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/post-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/erprobungsgruppe-210-bombsights-over-england/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/post-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/a-glint-in-the-sky/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/post-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/battle-of-britain-airfields-of-11-group/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/post-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/the-military-airfields-of-britain-southern-england/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/post-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/the-raf-wwii-logbooks-of-wing-commander-r-p-beamont/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/post-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/rise-and-defend-the-usaf-at-manston-1950-1958/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/post-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/throwley-1917-1919-kents-forgotten-airfield/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/post-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/twilight-of-the-pistons-air-ferry-a-manston-airline/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/post-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/heroes-of-fighter-command-kent/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/post-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/william-de-goat-the-story-of-air-commodore-william-de-goat-dso-dfc-the-extraordinary-mascot-of-609-west-riding-squadron-during-the-second-world-war/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/post-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/manston-memories-1916-2006/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/post-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/kent-aviation-a-century-of-flight/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/post-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/arnhem-1944-the-airborne-battle/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/post-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/airfields-of-the-d-day-invasion-air-force/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/post-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/westhampnett-at-war/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/post-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/the-last-enemy/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/post-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/battle-of-britain-a-day-to-day-chronicle-10-july-31-october-1940/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/post-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/finding-foe-outstanding-mysteries-battle-britain-beyond-investigated-solved/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/post-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/battle-of-britain-airfields/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/post-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/the-battle-of-britain-james-holland/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/post-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/detling-airfield-a-history-1915-1959/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/post-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/to-scale-the-skies-the-story-of-group-captain-j-c-johnny-wells-dfc-and-bar/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/post-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/run-gauntlet-channel-dash-1942-raid/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/post-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/tales-from-the-control-tower/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/post-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/from-moths-to-merlins-raf-west-malling-premier-night-fighter-station/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/post-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/kents-own-the-story-of-no-500-squadron-royal-auxiliary-air-force/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/post-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/a-detailed-history-of-raf-manston-1916-1930-the-men-who-made-manston/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/post-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/lympne-airfield-at-war-and-peace/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/post-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/263-and-137-squadrons-the-whirlwind-years/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/post-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/whirlwind-westlands-enigmatic-fighter/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/post-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/a-detailed-history-of-raf-manston-1931-40-arise-to-protect/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/post-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/the-most-dangerous-enemy-a-history-of-the-battle-of-britain/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/post-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/battle-of-britain-voices/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/post-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/raf-westhampnett-a-fighter-command-station-at-war/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/post-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/hawker-hurricane-survivors/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/post-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/bloody-paralyser-giant-handley-page-bombers-first-world-war/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/post-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/restoration-of-typhoon-rb396-has-links-back-to-manston/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/post-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/hawker-typhoon-rb396-restoration-project-launch/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/post-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/pride-britain-philip-e-west/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/post-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/operation-cerberus-channel-dash-philip-e-west/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/post-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/channel-dash-heroes-philip-west/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/post-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/winter-41-philip-e-west/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/post-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/channel-dash-robert-taylor/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/post-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/typhoon-scramble-richard-taylor/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/post-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/evening-reflection-richard-taylor/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/post-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/insight-1-day-manston/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/post-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/from-battle-of-britain-airman-to-pow-escapee/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/post-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/sanctuary-stories-behind-spitfire-hurricane-memorial-museum/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/post-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/detailed-history-raf-manston-1941-1945/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/post-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/account-doreen-maddison-waaf-international-womens-day/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/post-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/typhoon-attack-robert-taylor/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/post-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/the-mallon-crew/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/post-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/insight-2-expanding-detail-manstons-history/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/post-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/v-1-flying-bomb-aces-mark-postlethwaite/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/post-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/manston-12th-august-1940-by-gerald-coulson/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/post-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/insight-3-publication-updated-squadron-units-timeline/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/post-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/defiants-over-dunkirk-by-mark-postlethwaite/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/post-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/manston-100-years-of-flight-project/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/post-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/valor-over-ramsgate-by-pauls-aviation-art/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/post-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/evening-trials-at-reculver-by-pauls-aviation-art/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/post-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/last-round-at-reculver-by-pauls-aviation-art/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/post-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/a-detailed-history-of-raf-manston-1945-1999/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/post-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/the-manston-spy/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/post-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/hurricane-homecoming-by-stephen-brown/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/post-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/gloster-meteor-mk-4-world-speed-record/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/post-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/the-manston-camp-light-railway/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/post-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/valentines-day-battle-mtb-14th-february-1943/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/post-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/avro-anson-k6158-crashes-near-ewell-minnis-22nd-february-1937/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/post-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/no-550-sqn-avro-lancaster-nf998-bq-d-crash-landing-24th-february-1945/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/post-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/spitfire-prototype-k5054-maiden-flight-eastleigh-airfield-5th-march-1936/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/post-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/herald-free-enterprise-disaster-6th-march-1987/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/post-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/no-600-sqn-bristol-blenheim-i-crashes-manston-11th-march-1940/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/post-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/dambuster-bouncing-bomb-tests-at-reculver-and-manston/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/post-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/usaf-f-86d-manston-ordered-fire-ufo-may-20th-1957/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/post-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/manstons-role-on-d-day-6th-june-1944/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/post-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/us-author-john-steinbeck-visits-no-609-sqn-writes-article-william-de-goat-29th-june-1943/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/post-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/two-messerschmitt-bf-109s-land-manston-21st-july-1944/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/post-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/jet-engine-development-the-gloster-meteor-and-the-v1-threat/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/post-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/messerschmitt-bf-109-shot-no-54-sqn-crashes-byron-avenue-margate-24th-july-1940/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/post-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/manston-takes-the-full-force-of-luftwaffe-attack-against-airfields-12th-august-1940/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/post-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/second-large-attack-manston-battle-britain-14th-august-1940/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/post-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/manston-attacked-on-the-hardest-day-18th-august-1940/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/post-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/first-battle-britain-gotha-raid-22nd-august-1917/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/post-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/heavy-luftwaffe-raids-on-manston-and-ramsgate-on-24th-august-1940-leave-the-airfield-unserviceable/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/post-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/on-this-day-28th-august-1942/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/post-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/prime-minister-winston-churchill-visits-on-28th-august-1940/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/post-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/battle-of-britain-day-15th-september-1940/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/post-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/manstons-role-in-operation-market-garden-17th-september-1944/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/post-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/unexpected-passenger-handley-page-o100-4-november-1916/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/post-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/air-speed-record-set-reculver-7th-november-1945/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/post-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/south-goodwin-lightship-disaster-2627th-november-1954/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/post-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/messerschmitt-bf109-black-12-crash-lands-manston-27th-november-1940/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/post-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/new-years-day-present-germans-handley-page-o100-1st-january-1917/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/post-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/loss-of-fo-henry-harry-hector-mackenzie-rcaf-3rd-january-1944/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/post-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/flt-baron-jean-de-selys-longchamps-attack-gestapo-hq-hectic-day-no-609-sqn-january-20-1943/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/post-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/channel-dash-bravest-brave/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/page-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/about/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/page-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/contact-us/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/page-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/squadrons-and-units/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/page-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/aircraft-at-manston/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/page-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/people/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/page-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/books/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/page-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/gallery/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/page-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/timeline/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/page-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/spitfire-hurricane-memorial-museum-manston/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/page-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/raf-manston-history-museum-manston/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/page-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/the-channel-dash-memorial-ramsgate/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/page-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/all-posts/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/page-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/remaining-aircraft/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/page-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/books-manston-references/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/page-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/the-battle-of-britain-memorial-capel-le-ferne/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/page-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/books-other/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/page-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/books-other-airfields/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/page-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/books-multiple-airfields/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/page-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/the-battle-of-britain-monument-london/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/page-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/aircraft-posts/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/page-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/donate/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/page-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/artwork/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/page-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/kent-battle-britain-museum-hawkinge/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/page-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/contributions-credits/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/page-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/recently-added/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/page-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/recently-updated/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/page-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/manston100years-3/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/page-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/manston100years/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/page-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/manston100years-1/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/page-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/manston100years-2/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/page-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/manston100years-4/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/page-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/manston100years-5/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/page-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/shop/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/page-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/basket/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/page-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/checkout/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/page-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/my-account/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/page-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/models/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/page-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/glossary-and-reference/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/page-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/key-events-manstons-history/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/page-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/privacy-policy/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/page-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/cookie-policy/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/page-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/squadrons-and-units-timeline-old/"
+    },
+    {
+      "sitemap": "https://www.manstonhistory.org.uk/page-sitemap.xml",
+      "url": "https://www.manstonhistory.org.uk/manston-layout-history/"
+    }
+  ],
+  "article_urls_not_in_api": []
+}

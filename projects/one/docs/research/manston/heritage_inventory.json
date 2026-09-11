@@ -1,0 +1,4275 @@
+{
+  "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+  "parent_url": "https://heritage.kent.gov.uk/Monument/MKE40120",
+  "records": [
+    {
+      "id": "MKE125657",
+      "title": "Monument record MKE125657 - Ablutions block, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125657",
+      "grid_reference": "Centred TR 3284 6663 (11m by 11m)",
+      "anchor_bng": [
+        632840,
+        166630
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "173c18aa66f1d099efd37945f27c06e9706b26939c496ff4c30879963389ee05",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125602",
+      "title": "Monument record MKE125602 - Ablutions blocks, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125602",
+      "grid_reference": "Centred TR 3330 6688 (44m by 44m)",
+      "anchor_bng": [
+        633300,
+        166880
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "2bc1919642456d0ce842b409f7c56ccfbfa7653cdc68fd3b6059b786ed2d0520",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125628",
+      "title": "Monument record MKE125628 - Ablutions blocks, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125628",
+      "grid_reference": "Centred TR 3316 6704 (36m by 32m)",
+      "anchor_bng": [
+        633160,
+        167040
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "9c09abb47d12b80be05eb1c15027098ee2b679cea6c1420be2117ab169269682",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125630",
+      "title": "Monument record MKE125630 - Ablutions blocks, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125630",
+      "grid_reference": "Centred TR 3315 6707 (43m by 39m)",
+      "anchor_bng": [
+        633150,
+        167070
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "92006161fc5c427623a38a65e5ecddb79a2b2d758d5e0fc0fc71a861064a5de9",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125439",
+      "title": "Monument record MKE125439 - Air raid shelter north of Rose Farm, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125439",
+      "grid_reference": "Centred TR 3246 6630 (9m by 12m)",
+      "anchor_bng": [
+        632460,
+        166300
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "2046037a171dd1eeef677feb1932a4f26724e2f0cb303e8d73fe3d70e089a5cd",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125193",
+      "title": "Monument record MKE125193 - Air raid shelter, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125193",
+      "grid_reference": "Centred TR 3418 6660 (18m by 30m)",
+      "anchor_bng": [
+        634180,
+        166600
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "095f5202f6ba3e3c29d8b6f27d1a43c64b3a29e501caa034aa22f01808cabd06",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125389",
+      "title": "Monument record MKE125389 - Air raid shelter, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125389",
+      "grid_reference": "Centred TR 3429 6697 (17m by 15m)",
+      "anchor_bng": [
+        634290,
+        166970
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "a6765d3377af9d47be23c3125d35917c40100f6b8d54e237a10e79cf4e6234e9",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125191",
+      "title": "Monument record MKE125191 - Air raid shelters, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125191",
+      "grid_reference": "Centred TR 3393 6586 (50m by 83m)",
+      "anchor_bng": [
+        633930,
+        165860
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "c36f1fb5350a8d62c0d857a13720fe26b282071c4d8c72c060811c61656ee939",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125192",
+      "title": "Monument record MKE125192 - Air raid shelters, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125192",
+      "grid_reference": "Centred TR 3410 6639 (143m by 84m)",
+      "anchor_bng": [
+        634100,
+        166390
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "cf1f2ec7b14f21339d3a9ca182d088602cf06964642fe5e3324a1c4ec41b2f46",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125195",
+      "title": "Monument record MKE125195 - Air raid shelters, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125195",
+      "grid_reference": "Centred TR 3347 6684 (198m by 211m)",
+      "anchor_bng": [
+        633470,
+        166840
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "013a4252377a9a04914f7e8209d10119c0d24d81ceb4aedd5919b1d51eef932d",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125196",
+      "title": "Monument record MKE125196 - Air raid shelters, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125196",
+      "grid_reference": "Centred TR 3309 6696 (333m by 287m)",
+      "anchor_bng": [
+        633090,
+        166960
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "151eabfbf178072eb1af4ed321d7dab59fd7710b0b49a42d7c092e56200a7bb8",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125197",
+      "title": "Monument record MKE125197 - Air raid shelters, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125197",
+      "grid_reference": "Centred TR 3295 6649 (296m by 153m)",
+      "anchor_bng": [
+        632950,
+        166490
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "edd1ab4bfec6be83d029abd8b8564d2f22eaa3c298d99318118b138940336868",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE112166",
+      "title": "Monument record TR 36 NW 1346 - Airfield landing circle, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE112166",
+      "grid_reference": "Centred TR 3359 6609 (144m by 142m)",
+      "anchor_bng": [
+        633590,
+        166090
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "51de67872f0c17b1147be5384f60eaf1e5acb4531685f0bd018618286ca4ca44",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125577",
+      "title": "Monument record MKE125577 - Armoury, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125577",
+      "grid_reference": "Centred TR 3330 6661 (36m by 32m)",
+      "anchor_bng": [
+        633300,
+        166610
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "c72f7b7e98fda2bea98095ad0da25b8ff3e862a75ce46c044ba0aba20c797304",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125777",
+      "title": "Monument record TR 36 NW 1437 - Barbed wire entanglement, Cleve Court",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125777",
+      "grid_reference": "Centred TR 3111 6622 (618m by 585m)",
+      "anchor_bng": [
+        631110,
+        166220
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "bb657e592f7a8c300c35b38a520314e80140f707aaf762d5f497b1a3aa3fbeb8",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125173",
+      "title": "Monument record MKE125173 - Barbed wire entanglement, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125173",
+      "grid_reference": "Centred TR 3398 6552 (136m by 422m)",
+      "anchor_bng": [
+        633980,
+        165520
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "416bce115b903b836cf61ccc1a408c2f2931e6871a28d13c49706f45abff3ddf",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125256",
+      "title": "Monument record MKE125256 - Barbed wire entanglement, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125256",
+      "grid_reference": "Centred TR 3428 6625 (278m by 518m)",
+      "anchor_bng": [
+        634280,
+        166250
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "9a0371b46bba4a4c1ff5ccb2bace643d84a2bd92d6098182fbe06a14063dd91a",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125369",
+      "title": "Monument record MKE125369 - Barbed wire entanglement, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125369",
+      "grid_reference": "Centred TR 3412 6702 (589m by 371m)",
+      "anchor_bng": [
+        634120,
+        167020
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "54ee00ae6108a0ac700e7b3ad9994ee4146032a117090b7dac9ab08a7d7539b0",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125382",
+      "title": "Monument record MKE125382 - Barbed wire entanglement, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125382",
+      "grid_reference": "Centred TR 3432 6672 (340m by 407m)",
+      "anchor_bng": [
+        634320,
+        166720
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "c129ff3951dca86f6e7e68ec34e60236603448d7da92f8b0363abbed1479b76a",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125394",
+      "title": "Monument record MKE125394 - Barbed wire entanglement, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125394",
+      "grid_reference": "Centred TR 3345 6714 (920m by 559m)",
+      "anchor_bng": [
+        633450,
+        167140
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "ee8b2e9d53d0741d2ce395019414f45f196e68b11676f1a4cec06572b7fbb7ab",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125404",
+      "title": "Monument record MKE125404 - Barbed wire entanglement, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125404",
+      "grid_reference": "Centred TR 3388 6742 (364m by 258m)",
+      "anchor_bng": [
+        633880,
+        167420
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "22020d2386b6a342bc5ef14547053423a3545e44f76f2c899849e12573773cc6",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125430",
+      "title": "Monument record MKE125430 - Barbed wire entanglement, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125430",
+      "grid_reference": "Centred TR 3242 6663 (456m by 587m)",
+      "anchor_bng": [
+        632420,
+        166630
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "965ebd8c15515fb187cbc0cafaee7144d45625cb2e19e018e3a4c33a3be76a14",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125433",
+      "title": "Monument record MKE125433 - Barbed wire entanglement, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125433",
+      "grid_reference": "Centred TR 3282 6667 (449m by 920m)",
+      "anchor_bng": [
+        632820,
+        166670
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "6c7f4d61efc4bbcea4443f6ee5b77f91fa0934d64a39f61fa611b895afc0ce0d",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125444",
+      "title": "Monument record MKE125444 - Barbed wire entanglement, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125444",
+      "grid_reference": "Centred TR 3271 6613 (277m by 202m)",
+      "anchor_bng": [
+        632710,
+        166130
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "18f5b142d422e7791a11b9790ee31a6997e8e26736aecb2507f8af751ff032c9",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125531",
+      "title": "Monument record MKE125531 - Barbed wire entanglement, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125531",
+      "grid_reference": "Centred TR 3357 6669 (411m by 228m)",
+      "anchor_bng": [
+        633570,
+        166690
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "4ad58e339927555d2021f0c16693a96b2a7705b92910cf58cd7f1e4b819c3677",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125668",
+      "title": "Monument record MKE125668 - Barbed wire entanglement, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125668",
+      "grid_reference": "Centred TR 3210 6622 (174m by 320m)",
+      "anchor_bng": [
+        632100,
+        166220
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "4c9638e864c37701416ead0f81c301f44336ba8da6851e864d2258b02b80dbab",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125769",
+      "title": "Monument record TR 36 NW 1436 - Barbed wire entanglement, Telegraph Hill",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125769",
+      "grid_reference": "Centred TR 3173 6601 (663m by 518m)",
+      "anchor_bng": [
+        631730,
+        166010
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "65f9731c2f71810f9850fabb6c658b31bbc7e5143a1a5c05f80539134915316b",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125062",
+      "title": "Monument record MKE125062 - Barbed wire entanglements north-east of Ivy Cottage Hill",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125062",
+      "grid_reference": "Centred TR 3262 6557 (240m by 97m)",
+      "anchor_bng": [
+        632620,
+        165570
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "bdc44bd799d7def2f56d389018e6dea8e608cdb373d85b27270d81d8f456adef",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125610",
+      "title": "Monument record MKE125610 - Barracks and building platforms, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125610",
+      "grid_reference": "Centred TR 3334 6690 (113m by 127m)",
+      "anchor_bng": [
+        633340,
+        166900
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "5abb2b265df03911d041bd9a9cc160fe44214d57927e233bfd5680311ca93668",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125640",
+      "title": "Monument record MKE125640 - Barracks and building platforms, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125640",
+      "grid_reference": "Centred TR 3320 6708 (67m by 73m)",
+      "anchor_bng": [
+        633200,
+        167080
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "e24459cf56cf2dd4dbad753750a5949c920cfd60223b0a7aeae387e669abc1e7",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125546",
+      "title": "Monument record MKE125546 - Barracks, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125546",
+      "grid_reference": "Centred TR 3325 6660 (37m by 43m)",
+      "anchor_bng": [
+        633250,
+        166600
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "3fd7205724b50a4219584a0c2473043d1ba6bead3f726805846b900d9f2addf2",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125547",
+      "title": "Monument record MKE125547 - Barracks, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125547",
+      "grid_reference": "Centred TR 3328 6657 (15m by 16m)",
+      "anchor_bng": [
+        633280,
+        166570
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "d14bf135b46caf500057c5e7145c9b0b712dc8b8191cc5c925e211d54eec3f04",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125566",
+      "title": "Monument record MKE125566 - Barracks, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125566",
+      "grid_reference": "Centred TR 3314 6675 (64m by 75m)",
+      "anchor_bng": [
+        633140,
+        166750
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "a73cd7f99835d34badbe872dcbd75f61dd7bac51fccb4d2f0356308081f563ce",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125567",
+      "title": "Monument record MKE125567 - Barracks, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125567",
+      "grid_reference": "Centred TR 3315 6680 (79m by 85m)",
+      "anchor_bng": [
+        633150,
+        166800
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "540d45b0678111b466cd8799cd10f01e66b2e8307de68c87d0a12c22fecd7bd1",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125582",
+      "title": "Monument record MKE125582 - Barracks, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125582",
+      "grid_reference": "Centred TR 3323 6679 (86m by 95m)",
+      "anchor_bng": [
+        633230,
+        166790
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "6e41a408fc89ecede2b7e34d5a45ecdf663cbac387c049fbe83810b60bc34a24",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125589",
+      "title": "Monument record MKE125589 - Barracks, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125589",
+      "grid_reference": "Centred TR 3334 6666 (58m by 61m)",
+      "anchor_bng": [
+        633340,
+        166660
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "1bc12ac851aa969a10f58285752e40dd1bfb003850db36586be0786c08ce0973",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125591",
+      "title": "Monument record MKE125591 - Barracks, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125591",
+      "grid_reference": "Centred TR 3326 6684 (114m by 127m)",
+      "anchor_bng": [
+        633260,
+        166840
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "6af861350049845f89bacbf0a92ea08d5b7c66f781cae517659a04492769d3b3",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125601",
+      "title": "Monument record MKE125601 - Barracks, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125601",
+      "grid_reference": "Centred TR 3312 6701 (95m by 105m)",
+      "anchor_bng": [
+        633120,
+        167010
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "e610eec12870ca49576d3ba61fd6a9d196439e2db4be42e85e23ead50e4b606a",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125604",
+      "title": "Monument record MKE125604 - Barracks, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125604",
+      "grid_reference": "Centred TR 3326 6692 (60m by 61m)",
+      "anchor_bng": [
+        633260,
+        166920
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "7f7bba6504e3ea77661853d809a928452ce2f9b27f6640ef61209bcf4ebc0027",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125615",
+      "title": "Monument record MKE125615 - Barracks, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125615",
+      "grid_reference": "Centred TR 3347 6675 (68m by 71m)",
+      "anchor_bng": [
+        633470,
+        166750
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "2be25df30e6ce597bebd93ffce5dcdbdf7e1e9766347dd01eb4222f3074be4f5",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125353",
+      "title": "Monument record MKE125353 - Battery Station, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125353",
+      "grid_reference": "Centred TR 3399 6643 (37m by 53m)",
+      "anchor_bng": [
+        633990,
+        166430
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "8b03ce8864fc3297ed5583c147002f00e6a06909c6897d04d0114d6a60da9874",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125497",
+      "title": "Monument record MKE125497 - Bomb crater north-west of Thorne",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125497",
+      "grid_reference": "Centred TR 3323 6536 (8m by 7m)",
+      "anchor_bng": [
+        633230,
+        165360
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "cfe69adcc5e1fa133831b640585e23e85adea80fbb52b9ba49d995b693cf3a2f",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125244",
+      "title": "Monument record MKE125244 - Bomb crater, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125244",
+      "grid_reference": "Centred TR 3414 6619 (21m by 23m)",
+      "anchor_bng": [
+        634140,
+        166190
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "d8fb6df606f16e68eb4425a65805de6a0fbd7b1ffa4443d874b43f56a8d2375b",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125528",
+      "title": "Monument record MKE125528 - Bomb crater, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125528",
+      "grid_reference": "Centred TR 3332 6632 (17m by 16m)",
+      "anchor_bng": [
+        633320,
+        166320
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "8b1f011e701d271f0e618ebb24e6914a068ce9a280f34d74ae6ca6426723cc15",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125700",
+      "title": "Monument record MKE125700 - Bomb crater, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125700",
+      "grid_reference": "Centred TR 3184 6654 (9m by 11m)",
+      "anchor_bng": [
+        631840,
+        166540
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "379f6447d69584c380c47efcd54db741afc80f7752a8a0f5941546a37a1c8213",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125061",
+      "title": "Monument record MKE125061 - Bomb craters south of Pouces Cottages",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125061",
+      "grid_reference": "Centred TR 3261 6608 (127m by 150m)",
+      "anchor_bng": [
+        632610,
+        166080
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "09983d472bf93616a0b58f92abb2d69b704cbd664d0233ddd7e523967a9882b1",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125045",
+      "title": "Monument record MKE125045 - Bomb craters, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125045",
+      "grid_reference": "Centred TR 3215 6583 (500m by 70m)",
+      "anchor_bng": [
+        632150,
+        165830
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "eeb392d3982ce12334fd3902b71b3ebb5a24c6d19e277157b889f3a7f5c3cc9f",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125069",
+      "title": "Monument record MKE125069 - Bomb craters, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125069",
+      "grid_reference": "Centred TR 3324 6564 (169m by 193m)",
+      "anchor_bng": [
+        633240,
+        165640
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "1a61e1fd471d295394d598cb4257a798a5a768a139e1677763941b0a2c4f9dac",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125246",
+      "title": "Monument record MKE125246 - Bomb craters, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125246",
+      "grid_reference": "Centred TR 3410 6594 (142m by 157m)",
+      "anchor_bng": [
+        634100,
+        165940
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "4a077b721856c0e568ca4f02fe7da3f6744f9c6967f9ff9a7b8aeac9932c766e",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125436",
+      "title": "Monument record MKE125436 - Bomb craters, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125436",
+      "grid_reference": "Centred TR 3255 6647 (246m by 253m)",
+      "anchor_bng": [
+        632550,
+        166470
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "2ad83a675bba215148d641e1ab0c6e0ee1ba4e3db798cbf8f71185f8422c0bc7",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125498",
+      "title": "Monument record MKE125498 - Bomb craters, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125498",
+      "grid_reference": "Centred TR 3323 6589 (203m by 136m)",
+      "anchor_bng": [
+        633230,
+        165890
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "a3ad9b983d1766c2fa63363c4cfa98aaef87a7789005474d25b8d76f6ec60a02",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125499",
+      "title": "Monument record MKE125499 - Bomb craters, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125499",
+      "grid_reference": "Centred TR 3370 6604 (26m by 23m)",
+      "anchor_bng": [
+        633700,
+        166040
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "79bc6ed1f30cad86dc49023bf011747bba52d53e32b08e6c7f2f3f4570d3aeb2",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE100329",
+      "title": "Monument record TR 36 NW 1278 - Bomb store, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE100329",
+      "grid_reference": "Centred TR 3368 6708 (320m by 265m)",
+      "anchor_bng": [
+        633680,
+        167080
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "c715d2d9fab2013ed96eb430a0250a6790f38b843c9bae7e3cbd7926a1e641b0",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125346",
+      "title": "Monument record MKE125346 - Bomb store, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125346",
+      "grid_reference": "Centred TR 3413 6633 (21m by 20m)",
+      "anchor_bng": [
+        634130,
+        166330
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "24d78e9ff4246f2e37a84e78da8580261ef84fbd76e572e3ce189e6aea724d01",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125517",
+      "title": "Monument record MKE125517 - Building and hut, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125517",
+      "grid_reference": "Centred TR 3310 6646 (19m by 41m)",
+      "anchor_bng": [
+        633100,
+        166460
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "c88cc538a95a7461de7a0e12771c680ec2cf68b7261889266e42144778f730f3",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125391",
+      "title": "Monument record MKE125391 - Building complex, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125391",
+      "grid_reference": "Centred TR 3378 6686 (61m by 58m)",
+      "anchor_bng": [
+        633780,
+        166860
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "d36cd14d1c0993ecd2ee65cd6d1763fc0533ec38dd979fc0c00b6b2ef783d4bc",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE98473",
+      "title": "Monument record TR 36 NW 1264 - Building complex, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE98473",
+      "grid_reference": "Centred TR 3395 6700 (305m by 340m)",
+      "anchor_bng": [
+        633950,
+        167000
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "7eccb097d538ee09167c3cfb8eae19be9bd567a7d6f43ddd9b1ce7a49346a5cb",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125438",
+      "title": "Monument record MKE125438 - Building north of Rose Farm, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125438",
+      "grid_reference": "Centred TR 3247 6635 (10m by 12m)",
+      "anchor_bng": [
+        632470,
+        166350
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "85ee1241f5fa56419c6f30f9742c0551c9a2018ffc057000ebceb7c6ed4ead5e",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125070",
+      "title": "Monument record MKE125070 - Building platform for a hangar, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125070",
+      "grid_reference": "Centred TR 3320 6553 (34m by 34m)",
+      "anchor_bng": [
+        633200,
+        165530
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "60c9cea3043137ed385ee5fb90d60e9edc3fd843d23119a70ae3a2542cd84a37",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125072",
+      "title": "Monument record MKE125072 - Building platform for a hangar, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125072",
+      "grid_reference": "Centred TR 3354 6545 (38m by 41m)",
+      "anchor_bng": [
+        633540,
+        165450
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "f2679437741ca65ae87bf533349e6815fe3e8f6637964d51bafd04657444f97a",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125354",
+      "title": "Monument record MKE125354 - Building platform for a hangar, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125354",
+      "grid_reference": "Centred TR 3414 6655 (43m by 44m)",
+      "anchor_bng": [
+        634140,
+        166550
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "8677ca0b3a37f2052bdb8ff73e8b3438f46eea4b61eeaba1daf49548f816c801",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125368",
+      "title": "Monument record MKE125368 - Building platform for a hangar, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125368",
+      "grid_reference": "Centred TR 3429 6673 (42m by 43m)",
+      "anchor_bng": [
+        634290,
+        166730
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "c5d76336122bf7770da9605c3ceafe0792bef62b596b131a13feae647bf969f1",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125512",
+      "title": "Monument record MKE125512 - Building platform, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125512",
+      "grid_reference": "Centred TR 3313 6639 (67m by 65m)",
+      "anchor_bng": [
+        633130,
+        166390
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "f5fb3c6f79d9b545a379c805b5c6ab248aab70d742b4d6a2984d30e58b841109",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125513",
+      "title": "Monument record MKE125513 - Building platform, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125513",
+      "grid_reference": "Centred TR 3301 6647 (152m by 147m)",
+      "anchor_bng": [
+        633010,
+        166470
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "388e05c220355c4342f9e883599f158585dbd6193f216ec366590b4bac1e0201",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125514",
+      "title": "Monument record MKE125514 - Building platform, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125514",
+      "grid_reference": "Centred TR 3297 6653 (9m by 10m)",
+      "anchor_bng": [
+        632970,
+        166530
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "bf8c836046cc098b6834e281b2b8d6f599cbcb216d13afecfcbd802c841aa078",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125533",
+      "title": "Monument record MKE125533 - Building platform, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125533",
+      "grid_reference": "Centred TR 3352 6660 (73m by 68m)",
+      "anchor_bng": [
+        633520,
+        166600
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "b36148634e83d7b2b6b8c66d726b1c51905ccc3da7301a5044f75ecb8cb0b580",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125539",
+      "title": "Monument record MKE125539 - Building platform, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125539",
+      "grid_reference": "Centred TR 3380 6669 (37m by 27m)",
+      "anchor_bng": [
+        633800,
+        166690
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "d7bb9eb374b92c8ea7e749f3f738e160e5b6460da5f493399334d0c39827f118",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125595",
+      "title": "Monument record MKE125595 - Building platform, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125595",
+      "grid_reference": "Centred TR 3340 6667 (35m by 30m)",
+      "anchor_bng": [
+        633400,
+        166670
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "1b76045be4964bd94ea435c85d158ec140c8de38e0ab4e374657cae67c25659e",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125598",
+      "title": "Monument record MKE125598 - Building platform, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125598",
+      "grid_reference": "Centred TR 3342 6673 (55m by 54m)",
+      "anchor_bng": [
+        633420,
+        166730
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "958be4cf2f405fdd0a065aa496e63bf3bde4152af53eedc61421dc6a084d89b7",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125600",
+      "title": "Monument record MKE125600 - Building platform, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125600",
+      "grid_reference": "Centred TR 3331 6685 (24m by 21m)",
+      "anchor_bng": [
+        633310,
+        166850
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "be60bc1a27d67db0aece54ba6b28030f1b9b25deacaa012df5ecb81472a45f81",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125611",
+      "title": "Monument record MKE125611 - Building platform, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125611",
+      "grid_reference": "Centred TR 3335 6695 (23m by 24m)",
+      "anchor_bng": [
+        633350,
+        166950
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "edab4fb6588d8cebd586675c497202312421d8f38ef43983a2a32299da4969da",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125612",
+      "title": "Monument record MKE125612 - Building platform, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125612",
+      "grid_reference": "Centred TR 3337 6699 (82m by 84m)",
+      "anchor_bng": [
+        633370,
+        166990
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "a4aebfca18abd34d4bfa9b4ab31b663c2b9dd2e1d75f2de2f985bcf374c56cfe",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125637",
+      "title": "Monument record MKE125637 - Building platform, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125637",
+      "grid_reference": "Centred TR 3323 6705 (33m by 28m)",
+      "anchor_bng": [
+        633230,
+        167050
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "8130a466577376062d18ee0483f99bb50198baf274b0150075e3fcb24ea172cd",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125596",
+      "title": "Monument record MKE125596 - Building platforms, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125596",
+      "grid_reference": "Centred TR 3338 6669 (60m by 61m)",
+      "anchor_bng": [
+        633380,
+        166690
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "d9e6ba18d1a432b8688dee7645795283c0a552b63dd693f51046f9531a45f8f0",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125599",
+      "title": "Monument record MKE125599 - Building platforms, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125599",
+      "grid_reference": "Centred TR 3344 6670 (45m by 41m)",
+      "anchor_bng": [
+        633440,
+        166700
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "f6e4673511325a2d8d395afe9dd68776f5d13b6351bf4192bfe36ae0185f5e3e",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125424",
+      "title": "Monument record MKE125424 - Building, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125424",
+      "grid_reference": "Centred TR 3239 6673 (18m by 20m)",
+      "anchor_bng": [
+        632390,
+        166730
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "8e354d992e76102d72d5ec5603f432482d45cb4bce3ee415d03b3b01d4aaf56e",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125520",
+      "title": "Monument record MKE125520 - Building, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125520",
+      "grid_reference": "Centred TR 3312 6651 (16m by 17m)",
+      "anchor_bng": [
+        633120,
+        166510
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "8c6051c1beadd3616eba04a774baa56cd389b8e6fe646e2f5facd075525fe9a6",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125553",
+      "title": "Monument record MKE125553 - Building, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125553",
+      "grid_reference": "Centred TR 3294 6688 (6m by 5m)",
+      "anchor_bng": [
+        632940,
+        166880
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "219b46bdffe0b95b1b866ef8b75b308b7baa89588455b437672dcec757ab12f7",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125557",
+      "title": "Monument record MKE125557 - Building, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125557",
+      "grid_reference": "Centred TR 3299 6695 (4m by 4m)",
+      "anchor_bng": [
+        632990,
+        166950
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "6f0d242775f16fd725fd02fbc62fc45954ee78e6841bb76425c63caf19fabef7",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125441",
+      "title": "Monument record MKE125441 - Buildings near Rose Farm, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125441",
+      "grid_reference": "Centred TR 3243 6622 (47m by 23m)",
+      "anchor_bng": [
+        632430,
+        166220
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "2d736a0f320e3095cfbb14e68f7893febb798e7dc8eeed4c55dc6edce6a20883",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125425",
+      "title": "Monument record MKE125425 - Buildings, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125425",
+      "grid_reference": "Centred TR 3234 6674 (21m by 33m)",
+      "anchor_bng": [
+        632340,
+        166740
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "409e740742897e7794a2bb170dd58ee05136736e9d45a73c277febf4cddfb810",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125445",
+      "title": "Monument record MKE125445 - Buildings, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125445",
+      "grid_reference": "Centred TR 3279 6619 (36m by 15m)",
+      "anchor_bng": [
+        632790,
+        166190
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "347fcc72df46881bdb852994008b5f4b79b940097446fbc083a94846241c8faf",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125613",
+      "title": "Monument record MKE125613 - Buildings, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125613",
+      "grid_reference": "Centred TR 3343 6679 (35m by 34m)",
+      "anchor_bng": [
+        633430,
+        166790
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "579e14ec40b63bb652695c7ba6d62e1c574d84f6a5b7d98119294205d07c4e71",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125620",
+      "title": "Monument record MKE125620 - Buildings, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125620",
+      "grid_reference": "Centred TR 3349 6687 (8m by 27m)",
+      "anchor_bng": [
+        633490,
+        166870
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "7e471e73f8064ed14f316da0f8c498a757f6c8d6ed5e33db8d89afc9147b3a84",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125651",
+      "title": "Monument record MKE125651 - Buildings, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125651",
+      "grid_reference": "Centred TR 3284 6674 (28m by 41m)",
+      "anchor_bng": [
+        632840,
+        166740
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "209d422755891b8f82adf218846341e23f4e8cb111cc327bf97d4ecec3e732a8",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125347",
+      "title": "Monument record MKE125347 - Bunded hut, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125347",
+      "grid_reference": "Centred TR 3395 6636 (20m by 21m)",
+      "anchor_bng": [
+        633950,
+        166360
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "65bb5fb512cb7112bc0846a1f849ca4d8c4c7848f0cc49cf7d400a682a868d63",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125534",
+      "title": "Monument record MKE125534 - Camouflaged structure, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125534",
+      "grid_reference": "Centred TR 3357 6667 (33m by 34m)",
+      "anchor_bng": [
+        633570,
+        166670
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "846519f92dcbe0d14779747fc53306d089040756f9ec2bb2a70de04ffc5b6c85",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125663",
+      "title": "Monument record MKE125663 - Carpenters' Workshop and building platform, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125663",
+      "grid_reference": "Centred TR 3292 6650 (31m by 34m)",
+      "anchor_bng": [
+        632920,
+        166500
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "1e194ce18e7a89e4e8a693002f32590ba81ba6abbfbd6cae3088c2118c5a49cb",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125626",
+      "title": "Monument record MKE125626 - Chalk pit, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125626",
+      "grid_reference": "Centred TR 3366 6680 (88m by 125m)",
+      "anchor_bng": [
+        633660,
+        166800
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "4a96af14ed002dae135efcdd8912c6a120ed06a490b13a678d4c62a29f2d7d00",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125177",
+      "title": "Monument record MKE125177 - Cluster of military buildings, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125177",
+      "grid_reference": "Centred TR 3397 6549 (18m by 177m)",
+      "anchor_bng": [
+        633970,
+        165490
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "cc67e466ed0357ad3c455bd061db96680e90d01fa8e4133bb3a6722f70141434",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125658",
+      "title": "Monument record MKE125658 - Coal bunker, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125658",
+      "grid_reference": "Centred TR 3298 6660 (67m by 66m) (2 map features)",
+      "anchor_bng": [
+        632980,
+        166600
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "0153370695246f93bd2724dbe9cd42787e0c5cfdbab3f6a3a35e8cd51476b186",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125378",
+      "title": "Monument record MKE125378 - Complex of military structures, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125378",
+      "grid_reference": "Centred TR 3435 6695 (59m by 57m)",
+      "anchor_bng": [
+        634350,
+        166950
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "ae9a29a64dd20206f7a33642cec71e06d1b47a1e447f687a722c75289d526500",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125652",
+      "title": "Monument record MKE125652 - Cooling pond, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125652",
+      "grid_reference": "Centred TR 3284 6668 (35m by 36m)",
+      "anchor_bng": [
+        632840,
+        166680
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "5e2b3f65bf760333a749fa000d8d76f1ca6da58d940b0dd84fb110edde4de78e",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE98031",
+      "title": "Monument record TR 36 NW 892 - Crash runway, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE98031",
+      "grid_reference": "Centred TR 3314 6565 (2753m by 714m)",
+      "anchor_bng": [
+        633140,
+        165650
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "f05ba88df7157291cda088f2b0353b35ecb6856809446f33e783430f35f2ab35",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125350",
+      "title": "Monument record MKE125350 - Custom House, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125350",
+      "grid_reference": "Centred TR 3397 6640 (14m by 23m)",
+      "anchor_bng": [
+        633970,
+        166400
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "5d256e7d0181cbba0e6413fa3ceae9b6848e87be06034bd018b373b125455901",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125431",
+      "title": "Monument record MKE125431 - Decontamination Centre, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125431",
+      "grid_reference": "Centred TR 3247 6687 (25m by 30m)",
+      "anchor_bng": [
+        632470,
+        166870
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "55f6e38531378857a23d8f20c4af9bad6a3a8db2fd37b00cbf92022f17d45a52",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125067",
+      "title": "Monument record MKE125067 - Electricity sub-station for RAF Manston north of Cliffs End",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125067",
+      "grid_reference": "Centred TR 3456 6526 (7m by 10m)",
+      "anchor_bng": [
+        634560,
+        165260
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "c3a7123a07dfc775dabab503785ea26b5c4116557aefecf51ea70b71bc2880f6",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125068",
+      "title": "Monument record MKE125068 - Electricity sub-station for RAF Manston north of Cliffs End",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125068",
+      "grid_reference": "Centred TR 3452 6566 (9m by 9m)",
+      "anchor_bng": [
+        634520,
+        165660
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "1eda92ba556e2b2472de986640b5679f4165834c245a2dfbfc6d9ef63eb0dc49",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125065",
+      "title": "Monument record MKE125065 - Electricity sub-station for RAF Manston north of Thorne",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125065",
+      "grid_reference": "Centred TR 3364 6539 (7m by 9m)",
+      "anchor_bng": [
+        633640,
+        165390
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "0a69b3f39ea6a1f3cd66035378b930c45423972c976f1f0d2642364a3c51e9e6",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125066",
+      "title": "Monument record MKE125066 - Electricity sub-station for RAF Manston north of Thorne",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125066",
+      "grid_reference": "Centred TR 3358 6541 (11m by 10m)",
+      "anchor_bng": [
+        633580,
+        165410
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "a347e059b26a93ab3dbd9bdc5eb98fde2d23dcf8dabb419a58781d4906478f87",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125151",
+      "title": "Monument record MKE125151 - Electricity sub-station for RAF Manston north of Thorne",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125151",
+      "grid_reference": "Centred TR 3175 6566 (8m by 8m)",
+      "anchor_bng": [
+        631750,
+        165660
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "6063c24c495ee2c7d54d4ce5ae2f439c8f5df9c4b494a9e8079ac378cb0b90a9",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125063",
+      "title": "Monument record MKE125063 - Electricity sub-station for RAF Manston north-east of Ivy Cottage Hill",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125063",
+      "grid_reference": "Centred TR 3272 6551 (9m by 9m)",
+      "anchor_bng": [
+        632720,
+        165510
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "610763da92289ae6d52ca09432dadd70133b5eb3f4cae1172e670661a2ea760d",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125064",
+      "title": "Monument record MKE125064 - Electricity sub-station for RAF Manston north-east of Ivy Cottage Hill",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125064",
+      "grid_reference": "Centred TR 3319 6545 (7m by 9m)",
+      "anchor_bng": [
+        633190,
+        165450
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "336351bebd21e436637051fc6cd159a5b48fb709cde777b4d9caf0b9cf14744c",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE99535",
+      "title": "Monument record TR 36 NE 723 - Electricity sub-station for RAF Manston south-west of Ozengell Grange",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE99535",
+      "grid_reference": "Centred TR 3524 6551 (9m by 9m)",
+      "anchor_bng": [
+        635240,
+        165510
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "978a3bee82be3192b0bcd3727f30b53cabc41e1d8d965cbb97c84ea2c0799f23",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125141",
+      "title": "Monument record MKE125141 - Emergency water supply tanks, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125141",
+      "grid_reference": "Centred TR 3442 6527 (22m by 25m)",
+      "anchor_bng": [
+        634420,
+        165270
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "786224c7b9bed8b42807bc8ce3f54743fec5bbadfb8f4027cf4d672d804a3906",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125157",
+      "title": "Monument record MKE125157 - Fighter pen, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125157",
+      "grid_reference": "Centred TR 3375 6540 (57m by 44m)",
+      "anchor_bng": [
+        633750,
+        165400
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "65273cc8ff7033f8537da98d55a4ade8677f7f18cebdec8a2b2fdce83abb3f31",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125161",
+      "title": "Monument record MKE125161 - Fighter pen, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125161",
+      "grid_reference": "Centred TR 3397 6576 (39m by 30m)",
+      "anchor_bng": [
+        633970,
+        165760
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "ca3fef5e5249a7f9cc3f8cf161d62f087c5730b68aa9b4d53119689eafa62f56",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125163",
+      "title": "Monument record MKE125163 - Fighter pen, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125163",
+      "grid_reference": "Centred TR 3404 6576 (31m by 46m)",
+      "anchor_bng": [
+        634040,
+        165760
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "bcf04015bfcae0cc46008818a10347aab97af82c6cfcab707724e578aec2a061",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125165",
+      "title": "Monument record MKE125165 - Fighter pen, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125165",
+      "grid_reference": "Centred TR 3395 6629 (29m by 47m)",
+      "anchor_bng": [
+        633950,
+        166290
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "52cbe0dee5653f3947e4cad07cf0c58148b858da26fa5bfd1e57c9e607e3569a",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125166",
+      "title": "Monument record MKE125166 - Fighter pen, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125166",
+      "grid_reference": "Centred TR 3412 6645 (43m by 44m)",
+      "anchor_bng": [
+        634120,
+        166450
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "8dd0c03d518112251889fa7c23e29ff613f2979ec5b14ca1894ae94c00017dc4",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125167",
+      "title": "Monument record MKE125167 - Fighter pen, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125167",
+      "grid_reference": "Centred TR 3388 6640 (45m by 40m)",
+      "anchor_bng": [
+        633880,
+        166400
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "ea764bd5745855b7201ba9a8bafeb9ee45009cae37ccf6bc7c9acf4d0340afd9",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125168",
+      "title": "Monument record MKE125168 - Fighter pen, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125168",
+      "grid_reference": "Centred TR 3376 6642 (56m by 32m)",
+      "anchor_bng": [
+        633760,
+        166420
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "1c0ecca674654d6579e2a2d7e4d46bfc18f480563568da9d4e650c4c1d31768d",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125170",
+      "title": "Monument record MKE125170 - Fighter pen, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125170",
+      "grid_reference": "Centred TR 3298 6626 (59m by 81m)",
+      "anchor_bng": [
+        632980,
+        166260
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "dd2b325d54988dc5c2c404403852ca1d90d110dc54d810d015c8ce4f27ab9d0b",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125171",
+      "title": "Monument record MKE125171 - Fighter pen, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125171",
+      "grid_reference": "Centred TR 3286 6607 (39m by 54m)",
+      "anchor_bng": [
+        632860,
+        166070
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "58d7109a0e38f144035e625659b3a725d83f251398ec30504fea6a8335896255",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE98024",
+      "title": "Monument record TR 36 NW 885 - Fighter pen, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE98024",
+      "grid_reference": "Centred TR 3306 6634 (50m by 46m)",
+      "anchor_bng": [
+        633060,
+        166340
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "a7d1f5dc9d6c084ab67e83cefe8657556af8352a8aa2bc9a928b7a2560ca8e38",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125159",
+      "title": "Monument record MKE125159 - Fighter pens, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125159",
+      "grid_reference": "Centred TR 3394 6547 (35m by 76m)",
+      "anchor_bng": [
+        633940,
+        165470
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "6f64c5b5c9a69cdaff5b3b2b4b12e3d57b50c56e2689a0e721803669bbd81c90",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125160",
+      "title": "Monument record MKE125160 - Fighter pens, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125160",
+      "grid_reference": "Centred TR 3389 6586 (54m by 77m)",
+      "anchor_bng": [
+        633890,
+        165860
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "a47d2c06e97fdfde60987271f73c814ae7e3f20262b663fb3ef52ab35ed74c68",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125532",
+      "title": "Monument record MKE125532 - Fire Tender House, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125532",
+      "grid_reference": "Centred TR 3354 6661 (19m by 12m)",
+      "anchor_bng": [
+        633540,
+        166610
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "dec19bf3115505e7fec62c345c825ce7ed99a51309bda1fcb4f028601f26ba2f",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125206",
+      "title": "Monument record MKE125206 - Firing range and magazines, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125206",
+      "grid_reference": "Centred TR 3397 6595 (214m by 349m)",
+      "anchor_bng": [
+        633970,
+        165950
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "05d109d4860d2154f7b50f34140a07b375ff54e8a209ffc7a27750ac7ce7a8a2",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125221",
+      "title": "Monument record MKE125221 - First Aid Post and huts, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125221",
+      "grid_reference": "Centred TR 3405 6631 (31m by 31m)",
+      "anchor_bng": [
+        634050,
+        166310
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "09f8d3c9450e219b2800d8ef285c437561fc7b13525d914e86428ed1a1764441",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125397",
+      "title": "Monument record MKE125397 - First World War trenches, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125397",
+      "grid_reference": "Centred TR 3373 6751 (69m by 41m)",
+      "anchor_bng": [
+        633730,
+        167510
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "bde5902ca301c7776607dbcfde6fb8cba20cd2b2b73280e31e3b8ef9288c6675",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125697",
+      "title": "Monument record MKE125697 - Flight Office, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125697",
+      "grid_reference": "Centred TR 3178 6656 (35m by 56m)",
+      "anchor_bng": [
+        631780,
+        166560
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "c7c727c954dc217ae4f52b385946d5ea4bbf9c027648451f7c4e078a0f34ee4d",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125780",
+      "title": "Monument record MKE125780 - Football pitch south of Cleve Court",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125780",
+      "grid_reference": "Centred TR 3130 6607 (88m by 70m)",
+      "anchor_bng": [
+        631300,
+        166070
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "2d1e5766c6e5264d4a42e0adc22b56752c14ea951d67895b10812c491ac77327",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125538",
+      "title": "Monument record MKE125538 - Football pitch, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125538",
+      "grid_reference": "Centred TR 3376 6673 (142m by 129m)",
+      "anchor_bng": [
+        633760,
+        166730
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "7118dbe0aa024892dafde0778a97a4ab58c5e90ea6c0655e970d1aac788f7ec3",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125516",
+      "title": "Monument record MKE125516 - Fuel store, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125516",
+      "grid_reference": "Centred TR 3312 6645 (32m by 22m)",
+      "anchor_bng": [
+        633120,
+        166450
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "a7a59782c8fa4d87a6423d8a5b2ad4bf0f408ca12626e324b69e121a9a902b3d",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125223",
+      "title": "Monument record MKE125223 - Generator House, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125223",
+      "grid_reference": "Centred TR 3399 6633 (9m by 8m)",
+      "anchor_bng": [
+        633990,
+        166330
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "4f02f5d7bfce063f5fc5755dd3bb1ffdc091974240df88454a601ca717704be2",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125542",
+      "title": "Monument record MKE125542 - Glasshouse, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125542",
+      "grid_reference": "Centred TR 3320 6661 (34m by 27m)",
+      "anchor_bng": [
+        633200,
+        166610
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "4228a2db91d17812288ebcafa544339ad3ddcbeaf00614648c191a66849c7c04",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125564",
+      "title": "Monument record MKE125564 - Guardhouse, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125564",
+      "grid_reference": "Centred TR 3311 6684 (45m by 43m)",
+      "anchor_bng": [
+        633110,
+        166840
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "dcb63a4439c1b2446a30cd19f5eaec258580afb478eaf5698150fd4960af07c5",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125121",
+      "title": "Monument record MKE125121 - Gun emplacement north-west of Cliffs End, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125121",
+      "grid_reference": "Centred TR 3420 6516 (13m by 12m)",
+      "anchor_bng": [
+        634200,
+        165160
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "bd10fe7711b0319b36ccfdf39b715880f5c678ec2b027825fc95525262f7d2d9",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125253",
+      "title": "Monument record MKE125253 - Gun emplacement, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125253",
+      "grid_reference": "Centred TR 3414 6599 (3m by 3m)",
+      "anchor_bng": [
+        634140,
+        165990
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "5674641d83a86ab1c0b0a0dd2563e6863f433a34534ef864d545277fde2658d9",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125255",
+      "title": "Monument record MKE125255 - Gun emplacement, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125255",
+      "grid_reference": "Centred TR 3440 6646 (3m by 4m)",
+      "anchor_bng": [
+        634400,
+        166460
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "191f304acdaaf8e0eb453af1bdbb511919ab04ca7e75172505654cc0bb7ac8fe",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125355",
+      "title": "Monument record MKE125355 - Gun emplacement, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125355",
+      "grid_reference": "Centred TR 3402 6661 (6m by 8m)",
+      "anchor_bng": [
+        634020,
+        166610
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "5d10d5d273e009ca01d89ecae2853a1f6e7927683cb06188a62cce3623507ba1",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125356",
+      "title": "Monument record MKE125356 - Gun emplacement, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125356",
+      "grid_reference": "Centred TR 3410 6659 (8m by 9m)",
+      "anchor_bng": [
+        634100,
+        166590
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "2726d5411316e30331a2f5ce7f6ddddcb94de720b8be10757f31df18ba85cb79",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125371",
+      "title": "Monument record MKE125371 - Gun emplacement, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125371",
+      "grid_reference": "Centred TR 3436 6683 (5m by 6m)",
+      "anchor_bng": [
+        634360,
+        166830
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "0112bfd99b69cf6201f93198df37f0a8b5e481bac2800bd1d6e502f4de1d0fba",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125419",
+      "title": "Monument record MKE125419 - Gun emplacement, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125419",
+      "grid_reference": "Centred TR 3237 6644 (2m by 3m)",
+      "anchor_bng": [
+        632370,
+        166440
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "c240a622b656f84de1880b346938be3b66a2b9aed1440ede2c733b681c71b457",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125423",
+      "title": "Monument record MKE125423 - Gun emplacement, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125423",
+      "grid_reference": "Centred TR 3248 6677 (3m by 4m)",
+      "anchor_bng": [
+        632480,
+        166770
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "52a40ac427afcff3e7093523bfdc5b8e8369c6af106e25c4840501137975172a",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125427",
+      "title": "Monument record MKE125427 - Gun emplacement, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125427",
+      "grid_reference": "Centred TR 3227 6674 (3m by 4m)",
+      "anchor_bng": [
+        632270,
+        166740
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "b54a3889444d03ccb314618d10de169014f31bc7853ef91361c104dc940aae54",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125428",
+      "title": "Monument record MKE125428 - Gun emplacement, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125428",
+      "grid_reference": "Centred TR 3230 6664 (3m by 2m)",
+      "anchor_bng": [
+        632300,
+        166640
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "e4c83790d01d341f70f059a78b70ff3664cdc49e3330ef849ff37b5aeba4018b",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125624",
+      "title": "Monument record MKE125624 - Gun emplacement, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125624",
+      "grid_reference": "Centred TR 3363 6698 (24m by 26m)",
+      "anchor_bng": [
+        633630,
+        166980
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "77a63c8e652b675b2967f3da99ffdb45e83ead3068dd3029386825b5b1632fd6",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE39387",
+      "title": "Monument record TR 36 NW 1071 - Gun emplacements and slit trenches, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE39387",
+      "grid_reference": "Centred TR 3273 6668 (133m by 56m)",
+      "anchor_bng": [
+        632730,
+        166680
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "79cc89b6d6726c899a0c271e7047b74d6a5db5f51a824e18269600aee7f28c93",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125081",
+      "title": "Monument record MKE125081 - Gun emplacements on RAF Manston, north-west of Cliffs End",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125081",
+      "grid_reference": "Centred TR 3437 6538 (56m by 129m)",
+      "anchor_bng": [
+        634370,
+        165380
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "8eb037aaf58efb7fdebd573d8636e0321a001690a82f530d1f2a534182e99032",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125248",
+      "title": "Monument record MKE125248 - Gun emplacements, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125248",
+      "grid_reference": "Centred TR 3429 6616 (14m by 27m)",
+      "anchor_bng": [
+        634290,
+        166160
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "c5da633c10a750ce4ce1d05e67a5a932b17e2199be445998c0f67bbdfab1721b",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125252",
+      "title": "Monument record MKE125252 - Gun emplacements, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125252",
+      "grid_reference": "Centred TR 3419 6633 (13m by 31m)",
+      "anchor_bng": [
+        634190,
+        166330
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "b343776c9330cd3a5970f225865f7eef99346101ad1c80a602e2cf74da15dc34",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125403",
+      "title": "Monument record MKE125403 - Gun emplacements, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125403",
+      "grid_reference": "Centred TR 3401 6736 (53m by 96m)",
+      "anchor_bng": [
+        634010,
+        167360
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "493b2ebc30ab432730282d6f156ae249a46d72111babc5aed5fca54c2f6f45ab",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125420",
+      "title": "Monument record MKE125420 - Gun emplacements, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125420",
+      "grid_reference": "Centred TR 3224 6633 (187m by 125m)",
+      "anchor_bng": [
+        632240,
+        166330
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "2dbd7238a0fba73e401440ef80d8d579f9ecd8edc54d18529d7baf4847f7447c",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125432",
+      "title": "Monument record MKE125432 - Gun emplacements, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125432",
+      "grid_reference": "Centred TR 3253 6695 (49m by 64m)",
+      "anchor_bng": [
+        632530,
+        166950
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "5aec62e7aee5da09135fb1a9f081170e338cc97548b9630a387aec9100d99cf1",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125213",
+      "title": "Monument record MKE125213 - Hangar and hard standing, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125213",
+      "grid_reference": "Centred TR 3394 6612 (86m by 74m)",
+      "anchor_bng": [
+        633940,
+        166120
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "b80a8fb4a0655af5b654a9080640de73aec75f2b4b1943e64cae5c6fca97b819",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125655",
+      "title": "Monument record MKE125655 - Hangar and hard standing, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125655",
+      "grid_reference": "Centred TR 3290 6659 (127m by 136m)",
+      "anchor_bng": [
+        632900,
+        166590
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "8ffa3f229eb7e8cac27529042ead2c4703923bdcc3750b5bdc89d0521cc516a6",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE100021",
+      "title": "Monument record TR 36 NW 1270 - Hangar, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE100021",
+      "grid_reference": "Centred TR 3181 6658 (73m by 83m)",
+      "anchor_bng": [
+        631810,
+        166580
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "4f927dc9d8d270ff71599d42bd006713a1f795d6243af8c056c4570f11f246f9",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125218",
+      "title": "Monument record MKE125218 - Hangar, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125218",
+      "grid_reference": "Centred TR 3399 6628 (38m by 59m)",
+      "anchor_bng": [
+        633990,
+        166280
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "8c0678d7e99738d8bdf1693a5b6c9c8ba01968f2c7e1bf883c95357f68be67b2",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125073",
+      "title": "Monument record MKE125073 - Hard standing beside a hangar, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125073",
+      "grid_reference": "Centred TR 3356 6543 (21m by 21m)",
+      "anchor_bng": [
+        633560,
+        165430
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "a349774039515c29f2da39677add117c5cb23c892bdd25d5f21fc0ecb9cb9035",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125075",
+      "title": "Monument record TR 36 NW 1445 - Hard standing, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125075",
+      "grid_reference": "Centred TR 3337 6548 (21m by 20m)",
+      "anchor_bng": [
+        633370,
+        165480
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "d02d5512bbb3f415f217da287cd129007b4ff4e6c68f5853369b84ec77ee11d9",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125217",
+      "title": "Monument record MKE125217 - Hard standing, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125217",
+      "grid_reference": "Centred TR 3398 6624 (25m by 25m)",
+      "anchor_bng": [
+        633980,
+        166240
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "9787628ed798ae398ea90bb957821790baf631d2371c52e8e3a83b715d526118",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125372",
+      "title": "Monument record MKE125372 - Hard standing, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125372",
+      "grid_reference": "Centred TR 3434 6683 (43m by 61m)",
+      "anchor_bng": [
+        634340,
+        166830
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "46e3ed756eadb2df9abd4196e09977870dd7d193f0b48e4b0ee80f184004175c",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125449",
+      "title": "Monument record MKE125449 - Hard standing, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125449",
+      "grid_reference": "Centred TR 3294 6619 (33m by 33m)",
+      "anchor_bng": [
+        632940,
+        166190
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "99e14cb8d596555088fabfa857d1d91c3026977369d5a059a9a53b49956b4626",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125535",
+      "title": "Monument record MKE125535 - Hard standing, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125535",
+      "grid_reference": "Centred TR 3364 6667 (36m by 36m)",
+      "anchor_bng": [
+        633640,
+        166670
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "681c811b13ef47fb68cf3ee9a20491a018b5fa4dd232b1821b91dce79f8da6e3",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125625",
+      "title": "Monument record MKE125625 - Hard standing, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125625",
+      "grid_reference": "Centred TR 3363 6694 (292m by 230m)",
+      "anchor_bng": [
+        633630,
+        166940
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "f625dddd51957c75a19ca1971d0bbab4c3593410d05132e8731df9f045d325c4",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125215",
+      "title": "Monument record MKE125215 - Hard standings, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125215",
+      "grid_reference": "Centred TR 3396 6619 (74m by 63m)",
+      "anchor_bng": [
+        633960,
+        166190
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "e3bffe32a81d8206639f1bea20cea8a2b73d545e4bb998da95f1f60b3406d9c0",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125617",
+      "title": "Monument record MKE125617 - Hard standings, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125617",
+      "grid_reference": "Centred TR 3351 6686 (168m by 190m)",
+      "anchor_bng": [
+        633510,
+        166860
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "94c829b0869f11f075fbc1211e303c1c04840658ccca498dc98b7efe4faf69a0",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125385",
+      "title": "Monument record MKE125385 - Hard Standings, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125385",
+      "grid_reference": "Centred TR 3422 6700 (235m by 205m)",
+      "anchor_bng": [
+        634220,
+        167000
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "30f882a17f4d05469e6c52a6588856f84d4df520d5f00eae2584cc37bc63bb7d",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125778",
+      "title": "Monument record TR 36 NW 1429 - Heavy anti-aircraft gun battery, Cleve Court",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125778",
+      "grid_reference": "Centred TR 3126 6605 (262m by 207m)",
+      "anchor_bng": [
+        631260,
+        166050
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "d6c354360521c7a50e593fd1eebcc468133ae88d3d0ccfe368162cdceb1e0175",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125631",
+      "title": "Monument record MKE125631 - Hut with blast walls, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125631",
+      "grid_reference": "Centred TR 3324 6704 (38m by 32m)",
+      "anchor_bng": [
+        633240,
+        167040
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "5f88eb32d4bbeb1eb8a7ec07c55eef1f9300b96d490e7d7da13b3d8eb91754b6",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125426",
+      "title": "Monument record MKE125426 - Hut, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125426",
+      "grid_reference": "Centred TR 3227 6668 (7m by 8m)",
+      "anchor_bng": [
+        632270,
+        166680
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "b4d3fdf23a1e794ab992ce6dd0f3c73b93e3b8ee2aba1d094ee66c341aad8d34",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125447",
+      "title": "Monument record MKE125447 - Hut, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125447",
+      "grid_reference": "Centred TR 3289 6619 (19m by 20m)",
+      "anchor_bng": [
+        632890,
+        166190
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "ce21e9d225855df806025fa132000e104e190caf4580f5a9b1fdc1eae0113080",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125450",
+      "title": "Monument record MKE125450 - Hut, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125450",
+      "grid_reference": "Centred TR 3294 6623 (30m by 31m)",
+      "anchor_bng": [
+        632940,
+        166230
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "1d60f112c7f3dc73254e323db213400e8c5582359b243fdbe22cc855c1ac6226",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125451",
+      "title": "Monument record MKE125451 - Hut, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125451",
+      "grid_reference": "Centred TR 3292 6629 (8m by 8m)",
+      "anchor_bng": [
+        632920,
+        166290
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "a46a2b62ae451d4c70ac5c06e3ef907f574decc4d5e82f53a263f0565fb49e7f",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125452",
+      "title": "Monument record MKE125452 - Hut, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125452",
+      "grid_reference": "Centred TR 3303 6630 (30m by 31m)",
+      "anchor_bng": [
+        633030,
+        166300
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "5df50727677365f40cabc9c0654ecd4402e5ff7fc9ed50da5ebee15a2b55cb5c",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125453",
+      "title": "Monument record MKE125453 - Hut, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125453",
+      "grid_reference": "Centred TR 3311 6635 (32m by 30m)",
+      "anchor_bng": [
+        633110,
+        166350
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "d1efd897641a1ec151cc5914ab5cb8c795cfa9db77cd87cbb44f90f25ffe60b6",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125563",
+      "title": "Monument record MKE125563 - Hut, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125563",
+      "grid_reference": "Centred TR 3309 6698 (9m by 9m)",
+      "anchor_bng": [
+        633090,
+        166980
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "140570126d6bde9a8a9e67f3cd6abcb58f47135b2b3bebd6c6130d9c278127ee",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125569",
+      "title": "Monument record MKE125569 - Hut, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125569",
+      "grid_reference": "Centred TR 3318 6676 (34m by 30m)",
+      "anchor_bng": [
+        633180,
+        166760
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "4b82e48e865c7e14a5a10d54136e308870a88c2e3ab861b34a0c3969fe662b1a",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125572",
+      "title": "Monument record MKE125572 - Hut, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125572",
+      "grid_reference": "Centred TR 3318 6675 (34m by 30m)",
+      "anchor_bng": [
+        633180,
+        166750
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "8228f2e55d104596a7c364b29016b7c5644e43dd029fc76988dda1bb21e487f7",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125575",
+      "title": "Monument record MKE125575 - Hut, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125575",
+      "grid_reference": "Centred TR 3319 6674 (37m by 32m)",
+      "anchor_bng": [
+        633190,
+        166740
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "576ba1283d19d8ffbe78d64cd02478c889d0ad69aa3d3309ff10b5af1c3da6ed",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125183",
+      "title": "Monument record MKE125183 - Huts and a bunded structure, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125183",
+      "grid_reference": "Centred TR 3403 6569 (108m by 89m)",
+      "anchor_bng": [
+        634030,
+        165690
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "e079f657b426dffd60b1e20b5999f7dd56c9f992e24b945f7fe7b21f049799f5",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125212",
+      "title": "Monument record MKE125212 - Huts and an emergency water supply, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125212",
+      "grid_reference": "Centred TR 3395 6604 (40m by 76m)",
+      "anchor_bng": [
+        633950,
+        166040
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "a937d10392950c22636e7783493a8bf4a689406016f561244662239b37819475",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125331",
+      "title": "Monument record MKE125331 - Huts and building platforms, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125331",
+      "grid_reference": "Centred TR 3415 6636 (52m by 67m)",
+      "anchor_bng": [
+        634150,
+        166360
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "a6ae7181148967e37a3d1306c32ef7c133187fb6018949073540db58f485dea3",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125351",
+      "title": "Monument record MKE125351 - Huts and building platforms, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125351",
+      "grid_reference": "Centred TR 3401 6641 (89m by 98m)",
+      "anchor_bng": [
+        634010,
+        166410
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "c43121e0c23aa7e8b70d306f3839a3dd1dca504b07c900d08753db798a5090d7",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125590",
+      "title": "Monument record MKE125590 - Huts, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125590",
+      "grid_reference": "Centred TR 3336 6663 (36m by 33m)",
+      "anchor_bng": [
+        633360,
+        166630
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "d2119a6c5209ab88436c1f6a1e4ade5e40d1c8046a51cb10f430a38dd89a64a9",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125645",
+      "title": "Monument record MKE125645 - Huts, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125645",
+      "grid_reference": "Centred TR 3317 6712 (44m by 40m)",
+      "anchor_bng": [
+        633170,
+        167120
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "0710c5a5f5c19dbaa7822815ba9b2acd3e281ff21046057ae74dd0363853c61c",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125698",
+      "title": "Monument record MKE125698 - Huts, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125698",
+      "grid_reference": "Centred TR 3176 6655 (23m by 38m)",
+      "anchor_bng": [
+        631760,
+        166550
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "102518043d68c35056f396409d97dabb0f5d5c18ec8438ac356ced0d7343c9f7",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125699",
+      "title": "Monument record MKE125699 - Huts, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125699",
+      "grid_reference": "Centred TR 3181 6647 (65m by 39m)",
+      "anchor_bng": [
+        631810,
+        166470
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "a62c43b41c5301bc1d82788467e46d08faab8b55d1195cb34db483788749798b",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125771",
+      "title": "Monument record MKE125771 - Huts, Telegraph Hill",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125771",
+      "grid_reference": "Centred TR 3151 6583 (28m by 19m)",
+      "anchor_bng": [
+        631510,
+        165830
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "e2923ddabdaa2e2f6e980accebba9d4891497caca994a5c11db995bf973bdb2c",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125524",
+      "title": "Monument record MKE125524 - Link trainer, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125524",
+      "grid_reference": "Centred TR 3308 6660 (23m by 22m)",
+      "anchor_bng": [
+        633080,
+        166600
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "b67c0bdeb5acd11daef8fe8296eef13fa69b1a2f14bd0c8d2b2bf1fb1a24c5ed",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE115510",
+      "title": "Monument record TR 36 NW 1350 - Machine Gun Range, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE115510",
+      "grid_reference": "Centred TR 3353 6679 (40m by 39m)",
+      "anchor_bng": [
+        633530,
+        166790
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "64d549399625955a6548d633a8660b854189c7ca087d1118ca46d92df7efd089",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125527",
+      "title": "Monument record MKE125527 - Maintenance Workshop, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125527",
+      "grid_reference": "Centred TR 3324 6648 (56m by 57m)",
+      "anchor_bng": [
+        633240,
+        166480
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "e01662cc57729cfc96f693b1c1a4a0888482074397583c0619d8450f027e072b",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125329",
+      "title": "Monument record MKE125329 - Maintenance workshops, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125329",
+      "grid_reference": "Centred TR 3416 6633 (35m by 24m)",
+      "anchor_bng": [
+        634160,
+        166330
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "9f7e624cdb94db73cd25c035cbaa4fa3b76851971fa2ed05dbb4920971cb80e6",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125211",
+      "title": "Monument record MKE125211 - Married Quarters, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125211",
+      "grid_reference": "Centred TR 3399 6608 (46m by 132m)",
+      "anchor_bng": [
+        633990,
+        166080
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "260d7a4e2370e30ae33b5cca55b71d35b5a8f1663c7d598d3592c6e1bed361d2",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125338",
+      "title": "Monument record MKE125338 - Married Quarters, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125338",
+      "grid_reference": "Centred TR 3407 6636 (76m by 41m)",
+      "anchor_bng": [
+        634070,
+        166360
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "8bd4cab318320d3d991c1188c0c3f7005eb0ab01a2676d37febe595b3aaacc69",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125581",
+      "title": "Monument record MKE125581 - Mess and Storage Depot, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125581",
+      "grid_reference": "Centred TR 3317 6686 (78m by 81m)",
+      "anchor_bng": [
+        633170,
+        166860
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "c6f8fefe245fb16afbba990855d36860299af98382ed01f0f638db33bb6f9201",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125586",
+      "title": "Monument record MKE125586 - Mess, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125586",
+      "grid_reference": "Centred TR 3330 6672 (55m by 63m)",
+      "anchor_bng": [
+        633300,
+        166720
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "89c5f147ed0882a27733b0185b9d8664e2aa06d91ef10550082f386050307412",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125518",
+      "title": "Monument record MKE125518 - Military building, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125518",
+      "grid_reference": "Centred TR 3314 6648 (20m by 23m)",
+      "anchor_bng": [
+        633140,
+        166480
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "608a44df0948d99bee9b9bc026d5a150371ce9ac4ca26a67c029a52b85f2c0bc",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125058",
+      "title": "Monument record MKE125058 - Military features defining the south-west boundary of RAF Manston grass airfield",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125058",
+      "grid_reference": "Centred TR 3265 6570 (196m by 215m)",
+      "anchor_bng": [
+        632650,
+        165700
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "49fa78749f987b158e582a9d5814c0492a7f7702f5209692dfdcf94d5b4dff9c",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125059",
+      "title": "Monument record MKE125059 - Military features defining the south-west boundary of RAF Manston grass airfield",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125059",
+      "grid_reference": "Centred TR 3273 6585 (59m by 104m)",
+      "anchor_bng": [
+        632730,
+        165850
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "b4aefa76bfd41a28de683ce22b015eb27de62a5d6e97fa52724c39ec782c8d85",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125060",
+      "title": "Monument record MKE125060 - Military features defining the south-west boundary of RAF Manston grass airfield",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125060",
+      "grid_reference": "Centred TR 3280 6602 (133m by 198m)",
+      "anchor_bng": [
+        632800,
+        166020
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "61c52ad7b525a9d4d7afbc07dc21dc357b78615f3e00ee3618ca63f635113259",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125554",
+      "title": "Monument record MKE125554 - Military Hospital, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125554",
+      "grid_reference": "Centred TR 3305 6691 (91m by 70m)",
+      "anchor_bng": [
+        633050,
+        166910
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "60e2d8fcc2636a9d077ae6794a2c2972e9b486a28a5685288915e73cb5297059",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125055",
+      "title": "Monument record MKE125055 - Military installation on Telegraph Hill",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125055",
+      "grid_reference": "Centred TR 3191 6603 (227m by 245m)",
+      "anchor_bng": [
+        631910,
+        166030
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "bfa6004cf875d693a070db8e6c896e09d96b4e906a94ba9b31b19ebc01e987d7",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125180",
+      "title": "Monument record MKE125180 - Military installation, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125180",
+      "grid_reference": "Centred TR 3394 6552 (17m by 20m)",
+      "anchor_bng": [
+        633940,
+        165520
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "d70bb88a5ff1587077a0c8720cb9b205d1c2fb514cc0d82354ea777cd2f698fa",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125189",
+      "title": "Monument record MKE125189 - Military installation, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125189",
+      "grid_reference": "Centred TR 3389 6582 (19m by 18m)",
+      "anchor_bng": [
+        633890,
+        165820
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "9fec87d3f5a161b77bc41590e0e805966af6645cc5a75396e65f5fbf8fb5a521",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125396",
+      "title": "Monument record MKE125396 - Military installation, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125396",
+      "grid_reference": "Centred TR 3367 6753 (49m by 52m)",
+      "anchor_bng": [
+        633670,
+        167530
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "cd330168d6626234b02bcec10e01538aee3cc64e6e72f533daa231c274241433",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125414",
+      "title": "Monument record TR 36 NW 1439 - Military installation, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125414",
+      "grid_reference": "Centred TR 3229 6634 (336m by 335m)",
+      "anchor_bng": [
+        632290,
+        166340
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "8350231eff4eae96e9757d852df3258c35436790dfd44290fffc61bfeeb17bf0",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125421",
+      "title": "Monument record MKE125421 - Military installation, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125421",
+      "grid_reference": "Centred TR 3235 6671 (175m by 115m)",
+      "anchor_bng": [
+        632350,
+        166710
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "cab1f8b4392de8f38bba67b4adaa4ede97908e5c629a92446b46ee3868556d9c",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125664",
+      "title": "Monument record MKE125664 - Military installation, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125664",
+      "grid_reference": "Centred TR 3285 6647 (51m by 55m)",
+      "anchor_bng": [
+        632850,
+        166470
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "ced40b261528571c36b83e85910f1ee29fe742ad3bb0f6c031bf82ef824685a0",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125772",
+      "title": "Monument record MKE125772 - Military installation, Telegraph Hill",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125772",
+      "grid_reference": "Centred TR 3155 6582 (13m by 49m)",
+      "anchor_bng": [
+        631550,
+        165820
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "2625fe1e7f78595fc4f207fe92027a18e0da7061cc85519ce2f7638bd016f049",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125038",
+      "title": "Monument record MKE125038 - Minster High Frequency Direction Finding Station",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125038",
+      "grid_reference": "Centred TR 2970 6594 (317m by 149m)",
+      "anchor_bng": [
+        629700,
+        165940
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "6dee9c58a892450280991867da778a1f5ac1843a684e202a176e9e4014b91c75",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125558",
+      "title": "Monument record MKE125558 - Mortuary, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125558",
+      "grid_reference": "Centred TR 3301 6696 (15m by 14m)",
+      "anchor_bng": [
+        633010,
+        166960
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "1f759d819385027e89b418bb00618357aabe5bc6484a516241e2a699d403ac36",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125560",
+      "title": "Monument record MKE125560 - Office, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125560",
+      "grid_reference": "Centred TR 3303 6697 (31m by 35m)",
+      "anchor_bng": [
+        633030,
+        166970
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "6f8dce19060c962113cd9156dd2c78c107bec775f8272fc68e06b2451d6d97a0",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125603",
+      "title": "Monument record MKE125603 - Office, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125603",
+      "grid_reference": "Centred TR 3328 6690 (33m by 28m)",
+      "anchor_bng": [
+        633280,
+        166900
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "73e182baad80c669dd7ae1618ea45c49213a05fe95e9fe9ea6953fc98162e590",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125521",
+      "title": "Monument record MKE125521 - Officer's Quarters, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125521",
+      "grid_reference": "Centred TR 3311 6655 (21m by 22m)",
+      "anchor_bng": [
+        633110,
+        166550
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "bd2fc8d12e1fd2dbba9a382929e78a239dce5972b554cf83890e4d3e1b445ef2",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125550",
+      "title": "Monument record MKE125550 - Officers Quarters, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125550",
+      "grid_reference": "Centred TR 3299 6681 (61m by 59m)",
+      "anchor_bng": [
+        632990,
+        166810
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "9987fc7bfbf984a496ff14d8ffc5a1ca3b7ed72cf0bdec86bfda3dd06196f0c0",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125576",
+      "title": "Monument record MKE125576 - Officers' Mess, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125576",
+      "grid_reference": "Centred TR 3324 6668 (117m by 132m)",
+      "anchor_bng": [
+        633240,
+        166680
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "f2324203d46a1ac61820d0f39c6992ba65a192779425fe8ca11a7fb56dee7e0e",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125578",
+      "title": "Monument record MKE125578 - Offices, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125578",
+      "grid_reference": "Centred TR 3331 6660 (46m by 42m)",
+      "anchor_bng": [
+        633310,
+        166600
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "dfb544b2e5eaf35b3068262cbe61938ad1227ed5618d0ca72e423d2a79495a10",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125336",
+      "title": "Monument record MKE125336 - Parachute store, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125336",
+      "grid_reference": "Centred TR 3405 6634 (35m by 17m)",
+      "anchor_bng": [
+        634050,
+        166340
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "289b986d2c0afbc9baa0e89893364ed00f4a267b789803a4484b58e4fa7c9356",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125349",
+      "title": "Monument record MKE125349 - Parachute store, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125349",
+      "grid_reference": "Centred TR 3396 6637 (10m by 17m)",
+      "anchor_bng": [
+        633960,
+        166370
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "f07bd00e2248e8398a118fe39947ddce9a9c425144302b2e027396869b573fa0",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125593",
+      "title": "Monument record MKE125593 - Parade Ground, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125593",
+      "grid_reference": "Centred TR 3335 6677 (127m by 127m)",
+      "anchor_bng": [
+        633350,
+        166770
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "da0e125695e3f4279a7c453f631ab293730b9d7b15710ec57c50048087825dcf",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125172",
+      "title": "Monument record MKE125172 - Perimeter track serving the eastern side of RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125172",
+      "grid_reference": "Centred TR 3405 6612 (656m by 1564m)",
+      "anchor_bng": [
+        634050,
+        166120
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "1b89fe619a9a093a93468cac74173329d5b804d84083a1f7e64bb9a4dccbde09",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE39347",
+      "title": "Monument record TR 36 NW 1059 - PILLBOX",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE39347",
+      "grid_reference": "Centred TR 3408 6659 (13m by 11m)",
+      "anchor_bng": [
+        634080,
+        166590
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "8aef5fb971a3808418a9e6f987b03960be1d2bd10fbb524cbb30e8ebb83b98be",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125257",
+      "title": "Monument record MKE125257 - Pillbox and gun emplacement, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125257",
+      "grid_reference": "Centred TR 3450 6660 (16m by 6m)",
+      "anchor_bng": [
+        634500,
+        166600
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "bd0f9e6ee46349ff92d49ddc77a98f55fa0bb21c43607574c6be36adda31deb0",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125440",
+      "title": "Monument record MKE125440 - Pillbox north of Rose Farm, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125440",
+      "grid_reference": "Centred TR 3244 6624 (5m by 4m)",
+      "anchor_bng": [
+        632440,
+        166240
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "1cb23833093e8bb201c521d7054026e9ead495ad2a789960117970f89dd57075",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125774",
+      "title": "Monument record MKE125774 - Pillbox, Cleve Court",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125774",
+      "grid_reference": "Centred TR 3121 6649 (2m by 3m)",
+      "anchor_bng": [
+        631210,
+        166490
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "384faf4162ba48d5dc7b6ec849cf862b2e60db97236bff99a544abc5b95aad2e",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125776",
+      "title": "Monument record MKE125776 - Pillbox, Cleve Court",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125776",
+      "grid_reference": "Centred TR 3120 6648 (3m by 2m)",
+      "anchor_bng": [
+        631200,
+        166480
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "aace7dd5952c755f1222e8dbd2314f663387cf082e84826359839421a45be36b",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125415",
+      "title": "Monument record MKE125415 - Pillbox, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125415",
+      "grid_reference": "Centred TR 3228 6636 (7m by 9m)",
+      "anchor_bng": [
+        632280,
+        166360
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "e95a8a89aaffb43b6f58dfc02c16f4a30cf923401b18d67950411baf373aaede",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125416",
+      "title": "Monument record MKE125416 - Pillbox, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125416",
+      "grid_reference": "Centred TR 3237 6646 (7m by 7m)",
+      "anchor_bng": [
+        632370,
+        166460
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "f95c7a69ab9b80cc1e62c83b8e6ad5562471c16bd73a2825ff595cf56e1382b6",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125422",
+      "title": "Monument record MKE125422 - Pillbox, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125422",
+      "grid_reference": "Centred TR 3242 6687 (7m by 7m)",
+      "anchor_bng": [
+        632420,
+        166870
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "b9a21af506441900b5a3306de54d60f68dfd637eccf582768332d99b355b1ce7",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125429",
+      "title": "Monument record MKE125429 - Pillbox, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125429",
+      "grid_reference": "Centred TR 3224 6671 (9m by 8m)",
+      "anchor_bng": [
+        632240,
+        166710
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "c09330831b42bcd3b64ee65a08fdbec32a8613c4ab887831ace91dee32955197",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125530",
+      "title": "Monument record MKE125530 - Pillbox, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125530",
+      "grid_reference": "Centred TR 3336 6658 (6m by 5m)",
+      "anchor_bng": [
+        633360,
+        166580
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "4d888db36ea1cf678787b354cb7ec9f0063d0be5aa1bfb57272fd5e7d1a5f836",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125649",
+      "title": "Monument record MKE125649 - Pillbox, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125649",
+      "grid_reference": "Centred TR 3325 6712 (6m by 7m)",
+      "anchor_bng": [
+        633250,
+        167120
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "27ea495401efeb8361a989ae952cdbc209041b08a850ec283c2f009be36b81b2",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE97294",
+      "title": "Monument record TR 36 NW 1202 - Pillbox, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE97294",
+      "grid_reference": "Centred TR 3308 6709 (4m by 5m)",
+      "anchor_bng": [
+        633080,
+        167090
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "19071b45a47a8429b85b84aac7ad4ab16e3f13313f43400478c8c90df1dd1e3e",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125654",
+      "title": "Monument record MKE125654 - Power House, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125654",
+      "grid_reference": "Centred TR 3286 6666 (42m by 44m)",
+      "anchor_bng": [
+        632860,
+        166660
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "a14409c0c3336be135446f69ae35ba8ccf29faecae0b8741213fcb736e90c4e3",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125781",
+      "title": "Monument record MKE125781 - Radar beacon, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125781",
+      "grid_reference": "Centred TR 3116 6598 (25m by 17m)",
+      "anchor_bng": [
+        631160,
+        165980
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "911df4035d2090a78985ba748887c8ed7ba956257f7c9953fc5408c1c44aa17d",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125085",
+      "title": "Monument record MKE125085 - Radio Direction Finding site on RAF Manston, south-east of Manston village",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125085",
+      "grid_reference": "Centred TR 3432 6547 (162m by 46m)",
+      "anchor_bng": [
+        634320,
+        165470
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "1c3e63b3ad8f4e432d9dc5a2f88f794044ed2721c685c3ed8d5236e716edc132",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE98025",
+      "title": "Monument record TR 36 NW 886 - RAF Manston Control Tower.",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE98025",
+      "grid_reference": "Centred TR 3350 6657 (24m by 39m)",
+      "anchor_bng": [
+        633500,
+        166570
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "a984c3998681c54054bbe2bca3accdceaa8c7a33eeb06aeaab7f224c4eeed83f",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE104167",
+      "title": "Monument record TR 36 NW 1335 - RAF Manston FIDO fuel tanks and pumphouses",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE104167",
+      "grid_reference": "Centred TR 3446 6519 (219m by 207m)",
+      "anchor_bng": [
+        634460,
+        165190
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "a38d16123ab835b637e696655d6162040de96f5063d88b6eb1effa8e274203a1",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125515",
+      "title": "Monument record MKE125515 - Railway platform, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125515",
+      "grid_reference": "Centred TR 3304 6648 (98m by 112m)",
+      "anchor_bng": [
+        633040,
+        166480
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "8f4ec7fe82137d0156c1bb89bbc7d4017315934eef4ebfcc99c662815c169713",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125249",
+      "title": "Monument record MKE125249 - Road block, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125249",
+      "grid_reference": "Centred TR 3424 6630 (7m by 11m)",
+      "anchor_bng": [
+        634240,
+        166300
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "6d02d304632b1cbb82ceacbd6b41566d434d8632f1a2e28f699aca5d75fbf5ef",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125376",
+      "title": "Monument record MKE125376 - Road serving the north-east side of RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125376",
+      "grid_reference": "Centred TR 3420 6701 (391m by 278m)",
+      "anchor_bng": [
+        634200,
+        167010
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "09b9389666ce52c73fba8f0783c7aff0b99ccc586af20affda2d03ff325434bb",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125123",
+      "title": "Monument record MKE125123 - Roadblock north-west of Cliffs End, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125123",
+      "grid_reference": "Centred TR 3421 6520 (40m by 35m)",
+      "anchor_bng": [
+        634210,
+        165200
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "098492480b1b1f30ad0876511454037efee8ede8f3ce01c6df20247aa8688ff4",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125053",
+      "title": "Monument record MKE125053 - Roadblock on Telegraph Hill",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125053",
+      "grid_reference": "Centred TR 3202 6605 (32m by 29m)",
+      "anchor_bng": [
+        632020,
+        166050
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "1f6a374e31f1b960440d8eed31f8f371db5666051a97a1ee770ba94b5e6a3f3d",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125050",
+      "title": "Monument record MKE125050 - Roadside mounds on Telegraph Hill",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125050",
+      "grid_reference": "Centred TR 3208 6574 (594m by 189m)",
+      "anchor_bng": [
+        632080,
+        165740
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "5f8a14640c55f7326461d94f179d7852012c540fa5d454bfdad9a09d0230c393",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125054",
+      "title": "Monument record MKE125054 - Roadside mounds on Telegraph Hill",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125054",
+      "grid_reference": "Centred TR 3193 6602 (101m by 36m)",
+      "anchor_bng": [
+        631930,
+        166020
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "f6e01d1196a6be2073eeef50a398a9fd7af1aca677db202e44fe41cbaa8bbe54",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE92001",
+      "title": "Monument record TR 36 NW 1151 - Second World War defensive trenches discovered during the East Kent Access Route excavations (2009-2011)",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE92001",
+      "grid_reference": "Centred TR 3391 6531 (135m by 40m)",
+      "anchor_bng": [
+        633910,
+        165310
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "de7c1490a482ae28b3b3a13245c2841c101591d19c6163ac4f3259a525590bcf",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE92023",
+      "title": "Monument record TR 36 NW 1161 - Second World War zig-zag defensive trench discovered during the East Kent Access Route excavations (2009-2011)",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE92023",
+      "grid_reference": "Centred TR 3303 6547 (500m by 41m)",
+      "anchor_bng": [
+        633030,
+        165470
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "972012f55c9207dc2a22d3ed5c5c7b127a3bd1c4e3ee38cce2bd720b9f467c1f",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE97924",
+      "title": "Monument record TR 36 NW 1222 - Second World War zig-zag trench system",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE97924",
+      "grid_reference": "Centred TR 3400 6683 (137m by 212m)",
+      "anchor_bng": [
+        634000,
+        166830
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "6a1ee2617de36041c2cedea69dc12523249f1c1362a6f648bdc8fa69376c945c",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125405",
+      "title": "Monument record MKE125405 - Semi-sunken hangar, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125405",
+      "grid_reference": "Centred TR 3417 6725 (93m by 82m)",
+      "anchor_bng": [
+        634170,
+        167250
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "8defe124883370f064a8937b8c2e11c3a99cd48f73e37f0a50cd98e9152e3af7",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE92406",
+      "title": "Monument record TR 36 NW 1180 - Semi-sunken hangar, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE92406",
+      "grid_reference": "Centred TR 3231 6647 (123m by 188m)",
+      "anchor_bng": [
+        632310,
+        166470
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "170a91b5e49663c8384a235d301e67611d5613d20972c841918a113a90aff10d",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE92407",
+      "title": "Monument record TR 36 NW 1181 - Semi-sunken hangar, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE92407",
+      "grid_reference": "Centred TR 3241 6674 (201m by 175m)",
+      "anchor_bng": [
+        632410,
+        166740
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "083d0982ac22badcfb9db9f8430aa421742c0f3b4fa3c31169e93c992b5f787c",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE97296",
+      "title": "Monument record TR 36 NW 1203 - Semi-sunken hangar, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE97296",
+      "grid_reference": "Centred TR 3397 6742 (198m by 138m)",
+      "anchor_bng": [
+        633970,
+        167420
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "08310fc52e88de2d721d25b5d7348afc85c314932d242ab96c9fca39bcb5e0e0",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125525",
+      "title": "Monument record MKE125525 - Sergeants' Mess, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125525",
+      "grid_reference": "Centred TR 3307 6663 (33m by 53m)",
+      "anchor_bng": [
+        633070,
+        166630
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "24abc9e85c3b7371b96364f7e6a9ba561afcedd6c2a7aaae8727954e90685577",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125117",
+      "title": "Monument record MKE125117 - Service trenches, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125117",
+      "grid_reference": "Centred TR 3338 6537 (1959m by 401m)",
+      "anchor_bng": [
+        633380,
+        165370
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "ff6853f3263c15aad092f5cae51b8ee4ac7a345d1babf91c88152c39257af92f",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125551",
+      "title": "Monument record MKE125551 - Services Club, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125551",
+      "grid_reference": "Centred TR 3298 6687 (52m by 46m)",
+      "anchor_bng": [
+        632980,
+        166870
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "562970ba33d6e9ad3c8f2e34c4ac53ba5c442fed33e3f5118be4868bcb3ef5ac",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125240",
+      "title": "Monument record MKE125240 - Sign, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125240",
+      "grid_reference": "Centred TR 3394 6634 (14m by 15m)",
+      "anchor_bng": [
+        633940,
+        166340
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "32557a8ec19e618314fb6c900fc0d42d0231bba046e9dcba6cc0cea3f227fa49",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE98004",
+      "title": "Monument record TR 36 NW 553 - Site of RNAS Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE98004",
+      "grid_reference": "TR 3318 6601 (point)",
+      "anchor_bng": [
+        633180,
+        166010
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "56336eccb8285967a8a1851162c3d0e240577a9397641eae3ca2f7232aebb2ea",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125178",
+      "title": "Monument record MKE125178 - Slit trench and gun emplacements, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125178",
+      "grid_reference": "Centred TR 3399 6552 (67m by 59m) (7 map features)",
+      "anchor_bng": [
+        633990,
+        165520
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "6393f0b3b2262288be12505ff33e61918d12f91fc8a9e63d215474f4a0cb0493",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125181",
+      "title": "Monument record MKE125181 - Slit trench and pillbox, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125181",
+      "grid_reference": "Centred TR 3393 6563 (43m by 99m) (2 map features)",
+      "anchor_bng": [
+        633930,
+        165630
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "94e456582776fae793cc41666387fe494a5074c2d5ddfd8c06ab1327840ea93d",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE100105",
+      "title": "Monument record TR 36 NW 1271 - Slit trench and weapons pit, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE100105",
+      "grid_reference": "Centred TR 3224 6693 (46m by 53m)",
+      "anchor_bng": [
+        632240,
+        166930
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "bd0b6826fe80d3a88bae9fe2220021b797b44931dc8cd595fa26a385d2ee5940",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125175",
+      "title": "Monument record MKE125175 - Slit trench and weapons pit, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125175",
+      "grid_reference": "Centred TR 3397 6540 (20m by 50m)",
+      "anchor_bng": [
+        633970,
+        165400
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "de8665341ddadd7462decc8bf818e9ffc9c1d6d1aed7f909a07bd82ad91307b8",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125204",
+      "title": "Monument record MKE125204 - Slit trench and weapons pit, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125204",
+      "grid_reference": "Centred TR 3397 6587 (38m by 162m)",
+      "anchor_bng": [
+        633970,
+        165870
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "2aaf08b03cf692325226cfa6cf66b86558b3ab58bb1f055c6832efb7c69a254f",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125536",
+      "title": "Monument record MKE125536 - Slit trench and weapons pit, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125536",
+      "grid_reference": "Centred TR 3368 6666 (57m by 54m)",
+      "anchor_bng": [
+        633680,
+        166660
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "ec501e299455c108748e224b6dc481b27ec3de491648495e6b5ba8b9a11def4d",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125647",
+      "title": "Monument record MKE125647 - Slit trench and weapons pit, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125647",
+      "grid_reference": "Centred TR 3325 6717 (29m by 32m)",
+      "anchor_bng": [
+        633250,
+        167170
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "a2612f03fb7e30ce0784ca543ed832d83a26822553194fa4a06aea71f94b324e",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125328",
+      "title": "Monument record MKE125328 - Slit trench, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125328",
+      "grid_reference": "Centred TR 3454 6655 (21m by 15m)",
+      "anchor_bng": [
+        634540,
+        166550
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "de1943c6c3c3c750d604ade827feb8123aa6d3a4303824a9370ea050c07ddb9d",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125529",
+      "title": "Monument record MKE125529 - Slit trench, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125529",
+      "grid_reference": "Centred TR 3337 6657 (7m by 18m)",
+      "anchor_bng": [
+        633370,
+        166570
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "a676762824ea1289f60bf6499d9139fee6a6d32a4c1f82abf552f4d800757f83",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125627",
+      "title": "Monument record MKE125627 - Slit trench, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125627",
+      "grid_reference": "Centred TR 3309 6709 (74m by 94m)",
+      "anchor_bng": [
+        633090,
+        167090
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "16e81deb268a403e863a5bce108ded57500704310c1485dcf691b016284722bf",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125648",
+      "title": "Monument record MKE125648 - Slit trench, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125648",
+      "grid_reference": "Centred TR 3338 6706 (26m by 15m)",
+      "anchor_bng": [
+        633380,
+        167060
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "f21359ca753d6339f37076bee367f0d7a96f52674fd5669da79a530de3c0ee32",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125650",
+      "title": "Monument record MKE125650 - Slit trench, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125650",
+      "grid_reference": "Centred TR 3291 6685 (47m by 52m)",
+      "anchor_bng": [
+        632910,
+        166850
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "be2dabdb43560eab4269656036fc9343234a7e15d85cb82ad9561ac95e43b336",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125254",
+      "title": "Monument record MKE125254 - Slit trenches, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125254",
+      "grid_reference": "Centred TR 3420 6632 (40m by 90m)",
+      "anchor_bng": [
+        634200,
+        166320
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "a87921ff2220321ab4bb7f9def3285b4422a835f90bd3179b5543d998c9c9637",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125454",
+      "title": "Monument record MKE125454 - Slit trenches, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125454",
+      "grid_reference": "Centred TR 3301 6639 (73m by 48m)",
+      "anchor_bng": [
+        633010,
+        166390
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "2ca6e263f9fb8a8815263be54a5c4e7891250ed6bd93fc79b379962ad9ea0c06",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125646",
+      "title": "Monument record MKE125646 - Slit trenches, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125646",
+      "grid_reference": "Centred TR 3321 6712 (40m by 38m)",
+      "anchor_bng": [
+        633210,
+        167120
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "2c27cc1b731d9346bef641e6d5a92cac51c77c109cc9b034169436c54caa3c6c",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125770",
+      "title": "Monument record MKE125770 - Slit trenches, Telegraph Hill",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125770",
+      "grid_reference": "Centred TR 3152 6583 (104m by 97m)",
+      "anchor_bng": [
+        631520,
+        165830
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "27297528f76c5e5335c825c56be8adcf4cb6ad6798d632d7035e57c188248dab",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125077",
+      "title": "Monument record TR 36 NW 1444 - Southern perimeter track, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125077",
+      "grid_reference": "Centred TR 3315 6542 (2780m by 703m)",
+      "anchor_bng": [
+        633150,
+        165420
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "5501016209977c89c61f3c6c54c86b22034796a0a9a1fd91bf4b7af1b3deed5b",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125541",
+      "title": "Monument record MKE125541 - Squash Court, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125541",
+      "grid_reference": "Centred TR 3323 6655 (20m by 18m)",
+      "anchor_bng": [
+        633230,
+        166550
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "3c118a90bcb1be4e9d985ba4c34f8e77d7ad3a1dc1571497f581d1f2514482f3",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125588",
+      "title": "Monument record MKE125588 - Storage buildings, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125588",
+      "grid_reference": "Centred TR 3328 6670 (52m by 60m)",
+      "anchor_bng": [
+        633280,
+        166700
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "e6e1e954dd5de459872b75a8c8bebac5c541e8612a138030f6386116468d9e80",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125366",
+      "title": "Monument record MKE125366 - Structures, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125366",
+      "grid_reference": "Centred TR 3412 6659 (28m by 20m)",
+      "anchor_bng": [
+        634120,
+        166590
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "e9dec54fc4541ccc5a03aae177b05d8fdc4d77180a07e32e621d6c1aff1e0664",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125561",
+      "title": "Monument record MKE125561 - Supply Depot, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125561",
+      "grid_reference": "Centred TR 3312 6693 (78m by 80m)",
+      "anchor_bng": [
+        633120,
+        166930
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "44b367ae28803c8e1e7dd56d36880ed33d26c78d3fd4e32dc7521d141fd5cd26",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE98020",
+      "title": "Monument record TR 36 NW 881 - T2 Hangar at the former Manston Airport.",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE98020",
+      "grid_reference": "Centred TR 3288 6617 (71m by 75m)",
+      "anchor_bng": [
+        632880,
+        166170
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "6438d4dc12ce0c742a2221edda4c2d1fe4e868c9afe945f78b409796251917f8",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125341",
+      "title": "Monument record MKE125341 - Tennis Court, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125341",
+      "grid_reference": "Centred TR 3400 6636 (29m by 40m)",
+      "anchor_bng": [
+        634000,
+        166360
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "6179ed4dae14f2cd91ec68dc19bcf01ccbed412b92981e8c2e38e8ea818f5fea",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125522",
+      "title": "Monument record MKE125522 - Tennis Court, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125522",
+      "grid_reference": "Centred TR 3304 6661 (35m by 34m)",
+      "anchor_bng": [
+        633040,
+        166610
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "491eb309aaecdb1184bdd9a4c532641440d5c6196ccf9838c21fbef2156a8751",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125608",
+      "title": "Monument record MKE125608 - Tennis Court, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125608",
+      "grid_reference": "Centred TR 3329 6697 (35m by 32m)",
+      "anchor_bng": [
+        633290,
+        166970
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "8beefc4f2ef431871b420422174bd373ae226b3a6e7e9700e50d96bd4bdc012b",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125689",
+      "title": "Monument record MKE125689 - Tennis Court, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125689",
+      "grid_reference": "Centred TR 3298 6690 (32m by 35m)",
+      "anchor_bng": [
+        632980,
+        166900
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "b6e20737d3037fbcc19f219120413298588af00a7b9691316a09184f15c4baf9",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE98032",
+      "title": "Monument record TR 36 NW 893 - The Loop, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE98032",
+      "grid_reference": "Centred TR 3176 6633 (368m by 910m)",
+      "anchor_bng": [
+        631760,
+        166330
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "1493cea97fc6725ae225bad057902d2b02da7090c15660246dc7438b97aaaedf",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125605",
+      "title": "Monument record MKE125605 - Theatre, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125605",
+      "grid_reference": "Centred TR 3333 6684 (33m by 30m)",
+      "anchor_bng": [
+        633330,
+        166840
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "47c6bc13006e8e68afe61b82f6477339cf3e84795f432dba20106bcb1b4e3dca",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE16108",
+      "title": "Monument record TR 36 NW 378 - Trackway and trenches, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE16108",
+      "grid_reference": "Centred TR 3181 6586 (1334m by 628m)",
+      "anchor_bng": [
+        631810,
+        165860
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "95c9f22799314f2c82d8fa93b4f05a5fcc93560d0c83de8df51b5e60807fc752",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125482",
+      "title": "Monument record MKE125482 - Trackway, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125482",
+      "grid_reference": "Centred TR 3354 6594 (783m by 832m)",
+      "anchor_bng": [
+        633540,
+        165940
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "81437473d649a825fdcb2d4a85eb22d71571c4f31ae704cf46d6cab6152cdf75",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125661",
+      "title": "Monument record MKE125661 - Training school, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125661",
+      "grid_reference": "Centred TR 3298 6654 (36m by 37m)",
+      "anchor_bng": [
+        632980,
+        166540
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "0a9547c4f8a86032905b2ca417eae6f9490428984dd4f16d2c4fabd80b5f2992",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125373",
+      "title": "Monument record MKE125373 - Trench and small structures, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125373",
+      "grid_reference": "Centred TR 3426 6680 (126m by 90m)",
+      "anchor_bng": [
+        634260,
+        166800
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "d0b76ebb5406adcfd149a848c7d415928f01d5cf6dc15827037afbe8234dea35",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125052",
+      "title": "Monument record MKE125052 - Trench on Telegraph Hill",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125052",
+      "grid_reference": "Centred TR 3189 6583 (242m by 41m)",
+      "anchor_bng": [
+        631890,
+        165830
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "7f4d02e5b7ad2a9598fdac1d74cd0713776ee7b1bc35d13849f92c83ef29ebe5",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125443",
+      "title": "Monument record MKE125443 - Trench south of Spitfire Way, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125443",
+      "grid_reference": "Centred TR 3228 6608 (940m by 258m)",
+      "anchor_bng": [
+        632280,
+        166080
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "606d08798948b7e4b9856c3aa4cd5d27f8485129e835f5b4eab6b0cfae45e6c9",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE99536",
+      "title": "Monument record TR 36 NE 724 - Trenches for RAF Manston runway lighting (east approach)",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE99536",
+      "grid_reference": "Centred TR 3521 6540 (881m by 364m)",
+      "anchor_bng": [
+        635210,
+        165400
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "73f015061c6cbc01952b70db0a4cd36da860a05ef7c06361b73f8396ddd28329",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125782",
+      "title": "Monument record MKE125782 - VHF Fixer Station, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125782",
+      "grid_reference": "Centred TR 3125 6596 (21m by 12m)",
+      "anchor_bng": [
+        631250,
+        165960
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "51fc980d61f7c54f95073f422dcd4b772e75540a41ec9848d38aa055b0c95814",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125548",
+      "title": "Monument record MKE125548 - Warehouses, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125548",
+      "grid_reference": "Centred TR 3304 6679 (78m by 61m)",
+      "anchor_bng": [
+        633040,
+        166790
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "c075c98bc095ffc795e82aeaf85c11735ca44640cfc12f23b9fccfe4ef4f0e8a",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125606",
+      "title": "Monument record MKE125606 - Water tank, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125606",
+      "grid_reference": "Centred TR 3334 6683 (28m by 26m)",
+      "anchor_bng": [
+        633340,
+        166830
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "14c879370f8fadb75fc1dac234c0940a500fa6ead6aa79338da7ecece89955c7",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125417",
+      "title": "Monument record MKE125417 - Weapons pit, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125417",
+      "grid_reference": "Centred TR 3234 6641 (7m by 11m)",
+      "anchor_bng": [
+        632340,
+        166410
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "f10e055ea7e5d85f550560bf5355524fc952357e63d5cd353793fffd945c4b96",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125435",
+      "title": "Monument record MKE125435 - Weapons pit, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125435",
+      "grid_reference": "Centred TR 3268 6659 (23m by 19m)",
+      "anchor_bng": [
+        632680,
+        166590
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "dd7d889865c84090ee8bee89a2ae0257ef2450dd5014e8cd4b0f02cdc4863bec",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125607",
+      "title": "Monument record MKE125607 - Weapons pit, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125607",
+      "grid_reference": "Centred TR 3330 6699 (7m by 6m)",
+      "anchor_bng": [
+        633300,
+        166990
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "1bc0ead596ff303e85139dadae5d1bd4c4f7a8b01647ba61166e35a5bc559935",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125634",
+      "title": "Monument record MKE125634 - Weapons pit, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125634",
+      "grid_reference": "Centred TR 3326 6705 (6m by 5m)",
+      "anchor_bng": [
+        633260,
+        167050
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "881de564bf84028ea00dd6dd3f5204ae2037bede88b99541273b0794a0e63f42",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125667",
+      "title": "Monument record MKE125667 - Weapons pit, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125667",
+      "grid_reference": "Centred TR 3215 6614 (10m by 9m)",
+      "anchor_bng": [
+        632150,
+        166140
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "2aa715f30482abf2ea669f7522324866d2cb9e75a47b1c5b0bf66de177baa86a",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125442",
+      "title": "Monument record MKE125442 - Weapons pits and gun emplacement at Pouces Cottages, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125442",
+      "grid_reference": "Centred TR 3264 6628 (47m by 93m)",
+      "anchor_bng": [
+        632640,
+        166280
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "b0fdb6cbf0bcee0a0ea2ac6fa9558c219b229dfa68db5a37fdbc1df429cee93b",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125623",
+      "title": "Monument record MKE125623 - Weapons pits, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125623",
+      "grid_reference": "Centred TR 3354 6691 (16m by 35m)",
+      "anchor_bng": [
+        633540,
+        166910
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "8952253b735302bf4ca40f2f4640aee7442086b84d36fe60f3c938b1a4a8d04e",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125666",
+      "title": "Monument record MKE125666 - Weapons pits, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125666",
+      "grid_reference": "Centred TR 3281 6652 (55m by 54m)",
+      "anchor_bng": [
+        632810,
+        166520
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "eed24688ad8d782d05077644d11ea5298eab2fa4e201867fa455a81867549056",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125219",
+      "title": "Monument record MKE125219 - Workshops and Photographic Studio, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125219",
+      "grid_reference": "Centred TR 3403 6622 (39m by 49m)",
+      "anchor_bng": [
+        634030,
+        166220
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "5d45b16047e712ee8e9a8f198e58975bd1c75bfcf6f62ec316935c4925fdfb6d",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE98027",
+      "title": "Monument record TR 36 NW 888 - World War Two RAF Battle HQ at RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE98027",
+      "grid_reference": "Centred TR 3357 6658 (19m by 21m)",
+      "anchor_bng": [
+        633570,
+        166580
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "940cd950c129663a47066594ec587557dd951f124434ce50f466cdd6afd5209f",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE90888",
+      "title": "Monument record TR 36 NW 518 - Second World War air raid shelter, Manston Airport",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE90888",
+      "grid_reference": "TR 3401 6614 (point) Estimated from sources",
+      "anchor_bng": [
+        634010,
+        166140
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "e099b16dce285e978183a8a23b4d744a3f5593c686726c9c7366340da3f4a550",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125093",
+      "title": "Monument record MKE125093 - Pipeline trenches for the FIDO system, RAF Manston",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125093",
+      "grid_reference": "Centred TR 3398 6552 (1684m by 501m)",
+      "anchor_bng": [
+        633980,
+        165520
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "018b4c72379429afa7fe04b9496421e0f90221427deeb24453c69d23fc3dea8c",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125138",
+      "title": "Monument record MKE125138 - RAF Manston FIDO control chamber",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125138",
+      "grid_reference": "Centred TR 3451 6528 (4m by 4m)",
+      "anchor_bng": [
+        634510,
+        165280
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "975e8eda3646ddd39a5d45adc310d2a799d7870768ac1e8c3386d3ca840ff65c",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125137",
+      "title": "Monument record MKE125137 - RAF Manston FIDO fuel supply line and pump house, near Minster Junction",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125137",
+      "grid_reference": "Centred TR 3346 6461 (2211m by 1090m)",
+      "anchor_bng": [
+        633460,
+        164610
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "e78b6c3df8d19991f2b5ca5d256e031aa1becccd4f92991f0bc557ba04ebb53e",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE125142",
+      "title": "Monument record MKE125142 - Repair shop, office and  ablutions block serving RAF Manston's FIDO system",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE125142",
+      "grid_reference": "Centred TR 3435 6527 (36m by 51m)",
+      "anchor_bng": [
+        634350,
+        165270
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+      "source_sha256": "0162c3d716ff6a5a162016ced40f4b2d987aedb7bc7f9b5bbd8ba0356433c0f4",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE97293",
+      "title": "Monument record TR 36 NW 1201 - Alland Grange tunnels, used by a Special Duties Organisation (Auxiliary units).",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE97293",
+      "grid_reference": "Centred TR 3202 6632 (1m by 0m)",
+      "anchor_bng": [
+        632020,
+        166320
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:22:45.989514+00:00",
+      "fetch_status": "ok"
+    },
+    {
+      "id": "MKE98021",
+      "title": "Monument record TR 36 NW 882 - Civil Control Tower at the former Manston Airport.",
+      "url": "https://heritage.kent.gov.uk/Monument/MKE98021",
+      "grid_reference": "Centred TR 3346 6582 (23m by 18m)",
+      "anchor_bng": [
+        633460,
+        165820
+      ],
+      "geometry_role": "HER representative point/extent centre, NOT a surveyed entrance or footprint",
+      "retrieved_utc": "2026-09-11T20:22:45.989514+00:00",
+      "fetch_status": "ok"
+    }
+  ],
+  "note": "Public record metadata, not a licensed GIS polygon export. Main inventory follows all Manston parent-record children plus relevant independent records."
+}

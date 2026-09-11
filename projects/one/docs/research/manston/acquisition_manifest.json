@@ -1,0 +1,46 @@
+{
+  "retrieved_utc": "2026-09-11T20:14:36.679282+00:00",
+  "website_coverage": {
+    "posts": {
+      "retrieved": 110,
+      "api_reported": 110,
+      "pages": 2,
+      "count_matches": true
+    },
+    "pages": {
+      "retrieved": 43,
+      "api_reported": 43,
+      "pages": 1,
+      "count_matches": true
+    },
+    "media": {
+      "retrieved": 491,
+      "api_reported": 503,
+      "pages": 6,
+      "count_matches": false
+    },
+    "categories": {
+      "retrieved": 68,
+      "api_reported": 68,
+      "pages": 1,
+      "count_matches": true
+    },
+    "tags": {
+      "retrieved": 7,
+      "api_reported": 7,
+      "pages": 1,
+      "count_matches": true
+    }
+  },
+  "heritage_records": 305,
+  "heritage_failures": [],
+  "method": "Public WordPress REST API, metadata links and content hashes; public Kent HER parent/child pages",
+  "excluded": "Login-only material, private archives, deleted content, comments, media binaries, external linked works; full source text remains in local scratch research cache only",
+  "status": "complete for listed API collections and discovered HER records; not a claim to every historical record or every website resource",
+  "supplemental_records": [
+    "MKE97293",
+    "MKE98021"
+  ],
+  "sitemap_reconciliation": "222 sitemap URLs; no post/page sitemap URL absent from the REST article inventory",
+  "media_discrepancy": "491 objects returned across all six REST media pages; API total says 503. No claim that the other 12 are archived or publicly accessible."
+}

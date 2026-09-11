@@ -1,0 +1,1004 @@
+{
+  "schema": "manston-research-0.1",
+  "crs": "EPSG:27700",
+  "origin": {
+    "E": 627680,
+    "N": 163080
+  },
+  "vertical_datum": "ODN",
+  "warning": "Research anchors only. Not a Streetscape import document. All z values and portal geometries unknown remain null. HER extents are not building dimensions.",
+  "features": [
+    {
+      "id": "MKE98025",
+      "name": "RAF control tower",
+      "era": "1941-1999",
+      "layer": "surface",
+      "source_url": "https://heritage.kent.gov.uk/Monument/MKE98025",
+      "source_grid_reference": "Centred TR 3350 6657 (24m by 39m)",
+      "anchor_bng": [
+        633500,
+        166570
+      ],
+      "local_xy_m": [
+        5820,
+        3490
+      ],
+      "tile": [
+        11,
+        6
+      ],
+      "anchor_role": "public HER representative point, not entrance or building footprint",
+      "horizontal_accuracy_m": null,
+      "surface_z_odn_m": null,
+      "floor_z_odn_m": null,
+      "portal_positions_bng": null,
+      "historical_footprint_bng": null,
+      "fact_confidence": "high",
+      "survival_as_recorded": "recorded standing in 2021",
+      "research_note": "A modified wartime watch office, used until the civil tower replaced it in 1999. Model its chosen historic phase separately from later additions.",
+      "proposed_museum_treatment": "Restore the wartime exterior where supported; interpret later changes indoors.",
+      "review_status": "reviewed for concept; survey geometry pending"
+    },
+    {
+      "id": "MKE98027",
+      "name": "Battle Headquarters",
+      "era": "WWII",
+      "layer": "subsurface",
+      "source_url": "https://heritage.kent.gov.uk/Monument/MKE98027",
+      "source_grid_reference": "Centred TR 3357 6658 (19m by 21m)",
+      "anchor_bng": [
+        633570,
+        166580
+      ],
+      "local_xy_m": [
+        5890,
+        3500
+      ],
+      "tile": [
+        11,
+        6
+      ],
+      "anchor_role": "public HER representative point, not entrance or building footprint",
+      "horizontal_accuracy_m": null,
+      "surface_z_odn_m": null,
+      "floor_z_odn_m": null,
+      "portal_positions_bng": null,
+      "historical_footprint_bng": null,
+      "fact_confidence": "medium",
+      "survival_as_recorded": "conflicting observations; buried survival unresolved",
+      "research_note": "HER maps a likely HQ surface structure as demolished in 2021. A 2009 Subterranea Britannica visit describes rooms, an unusually tall cupola and a ladder. These observations do not establish the present buried condition.",
+      "proposed_museum_treatment": "Evidence-labelled reconstruction candidate beside the old tower; no invented connected tunnels.",
+      "review_status": "reviewed for concept; survey geometry pending"
+    },
+    {
+      "id": "MKE98021",
+      "name": "Civilian control tower",
+      "era": "1999 onward",
+      "layer": "surface",
+      "source_url": "https://heritage.kent.gov.uk/Monument/MKE98021",
+      "source_grid_reference": "Centred TR 3346 6582 (23m by 18m)",
+      "anchor_bng": [
+        633460,
+        165820
+      ],
+      "local_xy_m": [
+        5780,
+        2740
+      ],
+      "tile": [
+        11,
+        5
+      ],
+      "anchor_role": "public HER representative point, not entrance or building footprint",
+      "horizontal_accuracy_m": null,
+      "surface_z_odn_m": null,
+      "floor_z_odn_m": null,
+      "portal_positions_bng": null,
+      "historical_footprint_bng": null,
+      "fact_confidence": "high",
+      "survival_as_recorded": "described in 2016 survey; current condition unverified",
+      "research_note": "The civilian tower was built in 1999 over a pyrotechnic store believed to date from USAF use. Store dimensions and internal arrangement are not established.",
+      "proposed_museum_treatment": "Retain as the postwar/civil aviation lookout; store only as an unmodelled evidence marker.",
+      "review_status": "reviewed for concept; survey geometry pending"
+    },
+    {
+      "id": "MKE98020",
+      "name": "T2 hangar",
+      "era": "WWII onward",
+      "layer": "surface",
+      "source_url": "https://heritage.kent.gov.uk/Monument/MKE98020",
+      "source_grid_reference": "Centred TR 3288 6617 (71m by 75m)",
+      "anchor_bng": [
+        632880,
+        166170
+      ],
+      "local_xy_m": [
+        5200,
+        3090
+      ],
+      "tile": [
+        10,
+        6
+      ],
+      "anchor_role": "public HER representative point, not entrance or building footprint",
+      "horizontal_accuracy_m": null,
+      "surface_z_odn_m": null,
+      "floor_z_odn_m": null,
+      "portal_positions_bng": null,
+      "historical_footprint_bng": null,
+      "fact_confidence": "high",
+      "survival_as_recorded": "recorded standing in 2021; substantially rebuilt",
+      "research_note": "The 1980s rebuilding retained the original steel frame; later cladding and other fabric should not be presented as original wartime material.",
+      "proposed_museum_treatment": "Main aircraft and conservation hall; retain the building in its actual location.",
+      "review_status": "reviewed for concept; survey geometry pending"
+    },
+    {
+      "id": "MKE98024",
+      "name": "E-type fighter pen",
+      "era": "c.1940 onward",
+      "layer": "surface",
+      "source_url": "https://heritage.kent.gov.uk/Monument/MKE98024",
+      "source_grid_reference": "Centred TR 3306 6634 (50m by 46m)",
+      "anchor_bng": [
+        633060,
+        166340
+      ],
+      "local_xy_m": [
+        5380,
+        3260
+      ],
+      "tile": [
+        10,
+        6
+      ],
+      "anchor_role": "public HER representative point, not entrance or building footprint",
+      "horizontal_accuracy_m": null,
+      "surface_z_odn_m": null,
+      "floor_z_odn_m": null,
+      "portal_positions_bng": null,
+      "historical_footprint_bng": null,
+      "fact_confidence": "high",
+      "survival_as_recorded": "partly surviving earthwork in 2021",
+      "research_note": "A surviving part of a fighter pen with an associated revetted slit trench; the trench was mapped as levelled. The footprint includes the earthwork setting.",
+      "proposed_museum_treatment": "Restore missing arms selectively and label additions; aircraft and ground-crew exhibit.",
+      "review_status": "reviewed for concept; survey geometry pending"
+    },
+    {
+      "id": "MKE92406",
+      "name": "Alland Grange sunken hangar",
+      "era": "1918",
+      "layer": "sunken",
+      "source_url": "https://heritage.kent.gov.uk/Monument/MKE92406",
+      "source_grid_reference": "Centred TR 3231 6647 (123m by 188m)",
+      "anchor_bng": [
+        632310,
+        166470
+      ],
+      "local_xy_m": [
+        4630,
+        3390
+      ],
+      "tile": [
+        9,
+        6
+      ],
+      "anchor_role": "public HER representative point, not entrance or building footprint",
+      "horizontal_accuracy_m": null,
+      "surface_z_odn_m": null,
+      "floor_z_odn_m": null,
+      "portal_positions_bng": null,
+      "historical_footprint_bng": null,
+      "fact_confidence": "high",
+      "survival_as_recorded": "banks survived in 2021; walls recorded demolished",
+      "research_note": "The hangar occupied a chalk excavation with a ramp, retaining structures and frame supports. The cited KCC account says soil covering was not intended.",
+      "proposed_museum_treatment": "Flagship partial reconstruction with visible chalk cut and interpreted roof/frame; dimensions await plan registration.",
+      "review_status": "reviewed for concept; survey geometry pending"
+    },
+    {
+      "id": "MKE92407",
+      "name": "Cheeseman sunken hangar",
+      "era": "1918",
+      "layer": "sunken",
+      "source_url": "https://heritage.kent.gov.uk/Monument/MKE92407",
+      "source_grid_reference": "Centred TR 3241 6674 (201m by 175m)",
+      "anchor_bng": [
+        632410,
+        166740
+      ],
+      "local_xy_m": [
+        4730,
+        3660
+      ],
+      "tile": [
+        9,
+        7
+      ],
+      "anchor_role": "public HER representative point, not entrance or building footprint",
+      "horizontal_accuracy_m": null,
+      "surface_z_odn_m": null,
+      "floor_z_odn_m": null,
+      "portal_positions_bng": null,
+      "historical_footprint_bng": null,
+      "fact_confidence": "high",
+      "survival_as_recorded": "earthworks recorded levelled in 2021",
+      "research_note": "Aerial evidence distinguishes this hangar from nearby earlier earthworks. Later military features occupied the site.",
+      "proposed_museum_treatment": "Outline and archaeological garden; restore only if surviving-landscape conflicts are resolved.",
+      "review_status": "reviewed for concept; survey geometry pending"
+    },
+    {
+      "id": "MKE97296",
+      "name": "Northern hangar excavation",
+      "era": "1918",
+      "layer": "sunken",
+      "source_url": "https://heritage.kent.gov.uk/Monument/MKE97296",
+      "source_grid_reference": "Centred TR 3397 6742 (198m by 138m)",
+      "anchor_bng": [
+        633970,
+        167420
+      ],
+      "local_xy_m": [
+        6290,
+        4340
+      ],
+      "tile": [
+        12,
+        8
+      ],
+      "anchor_role": "public HER representative point, not entrance or building footprint",
+      "horizontal_accuracy_m": null,
+      "surface_z_odn_m": null,
+      "floor_z_odn_m": null,
+      "portal_positions_bng": null,
+      "historical_footprint_bng": null,
+      "fact_confidence": "high",
+      "survival_as_recorded": "unfinished; earthworks recorded levelled in 2021",
+      "research_note": "Two spoil banks and an approach from Manston Road were mapped. Completion and roofing are not established.",
+      "proposed_museum_treatment": "Show the unfinished project through earthwork outlines, not a finished hangar.",
+      "review_status": "reviewed for concept; survey geometry pending"
+    },
+    {
+      "id": "MKE125405",
+      "name": "Opposite unfinished hangar",
+      "era": "1918",
+      "layer": "sunken",
+      "source_url": "https://heritage.kent.gov.uk/Monument/MKE125405",
+      "source_grid_reference": "Centred TR 3417 6725 (93m by 82m)",
+      "anchor_bng": [
+        634170,
+        167250
+      ],
+      "local_xy_m": [
+        6490,
+        4170
+      ],
+      "tile": [
+        12,
+        8
+      ],
+      "anchor_role": "public HER representative point, not entrance or building footprint",
+      "horizontal_accuracy_m": null,
+      "surface_z_odn_m": null,
+      "floor_z_odn_m": null,
+      "portal_positions_bng": null,
+      "historical_footprint_bng": null,
+      "fact_confidence": "high",
+      "survival_as_recorded": "unfinished; levelled in 2021",
+      "research_note": "Initial pits and spoil were mapped opposite the other northern excavation. This was not a completed underground building.",
+      "proposed_museum_treatment": "Companion landscape interpretation; no walkable interior.",
+      "review_status": "reviewed for concept; survey geometry pending"
+    },
+    {
+      "id": "MKE90888",
+      "name": "Surveyed chalk air-raid shelter",
+      "era": "probably 1940",
+      "layer": "subsurface",
+      "source_url": "https://heritage.kent.gov.uk/Monument/MKE90888",
+      "source_grid_reference": "TR 3401 6614 (point) Estimated from sources",
+      "anchor_bng": [
+        634010,
+        166140
+      ],
+      "local_xy_m": [
+        6330,
+        3060
+      ],
+      "tile": [
+        12,
+        5
+      ],
+      "anchor_role": "public HER representative point, not entrance or building footprint",
+      "horizontal_accuracy_m": null,
+      "surface_z_odn_m": null,
+      "floor_z_odn_m": null,
+      "portal_positions_bng": null,
+      "historical_footprint_bng": null,
+      "fact_confidence": "high",
+      "survival_as_recorded": "surveyed after rediscovery in 2004; present state unknown",
+      "research_note": "KURG surveyed a single chalk passage with an entrance at each end, 1.3 m wide; HER gives a 1.8-2 m depth dimension. Length, bearing, overburden and exact portals are absent from the public record.",
+      "proposed_museum_treatment": "Place an approximate evidence marker. Prototype an explicitly interpretive interior separately until the original survey is obtained.",
+      "review_status": "reviewed for concept; survey geometry pending"
+    },
+    {
+      "id": "MKE125197",
+      "name": "Western technical-site shelters",
+      "era": "WWII",
+      "layer": "subsurface",
+      "source_url": "https://heritage.kent.gov.uk/Monument/MKE125197",
+      "source_grid_reference": "Centred TR 3295 6649 (296m by 153m)",
+      "anchor_bng": [
+        632950,
+        166490
+      ],
+      "local_xy_m": [
+        5270,
+        3410
+      ],
+      "tile": [
+        10,
+        6
+      ],
+      "anchor_role": "public HER representative point, not entrance or building footprint",
+      "horizontal_accuracy_m": null,
+      "surface_z_odn_m": null,
+      "floor_z_odn_m": null,
+      "portal_positions_bng": null,
+      "historical_footprint_bng": null,
+      "fact_confidence": "high",
+      "survival_as_recorded": "15 earthworks mapped; levelled in 2021",
+      "research_note": "Fifteen separate shelter earthworks flanked former hangars/workshops. At least two had revetted slit-trench approaches.",
+      "proposed_museum_treatment": "Select one representative exhibit after acquiring geometry; use ground traces for others.",
+      "review_status": "reviewed for concept; survey geometry pending"
+    },
+    {
+      "id": "MKE125196",
+      "name": "Northern station shelters",
+      "era": "WWII",
+      "layer": "subsurface",
+      "source_url": "https://heritage.kent.gov.uk/Monument/MKE125196",
+      "source_grid_reference": "Centred TR 3309 6696 (333m by 287m)",
+      "anchor_bng": [
+        633090,
+        166960
+      ],
+      "local_xy_m": [
+        5410,
+        3880
+      ],
+      "tile": [
+        10,
+        7
+      ],
+      "anchor_role": "public HER representative point, not entrance or building footprint",
+      "horizontal_accuracy_m": null,
+      "surface_z_odn_m": null,
+      "floor_z_odn_m": null,
+      "portal_positions_bng": null,
+      "historical_footprint_bng": null,
+      "fact_confidence": "high",
+      "survival_as_recorded": "14 earthworks mapped; levelled in 2021",
+      "research_note": "Fourteen shelters were mapped on the north of the station; one record represents a group.",
+      "proposed_museum_treatment": "Historical layer only until individual footprints are available.",
+      "review_status": "reviewed for concept; survey geometry pending"
+    },
+    {
+      "id": "MKE125195",
+      "name": "Parade-ground shelter group",
+      "era": "WWII",
+      "layer": "subsurface",
+      "source_url": "https://heritage.kent.gov.uk/Monument/MKE125195",
+      "source_grid_reference": "Centred TR 3347 6684 (198m by 211m)",
+      "anchor_bng": [
+        633470,
+        166840
+      ],
+      "local_xy_m": [
+        5790,
+        3760
+      ],
+      "tile": [
+        11,
+        7
+      ],
+      "anchor_role": "public HER representative point, not entrance or building footprint",
+      "horizontal_accuracy_m": null,
+      "surface_z_odn_m": null,
+      "floor_z_odn_m": null,
+      "portal_positions_bng": null,
+      "historical_footprint_bng": null,
+      "fact_confidence": "high",
+      "survival_as_recorded": "23 earthworks mapped; levelled in 2021",
+      "research_note": "Twenty-three shelters were arranged in parallel rows northeast of the parade ground. This is evidence of distribution, not underground links.",
+      "proposed_museum_treatment": "Camp-life interpretation and separate traces; no connecting corridors.",
+      "review_status": "reviewed for concept; survey geometry pending"
+    },
+    {
+      "id": "MKE125191",
+      "name": "Southern War Flight shelters",
+      "era": "WWII",
+      "layer": "subsurface",
+      "source_url": "https://heritage.kent.gov.uk/Monument/MKE125191",
+      "source_grid_reference": "Centred TR 3393 6586 (50m by 83m)",
+      "anchor_bng": [
+        633930,
+        165860
+      ],
+      "local_xy_m": [
+        6250,
+        2780
+      ],
+      "tile": [
+        12,
+        5
+      ],
+      "anchor_role": "public HER representative point, not entrance or building footprint",
+      "horizontal_accuracy_m": null,
+      "surface_z_odn_m": null,
+      "floor_z_odn_m": null,
+      "portal_positions_bng": null,
+      "historical_footprint_bng": null,
+      "fact_confidence": "high",
+      "survival_as_recorded": "5 earthworks mapped; levelled in 2021",
+      "research_note": "Five shelters were mapped toward the southern end of the eastern War Flight area.",
+      "proposed_museum_treatment": "Place group evidence marker; recover individual portal geometry before reconstruction.",
+      "review_status": "reviewed for concept; survey geometry pending"
+    },
+    {
+      "id": "MKE125192",
+      "name": "Northern War Flight shelters",
+      "era": "WWII",
+      "layer": "subsurface",
+      "source_url": "https://heritage.kent.gov.uk/Monument/MKE125192",
+      "source_grid_reference": "Centred TR 3410 6639 (143m by 84m)",
+      "anchor_bng": [
+        634100,
+        166390
+      ],
+      "local_xy_m": [
+        6420,
+        3310
+      ],
+      "tile": [
+        12,
+        6
+      ],
+      "anchor_role": "public HER representative point, not entrance or building footprint",
+      "horizontal_accuracy_m": null,
+      "surface_z_odn_m": null,
+      "floor_z_odn_m": null,
+      "portal_positions_bng": null,
+      "historical_footprint_bng": null,
+      "fact_confidence": "high",
+      "survival_as_recorded": "3 earthworks mapped; levelled in 2021",
+      "research_note": "Three shelters were mapped in the northern part of the eastern War Flight area.",
+      "proposed_museum_treatment": "Ground-trace interpretation; entrances unresolved.",
+      "review_status": "reviewed for concept; survey geometry pending"
+    },
+    {
+      "id": "MKE125193",
+      "name": "Officers quarters shelter",
+      "era": "WWII",
+      "layer": "subsurface",
+      "source_url": "https://heritage.kent.gov.uk/Monument/MKE125193",
+      "source_grid_reference": "Centred TR 3418 6660 (18m by 30m)",
+      "anchor_bng": [
+        634180,
+        166600
+      ],
+      "local_xy_m": [
+        6500,
+        3520
+      ],
+      "tile": [
+        12,
+        6
+      ],
+      "anchor_role": "public HER representative point, not entrance or building footprint",
+      "horizontal_accuracy_m": null,
+      "surface_z_odn_m": null,
+      "floor_z_odn_m": null,
+      "portal_positions_bng": null,
+      "historical_footprint_bng": null,
+      "fact_confidence": "high",
+      "survival_as_recorded": "1 earthwork mapped; levelled in 2021",
+      "research_note": "A shelter stood behind the Married Officers Quarters near the north of the War Flight area.",
+      "proposed_museum_treatment": "Small life-on-base interpretation marker.",
+      "review_status": "reviewed for concept; survey geometry pending"
+    },
+    {
+      "id": "MKE125389",
+      "name": "Far northern War Flight shelter",
+      "era": "WWII",
+      "layer": "subsurface",
+      "source_url": "https://heritage.kent.gov.uk/Monument/MKE125389",
+      "source_grid_reference": "Centred TR 3429 6697 (17m by 15m)",
+      "anchor_bng": [
+        634290,
+        166970
+      ],
+      "local_xy_m": [
+        6610,
+        3890
+      ],
+      "tile": [
+        12,
+        7
+      ],
+      "anchor_role": "public HER representative point, not entrance or building footprint",
+      "horizontal_accuracy_m": null,
+      "surface_z_odn_m": null,
+      "floor_z_odn_m": null,
+      "portal_positions_bng": null,
+      "historical_footprint_bng": null,
+      "fact_confidence": "high",
+      "survival_as_recorded": "1 earthwork mapped; levelled in 2021",
+      "research_note": "An isolated shelter earthwork was mapped north of the main eastern group.",
+      "proposed_museum_treatment": "Evidence marker, not a verified surviving chamber.",
+      "review_status": "reviewed for concept; survey geometry pending"
+    },
+    {
+      "id": "MKE125439",
+      "name": "Rose Farm shelter",
+      "era": "WWII",
+      "layer": "subsurface",
+      "source_url": "https://heritage.kent.gov.uk/Monument/MKE125439",
+      "source_grid_reference": "Centred TR 3246 6630 (9m by 12m)",
+      "anchor_bng": [
+        632460,
+        166300
+      ],
+      "local_xy_m": [
+        4780,
+        3220
+      ],
+      "tile": [
+        9,
+        6
+      ],
+      "anchor_role": "public HER representative point, not entrance or building footprint",
+      "horizontal_accuracy_m": null,
+      "surface_z_odn_m": null,
+      "floor_z_odn_m": null,
+      "portal_positions_bng": null,
+      "historical_footprint_bng": null,
+      "fact_confidence": "high",
+      "survival_as_recorded": "1 earthwork mapped; levelled in 2021",
+      "research_note": "An individual air-raid shelter was mapped north of Rose Farm.",
+      "proposed_museum_treatment": "Include on the western archaeology trail.",
+      "review_status": "reviewed for concept; survey geometry pending"
+    },
+    {
+      "id": "MKE104167",
+      "name": "FIDO tanks and pump houses",
+      "era": "1943-1958",
+      "layer": "surface_services",
+      "source_url": "https://heritage.kent.gov.uk/Monument/MKE104167",
+      "source_grid_reference": "Centred TR 3446 6519 (219m by 207m)",
+      "anchor_bng": [
+        634460,
+        165190
+      ],
+      "local_xy_m": [
+        6780,
+        2110
+      ],
+      "tile": [
+        13,
+        4
+      ],
+      "anchor_role": "public HER representative point, not entrance or building footprint",
+      "horizontal_accuracy_m": null,
+      "surface_z_odn_m": null,
+      "floor_z_odn_m": null,
+      "portal_positions_bng": null,
+      "historical_footprint_bng": null,
+      "fact_confidence": "high",
+      "survival_as_recorded": "recorded demolished/levelled by 2021",
+      "research_note": "Four bunded tanks and two pump houses supplied the fog-dispersal installation. HADES conversion was finished in May 1945; later operation was under trial conditions.",
+      "proposed_museum_treatment": "Reconstruct selected tank/bund outlines and a non-burning interpretation display.",
+      "review_status": "reviewed for concept; survey geometry pending"
+    },
+    {
+      "id": "MKE125093",
+      "name": "FIDO pipe trenches",
+      "era": "1943-1944",
+      "layer": "buried_services",
+      "source_url": "https://heritage.kent.gov.uk/Monument/MKE125093",
+      "source_grid_reference": "Centred TR 3398 6552 (1684m by 501m)",
+      "anchor_bng": [
+        633980,
+        165520
+      ],
+      "local_xy_m": [
+        6300,
+        2440
+      ],
+      "tile": [
+        12,
+        4
+      ],
+      "anchor_role": "public HER representative point, not entrance or building footprint",
+      "horizontal_accuracy_m": null,
+      "surface_z_odn_m": null,
+      "floor_z_odn_m": null,
+      "portal_positions_bng": null,
+      "historical_footprint_bng": null,
+      "fact_confidence": "high",
+      "survival_as_recorded": "aerially mapped construction traces",
+      "research_note": "Mapped trench fragments identify fuel-line installation around the eastern runway and approach. They do not demonstrate a passage people could walk through.",
+      "proposed_museum_treatment": "Subsurface service overlay only.",
+      "review_status": "reviewed for concept; survey geometry pending"
+    },
+    {
+      "id": "MKE125138",
+      "name": "FIDO control chamber",
+      "era": "1943-1945",
+      "layer": "surface",
+      "source_url": "https://heritage.kent.gov.uk/Monument/MKE125138",
+      "source_grid_reference": "Centred TR 3451 6528 (4m by 4m)",
+      "anchor_bng": [
+        634510,
+        165280
+      ],
+      "local_xy_m": [
+        6830,
+        2200
+      ],
+      "tile": [
+        13,
+        4
+      ],
+      "anchor_role": "public HER representative point, not entrance or building footprint",
+      "horizontal_accuracy_m": null,
+      "surface_z_odn_m": null,
+      "floor_z_odn_m": null,
+      "portal_positions_bng": null,
+      "historical_footprint_bng": null,
+      "fact_confidence": "high",
+      "survival_as_recorded": "recorded demolished in 2021",
+      "research_note": "A small control building is identified on RAF Museum plan X004-2380. The word chamber does not establish a bunker below ground.",
+      "proposed_museum_treatment": "Small reconstructed control exhibit if the original plan supports dimensions.",
+      "review_status": "reviewed for concept; survey geometry pending"
+    },
+    {
+      "id": "MKE125142",
+      "name": "FIDO workshop and office",
+      "era": "1943-1945",
+      "layer": "surface",
+      "source_url": "https://heritage.kent.gov.uk/Monument/MKE125142",
+      "source_grid_reference": "Centred TR 3435 6527 (36m by 51m)",
+      "anchor_bng": [
+        634350,
+        165270
+      ],
+      "local_xy_m": [
+        6670,
+        2190
+      ],
+      "tile": [
+        13,
+        4
+      ],
+      "anchor_role": "public HER representative point, not entrance or building footprint",
+      "horizontal_accuracy_m": null,
+      "surface_z_odn_m": null,
+      "floor_z_odn_m": null,
+      "portal_positions_bng": null,
+      "historical_footprint_bng": null,
+      "fact_confidence": "high",
+      "survival_as_recorded": "recorded demolished in 2021",
+      "research_note": "The FIDO facility included a repair shop, office hut and staff ablutions.",
+      "proposed_museum_treatment": "Small support ensemble or outlines on the long runway trail.",
+      "review_status": "reviewed for concept; survey geometry pending"
+    },
+    {
+      "id": "MKE125137",
+      "name": "FIDO supply from Abbey Farm",
+      "era": "1943-1945",
+      "layer": "buried_services",
+      "source_url": "https://heritage.kent.gov.uk/Monument/MKE125137",
+      "source_grid_reference": "Centred TR 3346 6461 (2211m by 1090m)",
+      "anchor_bng": [
+        633460,
+        164610
+      ],
+      "local_xy_m": [
+        5780,
+        1530
+      ],
+      "tile": [
+        11,
+        2
+      ],
+      "anchor_role": "public HER representative point, not entrance or building footprint",
+      "horizontal_accuracy_m": null,
+      "surface_z_odn_m": null,
+      "floor_z_odn_m": null,
+      "portal_positions_bng": null,
+      "historical_footprint_bng": null,
+      "fact_confidence": "high",
+      "survival_as_recorded": "route mapped; some building survival uncertain",
+      "research_note": "A six-inch fuel main connected railway-side facilities to the tanks. Its HER point represents a long feature extent, not a building or portal.",
+      "proposed_museum_treatment": "Regional context overlay; do not turn the pipeline into a tunnel.",
+      "review_status": "reviewed for concept; survey geometry pending"
+    },
+    {
+      "id": "MKE125117",
+      "name": "Southern service trenches",
+      "era": "WWII",
+      "layer": "buried_services",
+      "source_url": "https://heritage.kent.gov.uk/Monument/MKE125117",
+      "source_grid_reference": "Centred TR 3338 6537 (1959m by 401m)",
+      "anchor_bng": [
+        633380,
+        165370
+      ],
+      "local_xy_m": [
+        5700,
+        2290
+      ],
+      "tile": [
+        11,
+        4
+      ],
+      "anchor_role": "public HER representative point, not entrance or building footprint",
+      "horizontal_accuracy_m": null,
+      "surface_z_odn_m": null,
+      "floor_z_odn_m": null,
+      "portal_positions_bng": null,
+      "historical_footprint_bng": null,
+      "fact_confidence": "medium",
+      "survival_as_recorded": "mapped filled trenches/cropmarks",
+      "research_note": "Long trenches parallel to the south of the crash runway are interpreted as services. Their detailed purpose and construction are not established.",
+      "proposed_museum_treatment": "Do not create traversable galleries.",
+      "review_status": "reviewed for concept; survey geometry pending"
+    },
+    {
+      "id": "MKE97293",
+      "name": "Alland Grange reported tunnels",
+      "era": "WWII attribution",
+      "layer": "reported_subsurface",
+      "source_url": "https://heritage.kent.gov.uk/Monument/MKE97293",
+      "source_grid_reference": "Centred TR 3202 6632 (1m by 0m)",
+      "anchor_bng": [
+        632020,
+        166320
+      ],
+      "local_xy_m": [
+        4340,
+        3240
+      ],
+      "tile": [
+        8,
+        6
+      ],
+      "anchor_role": "public HER representative point, not entrance or building footprint",
+      "horizontal_accuracy_m": null,
+      "surface_z_odn_m": null,
+      "floor_z_odn_m": null,
+      "portal_positions_bng": null,
+      "historical_footprint_bng": null,
+      "fact_confidence": "low",
+      "survival_as_recorded": "oral-history record; much reportedly lost",
+      "research_note": "A 2015 verbal account links tunnels to an Auxiliary Units wireless role and says much was lost to later works. The record distinguishes these from other nearby air-raid tunnels.",
+      "proposed_museum_treatment": "Regional interpretation marker only; no connection to the sunken hangar or airfield shelter is evidenced.",
+      "review_status": "reviewed for concept; survey geometry pending"
+    },
+    {
+      "id": "MKE98031",
+      "name": "Crash runway and salvage bays",
+      "era": "1943-1944 onward",
+      "layer": "surface",
+      "source_url": "https://heritage.kent.gov.uk/Monument/MKE98031",
+      "source_grid_reference": "Centred TR 3314 6565 (2753m by 714m)",
+      "anchor_bng": [
+        633140,
+        165650
+      ],
+      "local_xy_m": [
+        5460,
+        2570
+      ],
+      "tile": [
+        10,
+        5
+      ],
+      "anchor_role": "public HER representative point, not entrance or building footprint",
+      "horizontal_accuracy_m": null,
+      "surface_z_odn_m": null,
+      "floor_z_odn_m": null,
+      "portal_positions_bng": null,
+      "historical_footprint_bng": null,
+      "fact_confidence": "high",
+      "survival_as_recorded": "historic runway transformed by later airport use",
+      "research_note": "The wartime emergency landing layout preceded later resurfacing and modern runway markings. HER extent dimensions cover mapped features and are not pavement width.",
+      "proposed_museum_treatment": "Keep modern surveyed runway scale; reveal historic emergency-landing layout in a dated overlay.",
+      "review_status": "reviewed for concept; survey geometry pending"
+    },
+    {
+      "id": "MKE125515",
+      "name": "Camp railway terminus",
+      "era": "WWI/interwar",
+      "layer": "surface",
+      "source_url": "https://heritage.kent.gov.uk/Monument/MKE125515",
+      "source_grid_reference": "Centred TR 3304 6648 (98m by 112m)",
+      "anchor_bng": [
+        633040,
+        166480
+      ],
+      "local_xy_m": [
+        5360,
+        3400
+      ],
+      "tile": [
+        10,
+        6
+      ],
+      "anchor_role": "public HER representative point, not entrance or building footprint",
+      "horizontal_accuracy_m": null,
+      "surface_z_odn_m": null,
+      "floor_z_odn_m": null,
+      "portal_positions_bng": null,
+      "historical_footprint_bng": null,
+      "fact_confidence": "high",
+      "survival_as_recorded": "recorded demolished in 2021",
+      "research_note": "A platform served the camp railway from the Birchington/Minnis Bay connection. The public HER centre and extent do not define the platform edges.",
+      "proposed_museum_treatment": "Restore a short platform/track exhibit after plan registration; regional route shown separately.",
+      "review_status": "reviewed for concept; survey geometry pending"
+    },
+    {
+      "id": "MKE125654",
+      "name": "Power house",
+      "era": "interwar/WWII",
+      "layer": "surface",
+      "source_url": "https://heritage.kent.gov.uk/Monument/MKE125654",
+      "source_grid_reference": "Centred TR 3286 6666 (42m by 44m)",
+      "anchor_bng": [
+        632860,
+        166660
+      ],
+      "local_xy_m": [
+        5180,
+        3580
+      ],
+      "tile": [
+        10,
+        6
+      ],
+      "anchor_role": "public HER representative point, not entrance or building footprint",
+      "horizontal_accuracy_m": null,
+      "surface_z_odn_m": null,
+      "floor_z_odn_m": null,
+      "portal_positions_bng": null,
+      "historical_footprint_bng": null,
+      "fact_confidence": "high",
+      "survival_as_recorded": "recorded demolished in 2021",
+      "research_note": "Plans identify the power house; the modern mapping conflicts with older online statements that a building survived.",
+      "proposed_museum_treatment": "Trace first, reconstruct selected facade only after identity check.",
+      "review_status": "reviewed for concept; survey geometry pending"
+    },
+    {
+      "id": "MKE125655",
+      "name": "Erecting shops",
+      "era": "WWI/interwar",
+      "layer": "surface",
+      "source_url": "https://heritage.kent.gov.uk/Monument/MKE125655",
+      "source_grid_reference": "Centred TR 3290 6659 (127m by 136m)",
+      "anchor_bng": [
+        632900,
+        166590
+      ],
+      "local_xy_m": [
+        5220,
+        3510
+      ],
+      "tile": [
+        10,
+        6
+      ],
+      "anchor_role": "public HER representative point, not entrance or building footprint",
+      "horizontal_accuracy_m": null,
+      "surface_z_odn_m": null,
+      "floor_z_odn_m": null,
+      "portal_positions_bng": null,
+      "historical_footprint_bng": null,
+      "fact_confidence": "high",
+      "survival_as_recorded": "demolished by a mid-century plan",
+      "research_note": "A twin side-opening hangar served technical training and was labelled Erecting Shops on the 1930 plan.",
+      "proposed_museum_treatment": "Rebuild one selected structural bay as an engineering gallery; preserve readable lost-building footprint.",
+      "review_status": "reviewed for concept; survey geometry pending"
+    },
+    {
+      "id": "MKE125213",
+      "name": "War Flight aeroplane shed",
+      "era": "c.1917",
+      "layer": "surface",
+      "source_url": "https://heritage.kent.gov.uk/Monument/MKE125213",
+      "source_grid_reference": "Centred TR 3394 6612 (86m by 74m)",
+      "anchor_bng": [
+        633940,
+        166120
+      ],
+      "local_xy_m": [
+        6260,
+        3040
+      ],
+      "tile": [
+        12,
+        5
+      ],
+      "anchor_role": "public HER representative point, not entrance or building footprint",
+      "horizontal_accuracy_m": null,
+      "surface_z_odn_m": null,
+      "floor_z_odn_m": null,
+      "portal_positions_bng": null,
+      "historical_footprint_bng": null,
+      "fact_confidence": "medium",
+      "survival_as_recorded": "recorded demolished in 2021",
+      "research_note": "A side-opening shed and apron were mapped in the eastern War Flight area. Its precise standard type is interpreted, not definitively proved.",
+      "proposed_museum_treatment": "One restored early flying shed; detailed geometry and type await drawings.",
+      "review_status": "reviewed for concept; survey geometry pending"
+    },
+    {
+      "id": "MKE125218",
+      "name": "Second War Flight shed",
+      "era": "c.1917",
+      "layer": "surface",
+      "source_url": "https://heritage.kent.gov.uk/Monument/MKE125218",
+      "source_grid_reference": "Centred TR 3399 6628 (38m by 59m)",
+      "anchor_bng": [
+        633990,
+        166280
+      ],
+      "local_xy_m": [
+        6310,
+        3200
+      ],
+      "tile": [
+        12,
+        6
+      ],
+      "anchor_role": "public HER representative point, not entrance or building footprint",
+      "horizontal_accuracy_m": null,
+      "surface_z_odn_m": null,
+      "floor_z_odn_m": null,
+      "portal_positions_bng": null,
+      "historical_footprint_bng": null,
+      "fact_confidence": "medium",
+      "survival_as_recorded": "recorded demolished in 2021",
+      "research_note": "A second side-opening shed was mapped farther north.",
+      "proposed_museum_treatment": "Outline by default to keep the early layout legible without rebuilding everything.",
+      "review_status": "reviewed for concept; survey geometry pending"
+    },
+    {
+      "id": "MKE100021",
+      "name": "The Loop / Hangar No.4",
+      "era": "mid-century",
+      "layer": "surface",
+      "source_url": "https://heritage.kent.gov.uk/Monument/MKE100021",
+      "source_grid_reference": "Centred TR 3181 6658 (73m by 83m)",
+      "anchor_bng": [
+        631810,
+        166580
+      ],
+      "local_xy_m": [
+        4130,
+        3500
+      ],
+      "tile": [
+        8,
+        6
+      ],
+      "anchor_role": "public HER representative point, not entrance or building footprint",
+      "horizontal_accuracy_m": null,
+      "surface_z_odn_m": null,
+      "floor_z_odn_m": null,
+      "portal_positions_bng": null,
+      "historical_footprint_bng": null,
+      "fact_confidence": "medium",
+      "survival_as_recorded": "historic hangar recorded demolished in 2021",
+      "research_note": "A mid-century plan identifies Hangar No.4 here. Older claims about present-building continuity are uncertain.",
+      "proposed_museum_treatment": "Optional jet-age satellite trail; do not assert a surviving WWII hangar.",
+      "review_status": "reviewed for concept; survey geometry pending"
+    }
+  ]
+}
