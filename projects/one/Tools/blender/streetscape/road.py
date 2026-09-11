@@ -215,9 +215,9 @@ def junction_boundary(plan: JunctionPlan, junction_id: str, splines):
     corner kerb along, and the patch can meet neither with a crack.  Returns
     ``(loop (K, 3), arm_slices, corner_specs)``."""
     frames = resolve_arm_frames(plan, junction_id, splines)
-    if frames is None or len(frames) < 3:
+    if frames is None or len(frames) < (2 if plan.junction(junction_id).kind == "connector" else 3):
         return None
-    cfg = plan.cfg
+    cfg = plan.config_for(junction_id)
     j = plan.junction(junction_id)
     node = np.array([j.x, j.y], dtype=np.float64)
     loop = []

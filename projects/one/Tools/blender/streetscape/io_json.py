@@ -138,6 +138,7 @@ def _cross_checks(site: S.Site) -> List[str]:
     # at nothing is a structural error rather than an unread placeholder: it would silently shrink the
     # junction by one arm and change the trim radius of every other arm at that node.
     jids = set()
+    by_id = {sp.id: sp for sp in site.splines}
     for ji, j in enumerate(site.junctions):
         jw = "$.junctions[%d] (%s)" % (ji, j.id)
         if j.id in jids:
@@ -146,6 +147,16 @@ def _cross_checks(site: S.Site) -> List[str]:
         for ei, e in enumerate(j.ends):
             if e.spline_id not in seen:
                 errs.append("%s.ends[%d]: spline %r is not in this document" % (jw, ei, e.spline_id))
+            elif j.kind == "connector":
+                sp = by_id[e.spline_id]
+                profile = site.profiles.road.get(sp.profile_ids.road)
+                if profile is None or profile.kind != "road":
+                    errs.append("%s.ends[%d]: connector requires a road profile" % (jw, ei))
+                if getattr(sp, "junction_" + e.end) != j.id:
+                    errs.append("%s.ends[%d]: connector binding must be reciprocal" % (jw, ei))
+                p = sp.points[0] if e.end == "start" else sp.points[-1]
+                if (p.x-j.x)**2 + (p.y-j.y)**2 > float(S.JUNCTION_DEFAULTS["snap_m"])**2:
+                    errs.append("%s.ends[%d]: connector end is outside the node snap distance" % (jw, ei))
     for si, sp in enumerate(site.splines):
         for slot in ("junction_start", "junction_end"):
             v = getattr(sp, slot)

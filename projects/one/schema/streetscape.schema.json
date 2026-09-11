@@ -575,7 +575,9 @@
         "z": { "oneOf": [ { "type": "number" }, { "type": "null" } ], "description": "Informative (step-06 drape), null if unknown. The patch takes its heights from the arms, never from here." },
         "radius_m": { "$ref": "#/$defs/NonNeg", "description": "Disc radius (half the widest incident carriageway plus margin), metres. A FLOOR on the derived trim radius, not the trim radius itself." },
         "trim_radius_m": { "oneOf": [ { "$ref": "#/$defs/NonNeg" }, { "type": "null" } ], "default": null, "description": "Override of the derived trim radius, metres. Null (the adapter always writes null / omits it) means derive it from radius_m, the arm directions and the arm half-widths, so it cannot go stale when a profile width changes." },
-        "kind": { "type": "string", "enum": ["disc", "none"], "default": "disc" },
+        "kind": { "type": "string", "enum": ["disc", "none", "connector"], "default": "disc" },
+        "corner_handle_frac": { "type": ["number", "null"], "exclusiveMinimum": 0, "maximum": 1, "default": null,
+          "description": "Optional per-junction shared A/B cubic handle cap as a fraction of endpoint distance to the node. Missing/null keeps 0.45." },
         "ends": {
           "type": "array", "items": {
             "type": "object", "additionalProperties": false, "patternProperties": { "^_": {} }, "required": ["spline_id", "end"],
@@ -583,9 +585,11 @@
               "trim_radius_m": { "type": ["number", "null"], "exclusiveMinimum": 0, "maximum": 32, "default": null,
                 "description": "Reviewed radial trim request for this arm, metres. Overrides the junction-wide radius for this end; shared minimum-remaining reconciliation still applies. Missing/null preserves the common solve." } }
           },
-          "description": "Every spline in the same document whose first or last point lies within junction_snap_m (0.3) of (x, y)."
+          "description": "Every spline in the same document whose first or last point lies within junction_snap_m (0.3) of (x, y). A connector requires exactly two distinct road splines with reciprocal junction bindings."
         }
-      }
+      },
+      "allOf": [{ "if": { "properties": { "kind": { "const": "connector" } }, "required": ["kind"] },
+                  "then": { "properties": { "ends": { "minItems": 2, "maxItems": 2, "uniqueItems": true } } } }]
     },
 
     "ProfileFile": {

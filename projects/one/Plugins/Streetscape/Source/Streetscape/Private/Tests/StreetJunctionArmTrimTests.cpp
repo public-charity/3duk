@@ -5,7 +5,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FStreetArmTrimParityTest, "Streetscape.Junction
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ProductFilter)
 bool FStreetArmTrimParityTest::RunTest(const FString&)
 {
-	for (const FString Fixture : { FString(TEXT("junction_arm_trims")), FString(TEXT("junction_collapsed_pavement")) })
+	for (const FString Fixture : { FString(TEXT("junction_arm_trims")), FString(TEXT("junction_collapsed_pavement")), FString(TEXT("junction_connector_bend")), FString(TEXT("junction_connector_reverse")) })
 	{
 		FStreetSiteDoc Doc;
 		FJunctionSiteBuild Built;

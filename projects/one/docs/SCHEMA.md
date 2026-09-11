@@ -442,7 +442,8 @@ informative.
 
 ### 4.18 `Junction`
 
-`{id, x, y, z: number|null, radius_m, trim_radius_m: number|null, kind: disc|none,
+`{id, x, y, z: number|null, radius_m, trim_radius_m: number|null, kind: disc|none|connector,
+corner_handle_frac?: number|null,
 ends: [{spline_id, end: start|end, trim_radius_m?: number|null}]}`. Step 06 `_junction` records map to `kind: disc`,
 `radius_m = r`; `ends` lists the splines of the same document whose first/last point is within
 `junction_snap_m` = 0.3 m (measured maximum on Thanet: 0.257 m over 5,185 ends).
@@ -450,8 +451,18 @@ ends: [{spline_id, end: start|end, trim_radius_m?: number|null}]}`. Step 06 `_ju
 **`kind`** is the switch. `disc`: the junction is SURFACED — the shared spline layer trims every arm
 in `ends`, Renderer A fills the hole with one tarmac patch and Renderer B turns the kerb corner
 between adjacent arms. `none`: a plain node — nothing is trimmed and nothing is filled. A junction
-with fewer than three surviving arms is treated as `none` (two splines meeting end to end already
-share their end point; there is nothing to fill).
+of kind `disc` with fewer than three surviving arms remains unbuilt. An explicit
+`connector` joins exactly two distinct road splines with the same A/B patch and
+corner machinery. Their selected ends must refer back to the connector and lie
+within the 0.3 m node snap distance. Rail arms are rejected. Sharing a centreline
+endpoint alone does not join angled road and pavement cross-sections.
+
+**Per-junction corner handles.** Optional `corner_handle_frac` in (0,1] overrides
+the shared A/B cubic handle cap for that junction only. Missing/null retains 0.45.
+It caps handle length relative to each endpoint's distance from the node. The
+value travels with the junction's serialized owner data, so streamed rebuilds use
+the same setting. It does not imply valid geometry: actual corner folds, patch
+overlap, complete road bodies, remote ends and terrain still require QC.
 
 **Trim overrides are explicit models, not stored derivations.** The adapter leaves
 `trim_radius_m` null. Reviewed candidates may set a common junction radius or an

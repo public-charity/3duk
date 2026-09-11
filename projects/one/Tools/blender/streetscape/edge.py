@@ -284,11 +284,11 @@ def build_junction_corners(plan: JunctionPlan, junction_id: str, splines, buf: M
     differs cannot be interpolated column for column; those corners are skipped and counted."""
     out = {"corners": 0, "skipped_no_kerb": 0, "skipped_incompatible": 0, "verts": 0, "tris": 0}
     frames = resolve_arm_frames(plan, junction_id, splines)
-    if frames is None or len(frames) < 3:
+    if frames is None or len(frames) < (2 if plan.junction(junction_id).kind == "connector" else 3):
         return out
     j = plan.junction(junction_id)
     node = np.array([j.x, j.y], dtype=np.float64)
-    cfg = plan.cfg
+    cfg = plan.config_for(junction_id)
     v0, t0 = len(buf.v), len(buf.f)
     for k, af in enumerate(frames):
         nx = frames[(k + 1) % len(frames)]

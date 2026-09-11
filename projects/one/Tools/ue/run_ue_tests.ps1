@@ -3,10 +3,10 @@
 # Runs exactly:
 #   UnrealEditor-Cmd.exe Thanet.uproject -ExecCmds="Automation RunTests <Filter>; Quit" -unattended -nopause -nullrhi -stdout -FullStdOutLogOutput -log=<Log>
 # then reads Saved/Logs/<Log>: pass = at least one "Test Completed. Result={Success}" and no "Result={Fail}" for the
-# filter (UE 5.8 prints Success/Fail; the Passed/Failed wording of STAGES.md is accepted too); the summary
+# filter (UE 5.8 prints Success/Fail; the Passed/Failed wording of STAGES.md is accepted too), no fatal
+# log entries, and every started test completed; the summary
 # (one line per test) is printed and the exit code is 0 on pass, 2 on any failure, 3 when no test
-# ran. The engine's own exit code is ignored on purpose: on this machine every UnrealEditor-Cmd run exits 1 because the
-# VC++ redistributable advisory is logged at Error severity (see run_ue_python.ps1).
+# ran. Exit 1 can accompany the known VC++ redistributable advisory; other nonzero engine exits fail.
 # -ParityJson sets STREETSCAPE_PARITY_JSON so Streetscape.Spline.NumpyParity compares against a numpy dump.
 param(
 	[string]$Filter = "Streetscape",
@@ -36,6 +36,10 @@ $secs = [int]((Get-Date) - $t0).TotalSeconds
 if (-not (Test-Path $LogPath)) { Write-Host "run_ue_tests: no log at $LogPath (engine exit $engineCode)"; exit 3 }
 $lines = Get-Content $LogPath
 $completed = @($lines | Where-Object { $_ -match "Test Completed\. Result=\{(Success|Passed|Fail|Failed|Skipped)\} Name=\{([^}]*)\}" })
+$started = @($lines | Where-Object { $_ -match "Test Started\. Name=\{[^}]*\} Path=\{" })
+$fatal = @($lines | Where-Object { $_ -match "Critical error:|appError called:|Assertion failed:|Fatal error:|Unhandled Exception:" })
+$discovery = @($lines | Select-String 'Found (\d+) automation tests based on')
+$expected = if ($discovery.Count -eq 1) { [int]$discovery[0].Matches[0].Groups[1].Value } else { -1 }
 $passed = @($completed | Where-Object { $_ -match "Result=\{(Success|Passed)\}" })
 $failed = @($completed | Where-Object { $_ -match "Result=\{(Fail|Failed)\}" })
 Write-Host "run_ue_tests: $($completed.Count) test(s) completed in ${secs}s (engine exit $engineCode): $($passed.Count) passed, $($failed.Count) failed"
@@ -44,6 +48,10 @@ foreach ($l in $completed) {
 }
 $errors = @($lines | Where-Object { $_ -match "LogAutomationTest: Error:" })
 foreach ($e in $errors) { Write-Host "  ERROR: $e" }
+if ($fatal.Count -gt 0 -or $started.Count -ne $completed.Count -or $expected -ne $completed.Count -or $engineCode -notin @(0,1)) {
+    Write-Host "run_ue_tests: incomplete or crashed run: $expected expected, $($started.Count) started, $($completed.Count) completed, $($fatal.Count) fatal log entries"
+    exit 2
+}
 if ($completed.Count -eq 0) { exit 3 }
 if ($failed.Count -gt 0 -or $errors.Count -gt 0 -or $passed.Count -ne $completed.Count) { exit 2 }
 exit 0

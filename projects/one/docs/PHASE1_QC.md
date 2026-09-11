@@ -5,6 +5,23 @@ Thanet base suitable for high-quality building overlays. Survey registration, te
 roads, rail, junctions and their transitions belong to Phase 1. Hero buildings and
 decorative presentation remain later work.
 
+## Explicit connector pilot and complete native runs — 2026-09-11
+
+Four local joins reproduce private full-document geometry through a shared explicit
+connector kind, with native parity on 170 arrays. Every untouched body, old junction
+and remote-end section is exact; local meshes were visually inspected. Native
+preview additions are restricted to existing unused reciprocal continuation ends.
+170 NumPy, 99 tool and 48 native tests pass; loaded-world preview remains open.
+
+An interrupted native test exposed a launcher false success. Require agreement
+between discovered, started and completed test counts, reject fatal logs and
+unexpected engine exits. Replaying the actual gate on complete, crashed and silently
+truncated logs proves all three outcomes. A passing subset is never full coverage.
+
+A private shifted-fan diagnosis exposes another weak metric: self-crossing boundaries
+can have zero signed-area excess. Future filling experiments must prove boundary
+simplicity and actual triangle overlap as well as local winding and seams.
+
 ## Complete control cleanup and exact reuse — 2026-09-11
 
 All 988 eligible ordinary roads tested; 538 repairs retained across 168 documents.

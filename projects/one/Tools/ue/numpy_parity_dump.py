@@ -79,7 +79,7 @@ def main():
         out["twist_" + rule] = arrays(build("sine_5_50", field))
     for kind in ("batter","retaining_wall"):
         out["support_"+kind] = support_meshes(kind)
-    for fixture in ('junction_arm_trims','junction_collapsed_pavement'):
+    for fixture in ('junction_arm_trims','junction_collapsed_pavement','junction_connector_bend','junction_connector_reverse'):
         arm_doc=SY.load_json(os.path.join(SY.FIXTURES_DIR,fixture+'.json'))
         arm_site=IO.site_from_dict(arm_doc);arm_plan=SP.JunctionPlan(arm_site)
         arm_builds=build_all(arm_site,SY.junction_terrain_for(arm_doc),plan=arm_plan)

@@ -48,7 +48,7 @@ const TCHAR* const GSourceLayer[] = { TEXT("roads"), TEXT("rail"), TEXT("barrier
 const TCHAR* const GOverlayKind[] = { TEXT("osm_way"), TEXT("step06_smoothed"), TEXT("other") };
 const TCHAR* const GContinuation[] = { TEXT("seam"), TEXT("way"), TEXT("gap"), TEXT("none") };
 const TCHAR* const GSplineEnd[] = { TEXT("start"), TEXT("end") };
-const TCHAR* const GJunctionKind[] = { TEXT("disc"), TEXT("none") };
+const TCHAR* const GJunctionKind[] = { TEXT("disc"), TEXT("none"), TEXT("connector") };
 const TCHAR* const GProfileKind[] = { TEXT("road"), TEXT("edge"), TEXT("hedge") };
 
 #define STREET_ENUM_TABLE(Type, Arr) \

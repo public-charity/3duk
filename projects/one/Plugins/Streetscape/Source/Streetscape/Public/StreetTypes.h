@@ -36,7 +36,7 @@ UENUM(BlueprintType) enum class EStreetOverlayKind : uint8 { OsmWay, Step06Smoot
 /** None <-> JSON null. */
 UENUM(BlueprintType) enum class EStreetContinuation : uint8 { Seam, Way, Gap, None };
 UENUM(BlueprintType) enum class EStreetSplineEnd : uint8 { Start, End };
-UENUM(BlueprintType) enum class EStreetJunctionKind : uint8 { Disc, None };
+UENUM(BlueprintType) enum class EStreetJunctionKind : uint8 { Disc, None, Connector };
 UENUM(BlueprintType) enum class EStreetProfileKind : uint8 { Road, Edge, Hedge };
 
 /** sigma of a side: +1 left, -1 right. */
@@ -525,6 +525,8 @@ struct STREETSCAPE_API FStreetJunction : public FStreetJsonBase
 	    width changes. Set, it replaces the solve for every arm of this junction. */
 	UPROPERTY() TOptional<double> TrimRadiusM;
 	UPROPERTY(EditAnywhere, Category = "Streetscape") EStreetJunctionKind Kind = EStreetJunctionKind::Disc;
+	/** Optional shared A/B corner handle cap as a fraction of endpoint distance to the node, (0,1]. */
+	UPROPERTY() TOptional<double> CornerHandleFrac;
 	UPROPERTY(EditAnywhere, Category = "Streetscape") TArray<FStreetJunctionEnd> Ends;
 };
 

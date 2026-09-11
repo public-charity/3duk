@@ -82,7 +82,8 @@ struct STREETSCAPE_API FStreetJunctionSpec
 	double TrimRadiusM = 0;
 	FStreetJunctionDefaults Cfg;
 
-	bool IsValid() const { return Arms.Num() >= 3; }
+	bool IsValid() const { return Junction.Kind == EStreetJunctionKind::Connector ? Arms.Num() == 2 : Junction.Kind == EStreetJunctionKind::Disc && Arms.Num() >= 3; }
+	double CornerHandleFraction() const { return Junction.CornerHandleFrac.Get(Cfg.CornerHandleFrac); }
 };
 
 // ---------------------------------------------------------------------------------------------------------------

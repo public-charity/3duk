@@ -836,7 +836,7 @@ class JunctionPlan:
         pending: Dict[str, List[JunctionArm]] = {}
         for j in self.site.junctions:
             self.stats["junctions"] += 1
-            if j.kind != "disc":
+            if j.kind not in ("disc", "connector"):
                 self.stats["junctions_skipped_kind"] += 1
                 continue
             keys, seen = [], set()
@@ -856,7 +856,7 @@ class JunctionPlan:
                     continue
                 keys.append(k)
                 radius_overrides.append(e.trim_radius_m)
-            if len(keys) < 3:
+            if len(keys) < (2 if j.kind == "connector" else 3):
                 self.stats["junctions_skipped_arms"] += 1
                 continue
             r_floor = float(j.radius_m or 0.0)
@@ -947,6 +947,11 @@ class JunctionPlan:
 
     def junction(self, junction_id: str) -> S.Junction:
         return self._junc_by_id[junction_id]
+
+    def config_for(self, junction_id: str):
+        """Resolve this junction's optional handle cap once for both A and B."""
+        fraction = self.junction(junction_id).corner_handle_frac
+        return self.cfg if fraction is None else dict(self.cfg, corner_handle_frac=float(fraction))
 
 
 # --------------------------------------------------------------------------------------------

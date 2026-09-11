@@ -226,7 +226,7 @@ void FStreetJunctionPlan::Build(const FStreetSiteDoc& InDoc, const FStreetJuncti
 	for (const FStreetJunction& J : InDoc.Junctions)
 	{
 		Stats[TEXT("junctions")] += 1;
-		if (J.Kind != EStreetJunctionKind::Disc)
+		if (J.Kind != EStreetJunctionKind::Disc && J.Kind != EStreetJunctionKind::Connector)
 		{
 			Stats[TEXT("junctions_skipped_kind")] += 1;
 			continue;
@@ -255,7 +255,7 @@ void FStreetJunctionPlan::Build(const FStreetSiteDoc& InDoc, const FStreetJuncti
 			Keys.Add(TPair<FString, EStreetSplineEnd>(En.SplineId, En.End));
 			RadiusOverrides.Add(En.TrimRadiusM);
 		}
-		if (Keys.Num() < 3)
+		if (Keys.Num() < (J.Kind == EStreetJunctionKind::Connector ? 2 : 3))
 		{
 			Stats[TEXT("junctions_skipped_arms")] += 1;
 			continue;

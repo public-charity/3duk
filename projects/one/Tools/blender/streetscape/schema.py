@@ -1055,7 +1055,8 @@ class Junction(SchemaObject):
         "z": (_S("opt", NUM), False, None),
         "radius_m": (NONNEG, False, None),
         "trim_radius_m": (_S("opt", NONNEG), False, None),
-        "kind": (_S("enum", ("disc", "none")), False, "disc"),
+        "kind": (_S("enum", ("disc", "none", "connector")), False, "disc"),
+        "corner_handle_frac": (_S("opt", _S("num", 0.0, 1.0, True)), False, None),
         "ends": (_S("list", _S("obj", JunctionEnd)), True, list),
     }
     id: str = ""
@@ -1065,7 +1066,19 @@ class Junction(SchemaObject):
     radius_m: Optional[float] = None
     trim_radius_m: Optional[float] = None
     kind: str = "disc"
+    corner_handle_frac: Optional[float] = None
     ends: List[JunctionEnd] = field(default_factory=list)
+
+    def _post(self, d, path, errs):
+        self._handle_was_null = "corner_handle_frac" in d and d["corner_handle_frac"] is None
+        if self.kind == "connector" and (len(self.ends) != 2 or len({e.spline_id for e in self.ends}) != 2):
+            errs.append(path + ": connector requires exactly two distinct spline ends")
+
+    def to_dict(self):
+        out = super().to_dict()
+        if self.corner_handle_frac is None and getattr(self, "_handle_was_null", False):
+            out["corner_handle_frac"] = None
+        return out
 
 
 @dataclass

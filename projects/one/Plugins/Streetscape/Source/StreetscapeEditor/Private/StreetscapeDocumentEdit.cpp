@@ -93,14 +93,61 @@ bool StreetDocumentEdit::ValidatePreview(const FStreetSiteDoc& Source, const FSt
 		return FStreetscapeJson::Canonical(Only);
 	};
 	FStreetSiteDoc Comparable = Candidate;
-	if (Source.Junctions.Num() != Candidate.Junctions.Num())
-	{ Error = TEXT("preview must preserve all junctions"); return false; }
-	for (int32 I=0; I<Candidate.Junctions.Num(); ++I)
+	const int32 Added = Candidate.Junctions.Num()-Source.Junctions.Num();
+	if (Added < 0 || Added > 8)
+	{ Error = TEXT("preview must preserve all junctions and may append at most eight local connectors"); return false; }
+	TMap<FString,FString> NewBindings;
+	TSet<FString> JunctionIds;
+	for (const auto& J : Source.Junctions) JunctionIds.Add(J.Id);
+	for (int32 I=Source.Junctions.Num(); I<Candidate.Junctions.Num(); ++I)
+	{
+		const auto& J=Candidate.Junctions[I];
+		if (J.Kind!=EStreetJunctionKind::Connector || J.Ends.Num()!=2 || J.Ends[0].SplineId==J.Ends[1].SplineId || JunctionIds.Contains(J.Id) || J.Id.IsEmpty())
+		{ Error=TEXT("preview may append only distinct two-arm connectors"); return false; }
+		JunctionIds.Add(J.Id);
+		if (!FMath::IsFinite(J.X) || !FMath::IsFinite(J.Y)) { Error=TEXT("preview connector node must be finite"); return false; }
+		if (!J.TrimRadiusM.IsSet() || !FMath::IsFinite(J.TrimRadiusM.GetValue()) || J.TrimRadiusM.GetValue()<=0. || J.TrimRadiusM.GetValue()>32.)
+		{ Error=TEXT("new preview connector needs an explicit trim within (0,32] m"); return false; }
+		if (J.CornerHandleFrac.IsSet() && (!FMath::IsFinite(J.CornerHandleFrac.GetValue()) || J.CornerHandleFrac.GetValue()<=0. || J.CornerHandleFrac.GetValue()>1.))
+		{ Error=TEXT("preview corner handle must be finite and within (0,1]"); return false; }
+		for (int32 K=0; K<2; ++K)
+		{
+			const auto& End=J.Ends[K];const auto& Other=J.Ends[1-K];
+			const auto* A=Source.FindSpline(End.SplineId);const auto* B=Candidate.FindSpline(End.SplineId);
+			if (!A || !B || A->Points.IsEmpty() || B->Points.IsEmpty()) { Error=TEXT("connector requires existing populated splines"); return false; }
+			const bool Start=End.End==EStreetSplineEnd::Start;
+			const FString Key=End.SplineId+(Start ? TEXT("|start") : TEXT("|end"));
+			for (const auto& Existing : Source.Junctions)
+				for (const auto& Bound : Existing.Ends)
+					if (Bound.SplineId==End.SplineId && Bound.End==End.End)
+					{ Error=TEXT("connector cannot reuse an existing junction arm"); return false; }
+			if (NewBindings.Contains(Key) || !(Start ? A->JunctionStart : A->JunctionEnd).IsEmpty() || (Start ? B->JunctionStart : B->JunctionEnd)!=J.Id ||
+				(Start ? A->ContinuesFrom : A->ContinuesTo)!=Other.SplineId || A->ContinuesFrom!=B->ContinuesFrom || A->ContinuesTo!=B->ContinuesTo)
+			{ Error=TEXT("connector must bind unused reciprocal continuation ends"); return false; }
+			const auto& P=Start ? A->Points[0] : A->Points.Last();const auto& Q=Start ? B->Points[0] : B->Points.Last();
+			if (P.X!=Q.X || P.Y!=Q.Y || FMath::Square(P.X-J.X)+FMath::Square(P.Y-J.Y)>1e-6)
+			{ Error=TEXT("preview connector must preserve source endpoints and meet them within 1 mm"); return false; }
+			const auto* RP=Candidate.Profiles.Road.Find(B->ProfileIds.Road);
+			if (!RP || RP->Kind!=EStreetRoadKind::Road) { Error=TEXT("preview connector requires road arms"); return false; }
+			if (End.TrimRadiusM.IsSet() && (!FMath::IsFinite(End.TrimRadiusM.GetValue()) || End.TrimRadiusM.GetValue()<=0. || End.TrimRadiusM.GetValue()>32.))
+			{ Error=TEXT("preview arm trim must be finite and within (0,32] m"); return false; }
+			NewBindings.Add(Key,J.Id);
+		}
+	}
+	Comparable.Junctions.SetNum(Source.Junctions.Num());
+	for (int32 I=0; I<Source.Junctions.Num(); ++I)
 	{
 		const auto& Trim = Candidate.Junctions[I].TrimRadiusM;
 		if (Trim.IsSet() && (!FMath::IsFinite(Trim.GetValue()) || Trim.GetValue()<=0. || Trim.GetValue()>32.))
 		{ Error = TEXT("preview junction trim must be finite and within (0,32] m"); return false; }
 		Comparable.Junctions[I].TrimRadiusM = Source.Junctions[I].TrimRadiusM;
+		const auto& Handle=Candidate.Junctions[I].CornerHandleFrac;
+		if (Handle.IsSet() && (!FMath::IsFinite(Handle.GetValue()) || Handle.GetValue()<=0. || Handle.GetValue()>1.))
+		{ Error=TEXT("preview corner handle must be finite and within (0,1]"); return false; }
+		Comparable.Junctions[I].CornerHandleFrac=Source.Junctions[I].CornerHandleFrac;
+		for (auto* Keys : { &Comparable.Junctions[I].JsonKeys, &Comparable.Junctions[I].NullKeys }) Keys->Remove(TEXT("corner_handle_frac"));
+		if (Source.Junctions[I].JsonKeys.Contains(TEXT("corner_handle_frac"))) Comparable.Junctions[I].JsonKeys.Add(TEXT("corner_handle_frac"));
+		if (Source.Junctions[I].NullKeys.Contains(TEXT("corner_handle_frac"))) Comparable.Junctions[I].NullKeys.Add(TEXT("corner_handle_frac"));
 		const auto& OriginalEnds = Source.Junctions[I].Ends;
 		const auto& CandidateEnds = Candidate.Junctions[I].Ends;
 		if (OriginalEnds.Num() != CandidateEnds.Num())
@@ -121,7 +168,7 @@ bool StreetDocumentEdit::ValidatePreview(const FStreetSiteDoc& Source, const FSt
 		}
 	}
 	if (JunctionText(Source) != JunctionText(Comparable))
-	{ Error = TEXT("preview must preserve junction topology and registration; only trim radius may change"); return false; }
+	{ Error = TEXT("preview must preserve existing junction topology and registration; only trim and handle overrides may change"); return false; }
 	TSet<FString> Seen;
 	for (const FStreetSplineDef& D : Candidate.Splines)
 	{
@@ -132,7 +179,9 @@ bool StreetDocumentEdit::ValidatePreview(const FStreetSiteDoc& Source, const FSt
 		const auto& B = D.ProfileIds;
 		if (A.Road.IsEmpty() != B.Road.IsEmpty() || A.EdgeLeft.IsEmpty() != B.EdgeLeft.IsEmpty() ||
 			A.EdgeRight.IsEmpty() != B.EdgeRight.IsEmpty() || A.HedgeLeft.IsEmpty() != B.HedgeLeft.IsEmpty() ||
-			A.HedgeRight.IsEmpty() != B.HedgeRight.IsEmpty() || Original->JunctionStart != D.JunctionStart || Original->JunctionEnd != D.JunctionEnd)
+			A.HedgeRight.IsEmpty() != B.HedgeRight.IsEmpty() ||
+			(Original->JunctionStart != D.JunctionStart && (!NewBindings.Contains(D.Id+TEXT("|start")) || NewBindings.FindRef(D.Id+TEXT("|start")) != D.JunctionStart)) ||
+			(Original->JunctionEnd != D.JunctionEnd && (!NewBindings.Contains(D.Id+TEXT("|end")) || NewBindings.FindRef(D.Id+TEXT("|end")) != D.JunctionEnd)))
 		{ Error = TEXT("preview cannot change component slots or junction bindings: ") + D.Id; return false; }
 	}
 	return true;

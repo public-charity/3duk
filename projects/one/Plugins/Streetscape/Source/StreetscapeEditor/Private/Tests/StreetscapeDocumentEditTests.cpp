@@ -48,6 +48,38 @@ bool FStreetDocumentPreviewValidationTest::RunTest(const FString&)
 	Candidate = Source;
 	Candidate.Splines[0].JunctionStart += TEXT("_new");
 	TestFalse(TEXT("junction rebinding rejected"),StreetDocumentEdit::ValidatePreview(Source,Candidate,Error));
+	Candidate=Source;Candidate.Splines[0].JunctionStart.Reset();
+	TestFalse(TEXT("junction binding deletion rejected"),StreetDocumentEdit::ValidatePreview(Source,Candidate,Error));
+	Candidate=Source;Candidate.Junctions[0].CornerHandleFrac=.65;
+	TestTrue(TEXT("local handle override accepted"),StreetDocumentEdit::ValidatePreview(Source,Candidate,Error));
+	Candidate.Junctions[0].CornerHandleFrac=1.01;
+	TestFalse(TEXT("oversized handle override rejected"),StreetDocumentEdit::ValidatePreview(Source,Candidate,Error));
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FStreetConnectorPreviewValidationTest, "Streetscape.Editor.ConnectorPreviewValidation",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ProductFilter)
+bool FStreetConnectorPreviewValidationTest::RunTest(const FString&)
+{
+	FStreetSiteDoc Joined;FJunctionSiteBuild Built;
+	if (!BuildJunctionSite(*this,TEXT("junction_connector_reverse"),Joined,Built)) return false;
+	FStreetSiteDoc Source=Joined;Source.Junctions.Reset();
+	for (auto& D : Source.Splines) { D.JunctionStart.Reset();D.JunctionEnd.Reset(); }
+	FString Error;
+	TestTrue(TEXT("explicit connector between existing reciprocal ends accepted"),StreetDocumentEdit::ValidatePreview(Source,Joined,Error));
+	for (const FString Case : {TEXT("wrong_kind"),TEXT("missing_trim"),TEXT("moved_node"),TEXT("moved_endpoint"),TEXT("broken_link"),TEXT("duplicate"),TEXT("too_many"),TEXT("occupied_end")})
+	{
+		FStreetSiteDoc A=Source,B=Joined;
+		if (Case==TEXT("wrong_kind")) B.Junctions[0].Kind=EStreetJunctionKind::Disc;
+		else if (Case==TEXT("missing_trim")) B.Junctions[0].TrimRadiusM.Reset();
+		else if (Case==TEXT("moved_node")) B.Junctions[0].X+=.01;
+		else if (Case==TEXT("moved_endpoint")) B.Splines[0].Points.Last().X+=.01;
+		else if (Case==TEXT("broken_link")) A.Splines[0].ContinuesTo.Reset();
+		else if (Case==TEXT("duplicate")) { const auto Extra=B.Junctions[0];B.Junctions.Add(Extra); }
+		else if (Case==TEXT("too_many")) { const auto Extra=B.Junctions[0];while(B.Junctions.Num()<9) B.Junctions.Add(Extra); }
+		else { A.Splines[0].JunctionEnd=TEXT("occupied"); }
+		TestFalse(Case+TEXT(" preview rejected"),StreetDocumentEdit::ValidatePreview(A,B,Error));
+	}
 	return true;
 }
 

@@ -1144,7 +1144,7 @@ bool FStreetRenderBuild::JunctionBoundary(const FStreetJunctionSpec& Spec, const
 {
 	OutFrames.Reset(); OutLoop.Reset(); OutArmSlices.Reset(); OutCorners.Reset();
 	if (!FStreetJunctionMath::ResolveArmFrames(Spec, Splines, OutFrames)) return false;
-	if (OutFrames.Num() < 3) return false;
+	if (!Spec.IsValid()) return false;
 	const FStreetJunction* J = &Spec.Junction;
 	const FVector2d Node(J->X, J->Y);
 	const FStreetJunctionDefaults& Cfg = Spec.Cfg;
@@ -1159,7 +1159,7 @@ bool FStreetRenderBuild::JunctionBoundary(const FStreetJunctionSpec& Spec, const
 		FStreetJunctionCornerSpec Cs;
 		Cs.A = K; Cs.B = (K + 1) % NA;
 		if (!FStreetJunctionMath::CornerCurve(Af.PHi, Nx.PLo, FVector2d(-Af.U.X, -Af.U.Y), FVector2d(Nx.U.X, Nx.U.Y), Node,
-			Cfg.CornerStepDeg, Cfg.CornerHandleFrac, Cs.P, Cs.T)) return false;
+			Cfg.CornerStepDeg, Spec.CornerHandleFraction(), Cs.P, Cs.T)) return false;
 		Cs.Fr = FStreetJunctionMath::CornerFrames(Cs.P, Cs.T, Af.NHi, Nx.NLo);
 		const double Ov0 = Af.Spline->OverlapM[Af.I], Ov1 = Nx.Spline->OverlapM[Nx.I];
 		const double Sd0 = Af.Spline->SkirtDropM[Af.I], Sd1 = Nx.Spline->SkirtDropM[Nx.I];
@@ -1309,7 +1309,7 @@ FStreetJunctionInfo FStreetRenderBuild::BuildJunctionCorners(const FStreetJuncti
 	FStreetJunctionInfo Out;
 	TArray<FStreetArmFrame> Frames;
 	if (!FStreetJunctionMath::ResolveArmFrames(Spec, Splines, Frames)) return Out;
-	if (Frames.Num() < 3) return Out;
+	if (!Spec.IsValid()) return Out;
 	const FStreetJunction* J = &Spec.Junction;
 	const FVector2d Node(J->X, J->Y);
 	const FStreetJunctionDefaults& Cfg = Spec.Cfg;
@@ -1335,7 +1335,7 @@ FStreetJunctionInfo FStreetRenderBuild::BuildJunctionCorners(const FStreetJuncti
 
 		TArray<FVector3d> P, T;
 		if (!FStreetJunctionMath::CornerCurve(Af.PHi, Nx.PLo, FVector2d(-Af.U.X, -Af.U.Y), FVector2d(Nx.U.X, Nx.U.Y), Node,
-			Cfg.CornerStepDeg, Cfg.CornerHandleFrac, P, T)) return Out;
+			Cfg.CornerStepDeg, Spec.CornerHandleFraction(), P, T)) return Out;
 		FStreetFrames Fr = FStreetJunctionMath::CornerFrames(P, T, Af.NHi, Nx.NLo);
 		const double SBase = Af.Spline->S[Af.I];       // UV u keeps running in metres across the join
 		for (int32 Q = 0; Q < Fr.S.Num(); ++Q) Fr.S[Q] += SBase;

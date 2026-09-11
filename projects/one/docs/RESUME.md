@@ -25,7 +25,7 @@ claim that the fast path rebuilt every unchanged mesh. Logs
 `phase1_road_control_network_verify_batch1..12.log`. No verification jobs remain.
 Helpers `verify_road_control_composition_fast.py`, `seed_fast_control_verification.py`,
 `export_control_checkpoint30.py`; proof `geometry_verification.json` in candidate.
-Existing 99 tool tests pass; no core/native changes since checkpoint 27.
+Existing 99 tool tests pass; this data checkpoint uses the checkpoint 27 core.
 
 **Exact recovery:** `docs/checkpoints/phase1_30_geometry_selection.json`
 SHA b28d31b66c907a0668165190f00c016eb83acfd0701d0e5ccf83d8db16392f28.
@@ -36,26 +36,66 @@ selected results are sealed in `road_control_snapshots/603da4ccf2bcb9b32d86.json
 The three largest actual mesh repairs were visually inspected; the full candidate
 diagram is byte-identical to that inspected pilot. Production remains unchanged.
 
-### Thirty-first checkpoint IN PROGRESS — explicit local connectors
+### Thirty-first checkpoint COMPLETE — 2026-09-11: explicit connectors and native parity
 
-Four complete surrounding documents now pass the private no-regression screen:
-`two_arm_full_documents/9794b8789f92f0c79055/state.json`, all 4 complete. Every
-unchanged body and old junction metric is exact; the eight far-end road/kerb/
-pavement sections move exactly zero. Finished mesh comparison was visually
-inspected (`two_arm_continuation_mesh/a4428c1bf76f4aba3d23/comparison.png`): angled
-overlaps and torn road/pavement ends become joined curves. Some older body folds
-and one-sided pavement transitions remain. No native or terrain acceptance.
-Durable evidence: `docs/checkpoints/phase1_connector_feasibility.json`.
-Logs `phase1_two_arm_full_document_batch1b.log`, then batches 2–4. Initial batch 1
-failed only in the private function-cloning helper before any geometry work.
+Shared schema/Python/native support is verified for `kind: connector`: exactly two
+distinct road splines, reciprocal junction bindings, endpoints within 0.3 m. Shared
+per-junction `corner_handle_frac` accepts (0,1]; absent/null keeps 0.45. Existing
+two-arm `disc` records remain unbuilt. Exactly three renderers remain.
 
-CURRENT WORK: add explicit `kind: connector` (exactly two distinct road splines)
-and optional per-junction `corner_handle_frac` in both cores. Existing `disc`
-minimum remains three; no global handle change. Add fixtures, source round-trip
-and bad-input checks, finished mesh parity, and bounded preview support for added
-connectors between existing reciprocal continuation ends. Production untouched.
-An unrelated headless police-car import was active at PID 1244; check current
-processes before any native build/test and do not interrupt or alter that work.
+Native PreviewDocumentJson validation permits <=8 appended connectors at unused
+reciprocal continuation ends, explicit trims <=32 m, original endpoint XY exact,
+and node within 1 mm. Existing junction topology/registration, component slots and
+spline counts remain protected. This is validator/unit-test support: a transactional
+loaded-world connector preview has NOT yet been performed.
+
+Verification: **170 NumPy tests /99 tool tests /48 native tests PASS**. Full schema
+report zero errors; 91 negative schema cases pass. All **170 native mesh/station
+arrays** match Python, face indices exact, max difference 5.68434188608e-14 m.
+Native run 40 s, raw exit 0; only known VC++ redistributable advisory global Error.
+Logs `phase1_connector_{all_numpy_tests,tool_tests,schema_full,schema_negative}.log`,
+`phase1_connector_native_test_runner2.log`, `Logs/phase1_connector_native_tests2.log`.
+Parity `Saved/Tests/numpy_parity_connectors.json`. Full header build 478.37 s;
+incremental test-only correction 15.57 s. No active native jobs remain.
+
+Four real serialized pilot documents at `connector_pilot/3a01a9d30adeab8bbd53`
+exactly reproduce the sealed private complete-document bodies, all 62 junctions
+(58 original plus 4 connectors), and finished seams. **467 unmodified bodies,
+58 old junctions, and eight far-end sections remain exact**. Pilot body counts
+unchanged: 342 pass /59 fold /74 non-road. Raw documents change only by the new
+connector record and its two bindings. Complete state and reports in pilot root;
+do not glob site*.json without excluding its .report.json files.
+Helper `verify_serialized_connector_pilot.py`; logs `phase1_serialized_connector_batch1..4.log`.
+The actual local mesh comparison was visually inspected in
+`two_arm_continuation_mesh/a4428c1bf76f4aba3d23/comparison.png`.
+
+**Durable core/pilot proof:** `docs/checkpoints/phase1_31_connector_core.json`.
+Geometry candidate for the entire network is still checkpoint 30's a0f root;
+checkpoint 31's four-document pilot is not a complete replacement/recovery selection.
+Next compose all 246 documents with these four joins, extend retained-selection
+recovery and reproduce all files byte-exact, then test transactional native preview.
+
+The initial native suite FAILED in duplicate-input test setup: TArray.Add referenced
+its own element. Fixed by copying first, then the entire suite passed. Initial logs
+without suffix2 are failed evidence (11 completed /12 started, raw exit 3). Do not
+waive this as a teardown fault. The launcher had falsely returned success and now
+requires discovered/started/completed counts to agree, no fatal log entries, and
+engine exit 0/1. Exact runner-code replay accepts the full 48-test log, rejects the
+crash, and rejects a run stopped between tests with no fatal line (48 expected /
+11 started /11 completed). Proof `ue_runner_gate_verification.json`.
+
+Read-only next queue: `local_connector_inventory.json`: 2,180 eligible same-document
+ordinary-road pairs, 1,652 historically >50 mm; 2,377 cross-document pairs held.
+Historical gaps are priorities only; remeasure actual A/B sections before edits.
+`connector_fan_origin_diagnosis.json`: fifth pair self-crosses at 0.5/1/4/5 m trims
+even when changing the fan origin yields zero signed-area excess. NEVER accept
+that score alone. At 10 m there are no proper crossings and a positive visibility
+kernel exists; no triangulation/terrain change is accepted. Any follow-up needs
+complete boundary and triangle-overlap checks. Earlier private monkey-patch helpers
+expect the old core's text and are now historical; use the implemented schema.
+
+Production data/assets remain untouched by this task. Unrelated police-car files
+and assets must remain untouched. Check actual UE/build processes before native work.
 
 ### Next checkpoint — local continuation connectors and sharp bends
 

@@ -1305,17 +1305,21 @@ void ReadJunctionEnd(const FJsonObject& O, const FString& Path, FStreetJunctionE
 }
 void ReadJunction(const FJsonObject& O, const FString& Path, FStreetJunction& X, TArray<FString>& E)
 {
-	FObj R(O, Path, E, &X, { TEXT("id"), TEXT("x"), TEXT("y"), TEXT("z"), TEXT("radius_m"), TEXT("trim_radius_m"), TEXT("kind"), TEXT("ends") });
+	FObj R(O, Path, E, &X, { TEXT("id"), TEXT("x"), TEXT("y"), TEXT("z"), TEXT("radius_m"), TEXT("trim_radius_m"), TEXT("kind"), TEXT("ends"), TEXT("corner_handle_frac") });
 	R.Id(TEXT("id"), X.Id, true); R.Num(TEXT("x"), X.X, true); R.Num(TEXT("y"), X.Y, true); R.OptNum(TEXT("z"), X.Z, false, true); R.OptNum(TEXT("radius_m"), X.RadiusM, false, false, 0.0);
 	R.OptNum(TEXT("trim_radius_m"), X.TrimRadiusM, false, true, 0.0);
 	R.Enum(TEXT("kind"), X.Kind, false);
+	R.OptNum(TEXT("corner_handle_frac"), X.CornerHandleFrac, false, true, 0.0, 1.0, true);
 	ReadObjList(R, TEXT("ends"), X.Ends, true, [](const FJsonObject& SO, const FString& SP, FStreetJunctionEnd& D, TArray<FString>& SE) { ReadJunctionEnd(SO, SP, D, SE); });
+	if (X.Kind == EStreetJunctionKind::Connector && (X.Ends.Num() != 2 || X.Ends[0].SplineId == X.Ends[1].SplineId))
+		E.Add(Path + TEXT(": connector requires exactly two distinct spline ends"));
 }
 TSharedRef<FJsonObject> WriteJunction(const FStreetJunction& X)
 {
 	FW W(X);
 	W.Str(TEXT("id"), X.Id); W.Num(TEXT("x"), X.X); W.Num(TEXT("y"), X.Y); W.Opt(TEXT("z"), X.Z); W.Opt(TEXT("radius_m"), X.RadiusM);
 	W.Opt(TEXT("trim_radius_m"), X.TrimRadiusM); W.EnumD(TEXT("kind"), X.Kind, EStreetJunctionKind::Disc);
+	W.Opt(TEXT("corner_handle_frac"), X.CornerHandleFrac);
 	TArray<TSharedPtr<FJsonValue>> A;
 	for (const FStreetJunctionEnd& En : X.Ends)
 	{
@@ -1427,6 +1431,26 @@ void CrossChecks(const FStreetSiteDoc& D, TArray<FString>& E)
 		}
 		if (Seen.Contains(Sp.Id)) E.Add(FString::Printf(TEXT("$.splines[%d]: duplicate spline id '%s'"), SI, *Sp.Id));
 		Seen.Add(Sp.Id);
+	}
+	for (const FStreetJunction& J : D.Junctions)
+	{
+		if (J.Kind != EStreetJunctionKind::Connector) continue;
+		for (const FStreetJunctionEnd& End : J.Ends)
+		{
+			const FStreetSplineDef* Sp = D.Splines.FindByPredicate([&](const FStreetSplineDef& S) { return S.Id == End.SplineId; });
+			const FString Where = TEXT("connector ") + J.Id + TEXT(" end ") + End.SplineId;
+			if (!Sp) { E.Add(Where + TEXT(": spline is not in this document")); continue; }
+			const FRoadProfileData* RP = D.Profiles.Road.Find(Sp->ProfileIds.Road);
+			if (!RP || RP->Kind != EStreetRoadKind::Road) E.Add(Where + TEXT(": connector requires a road profile"));
+			const FString& Binding = End.End == EStreetSplineEnd::Start ? Sp->JunctionStart : Sp->JunctionEnd;
+			if (Binding != J.Id) E.Add(Where + TEXT(": connector binding must be reciprocal"));
+			if (Sp->Points.Num() > 0)
+			{
+				const FStreetPoint& P = End.End == EStreetSplineEnd::Start ? Sp->Points[0] : Sp->Points.Last();
+				if (FMath::Square(P.X-J.X) + FMath::Square(P.Y-J.Y) > 0.3*0.3)
+					E.Add(Where + TEXT(": connector end is outside the node snap distance"));
+			}
+		}
 	}
 	for (const auto& KV : D.Profiles.Road)
 	{
