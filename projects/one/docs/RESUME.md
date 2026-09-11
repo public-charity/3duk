@@ -8,11 +8,24 @@ Continue search from the unchanged fae input (NOT from the newer pilot):
 `Tools/python.ps1 Tools/diag/road_control_candidates.py --streetscape Saved/Phase1/arm_network_candidates/fae0375edf30782333ac --census Saved/Phase1/road_surface_census/68a2bc3b5fffa79d7a76 --max-splines 16`
 Paths above relative to projects/one; invoke from repo with full relative paths.
 State: `road_control_candidates/97dee31510fc77ddc4fb/state.json`.
-988 eligible ordinary roads, checkpoint after every attempt. Batches1–52 complete:
-832 attempted /430 retained; batches53–62 started (check current process). Revalidate actual
-process/handle before resuming. Logs `Saved/phase1_road_control_optimized_batchN.log`.
-No core/tool changes while this search is active. Only checkpoints are retained;
-there is no production rollout. Search currently includes the checkpoint29 pilot.
+Search COMPLETE: all 988 eligible roads attempted in 62 bounded calls, **538
+retained** across 168 documents. Logs `Saved/phase1_road_control_optimized_batchN.log`.
+Complete materialized candidate: `road_control_compositions/a0f002414e871ded1639`,
+all 246 documents /15,422 definitions. Immutable search snapshot
+`road_control_snapshots/603da4ccf2bcb9b32d86.json`. Composition log
+`phase1_road_control_network_composition.log`. No production rollout; the fully
+verified pilot below is still the current retained checkpoint.
+
+CURRENT JOBS: independent network verification batches1–4 (8 edited documents per
+call; expect21 total calls for168 edited docs), logs
+`phase1_road_control_network_verify_batchN.log`. Check candidate `verification/state.json`
+and revalidate live process/handle before resuming. A separate PRIVATE context
+reprobe started on the complete candidate: `reprobe_cleaned_continuation_context.py
+--source <candidate root> --max-pairs 5`, log `phase1_cleaned_context_reprobe_batch1.log`.
+It reuses the earlier50-pair sample, refreshes neighbour overruns and measures full
+road/rail bodies plus actual endpoint sections. No bank pinning or junction
+acceptance is implied by this diagnostic. Do not change core/QC tools while the
+verification runs are active.
 
 PRIVATE NEXT-GEOMETRY DIAGNOSIS: a two-arm bend can reuse the existing A/B patch
 and pavement sweep, but the present schema/core require at least three arms.
