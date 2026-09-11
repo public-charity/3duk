@@ -131,7 +131,7 @@ def main():
  if not checked['pass_checks'] or checked['manifest_sha256']!=state['manifest_sha256']:raise ValueError('Geometry checks do not match this generation')
  manifest=json.loads((OUT/'airfield_manifest.json').read_text());SAVED.mkdir(parents=True,exist_ok=True)
  if not unreal.get_editor_subsystem(unreal.LevelEditorSubsystem).load_level(MAP):raise RuntimeError('Map load failed')
- unreal.StreetscapeEditorLibrary.load_region(unreal.Vector(545000,-305000,0),220000.)
+ if not unreal.StreetscapeEditorLibrary.load_region(unreal.Vector(545000,-305000,0),185000.):raise RuntimeError('Airfield region load failed')
  if opts['apply']:apply(manifest,state)
  else:verify(manifest,state)
 
