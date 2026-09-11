@@ -2,9 +2,59 @@
 
 ## Current checkpoint — 2026-09-10, Phase 1 completion
 
+### Fortieth checkpoint COMPLETE — 2026-09-11: 230 connectors, private bend runtime
+
+**Current retained geometry:** `connector_compositions/ce3732f926e816d48345`.
+246 documents /15,422 definitions /1,872 junctions. **11,185 passing bodies /
+1,912 folds /2,325 non-road; 1,412 passing junctions /327 fold /130 overlap /
+3 needs_geometry.** Adds 72 connectors and removes three body folds, no regressions.
+45 complete document proofs; 201 byte-exact parent files. Fresh proofs preserve
+5,728 untouched bodies /76,608 mesh arrays /3,574 old junction groups exactly;
+zero numerical differences. Every new footprint is simple; each finished A/B
+seam <=1 nm. Four actual-mesh plan views inspected: site_x19_y2, Foreness Close,
+Crawford Gardens, Lynx Street. Terrain/native coverage for 72 additions is OPEN.
+`site_x17_y9` now has 11 connectors, exceeding the current native preview limit
+of eight. Extend and test that bounded preview separately before using it.
+
+Manifest `docs/checkpoints/phase1_40_geometry_selection.json`, SHA 82eb94a97f6c8f812c6edd9f717950001bf6d865777b58f670812ed24303a26b.
+All 246 files recovered byte-exact in eight <=32-document calls under
+`restored_geometry_selection/82eb94a97f6c8f812c6e`; logs `phase1_connector40_restore_batch1..8.log`.
+First-300 grouping `connector_group_verification/f21a9b9b3056c7c1ca21` complete:
+45 passing docs /72 new joins; three source-build failures hold nine proposals.
+Search is IDLE at 300/2,176, 236 local proposals; next old-core batch would be 77.
+Do not resume this identity after changing hashed core inputs. No promotion.
+
+**Private Python bend runtime is now tested, NOT applied to shared core.**
+`Saved/Phase1/interior_bend_runtime/streetscape`: six changed modules, 20 total.
+Uses an appended `kind: bend` junction with two explicit `station_m` ports on
+the SAME original spline. The lower port is `end`, the upper is `start`; original
+source definitions, bindings, stations, total length and semantic distances remain.
+Intervals are finite, <=64 m, enclose the named interior source control, leave
+>=1 m active runs and cannot overlap or collide with ordinary endpoint trims.
+Marking intervals are clipped after dash phase generation; fence posts within
+cuts are removed while remote transforms remain exact. Existing three renderers.
+
+All **170 existing NumPy tests PASS (59.852 s)** in the isolated runtime, plus
+**five bend tests PASS (0.376 s)** for serialization, invalid/overlapping masks,
+marking phase and fence instances. Full 52-definition Garrard proof PASS (6.509 s):
+51 untouched bodies /875 arrays /61 old junction groups exact; 16.7013 m2 body
+fold removed, original 152 stations/length exact, simple patch, zero overlap,
+A seam zero /B <=2.034e-12 m. No native support or retention yet. Barrier/hedge
+continuity around the patch and remote foliage seed stability remain unproved.
+
+Recoverable patch `docs/checkpoints/phase1_40_private_interior_bend.patch`, SHA
+6492fd6cde2e050a0a109b91ebc46841bf18999e724a24637f565a206132a067;
+`git apply --check` passes. Evidence/helpers/full candidate embedded in
+`phase1_40_private_interior_bend.json`, SHA
+973c5866d7627c2e32b9e7191676544a4ac3d2a14dd63b167fe004a420736b6c.
+Next: native schema, spline mask/cache, owner/foreign-arm serialized masks,
+document transaction/rollback, marking/post masks, parity fixtures and native
+preview proof. Coordinate around other tasks' builds/imports; do not interrupt.
+Phase 1 is NOT accepted. Shared native/parity baseline remains checkpoint 31.
+
 ### Thirty-ninth checkpoint COMPLETE — 2026-09-11: 158 connectors, steep-surface coverage
 
-**Current retained geometry:** `connector_compositions/22be108669967d058e1e`.
+**Historical retained geometry:** `connector_compositions/22be108669967d058e1e`.
 246 documents /15,422 definitions /1,800 junctions. **11,182 passing bodies /
 1,915 folds /2,325 non-road; 1,340 passing junctions /327 fold /130 overlap /
 3 needs_geometry.** Adds 81 connectors and removes 12 body folds, no regressions.
@@ -54,7 +104,7 @@ existing three renderers. Do not revive the old split/rebased-definition approac
 All prototype/helper sources and full diagnostics are committed inside
 `docs/checkpoints/phase1_39_diagnostics.json` for recovery if Saved is lost.
 
-ACTIVE: search finished **300/2,176 pairs, 236 proposals**, batches 52..76.
+Historical search after checkpoint 39: **300/2,176 pairs, 236 proposals**, batches 52..76.
 Snapshot `connector_search_snapshots/b9c3e703ba3ea15f2bc8.json`, SHA
 26818c618d4df3242c35cce0aef419ee7c45c0d16b2c3eb29921662c32955661.
 Grouped first-300 proof against checkpoint 39 STARTED; see

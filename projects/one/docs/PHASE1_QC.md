@@ -5,6 +5,22 @@ Thanet base suitable for high-quality building overlays. Survey registration, te
 roads, rail, junctions and their transitions belong to Phase 1. Hero buildings and
 decorative presentation remain later work.
 
+## Checkpoint 40: recoverable geometry and isolated runtime changes
+
+The retained candidate has 230 connectors; 72 added joins have complete-document
+geometry proofs with all untouched buffers exact. All 246 documents reconstruct
+byte-exact from the committed selection manifest. Terrain/native validation is
+separate and remains open for these additions. The largest document has 11
+connectors and needs a tested extension of the current eight-connector preview.
+
+New geometry algorithms first run in a private runtime. Record hashes for every
+module, verify tests actually import that runtime, and commit a reproducible patch
+plus evidence before touching the shared implementation. The interior-bend trial
+passes all 170 legacy tests and five targeted tests; a complete Garrard document
+removes one fold without changing source definitions, remote geometry, original
+stations or marking/post phase. Native serialization, streaming ownership, cache
+invalidation, transaction rollback and parity are required before retention.
+
 ## Steep surfaces and internal bends — 2026-09-11
 
 Do not use a driving-obstruction slope filter for terrain clearance. It omitted
