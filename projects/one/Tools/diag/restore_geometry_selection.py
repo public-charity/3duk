@@ -77,6 +77,42 @@ def apply_retained_controls(docs,selections):
     docs.update(proposals)
 
 
+def apply_retained_connectors(docs,selections):
+    """Restore reviewed local joins, validating the entire selection before mutation."""
+    if not selections:return
+    import copy
+    sys.path.insert(0,str(TOOLS/'blender'))
+    from streetscape import io_json
+    if set(selections)-set(docs):raise ValueError('retained connector document missing')
+    taken={j['id'] for raw in docs.values() for j in raw['junctions']};proposals={}
+    for name,additions in selections.items():
+        candidate=copy.deepcopy(docs[name]);definitions={d['id']:d for d in candidate['splines']}
+        bound={(e['spline_id'],e['end']) for j in candidate['junctions'] for e in j['ends']}
+        for addition in additions:
+            j=copy.deepcopy(addition);jid=j['id'];ends=j['ends']
+            if jid in taken or j.get('kind')!='connector' or len(ends)!=2 or ends[0]['spline_id']==ends[1]['spline_id']:
+                raise ValueError('invalid retained connector topology')
+            taken.add(jid)
+            trim=j.get('trim_radius_m')
+            if isinstance(trim,bool) or not isinstance(trim,(float,int)) or not math.isfinite(trim) or not 0<trim<=32:
+                raise ValueError('invalid retained connector trim')
+            for i,e in enumerate(ends):
+                sid=e['spline_id'];end=e['end'];other=ends[1-i]['spline_id'];key='junction_'+end
+                if sid not in definitions or end not in ('start','end') or (sid,end) in bound:
+                    raise ValueError('retained connector end missing or already bound')
+                d=definitions[sid]
+                if d.get(key) is not None or d.get('continues_from' if end=='start' else 'continues_to')!=other:
+                    raise ValueError('retained connector must use reciprocal continuation ends')
+                p=d['points'][0 if end=='start' else -1]
+                if not all(isinstance(j[k],(float,int)) and not isinstance(j[k],bool) and math.isfinite(j[k]) for k in ('x','y')) or math.hypot(p['x']-j['x'],p['y']-j['y'])>.001:
+                    raise ValueError('retained connector node differs from source endpoints')
+                d[key]=jid;bound.add((sid,end))
+            candidate['junctions'].append(j)
+        io_json.site_from_dict(candidate)
+        proposals[name]=candidate
+    docs.update(proposals)
+
+
 def main():
     ap=argparse.ArgumentParser(description=__doc__)
     ap.add_argument('--manifest',type=Path,default=TOOLS.parent/'docs/checkpoints/phase1_23_geometry_selection.json')
@@ -117,6 +153,7 @@ def main():
                         pid=d['profile_ids']['road'];raw['profiles']['road'][pid]=profiles[pid]
             apply_retained_trims(docs,manifest['junction_trims_m'],manifest.get('junction_end_trims_m',{}))
             apply_retained_controls(docs,manifest.get('retained_point_indices',{}))
+            apply_retained_connectors(docs,manifest.get('connectors',{}))
             for name in pending[:args.max_docs]:
                 target=root/name;atomic_json(target,docs[name])
                 actual=sha256(target)

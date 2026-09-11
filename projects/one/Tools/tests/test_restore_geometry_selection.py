@@ -1,11 +1,35 @@
-import copy,sys,tempfile,unittest
+import copy,json,sys,tempfile,unittest
 from pathlib import Path
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
-from diag.restore_geometry_selection import pending_documents,apply_retained_trims,apply_retained_controls
+from diag.restore_geometry_selection import pending_documents,apply_retained_trims,apply_retained_controls,apply_retained_connectors
 from phase1_qc import sha256
 
 
 class SelectionRecoveryTest(unittest.TestCase):
+    def connector_source(self):
+        path=Path(__file__).resolve().parents[1]/'blender/tests/fixtures/junction_connector_reverse.json'
+        joined=json.loads(path.read_text(encoding='utf-8'));source=copy.deepcopy(joined);source['junctions']=[]
+        for d in source['splines']:d['junction_start']=None;d['junction_end']=None
+        return source,joined
+
+    def test_connector_recovery_preserves_complete_source_payload(self):
+        source,joined=self.connector_source();docs={'doc':source}
+        apply_retained_connectors(docs,{'doc':joined['junctions']})
+        self.assertEqual(docs['doc'],joined)
+
+    def test_connector_recovery_validates_all_documents_before_mutation(self):
+        source,joined=self.connector_source();original={'a':source,'b':copy.deepcopy(source)}
+        for case in ('trim','node','duplicate','binding','handle'):
+            first=copy.deepcopy(joined['junctions'][0]);second=copy.deepcopy(first);second['id']='j1'
+            if case=='trim':second['trim_radius_m']=float('nan')
+            elif case=='node':second['x']+=.01
+            elif case=='duplicate':second['ends'][1]=copy.deepcopy(second['ends'][0])
+            elif case=='binding':second['ends'][0]['end']='start'
+            else:second['corner_handle_frac']=1.1
+            docs=copy.deepcopy(original)
+            with self.assertRaises(ValueError,msg=case):apply_retained_connectors(docs,{'a':[first],'b':[second]})
+            self.assertEqual(docs,original)
+
     def test_control_recovery_preserves_endpoints_and_rejects_all_invalid_edits_before_mutation(self):
         d=dict(id='roads:1:0',source=dict(layer='roads'),profile_ids=dict(road='road'),
             points=[dict(x=x,y=0.,width_m=7.) for x in (0.,10.,10.01)],flags={})

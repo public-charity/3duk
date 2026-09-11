@@ -31,7 +31,11 @@ class ArmCandidateTest(unittest.TestCase):
         raw=synthetic.junction_crossroads();site=io_json.site_from_dict(raw)
         terrain=synthetic.junction_terrain_for(raw);ev=Evaluator(site,terrain);plan=ev.plan()
         before={'j0':ev.measure(plan,'j0')};self.assertEqual(before['j0']['status'],'fold_review')
-        row,requests,after=search(ev,plan,before,'j0',seconds=10.)
+        # This checks geometry/serialization, not host scheduling. The search has
+        # bounded deterministic iterations; a busy VM must not exhaust its wall
+        # budget and turn a valid geometry fixture into a timing-dependent test.
+        with patch('diag.junction_arm_trim_candidates.time.perf_counter',return_value=0.):
+            row,requests,after=search(ev,plan,before,'j0',seconds=10.)
         self.assertEqual(row['status'],'geometry_proposal');self.assertEqual(after['j0']['status'],'passed')
         self.assertTrue(all(end.trim_radius_m is None for end in site.junctions[0].ends))
         proposal=copy.deepcopy(raw)

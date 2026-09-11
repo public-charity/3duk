@@ -2,9 +2,50 @@
 
 ## Current checkpoint — 2026-09-10, Phase 1 completion
 
+### Thirty-second checkpoint COMPLETE — 2026-09-11: recoverable network with four connectors
+
+**Current retained geometry candidate:** `connector_compositions/3b827be0962f2fbf0ae9`.
+All 246 documents /15,422 definitions /1,646 junctions. Four complete rebuilt
+documents match checkpoint 31's proof; the other 242 are byte-exact checkpoint 30
+documents with the unchanged legacy geometry path. **11,164 passing bodies /
+1,933 folds /2,325 non-road; 1,186 passing junctions /327 fold /130 overlap /3
+needs_geometry**. Four local seams closed; all previous body statuses retained.
+These are geometry counts, not whole-world acceptance.
+
+Recovery manifest `docs/checkpoints/phase1_32_geometry_selection.json`
+SHA 70e82e98f7bc0a344941a7a5fa4b18b049cfa2f82e72af1f799b7a36d0565f9d. All 246 files restored byte-exact in eight
+<=32-document calls at `restored_geometry_selection/70e82e98f7bc0a344941`.
+Logs `phase1_connector_restore_batch1..8.log`; proof `recovery_verification.json`
+in candidate root. Helper `compose_connector_checkpoint32.py` completed in 6.1 s.
+`restore_geometry_selection.py` now validates all connector additions before any
+mutation, protecting existing bindings, reciprocal ends, endpoints and metadata.
+
+**101 workflow tests pass (7.154 s)**, including exact connector recovery and
+multi-document rejection without partial mutation. A prior run exhausted the
+positive arm-search test's 10 s wall budget under load; isolated recheck passed.
+Its geometry/serialization test now freezes only the clock; deterministic search
+iterations remain bounded and production search budgets are unchanged. Logs
+`phase1_connector_recovery_all_tests.log` is FAILED timing evidence; final passing
+log `phase1_connector_recovery_all_tests2.log`. Native/core verification remains
+checkpoint 31 (170 NumPy /48 native /170 parity arrays); no further core edits.
+
+CURRENT NEXT ACTION: prepare a fresh Wings Close native preview (site_x23_y10.json)
+using the complete candidate, a provenance request and camera near its connector.
+Use `diag_document_preview.py` through legacy powershell.exe run_ue_python.ps1
+with -Render; this previews existing actors, exports the full candidate, captures
+before/after, restores, checks actor identity and all-Content hashes. No import/save.
+Inspect any world-load geometry errors and the raw exit; an empty image or partial
+run cannot pass. No preview run has started at this checkpoint.
+
+After a verified loaded-world preview, expand same-document connector screening
+in small per-pair checkpoints using `local_connector_inventory.json`; remeasure
+current actual A/B sections, and retain only full body/corner/remote-end passes.
+Cross-document ownership, internal-bend source/timeline splitting, 1,933 body folds,
+460 original junctions, terrain, structures and whole-world acceptance remain open.
+
 ### Thirtieth checkpoint COMPLETE — 2026-09-11: 538 verified road-body repairs
 
-**Current retained geometry candidate:** `road_control_compositions/a0f002414e871ded1639`.
+**Historical complete geometry candidate:** `road_control_compositions/a0f002414e871ded1639`.
 All 246 documents /15,422 definitions /1,642 junctions preserved. The complete
 988-road search retained 538 repairs in 168 documents, including the previous
 38-road pilot. **11,164 passing bodies /1,933 folds /2,325 non-road definitions**.
@@ -97,7 +138,7 @@ expect the old core's text and are now historical; use the implemented schema.
 Production data/assets remain untouched by this task. Unrelated police-car files
 and assets must remain untouched. Check actual UE/build processes before native work.
 
-### Next checkpoint — local continuation connectors and sharp bends
+### Historical prototype notes — superseded by checkpoint 31
 
 The refreshed global continuation-context hypothesis was **REJECTED EARLY**:
 all first 5 difficult pairs regress road bodies, despite cleaner retained controls
