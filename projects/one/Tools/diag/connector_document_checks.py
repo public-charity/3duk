@@ -53,6 +53,22 @@ def junction_meshes(build):
     return result
 
 
+def preserved_vertex_displacement(before,after):
+    """Absolute 1 nm position gate; topology/attributes are checked separately.
+
+    Adding a mandatory trim station can change floating point elevation sums at
+    an existing end by picometres. Never use relative tolerance at national-grid
+    scale, and report these arrays separately from byte-exact geometry reuse.
+    """
+    a,b=np.asarray(before),np.asarray(after)
+    if a.shape!=b.shape or a.ndim<2 or a.shape[-1]!=3 or not np.isfinite(a).all() or not np.isfinite(b).all():
+        raise ValueError('preserved vertex coverage or finite coordinates differ')
+    if np.array_equal(a,b):return 0.
+    maximum=float(np.linalg.norm((a-b).reshape(-1,3),axis=1).max(initial=0.))
+    if maximum>1e-9:raise ValueError('preserved vertex moved more than 1 nm: '+str(maximum))
+    return maximum
+
+
 def check_complete_document(original,candidate,terrain):
     additions,changed=preserved_source(original,candidate)
     sites=[io_json.site_from_dict(raw) for raw in (original,candidate)];plans=[JunctionPlan(site) for site in sites];builds=[]
@@ -63,19 +79,30 @@ def check_complete_document(original,candidate,terrain):
     before,after=[body_metrics(site,plan,built) for site,plan,built in zip(sites,plans,builds)]
     regressions={sid:body_regressions(before[sid],after[sid]) for sid in before};regressions={sid:r for sid,r in regressions.items() if r}
     if regressions:raise ValueError('combined body regressions: '+str(regressions))
-    unchanged=set(before)-changed;arrays=0
+    unchanged=set(before)-changed;arrays=0;roundoff_arrays=0;roundoff_bodies=0;maximum_displacement=0.
     for sid in unchanged:
         if before[sid]!=after[sid]:raise ValueError('untouched body metrics changed: '+sid)
         a,b=[build[sid].buffers() for build in builds]
         if a.keys()!=b.keys():raise ValueError('untouched buffer coverage changed: '+sid)
+        body_roundoff=False
         for part in a:
             for attribute in ('v','f','vs','vd','vh','mat','grp'):
-                if not np.array_equal(getattr(a[part],attribute),getattr(b[part],attribute)):raise ValueError('untouched mesh changed: '+sid+':'+part+':'+attribute)
-                arrays+=1
+                av,bv=getattr(a[part],attribute),getattr(b[part],attribute)
+                if attribute=='v':
+                    displacement=preserved_vertex_displacement(av,bv);maximum_displacement=max(maximum_displacement,displacement)
+                    if displacement:roundoff_arrays+=1;body_roundoff=True
+                    else:arrays+=1
+                else:
+                    if not np.array_equal(av,bv):raise ValueError('untouched mesh changed: '+sid+':'+part+':'+attribute)
+                    arrays+=1
             if a[part].group_names!=b[part].group_names or a[part].material_names!=b[part].material_names:raise ValueError('untouched mesh semantics changed')
+        roundoff_bodies+=int(body_roundoff)
     old,new=[junction_meshes(build) for build in builds]
+    roundoff_junction_groups=0
     for group,vertices in old.items():
-        if group not in new or not np.array_equal(vertices,new[group]):raise ValueError('existing junction geometry changed: '+str(group))
+        if group not in new:raise ValueError('existing junction geometry missing: '+str(group))
+        displacement=preserved_vertex_displacement(vertices,new[group]);maximum_displacement=max(maximum_displacement,displacement)
+        roundoff_junction_groups+=int(displacement>0.)
     plan=plans[1];splines={sid:res.spline for sid,res in builds[1].items()};new_rows=[]
     for j in additions:
         jid=j['id'];boundary=junction_boundary(plan,jid,splines)
@@ -91,5 +118,7 @@ def check_complete_document(original,candidate,terrain):
     from collections import Counter
     return dict(status='complete_document_geometry_verified',definitions=len(before),additions=len(additions),changed_bodies=len(changed),
         before_body_totals=dict(Counter(r['status'] for r in before.values())),after_body_totals=dict(Counter(r['status'] for r in after.values())),
-        untouched_bodies_exact=len(unchanged),untouched_mesh_arrays_exact=arrays,existing_junction_mesh_groups_exact=len(old),
+        untouched_bodies_exact=len(unchanged)-roundoff_bodies,untouched_mesh_arrays_exact=arrays,existing_junction_mesh_groups_exact=len(old)-roundoff_junction_groups,
+        untouched_bodies_with_roundoff=roundoff_bodies,untouched_mesh_arrays_with_roundoff=roundoff_arrays,existing_junction_mesh_groups_with_roundoff=roundoff_junction_groups,
+        maximum_preserved_vertex_displacement_m=maximum_displacement,preserved_position_absolute_tolerance_m=1e-9,
         new_connectors=new_rows,source_payload_preserved=True,body_regressions=0)

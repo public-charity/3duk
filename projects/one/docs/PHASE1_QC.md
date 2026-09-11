@@ -5,6 +5,28 @@ Thanet base suitable for high-quality building overlays. Survey registration, te
 roads, rail, junctions and their transitions belong to Phase 1. Hero buildings and
 decorative presentation remain later work.
 
+## Exact reuse and bounded numerical differences — 2026-09-11
+
+Checkpoint 38 retains 39 more connectors across 29 complete document proofs;
+77 total, 1,259 passing junctions, 1,927 body folds, zero regressions. Recovery
+recreates all 246 files byte-exact. Four actual-mesh plan comparisons inspected.
+
+Strict comparison also held three documents for existing vertex differences
+between 3.553e-14 m and 5.301e-12 m. Diagnose before changing a gate. The next
+checker permits at most 1 nm Euclidean vertex movement with no relative tolerance;
+vertex coverage, topology and all station/offset/height/material/group attributes
+stay exact. Count bounded numerical changes separately from exact arrays and
+report the maximum displacement. 122 tests pass, including planted excessive
+movement, changed topology, NaNs and incomplete coverage. Geometry regressions,
+source build errors and incomplete runs still fail their gates.
+
+The stair trim-4 experiment builds a clean patch but increases an existing body
+fold, so it is rejected. Trim 6 passes all body and other-junction comparisons.
+A formerly unbuildable patch needs an explicit partial reference: omit only that
+invalid patch while retaining all original body trims and all valid junctions.
+Record the omission; require a complete candidate build and separate terrain /
+visual proof. A repaired patch cannot retrospectively make its source build pass.
+
 ## Combined connectors at document scope — 2026-09-11
 
 Individual proposals can interact on a shared road. Rebuild complete source and

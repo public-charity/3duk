@@ -2,9 +2,64 @@
 
 ## Current checkpoint — 2026-09-10, Phase 1 completion
 
+### Thirty-eighth checkpoint COMPLETE — 2026-09-11: 77 connectors, exact network recovery
+
+**Current retained geometry:** `connector_compositions/1d8b94b5d18bd335bc4e`.
+246 documents /15,422 definitions /1,719 junctions. **11,170 passing bodies /
+1,927 folds /2,325 non-road; 1,259 passing junctions /327 fold /130 overlap /
+3 needs_geometry.** Adds 39 connectors, removes three body folds, no regressions.
+29 complete document proofs preserve 3,306 untouched bodies, 46,228 mesh arrays
+and 2,134 existing junction mesh groups exactly. Other 217 files reused exactly.
+Four largest actual-gap mesh diagrams inspected: Walpole Road, Magdalen Court,
+site_x18_y14, Florence Road. Target joins are continuous; inherited nearby defects
+remain. Geometry only; no terrain/native coverage for these 39 joins.
+
+Recovery manifest `docs/checkpoints/phase1_38_geometry_selection.json`, SHA
+3f6adbbdbf27cae5d0c241d3e4a77e44568586937088d16817f7188a9d1aff7a. All 246 files restored exactly in eight bounded calls under
+`restored_geometry_selection/3f6adbbdbf27cae5d0c2`. Logs `phase1_connector38_restore_batch1..8.log`.
+Grouped first-100 proof `connector_group_verification/bac77aa9a6e38fea7316`
+completed 35 documents: 29 pass /six held (12 additions). Three source-build
+failures remain. Other three held documents differ only by <=5.301e-12 m in
+existing vertex positions; diagnoses under `connector_group_mesh_diagnosis`.
+They remain EXCLUDED from checkpoint 38.
+
+Next-checkpoint tooling now permits <=1 nm absolute vertex movement, with exact
+topology, station/offset/height/material/group attributes and source payloads.
+Numerically changed arrays/bodies/junction groups are counted separately from
+exact reuse. Tests reject excessive displacement, combined-axis excess, NaNs,
+missing vertices and even geometrically equivalent changed triangle indices.
+**122 workflow tests PASS, 14.343 s**, log `phase1_connector_roundoff_all_tool_tests.log`.
+This is a measured tolerance policy, not a waiver for failed geometry.
+
+ACTIVE: first-200 search COMPLETE (163 proposals /200 of 2,176 screened), logs
+`phase1_local_connector_search_batch27..51.log`. Frozen snapshot
+`connector_search_snapshots/32fabe72770463a279fe.json`, SHA
+175c02baf2e5f757d364bdb3f9f5b6c499cbbf51087b78fba404ebe381d1bbc8.
+Grouped proof against checkpoint 38 STARTED, session 42791, initial log
+`phase1_connector_groups200_batch1.log`. Run `verify_connector_groups.py` with
+that snapshot and `--manifest docs/checkpoints/phase1_38_geometry_selection.json`,
+`--max-docs 2`. Inspect new root/state first; no concurrent writers. Search is idle
+at 200; can resume later from batch 52. Do not alter hashed checker/core inputs
+while grouping runs. Other user tasks independently edit/import Content and C++.
+
+Separate stair diagnosis: default one-metre remaining-body rule CAN build
+`junction:23_9:18` at trim 6 m /cap .45. Full document proof
+`stair_junction_trim_proof/e9d941e4ee93f85dacc0` passes in 12.875 s: no body or
+other-junction regressions, 167 untouched bodies /2,296 arrays /127 old groups
+exact, repaired junction seams zero. The reference explicitly omits ONLY this
+unbuildable source patch but retains every source body with original trims.
+The earlier trim-4 proposal is HELD: a body fold grows. Neither is retained yet.
+Next: inspect trim-6 actual mesh/grade/terrain, combine its three held connectors,
+then give any retained stair edit its own source-preserving recovery evidence.
+Helpers `probe_short_junction_remainder.py`, `check_stair_probe_bodies.py`,
+`verify_stair_junction_trim6.py`; logs `phase1_stair_junction_trim6_fullproof.log`.
+No core/native renderer change. Stair landings/treads and terrain remain open.
+
+Phase 1 is NOT accepted; production streetscape and terrain were not promoted.
+
 ### Thirty-seventh checkpoint COMPLETE — 2026-09-11: 38 connectors, combined document proof
 
-**Current retained geometry candidate:** `connector_compositions/8870292dfb9009b5277a`.
+**Historical retained geometry candidate:** `connector_compositions/8870292dfb9009b5277a`.
 All 246 documents /15,422 definitions /1,680 junctions. **11,167 passing bodies /
 1,930 folds /2,325 non-road; 1,220 passing junctions /327 fold /130 overlap /3
 needs_geometry.** Twenty-eight additional joins and three fewer folded bodies;
@@ -36,7 +91,7 @@ Wings Close's separate terrain/native contact proof remains checkpoints 34/35.
 The 28 new additions still need terrain/native coverage, and 460 original
 junction defects, 1,930 body folds, structures and cross-document joins remain.
 
-CURRENT ACTIVE WORK: search batches 14..26 are COMPLETE at **100/2,176 pairs,
+Historical work after checkpoint 37 (completed at checkpoint 38): search batches 14..26 are COMPLETE at **100/2,176 pairs,
 86 local proposals**. Frozen first-100 snapshot
 `connector_search_snapshots/ec24ce6a90d55f2c94fc.json`, SHA
 05751c84d0e0a528bcd013c413a681c1435b3f4088399c59122f7f4f63dd13c8.

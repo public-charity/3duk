@@ -1,11 +1,22 @@
 import copy,json,sys,unittest
+import numpy as np
+from unittest.mock import patch
 from pathlib import Path
 TOOLS=Path(__file__).resolve().parents[1];sys.path[:0]=[str(TOOLS),str(TOOLS/'blender')]
-from diag.connector_document_checks import check_complete_document,preserved_source
+from diag.connector_document_checks import check_complete_document,preserved_source,preserved_vertex_displacement
 from diag.restore_geometry_selection import apply_retained_connectors
 
 
 class ConnectorDocumentChecksTests(unittest.TestCase):
+    def test_preserved_vertices_use_absolute_vector_limit_and_reject_invalid_coverage(self):
+        source=np.array([[12100.,4685.,14.]])
+        rounding=source.copy();rounding[0,2]+=5e-12
+        self.assertGreater(preserved_vertex_displacement(source,rounding),0.)
+        for candidate in (source+[[0.,0.,2e-9]],source+[[0.,8e-10,8e-10]],source[:0],np.full_like(source,np.nan)):
+            with self.assertRaises(ValueError):preserved_vertex_displacement(source,candidate)
+        # National-grid magnitude must never enlarge the tolerance.
+        with self.assertRaises(ValueError):preserved_vertex_displacement(source+600000,source+600000+1e-6)
+
     def fixture(self):
         joined=json.loads((TOOLS/'blender/tests/fixtures/junction_connector_bend.json').read_text(encoding='utf-8'))
         source=copy.deepcopy(joined);source['junctions']=[]
@@ -27,6 +38,31 @@ class ConnectorDocumentChecksTests(unittest.TestCase):
             elif mode=='metadata':joined['generator']='changed'
             else:joined['splines'].pop()
             with self.assertRaises(ValueError):preserved_source(source,joined)
+
+    def test_roundoff_is_reported_separately_and_topology_or_larger_changes_fail(self):
+        from streetscape.build import build_all as real_build
+        source,joined=self.fixture();third=copy.deepcopy(source['splines'][0])
+        third.update(id='roads:untouched',continues_from=None,continues_to=None)
+        for point in third['points']:point['x']+=100.
+        source['splines'].append(copy.deepcopy(third));joined['splines'].append(copy.deepcopy(third))
+        for mode in ('roundoff','movement','topology'):
+            calls=[]
+            def perturbed(*args,**kwargs):
+                result=real_build(*args,**kwargs);calls.append(True)
+                if len(calls)==2:
+                    mesh=result[third['id']].road
+                    if mode=='topology':mesh.f[0]=np.roll(mesh.f[0],1)  # Same triangle, changed indexing.
+                    else:mesh.v[:,2]+=5e-12 if mode=='roundoff' else 2e-9
+                return result
+            with patch('diag.connector_document_checks.build_all',side_effect=perturbed):
+                if mode=='roundoff':
+                    report=check_complete_document(source,joined,None)
+                    self.assertEqual(report['untouched_bodies_exact'],0)
+                    self.assertEqual(report['untouched_bodies_with_roundoff'],1)
+                    self.assertEqual(report['untouched_mesh_arrays_with_roundoff'],1)
+                    self.assertLessEqual(report['maximum_preserved_vertex_displacement_m'],1e-9)
+                else:
+                    with self.assertRaises(ValueError):check_complete_document(source,joined,None)
 
     def test_two_joins_sharing_a_road_are_checked_together(self):
         source,joined=self.fixture();first,second=source['splines'];third=copy.deepcopy(first)
