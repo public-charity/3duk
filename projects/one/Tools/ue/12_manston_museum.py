@@ -43,10 +43,43 @@ def museum_actors():
         if TAG in [str(t) for t in a.tags] or a.get_actor_label().startswith('manston:')]
 
 
+def export_barriers():
+    """Read the current saved definitions before proposing local fence openings."""
+    base=json.loads((IMPL/'museum_walks.streetscape.json').read_text())
+    source=dict(base);source['splines']=[];source['junctions']=[]
+    source['profiles']={'road':{},'edge':{},'hedge':{}}
+    root=PROJECT.parents[1]
+    for path in sorted((root/'data/thanet/out/unreal/streetscape').glob('*.json')):
+        d=json.loads(path.read_text())
+        for s in d.get('splines',[]):
+            if not s['id'].startswith('barriers:'):
+                continue
+            if any(4950<p['x']<6100 and 2550<p['y']<3720 for p in s['points']):
+                source['splines'].append(s)
+                for kind in ('road','edge','hedge'):
+                    source['profiles'][kind].update(d['profiles'][kind])
+    if not source['splines']:
+        raise ValueError('No source barriers found')
+    template=REPORTS/'barrier_export_template.json'
+    save_json(template,source)
+    dest=IMPL/'barriers.saved_baseline.streetscape.json'
+    if dest.exists():
+        raise ValueError('Baseline exists; preserve it rather than exporting over it')
+    result=unreal.StreetscapeEditorLibrary.export_document_json(str(template),str(dest))
+    if not result:
+        raise RuntimeError('Could not export current barrier definitions')
+    uc.report(NAME,{'barrier_baseline':str(dest),'barriers':len(source['splines'])})
+
+
 def apply(manifest,report):
     eas=unreal.get_editor_subsystem(unreal.EditorActorSubsystem)
     lib=unreal.StreetscapeEditorLibrary
     actors=museum_actors()
+    gate_path=IMPL/'museum_gates.streetscape.json'
+    gate_ids=set(s['id'] for s in json.loads(gate_path.read_text())['splines']) if gate_path.exists() else set()
+    gate_actors=[a for a in eas.get_all_level_actors() if a.get_actor_label() in gate_ids]
+    if len(gate_actors)!=len(gate_ids):
+        raise ValueError('A gate target barrier is not loaded exactly once')
     by_label={a.get_actor_label():a for a in actors}
     if len(by_label)!=len(actors):
         raise ValueError('Duplicate museum actors: recover before applying')
@@ -54,7 +87,12 @@ def apply(manifest,report):
     backup=REPORTS/'checkpoints'/stamp
     # Save recovery bytes before any mutation. New actor creation is recorded too.
     saved=[]
-    for a in actors:
+    for src in sorted((CONTENT/'Thanet/Manston').rglob('*')):
+        if src.is_file():
+            dst=backup/'Content'/src.relative_to(CONTENT)
+            dst.parent.mkdir(parents=True,exist_ok=True);shutil.copy2(src,dst)
+            saved.append(str(src.relative_to(CONTENT)))
+    for a in actors+gate_actors:
         src=file_for_package(a.get_package())
         if src.exists():
             dst=backup/'Content'/src.relative_to(CONTENT)
@@ -71,6 +109,9 @@ def apply(manifest,report):
     for a in museum_actors():
         a.tags=[TAG]
         by_label[a.get_actor_label()]=a
+    if gate_ids:
+        if lib.import_streetscape_json(str(gate_path),False,False,0)!=len(gate_ids):
+            raise RuntimeError('Gate adaptation failed')
     cube=unreal.load_asset('/Engine/BasicShapes/Cube.Cube')
     def material(name,rgb):
         path='/Game/Thanet/Manston/Materials/'+name
@@ -89,6 +130,19 @@ def apply(manifest,report):
     navy=material('MI_MuseumNavy',(.018,.035,.075))
     timber=material('MI_MuseumTimber',(.32,.19,.085))
     red=material('MI_MuseumRed',(.5,.025,.04))
+    text_mat_path='/Game/Thanet/Manston/Materials/M_MuseumText'
+    if not unreal.EditorAssetLibrary.does_asset_exist(text_mat_path):
+        unreal.EditorAssetLibrary.duplicate_asset('/Engine/EngineMaterials/DefaultTextMaterialOpaque',text_mat_path)
+        text_mat=unreal.load_asset(text_mat_path)
+        mel=unreal.MaterialEditingLibrary
+        vc=mel.create_material_expression(text_mat,unreal.MaterialExpressionVertexColor,-300,300)
+        mel.connect_material_property(vc,'RGB',unreal.MaterialProperty.MP_EMISSIVE_COLOR)
+    text_mat=unreal.load_asset(text_mat_path)
+    text_mat.set_editor_property('shading_model',unreal.MaterialShadingModel.MSM_UNLIT)
+    mel=unreal.MaterialEditingLibrary
+    mel.recompile_material(text_mat)
+    unreal.EditorAssetLibrary.save_loaded_asset(text_mat,False)
+    active={'manston:R1','manston:R2'}
     def actor(label,cls,xyz,heading=0):
         a=by_label.get(label)
         if a and not isinstance(a,cls):
@@ -99,6 +153,10 @@ def apply(manifest,report):
                 raise RuntimeError('Failed to spawn '+label)
         a.set_actor_label(label)
         a.tags=[TAG]
+        a.set_actor_hidden_in_game(False)
+        a.set_actor_enable_collision(True)
+        a.set_editor_property('is_editor_only_actor',False)
+        active.add(label)
         a.set_actor_location(vector(*xyz),False,False)
         a.set_actor_rotation(unreal.Rotator(0,0,-heading),False)
         by_label[label]=a
@@ -114,7 +172,8 @@ def apply(manifest,report):
     def text(label,xyz,heading,value,size=18,hidden=False):
         a=actor(label,unreal.TextRenderActor,xyz,heading)
         c=a.text_render
-        c.set_text(value)
+        c.set_text(value.replace('\n','<br>'))
+        c.set_text_material(text_mat)
         c.set_world_size(size)
         c.set_horizontal_alignment(unreal.HorizTextAligment.EHTA_CENTER)
         c.set_vertical_alignment(unreal.VerticalTextAligment.EVRTA_TEXT_CENTER)
@@ -147,7 +206,14 @@ def apply(manifest,report):
         text('manston:evidence_'+f['id'],(f['anchor_bng'][0]-627680,f['anchor_bng'][1]-163080,
             f['placement_surface_z_odn_m']+3.),0,f['id']+'\n'+f['name']+'\nAPPROXIMATE RESEARCH ANCHOR',30,True)
     packages=[]
+    # Keep recoverable, inactive copies when a new route needs fewer rest stops.
+    # They are excluded from play and can be reused if a later revision needs them.
     for a in museum_actors():
+        if a.get_actor_label() not in active:
+            a.set_actor_hidden_in_game(True)
+            a.set_actor_enable_collision(False)
+            a.set_editor_property('is_editor_only_actor',True)
+    for a in museum_actors()+gate_actors:
         p=a.get_package()
         if p.get_name()==MAP:
             raise RuntimeError('Expected external actor package; refusing to save the shared map')
@@ -163,7 +229,15 @@ def apply(manifest,report):
         dst=backup/'after'/src.relative_to(CONTENT)
         dst.parent.mkdir(parents=True,exist_ok=True);shutil.copy2(src,dst)
         after.append({'path':str(src.relative_to(CONTENT)).replace('\\','/'),'sha256':hashlib.sha256(src.read_bytes()).hexdigest()})
+    for src in sorted((CONTENT/'Thanet/Manston').rglob('*')):
+        if src.is_file():
+            dst=backup/'after'/src.relative_to(CONTENT)
+            dst.parent.mkdir(parents=True,exist_ok=True);shutil.copy2(src,dst)
+    for filename in ('museum_manifest.json','museum_walks.streetscape.json','museum_gates.streetscape.json','gate_schedule.json'):
+        if (IMPL/filename).exists():
+            shutil.copy2(IMPL/filename,backup/filename)
     report.update({'saved_actor_packages':after,'museum_actors':len(museum_actors()),'checkpoint':str(backup),
+        'adapted_fence_actors':len(gate_ids),
         'routes_imported':count,'rest_stops':sum(f['kind']=='bench' for f in manifest['furniture']),
         'interpretation_boards':sum(f['kind']=='sign' for f in manifest['furniture'])})
     save_json(backup/'after.json',report)
@@ -262,7 +336,7 @@ def save_json(path,data):
 
 
 def main():
-    opts=uc.parse_args(sys.argv,flags=('inspect','apply','verify'))
+    opts=uc.parse_args(sys.argv,flags=('inspect','apply','verify','export_gates'))
     if sum(bool(v) for v in opts.values()) != 1:
         raise ValueError('Choose exactly one of --inspect, --apply, --verify')
     if not unreal.get_editor_subsystem(unreal.LevelEditorSubsystem).load_level(MAP):
@@ -288,9 +362,22 @@ def main():
         return
     manifest=json.loads((IMPL/'museum_manifest.json').read_text())
     unreal.StreetscapeEditorLibrary.load_region(unreal.Vector(560000,-310000,0),85000.)
+    if opts['export_gates']:
+        export_barriers()
+        return
     if opts['apply']:
+        from content_guard import snapshot,differences
+        before=snapshot(CONTENT)
         report=apply(manifest,report)
+        changes=differences(before,snapshot(CONTENT))
+        allowed={row['path'] for row in report['saved_actor_packages']}
+        unexpected={kind:[p for p in paths if p not in allowed and not p.startswith('Thanet/Manston/')]
+            for kind,paths in changes.items()}
+        report['content_changes']=changes
+        report['unexpected_content_changes']=unexpected
         save_json(REPORTS/'import_report.json',report)
+        if any(unexpected.values()):
+            raise RuntimeError('Unexpected Content mutation; see saved import report')
         uc.report(NAME,{k:v for k,v in report.items() if k!='saved_actor_packages'})
     else:
         from content_guard import snapshot,require_unchanged

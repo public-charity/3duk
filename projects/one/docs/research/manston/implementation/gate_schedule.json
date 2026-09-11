@@ -1,0 +1,162 @@
+{
+  "baseline": "barriers.saved_baseline.streetscape.json",
+  "openings": [
+    {
+      "barrier_id": "barriers:563911065:0",
+      "gate_id": "manston_gate_0",
+      "s0_m": 10.499978099499979,
+      "s1_m": 19.356984319462594,
+      "opening_length_along_fence_m": 8.86,
+      "approximate_bng": [
+        632860.37,
+        166159.53
+      ],
+      "status": "New museum circulation opening; not a historical entrance"
+    },
+    {
+      "barrier_id": "barriers:563911155:0",
+      "gate_id": "manston_gate_0",
+      "s0_m": 58.483797932399646,
+      "s1_m": 76.66790372738964,
+      "opening_length_along_fence_m": 18.18,
+      "approximate_bng": [
+        633307.153665226,
+        166500.3555638389
+      ],
+      "status": "New museum circulation opening; not a historical entrance"
+    },
+    {
+      "barrier_id": "barriers:661308440:0",
+      "gate_id": "manston_gate_0",
+      "s0_m": 14.498215933855679,
+      "s1_m": 23.497282217994318,
+      "opening_length_along_fence_m": 9.0,
+      "approximate_bng": [
+        632939.3034416959,
+        166265.91164462437
+      ],
+      "status": "New museum circulation opening; not a historical entrance"
+    },
+    {
+      "barrier_id": "barriers:661308440:0",
+      "gate_id": "manston_gate_1",
+      "s0_m": 145.31095622159935,
+      "s1_m": 163.31248715072272,
+      "opening_length_along_fence_m": 18.0,
+      "approximate_bng": [
+        633021.0067031606,
+        166291.57506328134
+      ],
+      "status": "New museum circulation opening; not a historical entrance"
+    },
+    {
+      "barrier_id": "barriers:661308440:0",
+      "gate_id": "manston_gate_2",
+      "s0_m": 162.68406553177977,
+      "s1_m": 176.38027026264027,
+      "opening_length_along_fence_m": 13.7,
+      "approximate_bng": [
+        633030.1291924367,
+        166286.58090156852
+      ],
+      "status": "New museum circulation opening; not a historical entrance"
+    },
+    {
+      "barrier_id": "barriers:492867846:1",
+      "gate_id": "manston_gate_0",
+      "s0_m": 412.7377608473267,
+      "s1_m": 435.59807239285277,
+      "opening_length_along_fence_m": 22.86,
+      "approximate_bng": [
+        633402.2218795213,
+        166440.77608483785
+      ],
+      "status": "New museum circulation opening; not a historical entrance"
+    },
+    {
+      "barrier_id": "barriers:563911155:1",
+      "gate_id": "manston_gate_0",
+      "s0_m": 0,
+      "s1_m": 26.300719305718374,
+      "opening_length_along_fence_m": 26.3,
+      "approximate_bng": [
+        633323.8538218681,
+        166512.55909831452
+      ],
+      "status": "New museum circulation opening; not a historical entrance"
+    },
+    {
+      "barrier_id": "barriers:563911155:1",
+      "gate_id": "manston_gate_1",
+      "s0_m": 146.25352093965776,
+      "s1_m": 158.0941818167454,
+      "opening_length_along_fence_m": 11.84,
+      "approximate_bng": [
+        633449.8709849466,
+        166552.13489579706
+      ],
+      "status": "New museum circulation opening; not a historical entrance"
+    },
+    {
+      "barrier_id": "barriers:563911157:0",
+      "gate_id": "manston_gate_0",
+      "s0_m": 14.499999997861641,
+      "s1_m": 25.499999996577934,
+      "opening_length_along_fence_m": 11.0,
+      "approximate_bng": [
+        633475.0953262207,
+        166568.70001129998
+      ],
+      "status": "New museum circulation opening; not a historical entrance"
+    },
+    {
+      "barrier_id": "barriers:563911157:0",
+      "gate_id": "manston_gate_1",
+      "s0_m": 42.49999999245229,
+      "s1_m": 45.75153877193608,
+      "opening_length_along_fence_m": 3.25,
+      "approximate_bng": [
+        633482.48,
+        166593.37
+      ],
+      "status": "New museum circulation opening; not a historical entrance"
+    },
+    {
+      "barrier_id": "barriers:563920958:0",
+      "gate_id": "manston_gate_0",
+      "s0_m": 0,
+      "s1_m": 7.81722692026455,
+      "opening_length_along_fence_m": 7.82,
+      "approximate_bng": [
+        633484.2390119258,
+        166597.37637550343
+      ],
+      "status": "New museum circulation opening; not a historical entrance"
+    },
+    {
+      "barrier_id": "barriers:563920958:0",
+      "gate_id": "manston_gate_1",
+      "s0_m": 7.430164020743048,
+      "s1_m": 17.54893176650509,
+      "opening_length_along_fence_m": 10.12,
+      "approximate_bng": [
+        633486.21,
+        166605.79
+      ],
+      "status": "New museum circulation opening; not a historical entrance"
+    },
+    {
+      "barrier_id": "barriers:563920958:0",
+      "gate_id": "manston_gate_2",
+      "s0_m": 42.5346661107252,
+      "s1_m": 49.53464194227666,
+      "opening_length_along_fence_m": 7.0,
+      "approximate_bng": [
+        633493.4989706492,
+        166637.98446361558
+      ],
+      "status": "New museum circulation opening; not a historical entrance"
+    }
+  ],
+  "barrier_actors": 7
+}

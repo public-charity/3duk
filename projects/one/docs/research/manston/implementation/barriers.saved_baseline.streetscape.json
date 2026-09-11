@@ -1,0 +1,5804 @@
+{
+ "schema_version": "1.0.0",
+ "site": "thanet",
+ "crs": "EPSG:27700",
+ "origin": {
+  "E": 627680,
+  "N": 163080
+ },
+ "vertical_datum": "ODN",
+ "frame": "local-metres, X east, Y north, Z up",
+ "generator": "manston-museum-phase1",
+ "materials": {
+  "gravel": {
+   "base_color": [
+    0.52,
+    0.48,
+    0.42
+   ],
+   "roughness": 0.95
+  }
+ },
+ "profiles": {
+  "road": {
+   "road_service": {
+    "kind": "road",
+    "lanes": 1,
+    "lane_widths_m": [
+     3.5
+    ],
+    "width_m": 3.5,
+    "surface_material": "tarmac",
+    "camber": {
+     "kind": "planar",
+     "crossfall_pct": 2.5
+    },
+    "overlap_m": 0.04,
+    "skirt_drop_m": 0.02,
+    "lateral_station_spacing_m": 1,
+    "markings": []
+   },
+   "path_footway": {
+    "kind": "road",
+    "lanes": 0,
+    "lane_widths_m": [],
+    "width_m": 2,
+    "surface_material": "paving_slab",
+    "camber": {
+     "kind": "none"
+    },
+    "overlap_m": 0.04,
+    "skirt_drop_m": 0.02,
+    "lateral_station_spacing_m": 1,
+    "markings": []
+   },
+   "road_residential": {
+    "kind": "road",
+    "lanes": 2,
+    "lane_widths_m": [
+     3,
+     3
+    ],
+    "width_m": 6,
+    "surface_material": "tarmac",
+    "camber": {
+     "kind": "parabolic",
+     "crossfall_pct": 2.5
+    },
+    "overlap_m": 0.04,
+    "skirt_drop_m": 0.02,
+    "lateral_station_spacing_m": 1,
+    "markings": []
+   },
+   "road_secondary": {
+    "kind": "road",
+    "lanes": 2,
+    "lane_widths_m": [
+     3.25,
+     3.25
+    ],
+    "width_m": 8.5,
+    "surface_material": "tarmac",
+    "camber": {
+     "kind": "parabolic",
+     "crossfall_pct": 2.5
+    },
+    "overlap_m": 0.04,
+    "skirt_drop_m": 0.02,
+    "lateral_station_spacing_m": 1,
+    "markings": [
+     {
+      "id": "centre_1004",
+      "anchor": "centre",
+      "offset_m": 0,
+      "width_m": 0.1,
+      "pattern": "dashed",
+      "dash_m": 4,
+      "gap_m": 2,
+      "phase_m": 0,
+      "material": "white_paint",
+      "lift_m": 0.004
+     }
+    ]
+   },
+   "road_tertiary": {
+    "kind": "road",
+    "lanes": 2,
+    "lane_widths_m": [
+     3,
+     3
+    ],
+    "width_m": 7,
+    "surface_material": "tarmac",
+    "camber": {
+     "kind": "parabolic",
+     "crossfall_pct": 2.5
+    },
+    "overlap_m": 0.04,
+    "skirt_drop_m": 0.02,
+    "lateral_station_spacing_m": 1,
+    "markings": [
+     {
+      "id": "centre_1004",
+      "anchor": "centre",
+      "offset_m": 0,
+      "width_m": 0.1,
+      "pattern": "dashed",
+      "dash_m": 4,
+      "gap_m": 2,
+      "phase_m": 0,
+      "material": "white_paint",
+      "lift_m": 0.004
+     }
+    ]
+   },
+   "path_track": {
+    "kind": "road",
+    "lanes": 0,
+    "lane_widths_m": [],
+    "width_m": 3,
+    "surface_material": "gravel",
+    "camber": {
+     "kind": "none"
+    },
+    "overlap_m": 0.04,
+    "skirt_drop_m": 0.02,
+    "lateral_station_spacing_m": 1,
+    "markings": []
+   }
+  },
+  "edge": {
+   "edge_barrier_only": {
+    "kerb_width_m": 0,
+    "kerb_height_m": 0,
+    "lip": {
+     "kind": "none"
+    },
+    "pavement_width_m": 0,
+    "pavement_crossfall_pct": 2.5,
+    "pavement_max_crossfall_pct": 8,
+    "tuck_depth_m": 0.03,
+    "tuck_in_m": 0.02,
+    "skirt_m": 0.3,
+    "materials": {
+     "kerb": "concrete_kerb",
+     "pavement": "grass"
+    },
+    "split_material": {
+     "enabled": false
+    },
+    "drop_kerbs": [],
+    "barriers": [],
+    "embankments": []
+   },
+   "edge_uk_kerb": {
+    "kerb_width_m": 0.125,
+    "kerb_height_m": 0.125,
+    "lip": {
+     "kind": "radius",
+     "size_m": 0.02,
+     "arc_points": 3
+    },
+    "pavement_width_m": 1.8,
+    "pavement_crossfall_pct": 2.5,
+    "pavement_max_crossfall_pct": 8,
+    "tuck_depth_m": 0.03,
+    "tuck_in_m": 0.02,
+    "skirt_m": 0.3,
+    "materials": {
+     "kerb": "concrete_kerb",
+     "pavement": "paving_slab"
+    },
+    "split_material": {
+     "enabled": false
+    },
+    "drop_kerbs": [],
+    "barriers": [],
+    "embankments": []
+   }
+  },
+  "hedge": {}
+ },
+ "splines": [
+  {
+   "id": "barriers:563911065:1",
+   "source": {
+    "layer": "barriers",
+    "osm_id": "563911065",
+    "name": null,
+    "cls": "fence",
+    "tags": {
+     "h_src": "default"
+    },
+    "tile": [
+     10,
+     5
+    ],
+    "segment_index": 1,
+    "segment_count": 7
+   },
+   "profile_ids": {
+    "road": null,
+    "edge_left": "edge_barrier_only",
+    "edge_right": null,
+    "hedge_left": null,
+    "hedge_right": null
+   },
+   "points": [
+    {
+     "x": 5168.12,
+     "y": 3066.67,
+     "_z_06": 47.38
+    },
+    {
+     "x": 5152.42,
+     "y": 3048.52,
+     "_z_06": 47.66
+    },
+    {
+     "x": 5148.13,
+     "y": 3043.56,
+     "_z_06": 47.63
+    },
+    {
+     "x": 5145.06,
+     "y": 3036.83,
+     "_z_06": 47.67
+    },
+    {
+     "x": 5140.39,
+     "y": 3031.42,
+     "_z_06": 47.72
+    },
+    {
+     "x": 5133.04,
+     "y": 3034.58,
+     "_z_06": 47.76
+    },
+    {
+     "x": 5118.34,
+     "y": 3040.9,
+     "_z_06": 47.62
+    }
+   ],
+   "segments": [
+    {
+     "id": "adapter",
+     "s0_m": 0,
+     "s1_m": null,
+     "side": "left",
+     "edge": {
+      "barrier": {
+       "type": "wood_fence",
+       "height_m": 1.5,
+       "thickness_m": 0.05,
+       "material": "wood_fence",
+       "post_pitch_m": 1.8,
+       "offset_m": -0.025
+      }
+     }
+    }
+   ],
+   "drop_kerbs": [],
+   "overlay": {
+    "kind": "osm_way",
+    "pts": [
+     [
+      5191.86,
+      3090.66,
+      46.07
+     ],
+     [
+      5173.35,
+      3072.73,
+      47.26
+     ],
+     [
+      5148.13,
+      3043.56,
+      47.63
+     ],
+     [
+      5146.32,
+      3039.5,
+      47.59
+     ],
+     [
+      5145.06,
+      3036.83,
+      47.67
+     ],
+     [
+      5140.39,
+      3031.42,
+      47.72
+     ],
+     [
+      5111.11,
+      3044.01,
+      47.42
+     ],
+     [
+      5113.15,
+      3049.77,
+      47.32
+     ],
+     [
+      5062.47,
+      3070.88,
+      47.05
+     ],
+     [
+      5047.72,
+      3074.5,
+      46.85
+     ],
+     [
+      4950.92,
+      3116.62,
+      46.45
+     ],
+     [
+      4858.7,
+      3099.7,
+      46.45
+     ]
+    ],
+    "osm_id": "563911065"
+   },
+   "junction_start": null,
+   "junction_end": null,
+   "continues_from": "barriers:563911065:0",
+   "continues_to": "barriers:563911065:2",
+   "continuation_kind": {
+    "from": "seam",
+    "to": "seam"
+   },
+   "overrun_points": {
+    "before": [
+     5173.35,
+     3072.73,
+     47.26
+    ],
+    "after": [
+     5111.11,
+     3044.01,
+     47.42
+    ]
+   },
+   "flags": {
+    "bridge": false,
+    "tunnel": false,
+    "z_gap": false,
+    "steps": false,
+    "disused": false,
+    "gauge_unmapped": false,
+    "closed_loop": false,
+    "tracks": null
+   }
+  },
+  {
+   "id": "barriers:147963898:0",
+   "source": {
+    "layer": "barriers",
+    "osm_id": "147963898",
+    "name": null,
+    "cls": "fence",
+    "tags": {
+     "h_src": "default"
+    },
+    "tile": [
+     10,
+     6
+    ],
+    "segment_index": 0,
+    "segment_count": 5
+   },
+   "profile_ids": {
+    "road": null,
+    "edge_left": "edge_barrier_only",
+    "edge_right": null,
+    "hedge_left": null,
+    "hedge_right": null
+   },
+   "points": [
+    {
+     "x": 5566.62,
+     "y": 3460.95,
+     "_z_06": 38.47
+    },
+    {
+     "x": 5590.49,
+     "y": 3477.89,
+     "_z_06": 38.45
+    },
+    {
+     "x": 5603.83,
+     "y": 3486.72,
+     "_z_06": 38.6
+    },
+    {
+     "x": 5634.88,
+     "y": 3507.28,
+     "_z_06": 38.81
+    }
+   ],
+   "segments": [
+    {
+     "id": "adapter",
+     "s0_m": 0,
+     "s1_m": null,
+     "side": "left",
+     "edge": {
+      "barrier": {
+       "type": "wood_fence",
+       "height_m": 1.5,
+       "thickness_m": 0.05,
+       "material": "wood_fence",
+       "post_pitch_m": 1.8,
+       "offset_m": -0.025
+      }
+     }
+    }
+   ],
+   "drop_kerbs": [],
+   "overlay": {
+    "kind": "osm_way",
+    "pts": [
+     [
+      5566.62,
+      3460.95,
+      38.47
+     ],
+     [
+      5590.49,
+      3477.89,
+      38.45
+     ],
+     [
+      5621.53,
+      3498.45,
+      38.58
+     ],
+     [
+      5650.35,
+      3517.52,
+      39.09
+     ],
+     [
+      5652.02,
+      3523.73,
+      39.09
+     ],
+     [
+      5653.91,
+      3525.12,
+      39.12
+     ],
+     [
+      5665.92,
+      3536.74,
+      39.77
+     ],
+     [
+      5643.38,
+      3564.24,
+      39.15
+     ],
+     [
+      5676.68,
+      3589.99,
+      39.87
+     ],
+     [
+      5674.05,
+      3592.12,
+      39.82
+     ],
+     [
+      5679.98,
+      3597.46,
+      39.77
+     ],
+     [
+      5686.3,
+      3602.91,
+      40.38
+     ],
+     [
+      5711.8,
+      3572.47,
+      41.71
+     ],
+     [
+      5719.02,
+      3564.05,
+      41.34
+     ],
+     [
+      5731.11,
+      3562.11,
+      41.92
+     ],
+     [
+      5763.5,
+      3583.76,
+      42.78
+     ],
+     [
+      5770.25,
+      3583.06,
+      42.85
+     ],
+     [
+      5776.08,
+      3582.78,
+      43.26
+     ],
+     [
+      5804.8,
+      3595.05,
+      43.58
+     ],
+     [
+      5806.62,
+      3605.63,
+      43.51
+     ],
+     [
+      5809.63,
+      3607.81,
+      43.44
+     ],
+     [
+      5813.36,
+      3609.73,
+      43.5
+     ],
+     [
+      5826.55,
+      3604.25,
+      43.99
+     ],
+     [
+      5859.56,
+      3613.59,
+      44.39
+     ],
+     [
+      5881.4,
+      3618.56,
+      44.46
+     ],
+     [
+      5887.34,
+      3619.92,
+      44.6
+     ],
+     [
+      5910.34,
+      3624.01,
+      44.81
+     ],
+     [
+      5931.51,
+      3629.77,
+      45.09
+     ],
+     [
+      5948.92,
+      3636.65,
+      45.25
+     ],
+     [
+      5966.76,
+      3646.4,
+      45.39
+     ],
+     [
+      5988.93,
+      3662.62,
+      45.35
+     ],
+     [
+      6007.99,
+      3678.04,
+      45.24
+     ],
+     [
+      6061.72,
+      3720.85,
+      45.36
+     ]
+    ],
+    "osm_id": "147963898"
+   },
+   "junction_start": null,
+   "junction_end": null,
+   "continues_from": null,
+   "continues_to": "barriers:147963898:1",
+   "continuation_kind": {
+    "from": null,
+    "to": "seam"
+   },
+   "overrun_points": {
+    "before": null,
+    "after": [
+     5648.22,
+     3516.11,
+     39.02
+    ]
+   },
+   "flags": {
+    "bridge": false,
+    "tunnel": false,
+    "z_gap": false,
+    "steps": false,
+    "disused": false,
+    "gauge_unmapped": false,
+    "closed_loop": false,
+    "tracks": null
+   }
+  },
+  {
+   "id": "barriers:492867846:2",
+   "source": {
+    "layer": "barriers",
+    "osm_id": "492867846",
+    "name": null,
+    "cls": "fence",
+    "tags": {
+     "fence_type": "metal",
+     "h_src": "default"
+    },
+    "tile": [
+     10,
+     6
+    ],
+    "segment_index": 2,
+    "segment_count": 3
+   },
+   "profile_ids": {
+    "road": null,
+    "edge_left": "edge_barrier_only",
+    "edge_right": null,
+    "hedge_left": null,
+    "hedge_right": null
+   },
+   "points": [
+    {
+     "x": 5629.3,
+     "y": 3362.04,
+     "_z_06": 39.68
+    },
+    {
+     "x": 5621.3,
+     "y": 3362.24,
+     "_z_06": 39.73
+    },
+    {
+     "x": 5614.2,
+     "y": 3362.42,
+     "_z_06": 39.51
+    },
+    {
+     "x": 5606.39,
+     "y": 3360.69,
+     "_z_06": 39.47
+    },
+    {
+     "x": 5598.58,
+     "y": 3358.96,
+     "_z_06": 39.49
+    },
+    {
+     "x": 5596.42,
+     "y": 3358.48,
+     "_z_06": 39.5
+    },
+    {
+     "x": 5588.58,
+     "y": 3360.08,
+     "_z_06": 39.52
+    },
+    {
+     "x": 5587.21,
+     "y": 3360.36,
+     "_z_06": 39.53
+    },
+    {
+     "x": 5580.85,
+     "y": 3355.51,
+     "_z_06": 39.6
+    },
+    {
+     "x": 5574.48,
+     "y": 3350.67,
+     "_z_06": 39.72
+    },
+    {
+     "x": 5540.51,
+     "y": 3324.84,
+     "_z_06": 40.13
+    },
+    {
+     "x": 5527.78,
+     "y": 3315.15,
+     "_z_06": 40.34
+    },
+    {
+     "x": 5526.04,
+     "y": 3313.83,
+     "_z_06": 40.35
+    },
+    {
+     "x": 5521.7,
+     "y": 3314.52,
+     "_z_06": 40.49
+    },
+    {
+     "x": 5515.13,
+     "y": 3309.95,
+     "_z_06": 40.54
+    },
+    {
+     "x": 5501.99,
+     "y": 3300.82,
+     "_z_06": 41.08
+    },
+    {
+     "x": 5448.99,
+     "y": 3264,
+     "_z_06": 42.25
+    },
+    {
+     "x": 5442.59,
+     "y": 3259.19,
+     "_z_06": 42.42
+    },
+    {
+     "x": 5436.78,
+     "y": 3254.83,
+     "_z_06": 42.61
+    },
+    {
+     "x": 5430.96,
+     "y": 3249.34,
+     "_z_06": 42.73
+    },
+    {
+     "x": 5414.56,
+     "y": 3233.89,
+     "_z_06": 43.24
+    },
+    {
+     "x": 5365.7,
+     "y": 3187.91,
+     "_z_06": 44.46
+    },
+    {
+     "x": 5318.12,
+     "y": 3142.31,
+     "_z_06": 45.34
+    }
+   ],
+   "segments": [
+    {
+     "id": "adapter",
+     "s0_m": 0,
+     "s1_m": null,
+     "side": "left",
+     "edge": {
+      "barrier": {
+       "type": "railing",
+       "height_m": 1.5,
+       "thickness_m": 0.05,
+       "material": "steel_painted_black",
+       "post_pitch_m": 2,
+       "offset_m": -0.025
+      }
+     }
+    }
+   ],
+   "drop_kerbs": [],
+   "overlay": {
+    "kind": "osm_way",
+    "pts": [
+     [
+      6296.15,
+      3185.23,
+      44.12
+     ],
+     [
+      6301.71,
+      3211.69,
+      43.94
+     ],
+     [
+      6311.97,
+      3260.53,
+      44.49
+     ],
+     [
+      6306.46,
+      3261.58,
+      44.63
+     ],
+     [
+      6304.06,
+      3262.44,
+      44.59
+     ],
+     [
+      6300.64,
+      3262.45,
+      44.6
+     ],
+     [
+      6294.78,
+      3263.72,
+      44.81
+     ],
+     [
+      6254.41,
+      3272.43,
+      44.75
+     ],
+     [
+      6157.41,
+      3293.38,
+      44.02
+     ],
+     [
+      6154.06,
+      3292.09,
+      43.81
+     ],
+     [
+      6123.72,
+      3298.2,
+      43.16
+     ],
+     [
+      6119.09,
+      3297,
+      42.83
+     ],
+     [
+      6116.69,
+      3300.01,
+      42.91
+     ],
+     [
+      5916.76,
+      3342.83,
+      40.96
+     ],
+     [
+      5889.51,
+      3348.6,
+      40.7
+     ],
+     [
+      5859.68,
+      3354.43,
+      40.26
+     ],
+     [
+      5835.18,
+      3357.14,
+      40.09
+     ],
+     [
+      5800.42,
+      3358.57,
+      39.81
+     ],
+     [
+      5782.49,
+      3359.16,
+      39.75
+     ],
+     [
+      5724.09,
+      3360.74,
+      39.52
+     ],
+     [
+      5648.15,
+      3361.69,
+      39.42
+     ],
+     [
+      5637.3,
+      3361.83,
+      39.55
+     ],
+     [
+      5614.2,
+      3362.42,
+      39.51
+     ],
+     [
+      5596.42,
+      3358.48,
+      39.5
+     ],
+     [
+      5587.21,
+      3360.36,
+      39.53
+     ],
+     [
+      5566.93,
+      3344.92,
+      39.89
+     ],
+     [
+      5546.88,
+      3329.68,
+      39.98
+     ],
+     [
+      5526.04,
+      3313.83,
+      40.35
+     ],
+     [
+      5525.84,
+      3313.86,
+      40.34
+     ],
+     [
+      5521.7,
+      3314.52,
+      40.49
+     ],
+     [
+      5493.99,
+      3295.26,
+      41.46
+     ],
+     [
+      5478.29,
+      3284.35,
+      41.71
+     ],
+     [
+      5448.99,
+      3264,
+      42.25
+     ],
+     [
+      5436.78,
+      3254.83,
+      42.61
+     ],
+     [
+      5420.38,
+      3239.38,
+      43.05
+     ],
+     [
+      5365.7,
+      3187.91,
+      44.46
+     ],
+     [
+      5318.12,
+      3142.31,
+      45.34
+     ]
+    ],
+    "osm_id": "492867846"
+   },
+   "junction_start": null,
+   "junction_end": null,
+   "continues_from": "barriers:492867846:1",
+   "continues_to": null,
+   "continuation_kind": {
+    "from": "seam",
+    "to": null
+   },
+   "overrun_points": {
+    "before": [
+     5640.15,
+     3361.79,
+     39.51
+    ],
+    "after": null
+   },
+   "flags": {
+    "bridge": false,
+    "tunnel": false,
+    "z_gap": false,
+    "steps": false,
+    "disused": false,
+    "gauge_unmapped": false,
+    "closed_loop": false,
+    "tracks": null
+   }
+  },
+  {
+   "id": "barriers:563911065:0",
+   "source": {
+    "layer": "barriers",
+    "osm_id": "563911065",
+    "name": null,
+    "cls": "fence",
+    "tags": {
+     "h_src": "default"
+    },
+    "tile": [
+     10,
+     6
+    ],
+    "segment_index": 0,
+    "segment_count": 7
+   },
+   "profile_ids": {
+    "road": null,
+    "edge_left": "edge_barrier_only",
+    "edge_right": null,
+    "hedge_left": null,
+    "hedge_right": null
+   },
+   "points": [
+    {
+     "x": 5191.86,
+     "y": 3090.66,
+     "_z_06": 46.07
+    },
+    {
+     "x": 5180.37,
+     "y": 3079.53,
+     "_z_06": 47.15
+    },
+    {
+     "x": 5173.35,
+     "y": 3072.73,
+     "_z_06": 47.26
+    },
+    {
+     "x": 5168.12,
+     "y": 3066.67,
+     "_z_06": 47.38
+    }
+   ],
+   "segments": [
+    {
+     "id": "adapter",
+     "s0_m": 0,
+     "s1_m": null,
+     "side": "left",
+     "edge": {
+      "barrier": {
+       "type": "wood_fence",
+       "height_m": 1.5,
+       "thickness_m": 0.05,
+       "material": "wood_fence",
+       "post_pitch_m": 1.8,
+       "offset_m": -0.025
+      }
+     }
+    }
+   ],
+   "drop_kerbs": [],
+   "overlay": {
+    "kind": "osm_way",
+    "pts": [
+     [
+      5191.86,
+      3090.66,
+      46.07
+     ],
+     [
+      5173.35,
+      3072.73,
+      47.26
+     ],
+     [
+      5148.13,
+      3043.56,
+      47.63
+     ],
+     [
+      5146.32,
+      3039.5,
+      47.59
+     ],
+     [
+      5145.06,
+      3036.83,
+      47.67
+     ],
+     [
+      5140.39,
+      3031.42,
+      47.72
+     ],
+     [
+      5111.11,
+      3044.01,
+      47.42
+     ],
+     [
+      5113.15,
+      3049.77,
+      47.32
+     ],
+     [
+      5062.47,
+      3070.88,
+      47.05
+     ],
+     [
+      5047.72,
+      3074.5,
+      46.85
+     ],
+     [
+      4950.92,
+      3116.62,
+      46.45
+     ],
+     [
+      4858.7,
+      3099.7,
+      46.45
+     ]
+    ],
+    "osm_id": "563911065"
+   },
+   "junction_start": null,
+   "junction_end": null,
+   "continues_from": null,
+   "continues_to": "barriers:563911065:1",
+   "continuation_kind": {
+    "from": null,
+    "to": "seam"
+   },
+   "overrun_points": {
+    "before": null,
+    "after": [
+     5152.42,
+     3048.52,
+     47.66
+    ]
+   },
+   "flags": {
+    "bridge": false,
+    "tunnel": false,
+    "z_gap": false,
+    "steps": false,
+    "disused": false,
+    "gauge_unmapped": false,
+    "closed_loop": false,
+    "tracks": null
+   }
+  },
+  {
+   "id": "barriers:563911155:0",
+   "source": {
+    "layer": "barriers",
+    "osm_id": "563911155",
+    "name": null,
+    "cls": "fence",
+    "tags": {
+     "h_src": "default"
+    },
+    "tile": [
+     10,
+     6
+    ],
+    "segment_index": 0,
+    "segment_count": 4
+   },
+   "profile_ids": {
+    "road": null,
+    "edge_left": "edge_barrier_only",
+    "edge_right": null,
+    "hedge_left": null,
+    "hedge_right": null
+   },
+   "points": [
+    {
+     "x": 5608.58,
+     "y": 3371.7,
+     "_z_06": 39.58
+    },
+    {
+     "x": 5596.1,
+     "y": 3392.2,
+     "_z_06": 39.3
+    },
+    {
+     "x": 5593.8,
+     "y": 3395.98,
+     "_z_06": 39.15
+    },
+    {
+     "x": 5600.26,
+     "y": 3400.7,
+     "_z_06": 38.95
+    },
+    {
+     "x": 5606.72,
+     "y": 3405.42,
+     "_z_06": 38.59
+    },
+    {
+     "x": 5632.55,
+     "y": 3424.3,
+     "_z_06": 37.99
+    }
+   ],
+   "segments": [
+    {
+     "id": "adapter",
+     "s0_m": 0,
+     "s1_m": null,
+     "side": "left",
+     "edge": {
+      "barrier": {
+       "type": "wood_fence",
+       "height_m": 1.5,
+       "thickness_m": 0.05,
+       "material": "wood_fence",
+       "post_pitch_m": 1.8,
+       "offset_m": -0.025
+      }
+     }
+    }
+   ],
+   "drop_kerbs": [],
+   "overlay": {
+    "kind": "osm_way",
+    "pts": [
+     [
+      5608.58,
+      3371.7,
+      39.58
+     ],
+     [
+      5593.8,
+      3395.98,
+      39.15
+     ],
+     [
+      5653.38,
+      3439.52,
+      38.11
+     ],
+     [
+      5660.33,
+      3446.13,
+      38.1
+     ],
+     [
+      5693.04,
+      3456.05,
+      39.1
+     ],
+     [
+      5709.83,
+      3467.59,
+      40.09
+     ],
+     [
+      5722.85,
+      3476.54,
+      40.8
+     ],
+     [
+      5725.11,
+      3478.09,
+      40.9
+     ],
+     [
+      5789.36,
+      3469.54,
+      42.32
+     ],
+     [
+      5813.63,
+      3460.96,
+      42.63
+     ],
+     [
+      5831.38,
+      3456.67,
+      43.17
+     ],
+     [
+      5861.85,
+      3457.98,
+      43.66
+     ],
+     [
+      5873.95,
+      3458.19,
+      43.9
+     ],
+     [
+      5891.27,
+      3471.66,
+      44.28
+     ],
+     [
+      5894.71,
+      3474.64,
+      44.38
+     ],
+     [
+      5895.42,
+      3475.25,
+      44.46
+     ],
+     [
+      5901.15,
+      3562.49,
+      45.28
+     ],
+     [
+      5815.89,
+      3568.55,
+      43.97
+     ],
+     [
+      5812.62,
+      3587.72,
+      43.91
+     ],
+     [
+      5831.78,
+      3594.09,
+      44.16
+     ],
+     [
+      5835.61,
+      3595.91,
+      44.18
+     ],
+     [
+      5844.02,
+      3598.25,
+      44.38
+     ],
+     [
+      5876.22,
+      3606.31,
+      44.73
+     ],
+     [
+      5885.95,
+      3596.49,
+      44.8
+     ],
+     [
+      5914.47,
+      3604.7,
+      44.95
+     ],
+     [
+      5920.15,
+      3606.73,
+      45.26
+     ],
+     [
+      5920.46,
+      3615.4,
+      45.07
+     ],
+     [
+      5957.84,
+      3630.08,
+      45.54
+     ],
+     [
+      5977.48,
+      3638.31,
+      45.51
+     ],
+     [
+      6016.48,
+      3668.01,
+      45.43
+     ],
+     [
+      6057.02,
+      3701.5,
+      45.49
+     ],
+     [
+      6094.86,
+      3732.63,
+      45.6
+     ],
+     [
+      6097.82,
+      3734.89,
+      45.65
+     ],
+     [
+      6135.5,
+      3763.73,
+      46.27
+     ],
+     [
+      6186.53,
+      3812.7,
+      46.38
+     ],
+     [
+      6227.96,
+      3855.09,
+      45.76
+     ],
+     [
+      6250.15,
+      3887.91,
+      45.73
+     ],
+     [
+      6263.96,
+      3916.35,
+      46.03
+     ],
+     [
+      6321.69,
+      4042.46,
+      47.15
+     ],
+     [
+      6330.79,
+      4046.43,
+      47.05
+     ],
+     [
+      6337.94,
+      4049.56,
+      47.17
+     ],
+     [
+      6344.24,
+      4049.82,
+      47.14
+     ],
+     [
+      6349.55,
+      4048.95,
+      47.12
+     ],
+     [
+      6352.59,
+      4054.63,
+      47.16
+     ]
+    ],
+    "osm_id": "563911155"
+   },
+   "junction_start": null,
+   "junction_end": null,
+   "continues_from": null,
+   "continues_to": "barriers:563911155:1",
+   "continuation_kind": {
+    "from": null,
+    "to": "seam"
+   },
+   "overrun_points": {
+    "before": null,
+    "after": [
+     5645.47,
+     3433.74,
+     38.05
+    ]
+   },
+   "flags": {
+    "bridge": false,
+    "tunnel": false,
+    "z_gap": false,
+    "steps": false,
+    "disused": false,
+    "gauge_unmapped": false,
+    "closed_loop": false,
+    "tracks": null
+   }
+  },
+  {
+   "id": "barriers:661308437:0",
+   "source": {
+    "layer": "barriers",
+    "osm_id": "661308437",
+    "name": null,
+    "cls": "fence",
+    "tags": {
+     "h_src": "default"
+    },
+    "tile": [
+     10,
+     6
+    ],
+    "segment_index": 0,
+    "segment_count": 1
+   },
+   "profile_ids": {
+    "road": null,
+    "edge_left": "edge_barrier_only",
+    "edge_right": null,
+    "hedge_left": null,
+    "hedge_right": null
+   },
+   "points": [
+    {
+     "x": 5284.32,
+     "y": 3134.65,
+     "_z_06": 45.76
+    },
+    {
+     "x": 5299.2,
+     "y": 3144.41,
+     "_z_06": 45.6
+    },
+    {
+     "x": 5305.29,
+     "y": 3149.6,
+     "_z_06": 45.19
+    },
+    {
+     "x": 5311.38,
+     "y": 3154.79,
+     "_z_06": 45.01
+    },
+    {
+     "x": 5317.47,
+     "y": 3159.98,
+     "_z_06": 45.07
+    },
+    {
+     "x": 5317.91,
+     "y": 3160.35,
+     "_z_06": 45.05
+    },
+    {
+     "x": 5324.61,
+     "y": 3159.35,
+     "_z_06": 45.09
+    },
+    {
+     "x": 5330.55,
+     "y": 3164.72,
+     "_z_06": 45
+    },
+    {
+     "x": 5336.48,
+     "y": 3170.09,
+     "_z_06": 44.91
+    },
+    {
+     "x": 5342.41,
+     "y": 3175.46,
+     "_z_06": 44.77
+    },
+    {
+     "x": 5346.97,
+     "y": 3179.59,
+     "_z_06": 44.67
+    },
+    {
+     "x": 5345.67,
+     "y": 3187.48,
+     "_z_06": 44.77
+    },
+    {
+     "x": 5345.57,
+     "y": 3188.12,
+     "_z_06": 44.74
+    },
+    {
+     "x": 5349.11,
+     "y": 3192.1,
+     "_z_06": 44.55
+    },
+    {
+     "x": 5352.33,
+     "y": 3195.71,
+     "_z_06": 44.6
+    },
+    {
+     "x": 5356.32,
+     "y": 3194.58,
+     "_z_06": 44.51
+    },
+    {
+     "x": 5359.48,
+     "y": 3194.68,
+     "_z_06": 44.47
+    }
+   ],
+   "segments": [
+    {
+     "id": "adapter",
+     "s0_m": 0,
+     "s1_m": null,
+     "side": "left",
+     "edge": {
+      "barrier": {
+       "type": "wood_fence",
+       "height_m": 1.5,
+       "thickness_m": 0.05,
+       "material": "wood_fence",
+       "post_pitch_m": 1.8,
+       "offset_m": -0.025
+      }
+     }
+    }
+   ],
+   "drop_kerbs": [],
+   "overlay": {
+    "kind": "osm_way",
+    "pts": [
+     [
+      5284.32,
+      3134.65,
+      45.76
+     ],
+     [
+      5299.2,
+      3144.41,
+      45.6
+     ],
+     [
+      5317.91,
+      3160.35,
+      45.05
+     ],
+     [
+      5324.61,
+      3159.35,
+      45.09
+     ],
+     [
+      5346.97,
+      3179.59,
+      44.67
+     ],
+     [
+      5345.57,
+      3188.12,
+      44.74
+     ],
+     [
+      5349.11,
+      3192.1,
+      44.55
+     ],
+     [
+      5352.33,
+      3195.71,
+      44.6
+     ],
+     [
+      5356.32,
+      3194.58,
+      44.51
+     ],
+     [
+      5359.48,
+      3194.68,
+      44.47
+     ]
+    ],
+    "osm_id": "661308437"
+   },
+   "junction_start": null,
+   "junction_end": null,
+   "continues_from": null,
+   "continues_to": null,
+   "continuation_kind": {
+    "from": null,
+    "to": null
+   },
+   "overrun_points": {
+    "before": null,
+    "after": null
+   },
+   "flags": {
+    "bridge": false,
+    "tunnel": false,
+    "z_gap": false,
+    "steps": false,
+    "disused": false,
+    "gauge_unmapped": false,
+    "closed_loop": false,
+    "tracks": null
+   }
+  },
+  {
+   "id": "barriers:661308439:0",
+   "source": {
+    "layer": "barriers",
+    "osm_id": "661308439",
+    "name": null,
+    "cls": "fence",
+    "tags": {
+     "h_src": "default"
+    },
+    "tile": [
+     10,
+     6
+    ],
+    "segment_index": 0,
+    "segment_count": 1
+   },
+   "profile_ids": {
+    "road": null,
+    "edge_left": "edge_barrier_only",
+    "edge_right": null,
+    "hedge_left": null,
+    "hedge_right": null
+   },
+   "points": [
+    {
+     "x": 5173.35,
+     "y": 3072.73,
+     "_z_06": 47.26
+    },
+    {
+     "x": 5119.77,
+     "y": 3132.42,
+     "_z_06": 45.69
+    }
+   ],
+   "segments": [
+    {
+     "id": "adapter",
+     "s0_m": 0,
+     "s1_m": null,
+     "side": "left",
+     "edge": {
+      "barrier": {
+       "type": "wood_fence",
+       "height_m": 1.5,
+       "thickness_m": 0.05,
+       "material": "wood_fence",
+       "post_pitch_m": 1.8,
+       "offset_m": -0.025
+      }
+     }
+    }
+   ],
+   "drop_kerbs": [],
+   "overlay": {
+    "kind": "osm_way",
+    "pts": [
+     [
+      5173.35,
+      3072.73,
+      47.26
+     ],
+     [
+      5143.34,
+      3106.16,
+      45.95
+     ],
+     [
+      5119.77,
+      3132.42,
+      45.69
+     ]
+    ],
+    "osm_id": "661308439"
+   },
+   "junction_start": null,
+   "junction_end": null,
+   "continues_from": null,
+   "continues_to": null,
+   "continuation_kind": {
+    "from": null,
+    "to": null
+   },
+   "overrun_points": {
+    "before": null,
+    "after": null
+   },
+   "flags": {
+    "bridge": false,
+    "tunnel": false,
+    "z_gap": false,
+    "steps": false,
+    "disused": false,
+    "gauge_unmapped": false,
+    "closed_loop": false,
+    "tracks": null
+   }
+  },
+  {
+   "id": "barriers:661308440:0",
+   "source": {
+    "layer": "barriers",
+    "osm_id": "661308440",
+    "name": null,
+    "cls": "fence",
+    "tags": {
+     "h_src": "default"
+    },
+    "tile": [
+     10,
+     6
+    ],
+    "segment_index": 0,
+    "segment_count": 1
+   },
+   "profile_ids": {
+    "road": null,
+    "edge_left": "edge_barrier_only",
+    "edge_right": null,
+    "hedge_left": null,
+    "hedge_right": null
+   },
+   "points": [
+    {
+     "x": 5256.44,
+     "y": 3166.12,
+     "_z_06": 45.46
+    },
+    {
+     "x": 5261.02,
+     "y": 3197.79,
+     "_z_06": 45.03
+    },
+    {
+     "x": 5262.14,
+     "y": 3205.58,
+     "_z_06": 45.02
+    },
+    {
+     "x": 5268.06,
+     "y": 3210.97,
+     "_z_06": 44.99
+    },
+    {
+     "x": 5273.97,
+     "y": 3216.35,
+     "_z_06": 44.9
+    },
+    {
+     "x": 5293.18,
+     "y": 3233.85,
+     "_z_06": 44.58
+    },
+    {
+     "x": 5305.11,
+     "y": 3244.68,
+     "_z_06": 44.04
+    },
+    {
+     "x": 5309.9,
+     "y": 3249.75,
+     "_z_06": 43.61
+    },
+    {
+     "x": 5315.42,
+     "y": 3243.97,
+     "_z_06": 43.53
+    },
+    {
+     "x": 5320.95,
+     "y": 3238.18,
+     "_z_06": 43.72
+    },
+    {
+     "x": 5331.99,
+     "y": 3226.61,
+     "_z_06": 43.87
+    },
+    {
+     "x": 5333.29,
+     "y": 3225.25,
+     "_z_06": 43.98
+    },
+    {
+     "x": 5332.32,
+     "y": 3220.17,
+     "_z_06": 44.15
+    },
+    {
+     "x": 5338.06,
+     "y": 3214.61,
+     "_z_06": 44.18
+    },
+    {
+     "x": 5341.33,
+     "y": 3211.44,
+     "_z_06": 44.15
+    },
+    {
+     "x": 5345.79,
+     "y": 3212.02,
+     "_z_06": 44.05
+    },
+    {
+     "x": 5350.75,
+     "y": 3205.74,
+     "_z_06": 44.15
+    },
+    {
+     "x": 5359.48,
+     "y": 3194.68,
+     "_z_06": 44.47
+    },
+    {
+     "x": 5365.7,
+     "y": 3187.91,
+     "_z_06": 44.46
+    }
+   ],
+   "segments": [
+    {
+     "id": "adapter",
+     "s0_m": 0,
+     "s1_m": null,
+     "side": "left",
+     "edge": {
+      "barrier": {
+       "type": "wood_fence",
+       "height_m": 1.5,
+       "thickness_m": 0.05,
+       "material": "wood_fence",
+       "post_pitch_m": 1.8,
+       "offset_m": -0.025
+      }
+     }
+    }
+   ],
+   "drop_kerbs": [],
+   "overlay": {
+    "kind": "osm_way",
+    "pts": [
+     [
+      5256.44,
+      3166.12,
+      45.46
+     ],
+     [
+      5262.14,
+      3205.58,
+      45.02
+     ],
+     [
+      5293.18,
+      3233.85,
+      44.58
+     ],
+     [
+      5299.34,
+      3239.49,
+      44.14
+     ],
+     [
+      5305.11,
+      3244.68,
+      44.04
+     ],
+     [
+      5309.9,
+      3249.75,
+      43.61
+     ],
+     [
+      5333.29,
+      3225.25,
+      43.98
+     ],
+     [
+      5332.32,
+      3220.17,
+      44.15
+     ],
+     [
+      5341.33,
+      3211.44,
+      44.15
+     ],
+     [
+      5345.79,
+      3212.02,
+      44.05
+     ],
+     [
+      5359.48,
+      3194.68,
+      44.47
+     ],
+     [
+      5361.88,
+      3191.98,
+      44.29
+     ],
+     [
+      5365.7,
+      3187.91,
+      44.46
+     ]
+    ],
+    "osm_id": "661308440"
+   },
+   "junction_start": null,
+   "junction_end": null,
+   "continues_from": null,
+   "continues_to": null,
+   "continuation_kind": {
+    "from": null,
+    "to": null
+   },
+   "overrun_points": {
+    "before": null,
+    "after": null
+   },
+   "flags": {
+    "bridge": false,
+    "tunnel": false,
+    "z_gap": false,
+    "steps": false,
+    "disused": false,
+    "gauge_unmapped": false,
+    "closed_loop": false,
+    "tracks": null
+   }
+  },
+  {
+   "id": "barriers:661308441:0",
+   "source": {
+    "layer": "barriers",
+    "osm_id": "661308441",
+    "name": null,
+    "cls": "fence",
+    "tags": {
+     "h_src": "default"
+    },
+    "tile": [
+     10,
+     6
+    ],
+    "segment_index": 0,
+    "segment_count": 2
+   },
+   "profile_ids": {
+    "road": null,
+    "edge_left": "edge_barrier_only",
+    "edge_right": null,
+    "hedge_left": null,
+    "hedge_right": null
+   },
+   "points": [
+    {
+     "x": 5293.18,
+     "y": 3233.85,
+     "_z_06": 44.58
+    },
+    {
+     "x": 5282.07,
+     "y": 3245.37,
+     "_z_06": 44.17
+    },
+    {
+     "x": 5280.31,
+     "y": 3247.2,
+     "_z_06": 44.07
+    },
+    {
+     "x": 5273.28,
+     "y": 3243.38,
+     "_z_06": 44.02
+    },
+    {
+     "x": 5266.25,
+     "y": 3239.56,
+     "_z_06": 44.09
+    },
+    {
+     "x": 5238.13,
+     "y": 3224.29,
+     "_z_06": 44.49
+    },
+    {
+     "x": 5195.96,
+     "y": 3201.37,
+     "_z_06": 45.16
+    },
+    {
+     "x": 5188.93,
+     "y": 3197.55,
+     "_z_06": 45.31
+    },
+    {
+     "x": 5183.63,
+     "y": 3194.67,
+     "_z_06": 45.18
+    },
+    {
+     "x": 5182.75,
+     "y": 3188.72,
+     "_z_06": 45.37
+    },
+    {
+     "x": 5185.88,
+     "y": 3182.66,
+     "_z_06": 45.48
+    },
+    {
+     "x": 5179.77,
+     "y": 3179.98,
+     "_z_06": 45.53
+    },
+    {
+     "x": 5173.69,
+     "y": 3177.58,
+     "_z_06": 45.7
+    },
+    {
+     "x": 5170.6,
+     "y": 3181.4,
+     "_z_06": 45.61
+    },
+    {
+     "x": 5163.83,
+     "y": 3183.91,
+     "_z_06": 45.74
+    },
+    {
+     "x": 5156.83,
+     "y": 3180.04,
+     "_z_06": 45.72
+    },
+    {
+     "x": 5149.83,
+     "y": 3176.17,
+     "_z_06": 45.42
+    },
+    {
+     "x": 5114.82,
+     "y": 3156.81,
+     "_z_06": 45.48
+    }
+   ],
+   "segments": [
+    {
+     "id": "adapter",
+     "s0_m": 0,
+     "s1_m": null,
+     "side": "left",
+     "edge": {
+      "barrier": {
+       "type": "wood_fence",
+       "height_m": 1.5,
+       "thickness_m": 0.05,
+       "material": "wood_fence",
+       "post_pitch_m": 1.8,
+       "offset_m": -0.025
+      }
+     }
+    }
+   ],
+   "drop_kerbs": [],
+   "overlay": {
+    "kind": "osm_way",
+    "pts": [
+     [
+      5293.18,
+      3233.85,
+      44.58
+     ],
+     [
+      5280.31,
+      3247.2,
+      44.07
+     ],
+     [
+      5183.63,
+      3194.67,
+      45.18
+     ],
+     [
+      5182.75,
+      3188.72,
+      45.37
+     ],
+     [
+      5185.88,
+      3182.66,
+      45.48
+     ],
+     [
+      5179.77,
+      3179.98,
+      45.53
+     ],
+     [
+      5173.69,
+      3177.58,
+      45.7
+     ],
+     [
+      5170.6,
+      3181.4,
+      45.61
+     ],
+     [
+      5163.83,
+      3183.91,
+      45.74
+     ],
+     [
+      5103.41,
+      3150.51,
+      45.81
+     ],
+     [
+      5119.77,
+      3132.42,
+      45.69
+     ],
+     [
+      5091.05,
+      3131.17,
+      45.75
+     ],
+     [
+      5072.95,
+      3105.33,
+      46.43
+     ],
+     [
+      5070.45,
+      3107.99,
+      46.18
+     ],
+     [
+      5068.41,
+      3110.18,
+      46.15
+     ],
+     [
+      5070.47,
+      3115.81,
+      46.19
+     ],
+     [
+      5063.66,
+      3119.36,
+      45.71
+     ],
+     [
+      5059.28,
+      3133.61,
+      45.97
+     ],
+     [
+      4950.92,
+      3116.62,
+      46.45
+     ]
+    ],
+    "osm_id": "661308441"
+   },
+   "junction_start": null,
+   "junction_end": null,
+   "continues_from": null,
+   "continues_to": "barriers:661308441:1",
+   "continuation_kind": {
+    "from": null,
+    "to": "seam"
+   },
+   "overrun_points": {
+    "before": null,
+    "after": [
+     5107.82,
+     3152.94,
+     45.61
+    ]
+   },
+   "flags": {
+    "bridge": false,
+    "tunnel": false,
+    "z_gap": false,
+    "steps": false,
+    "disused": false,
+    "gauge_unmapped": false,
+    "closed_loop": false,
+    "tracks": null
+   }
+  },
+  {
+   "id": "barriers:147963898:1",
+   "source": {
+    "layer": "barriers",
+    "osm_id": "147963898",
+    "name": null,
+    "cls": "fence",
+    "tags": {
+     "h_src": "default"
+    },
+    "tile": [
+     11,
+     6
+    ],
+    "segment_index": 1,
+    "segment_count": 5
+   },
+   "profile_ids": {
+    "road": null,
+    "edge_left": "edge_barrier_only",
+    "edge_right": null,
+    "hedge_left": null,
+    "hedge_right": null
+   },
+   "points": [
+    {
+     "x": 5634.88,
+     "y": 3507.28,
+     "_z_06": 38.81
+    },
+    {
+     "x": 5648.22,
+     "y": 3516.11,
+     "_z_06": 39.02
+    },
+    {
+     "x": 5650.35,
+     "y": 3517.52,
+     "_z_06": 39.09
+    },
+    {
+     "x": 5652.02,
+     "y": 3523.73,
+     "_z_06": 39.09
+    },
+    {
+     "x": 5653.91,
+     "y": 3525.12,
+     "_z_06": 39.12
+    },
+    {
+     "x": 5659.66,
+     "y": 3530.68,
+     "_z_06": 39.1
+    },
+    {
+     "x": 5665.41,
+     "y": 3536.24,
+     "_z_06": 39.6
+    },
+    {
+     "x": 5665.92,
+     "y": 3536.74,
+     "_z_06": 39.77
+    },
+    {
+     "x": 5660.85,
+     "y": 3542.92,
+     "_z_06": 39.55
+    },
+    {
+     "x": 5650.71,
+     "y": 3555.3,
+     "_z_06": 39.3
+    },
+    {
+     "x": 5645.64,
+     "y": 3561.48,
+     "_z_06": 39.19
+    },
+    {
+     "x": 5643.38,
+     "y": 3564.24,
+     "_z_06": 39.15
+    },
+    {
+     "x": 5649.71,
+     "y": 3569.13,
+     "_z_06": 39.7
+    },
+    {
+     "x": 5675.02,
+     "y": 3588.71,
+     "_z_06": 39.84
+    }
+   ],
+   "segments": [
+    {
+     "id": "adapter",
+     "s0_m": 0,
+     "s1_m": null,
+     "side": "left",
+     "edge": {
+      "barrier": {
+       "type": "wood_fence",
+       "height_m": 1.5,
+       "thickness_m": 0.05,
+       "material": "wood_fence",
+       "post_pitch_m": 1.8,
+       "offset_m": -0.025
+      }
+     }
+    }
+   ],
+   "drop_kerbs": [],
+   "overlay": {
+    "kind": "osm_way",
+    "pts": [
+     [
+      5566.62,
+      3460.95,
+      38.47
+     ],
+     [
+      5590.49,
+      3477.89,
+      38.45
+     ],
+     [
+      5621.53,
+      3498.45,
+      38.58
+     ],
+     [
+      5650.35,
+      3517.52,
+      39.09
+     ],
+     [
+      5652.02,
+      3523.73,
+      39.09
+     ],
+     [
+      5653.91,
+      3525.12,
+      39.12
+     ],
+     [
+      5665.92,
+      3536.74,
+      39.77
+     ],
+     [
+      5643.38,
+      3564.24,
+      39.15
+     ],
+     [
+      5676.68,
+      3589.99,
+      39.87
+     ],
+     [
+      5674.05,
+      3592.12,
+      39.82
+     ],
+     [
+      5679.98,
+      3597.46,
+      39.77
+     ],
+     [
+      5686.3,
+      3602.91,
+      40.38
+     ],
+     [
+      5711.8,
+      3572.47,
+      41.71
+     ],
+     [
+      5719.02,
+      3564.05,
+      41.34
+     ],
+     [
+      5731.11,
+      3562.11,
+      41.92
+     ],
+     [
+      5763.5,
+      3583.76,
+      42.78
+     ],
+     [
+      5770.25,
+      3583.06,
+      42.85
+     ],
+     [
+      5776.08,
+      3582.78,
+      43.26
+     ],
+     [
+      5804.8,
+      3595.05,
+      43.58
+     ],
+     [
+      5806.62,
+      3605.63,
+      43.51
+     ],
+     [
+      5809.63,
+      3607.81,
+      43.44
+     ],
+     [
+      5813.36,
+      3609.73,
+      43.5
+     ],
+     [
+      5826.55,
+      3604.25,
+      43.99
+     ],
+     [
+      5859.56,
+      3613.59,
+      44.39
+     ],
+     [
+      5881.4,
+      3618.56,
+      44.46
+     ],
+     [
+      5887.34,
+      3619.92,
+      44.6
+     ],
+     [
+      5910.34,
+      3624.01,
+      44.81
+     ],
+     [
+      5931.51,
+      3629.77,
+      45.09
+     ],
+     [
+      5948.92,
+      3636.65,
+      45.25
+     ],
+     [
+      5966.76,
+      3646.4,
+      45.39
+     ],
+     [
+      5988.93,
+      3662.62,
+      45.35
+     ],
+     [
+      6007.99,
+      3678.04,
+      45.24
+     ],
+     [
+      6061.72,
+      3720.85,
+      45.36
+     ]
+    ],
+    "osm_id": "147963898"
+   },
+   "junction_start": null,
+   "junction_end": null,
+   "continues_from": "barriers:147963898:0",
+   "continues_to": "barriers:147963898:2",
+   "continuation_kind": {
+    "from": "seam",
+    "to": "seam"
+   },
+   "overrun_points": {
+    "before": [
+     5603.83,
+     3486.72,
+     38.6
+    ],
+    "after": [
+     5676.68,
+     3589.99,
+     39.87
+    ]
+   },
+   "flags": {
+    "bridge": false,
+    "tunnel": false,
+    "z_gap": false,
+    "steps": false,
+    "disused": false,
+    "gauge_unmapped": false,
+    "closed_loop": false,
+    "tracks": null
+   }
+  },
+  {
+   "id": "barriers:147963898:3",
+   "source": {
+    "layer": "barriers",
+    "osm_id": "147963898",
+    "name": null,
+    "cls": "fence",
+    "tags": {
+     "h_src": "default"
+    },
+    "tile": [
+     11,
+     6
+    ],
+    "segment_index": 3,
+    "segment_count": 5
+   },
+   "profile_ids": {
+    "road": null,
+    "edge_left": "edge_barrier_only",
+    "edge_right": null,
+    "hedge_left": null,
+    "hedge_right": null
+   },
+   "points": [
+    {
+     "x": 5706.85,
+     "y": 3578.37,
+     "_z_06": 41.51
+    },
+    {
+     "x": 5717.01,
+     "y": 3566.4,
+     "_z_06": 41.43
+    },
+    {
+     "x": 5719.02,
+     "y": 3564.05,
+     "_z_06": 41.34
+    },
+    {
+     "x": 5726.92,
+     "y": 3562.78,
+     "_z_06": 41.97
+    },
+    {
+     "x": 5731.11,
+     "y": 3562.11,
+     "_z_06": 41.92
+    },
+    {
+     "x": 5737.76,
+     "y": 3566.56,
+     "_z_06": 42.22
+    },
+    {
+     "x": 5757.72,
+     "y": 3579.9,
+     "_z_06": 42.86
+    },
+    {
+     "x": 5763.5,
+     "y": 3583.76,
+     "_z_06": 42.78
+    },
+    {
+     "x": 5770.25,
+     "y": 3583.06,
+     "_z_06": 42.85
+    },
+    {
+     "x": 5776.08,
+     "y": 3582.78,
+     "_z_06": 43.26
+    },
+    {
+     "x": 5783.44,
+     "y": 3585.92,
+     "_z_06": 43.39
+    }
+   ],
+   "segments": [
+    {
+     "id": "adapter",
+     "s0_m": 0,
+     "s1_m": null,
+     "side": "left",
+     "edge": {
+      "barrier": {
+       "type": "wood_fence",
+       "height_m": 1.5,
+       "thickness_m": 0.05,
+       "material": "wood_fence",
+       "post_pitch_m": 1.8,
+       "offset_m": -0.025
+      }
+     }
+    }
+   ],
+   "drop_kerbs": [],
+   "overlay": {
+    "kind": "osm_way",
+    "pts": [
+     [
+      5566.62,
+      3460.95,
+      38.47
+     ],
+     [
+      5590.49,
+      3477.89,
+      38.45
+     ],
+     [
+      5621.53,
+      3498.45,
+      38.58
+     ],
+     [
+      5650.35,
+      3517.52,
+      39.09
+     ],
+     [
+      5652.02,
+      3523.73,
+      39.09
+     ],
+     [
+      5653.91,
+      3525.12,
+      39.12
+     ],
+     [
+      5665.92,
+      3536.74,
+      39.77
+     ],
+     [
+      5643.38,
+      3564.24,
+      39.15
+     ],
+     [
+      5676.68,
+      3589.99,
+      39.87
+     ],
+     [
+      5674.05,
+      3592.12,
+      39.82
+     ],
+     [
+      5679.98,
+      3597.46,
+      39.77
+     ],
+     [
+      5686.3,
+      3602.91,
+      40.38
+     ],
+     [
+      5711.8,
+      3572.47,
+      41.71
+     ],
+     [
+      5719.02,
+      3564.05,
+      41.34
+     ],
+     [
+      5731.11,
+      3562.11,
+      41.92
+     ],
+     [
+      5763.5,
+      3583.76,
+      42.78
+     ],
+     [
+      5770.25,
+      3583.06,
+      42.85
+     ],
+     [
+      5776.08,
+      3582.78,
+      43.26
+     ],
+     [
+      5804.8,
+      3595.05,
+      43.58
+     ],
+     [
+      5806.62,
+      3605.63,
+      43.51
+     ],
+     [
+      5809.63,
+      3607.81,
+      43.44
+     ],
+     [
+      5813.36,
+      3609.73,
+      43.5
+     ],
+     [
+      5826.55,
+      3604.25,
+      43.99
+     ],
+     [
+      5859.56,
+      3613.59,
+      44.39
+     ],
+     [
+      5881.4,
+      3618.56,
+      44.46
+     ],
+     [
+      5887.34,
+      3619.92,
+      44.6
+     ],
+     [
+      5910.34,
+      3624.01,
+      44.81
+     ],
+     [
+      5931.51,
+      3629.77,
+      45.09
+     ],
+     [
+      5948.92,
+      3636.65,
+      45.25
+     ],
+     [
+      5966.76,
+      3646.4,
+      45.39
+     ],
+     [
+      5988.93,
+      3662.62,
+      45.35
+     ],
+     [
+      6007.99,
+      3678.04,
+      45.24
+     ],
+     [
+      6061.72,
+      3720.85,
+      45.36
+     ]
+    ],
+    "osm_id": "147963898"
+   },
+   "junction_start": null,
+   "junction_end": null,
+   "continues_from": "barriers:147963898:2",
+   "continues_to": "barriers:147963898:4",
+   "continuation_kind": {
+    "from": "seam",
+    "to": "seam"
+   },
+   "overrun_points": {
+    "before": [
+     5691.44,
+     3596.77,
+     40.58
+    ],
+    "after": [
+     5798.15,
+     3592.21,
+     43.69
+    ]
+   },
+   "flags": {
+    "bridge": false,
+    "tunnel": false,
+    "z_gap": false,
+    "steps": false,
+    "disused": false,
+    "gauge_unmapped": false,
+    "closed_loop": false,
+    "tracks": null
+   }
+  },
+  {
+   "id": "barriers:492867846:1",
+   "source": {
+    "layer": "barriers",
+    "osm_id": "492867846",
+    "name": null,
+    "cls": "fence",
+    "tags": {
+     "fence_type": "metal",
+     "h_src": "default"
+    },
+    "tile": [
+     11,
+     6
+    ],
+    "segment_index": 1,
+    "segment_count": 3
+   },
+   "profile_ids": {
+    "road": null,
+    "edge_left": "edge_barrier_only",
+    "edge_right": null,
+    "hedge_left": null,
+    "hedge_right": null
+   },
+   "points": [
+    {
+     "x": 6138.38,
+     "y": 3295.25,
+     "_z_06": 43.35
+    },
+    {
+     "x": 6130.53,
+     "y": 3296.83,
+     "_z_06": 43.26
+    },
+    {
+     "x": 6123.72,
+     "y": 3298.2,
+     "_z_06": 43.16
+    },
+    {
+     "x": 6119.09,
+     "y": 3297,
+     "_z_06": 42.83
+    },
+    {
+     "x": 6116.69,
+     "y": 3300.01,
+     "_z_06": 42.91
+    },
+    {
+     "x": 6108.87,
+     "y": 3301.68,
+     "_z_06": 42.69
+    },
+    {
+     "x": 6101.04,
+     "y": 3303.36,
+     "_z_06": 42.52
+    },
+    {
+     "x": 6061.93,
+     "y": 3311.73,
+     "_z_06": 41.85
+    },
+    {
+     "x": 5901.1,
+     "y": 3346.15,
+     "_z_06": 40.86
+    },
+    {
+     "x": 5889.51,
+     "y": 3348.6,
+     "_z_06": 40.7
+    },
+    {
+     "x": 5873.81,
+     "y": 3351.67,
+     "_z_06": 40.5
+    },
+    {
+     "x": 5859.68,
+     "y": 3354.43,
+     "_z_06": 40.26
+    },
+    {
+     "x": 5851.73,
+     "y": 3355.31,
+     "_z_06": 40.14
+    },
+    {
+     "x": 5835.18,
+     "y": 3357.14,
+     "_z_06": 40.09
+    },
+    {
+     "x": 5819.19,
+     "y": 3357.79,
+     "_z_06": 39.98
+    },
+    {
+     "x": 5784.43,
+     "y": 3359.1,
+     "_z_06": 39.75
+    },
+    {
+     "x": 5724.09,
+     "y": 3360.74,
+     "_z_06": 39.52
+    },
+    {
+     "x": 5640.15,
+     "y": 3361.79,
+     "_z_06": 39.51
+    },
+    {
+     "x": 5629.3,
+     "y": 3362.04,
+     "_z_06": 39.68
+    }
+   ],
+   "segments": [
+    {
+     "id": "adapter",
+     "s0_m": 0,
+     "s1_m": null,
+     "side": "left",
+     "edge": {
+      "barrier": {
+       "type": "railing",
+       "height_m": 1.5,
+       "thickness_m": 0.05,
+       "material": "steel_painted_black",
+       "post_pitch_m": 2,
+       "offset_m": -0.025
+      }
+     }
+    }
+   ],
+   "drop_kerbs": [],
+   "overlay": {
+    "kind": "osm_way",
+    "pts": [
+     [
+      6296.15,
+      3185.23,
+      44.12
+     ],
+     [
+      6301.71,
+      3211.69,
+      43.94
+     ],
+     [
+      6311.97,
+      3260.53,
+      44.49
+     ],
+     [
+      6306.46,
+      3261.58,
+      44.63
+     ],
+     [
+      6304.06,
+      3262.44,
+      44.59
+     ],
+     [
+      6300.64,
+      3262.45,
+      44.6
+     ],
+     [
+      6294.78,
+      3263.72,
+      44.81
+     ],
+     [
+      6254.41,
+      3272.43,
+      44.75
+     ],
+     [
+      6157.41,
+      3293.38,
+      44.02
+     ],
+     [
+      6154.06,
+      3292.09,
+      43.81
+     ],
+     [
+      6123.72,
+      3298.2,
+      43.16
+     ],
+     [
+      6119.09,
+      3297,
+      42.83
+     ],
+     [
+      6116.69,
+      3300.01,
+      42.91
+     ],
+     [
+      5916.76,
+      3342.83,
+      40.96
+     ],
+     [
+      5889.51,
+      3348.6,
+      40.7
+     ],
+     [
+      5859.68,
+      3354.43,
+      40.26
+     ],
+     [
+      5835.18,
+      3357.14,
+      40.09
+     ],
+     [
+      5800.42,
+      3358.57,
+      39.81
+     ],
+     [
+      5782.49,
+      3359.16,
+      39.75
+     ],
+     [
+      5724.09,
+      3360.74,
+      39.52
+     ],
+     [
+      5648.15,
+      3361.69,
+      39.42
+     ],
+     [
+      5637.3,
+      3361.83,
+      39.55
+     ],
+     [
+      5614.2,
+      3362.42,
+      39.51
+     ],
+     [
+      5596.42,
+      3358.48,
+      39.5
+     ],
+     [
+      5587.21,
+      3360.36,
+      39.53
+     ],
+     [
+      5566.93,
+      3344.92,
+      39.89
+     ],
+     [
+      5546.88,
+      3329.68,
+      39.98
+     ],
+     [
+      5526.04,
+      3313.83,
+      40.35
+     ],
+     [
+      5525.84,
+      3313.86,
+      40.34
+     ],
+     [
+      5521.7,
+      3314.52,
+      40.49
+     ],
+     [
+      5493.99,
+      3295.26,
+      41.46
+     ],
+     [
+      5478.29,
+      3284.35,
+      41.71
+     ],
+     [
+      5448.99,
+      3264,
+      42.25
+     ],
+     [
+      5436.78,
+      3254.83,
+      42.61
+     ],
+     [
+      5420.38,
+      3239.38,
+      43.05
+     ],
+     [
+      5365.7,
+      3187.91,
+      44.46
+     ],
+     [
+      5318.12,
+      3142.31,
+      45.34
+     ]
+    ],
+    "osm_id": "492867846"
+   },
+   "junction_start": null,
+   "junction_end": null,
+   "continues_from": "barriers:492867846:0",
+   "continues_to": "barriers:492867846:2",
+   "continuation_kind": {
+    "from": "seam",
+    "to": "seam"
+   },
+   "overrun_points": {
+    "before": [
+     6146.22,
+     3293.67,
+     43.66
+    ],
+    "after": [
+     5621.3,
+     3362.24,
+     39.73
+    ]
+   },
+   "flags": {
+    "bridge": false,
+    "tunnel": false,
+    "z_gap": false,
+    "steps": false,
+    "disused": false,
+    "gauge_unmapped": false,
+    "closed_loop": false,
+    "tracks": null
+   }
+  },
+  {
+   "id": "barriers:563911155:1",
+   "source": {
+    "layer": "barriers",
+    "osm_id": "563911155",
+    "name": null,
+    "cls": "fence",
+    "tags": {
+     "h_src": "default"
+    },
+    "tile": [
+     11,
+     6
+    ],
+    "segment_index": 1,
+    "segment_count": 4
+   },
+   "profile_ids": {
+    "road": null,
+    "edge_left": "edge_barrier_only",
+    "edge_right": null,
+    "hedge_left": null,
+    "hedge_right": null
+   },
+   "points": [
+    {
+     "x": 5632.55,
+     "y": 3424.3,
+     "_z_06": 37.99
+    },
+    {
+     "x": 5645.47,
+     "y": 3433.74,
+     "_z_06": 38.05
+    },
+    {
+     "x": 5653.38,
+     "y": 3439.52,
+     "_z_06": 38.11
+    },
+    {
+     "x": 5659.17,
+     "y": 3445.04,
+     "_z_06": 38.02
+    },
+    {
+     "x": 5660.33,
+     "y": 3446.13,
+     "_z_06": 38.1
+    },
+    {
+     "x": 5667.98,
+     "y": 3448.45,
+     "_z_06": 38.31
+    },
+    {
+     "x": 5683.29,
+     "y": 3453.1,
+     "_z_06": 38.76
+    },
+    {
+     "x": 5690.95,
+     "y": 3455.42,
+     "_z_06": 39
+    },
+    {
+     "x": 5693.04,
+     "y": 3456.05,
+     "_z_06": 39.1
+    },
+    {
+     "x": 5699.63,
+     "y": 3460.58,
+     "_z_06": 39.48
+    },
+    {
+     "x": 5716.42,
+     "y": 3472.12,
+     "_z_06": 40.47
+    },
+    {
+     "x": 5722.85,
+     "y": 3476.54,
+     "_z_06": 40.8
+    },
+    {
+     "x": 5725.11,
+     "y": 3478.09,
+     "_z_06": 40.9
+    },
+    {
+     "x": 5733.04,
+     "y": 3477.04,
+     "_z_06": 41.08
+    },
+    {
+     "x": 5748.9,
+     "y": 3474.93,
+     "_z_06": 41.13
+    },
+    {
+     "x": 5772.69,
+     "y": 3471.76,
+     "_z_06": 41.81
+    },
+    {
+     "x": 5780.62,
+     "y": 3470.71,
+     "_z_06": 42.09
+    },
+    {
+     "x": 5789.36,
+     "y": 3469.54,
+     "_z_06": 42.32
+    },
+    {
+     "x": 5796.91,
+     "y": 3466.87,
+     "_z_06": 42.4
+    },
+    {
+     "x": 5813.63,
+     "y": 3460.96,
+     "_z_06": 42.63
+    },
+    {
+     "x": 5821.4,
+     "y": 3459.08,
+     "_z_06": 42.89
+    },
+    {
+     "x": 5829.18,
+     "y": 3457.2,
+     "_z_06": 43.25
+    },
+    {
+     "x": 5831.38,
+     "y": 3456.67,
+     "_z_06": 43.17
+    },
+    {
+     "x": 5839.38,
+     "y": 3457.01,
+     "_z_06": 43.23
+    },
+    {
+     "x": 5861.85,
+     "y": 3457.98,
+     "_z_06": 43.66
+    },
+    {
+     "x": 5869.85,
+     "y": 3458.12,
+     "_z_06": 43.9
+    },
+    {
+     "x": 5873.95,
+     "y": 3458.19,
+     "_z_06": 43.9
+    },
+    {
+     "x": 5880.26,
+     "y": 3463.1,
+     "_z_06": 44.05
+    },
+    {
+     "x": 5891.27,
+     "y": 3471.66,
+     "_z_06": 44.28
+    },
+    {
+     "x": 5894.71,
+     "y": 3474.64,
+     "_z_06": 44.38
+    },
+    {
+     "x": 5895.42,
+     "y": 3475.25,
+     "_z_06": 44.46
+    },
+    {
+     "x": 5895.94,
+     "y": 3483.23,
+     "_z_06": 45.01
+    },
+    {
+     "x": 5896.47,
+     "y": 3491.21,
+     "_z_06": 44.91
+    },
+    {
+     "x": 5899.09,
+     "y": 3531.13,
+     "_z_06": 45.23
+    },
+    {
+     "x": 5900.66,
+     "y": 3555.08,
+     "_z_06": 45.25
+    },
+    {
+     "x": 5901.15,
+     "y": 3562.49,
+     "_z_06": 45.28
+    },
+    {
+     "x": 5893.17,
+     "y": 3563.06,
+     "_z_06": 45.12
+    },
+    {
+     "x": 5885.19,
+     "y": 3563.63,
+     "_z_06": 45.07
+    },
+    {
+     "x": 5837.31,
+     "y": 3567.03,
+     "_z_06": 44.3
+    },
+    {
+     "x": 5821.35,
+     "y": 3568.16,
+     "_z_06": 44.09
+    },
+    {
+     "x": 5815.89,
+     "y": 3568.55,
+     "_z_06": 43.97
+    },
+    {
+     "x": 5814.55,
+     "y": 3576.43,
+     "_z_06": 43.93
+    },
+    {
+     "x": 5813.2,
+     "y": 3584.32,
+     "_z_06": 43.86
+    }
+   ],
+   "segments": [
+    {
+     "id": "adapter",
+     "s0_m": 0,
+     "s1_m": null,
+     "side": "left",
+     "edge": {
+      "barrier": {
+       "type": "wood_fence",
+       "height_m": 1.5,
+       "thickness_m": 0.05,
+       "material": "wood_fence",
+       "post_pitch_m": 1.8,
+       "offset_m": -0.025
+      }
+     }
+    }
+   ],
+   "drop_kerbs": [],
+   "overlay": {
+    "kind": "osm_way",
+    "pts": [
+     [
+      5608.58,
+      3371.7,
+      39.58
+     ],
+     [
+      5593.8,
+      3395.98,
+      39.15
+     ],
+     [
+      5653.38,
+      3439.52,
+      38.11
+     ],
+     [
+      5660.33,
+      3446.13,
+      38.1
+     ],
+     [
+      5693.04,
+      3456.05,
+      39.1
+     ],
+     [
+      5709.83,
+      3467.59,
+      40.09
+     ],
+     [
+      5722.85,
+      3476.54,
+      40.8
+     ],
+     [
+      5725.11,
+      3478.09,
+      40.9
+     ],
+     [
+      5789.36,
+      3469.54,
+      42.32
+     ],
+     [
+      5813.63,
+      3460.96,
+      42.63
+     ],
+     [
+      5831.38,
+      3456.67,
+      43.17
+     ],
+     [
+      5861.85,
+      3457.98,
+      43.66
+     ],
+     [
+      5873.95,
+      3458.19,
+      43.9
+     ],
+     [
+      5891.27,
+      3471.66,
+      44.28
+     ],
+     [
+      5894.71,
+      3474.64,
+      44.38
+     ],
+     [
+      5895.42,
+      3475.25,
+      44.46
+     ],
+     [
+      5901.15,
+      3562.49,
+      45.28
+     ],
+     [
+      5815.89,
+      3568.55,
+      43.97
+     ],
+     [
+      5812.62,
+      3587.72,
+      43.91
+     ],
+     [
+      5831.78,
+      3594.09,
+      44.16
+     ],
+     [
+      5835.61,
+      3595.91,
+      44.18
+     ],
+     [
+      5844.02,
+      3598.25,
+      44.38
+     ],
+     [
+      5876.22,
+      3606.31,
+      44.73
+     ],
+     [
+      5885.95,
+      3596.49,
+      44.8
+     ],
+     [
+      5914.47,
+      3604.7,
+      44.95
+     ],
+     [
+      5920.15,
+      3606.73,
+      45.26
+     ],
+     [
+      5920.46,
+      3615.4,
+      45.07
+     ],
+     [
+      5957.84,
+      3630.08,
+      45.54
+     ],
+     [
+      5977.48,
+      3638.31,
+      45.51
+     ],
+     [
+      6016.48,
+      3668.01,
+      45.43
+     ],
+     [
+      6057.02,
+      3701.5,
+      45.49
+     ],
+     [
+      6094.86,
+      3732.63,
+      45.6
+     ],
+     [
+      6097.82,
+      3734.89,
+      45.65
+     ],
+     [
+      6135.5,
+      3763.73,
+      46.27
+     ],
+     [
+      6186.53,
+      3812.7,
+      46.38
+     ],
+     [
+      6227.96,
+      3855.09,
+      45.76
+     ],
+     [
+      6250.15,
+      3887.91,
+      45.73
+     ],
+     [
+      6263.96,
+      3916.35,
+      46.03
+     ],
+     [
+      6321.69,
+      4042.46,
+      47.15
+     ],
+     [
+      6330.79,
+      4046.43,
+      47.05
+     ],
+     [
+      6337.94,
+      4049.56,
+      47.17
+     ],
+     [
+      6344.24,
+      4049.82,
+      47.14
+     ],
+     [
+      6349.55,
+      4048.95,
+      47.12
+     ],
+     [
+      6352.59,
+      4054.63,
+      47.16
+     ]
+    ],
+    "osm_id": "563911155"
+   },
+   "junction_start": null,
+   "junction_end": null,
+   "continues_from": "barriers:563911155:0",
+   "continues_to": "barriers:563911155:2",
+   "continuation_kind": {
+    "from": "seam",
+    "to": "seam"
+   },
+   "overrun_points": {
+    "before": [
+     5606.72,
+     3405.42,
+     38.59
+    ],
+    "after": [
+     5812.62,
+     3587.72,
+     43.91
+    ]
+   },
+   "flags": {
+    "bridge": false,
+    "tunnel": false,
+    "z_gap": false,
+    "steps": false,
+    "disused": false,
+    "gauge_unmapped": false,
+    "closed_loop": false,
+    "tracks": null
+   }
+  },
+  {
+   "id": "barriers:563911157:0",
+   "source": {
+    "layer": "barriers",
+    "osm_id": "563911157",
+    "name": null,
+    "cls": "fence",
+    "tags": {
+     "h_src": "default"
+    },
+    "tile": [
+     11,
+     6
+    ],
+    "segment_index": 0,
+    "segment_count": 1
+   },
+   "profile_ids": {
+    "road": null,
+    "edge_left": "edge_barrier_only",
+    "edge_right": null,
+    "hedge_left": null,
+    "hedge_right": null
+   },
+   "points": [
+    {
+     "x": 5789.36,
+     "y": 3469.54,
+     "_z_06": 42.32
+    },
+    {
+     "x": 5802.48,
+     "y": 3513.37,
+     "_z_06": 43.48
+    }
+   ],
+   "segments": [
+    {
+     "id": "adapter",
+     "s0_m": 0,
+     "s1_m": null,
+     "side": "left",
+     "edge": {
+      "barrier": {
+       "type": "wood_fence",
+       "height_m": 1.5,
+       "thickness_m": 0.05,
+       "material": "wood_fence",
+       "post_pitch_m": 1.8,
+       "offset_m": -0.025
+      }
+     }
+    }
+   ],
+   "drop_kerbs": [],
+   "overlay": {
+    "kind": "osm_way",
+    "pts": [
+     [
+      5789.36,
+      3469.54,
+      42.32
+     ],
+     [
+      5799.66,
+      3503.94,
+      43.62
+     ],
+     [
+      5802.48,
+      3513.37,
+      43.48
+     ]
+    ],
+    "osm_id": "563911157"
+   },
+   "junction_start": null,
+   "junction_end": null,
+   "continues_from": null,
+   "continues_to": "barriers:563920958:0",
+   "continuation_kind": {
+    "from": null,
+    "to": "way"
+   },
+   "overrun_points": {
+    "before": null,
+    "after": [
+     5804.45,
+     3517.99,
+     43.75
+    ]
+   },
+   "flags": {
+    "bridge": false,
+    "tunnel": false,
+    "z_gap": false,
+    "steps": false,
+    "disused": false,
+    "gauge_unmapped": false,
+    "closed_loop": false,
+    "tracks": null
+   }
+  },
+  {
+   "id": "barriers:563920958:0",
+   "source": {
+    "layer": "barriers",
+    "osm_id": "563920958",
+    "name": null,
+    "cls": "fence",
+    "tags": {
+     "h_src": "default"
+    },
+    "tile": [
+     11,
+     6
+    ],
+    "segment_index": 0,
+    "segment_count": 1
+   },
+   "profile_ids": {
+    "road": null,
+    "edge_left": "edge_barrier_only",
+    "edge_right": null,
+    "hedge_left": null,
+    "hedge_right": null
+   },
+   "points": [
+    {
+     "x": 5802.48,
+     "y": 3513.37,
+     "_z_06": 43.48
+    },
+    {
+     "x": 5804.45,
+     "y": 3517.99,
+     "_z_06": 43.75
+    },
+    {
+     "x": 5806.21,
+     "y": 3525.79,
+     "_z_06": 43.79
+    },
+    {
+     "x": 5807.98,
+     "y": 3533.6,
+     "_z_06": 43.8
+    },
+    {
+     "x": 5815.89,
+     "y": 3568.55,
+     "_z_06": 43.97
+    }
+   ],
+   "segments": [
+    {
+     "id": "adapter",
+     "s0_m": 0,
+     "s1_m": null,
+     "side": "left",
+     "edge": {
+      "barrier": {
+       "type": "wood_fence",
+       "height_m": 1.5,
+       "thickness_m": 0.05,
+       "material": "wood_fence",
+       "post_pitch_m": 1.8,
+       "offset_m": -0.025
+      }
+     }
+    }
+   ],
+   "drop_kerbs": [],
+   "overlay": {
+    "kind": "osm_way",
+    "pts": [
+     [
+      5802.48,
+      3513.37,
+      43.48
+     ],
+     [
+      5804.45,
+      3517.99,
+      43.75
+     ],
+     [
+      5815.89,
+      3568.55,
+      43.97
+     ]
+    ],
+    "osm_id": "563920958"
+   },
+   "junction_start": null,
+   "junction_end": null,
+   "continues_from": "barriers:563911157:0",
+   "continues_to": null,
+   "continuation_kind": {
+    "from": "way",
+    "to": null
+   },
+   "overrun_points": {
+    "before": [
+     5789.36,
+     3469.54,
+     42.32
+    ],
+    "after": null
+   },
+   "flags": {
+    "bridge": false,
+    "tunnel": false,
+    "z_gap": false,
+    "steps": false,
+    "disused": false,
+    "gauge_unmapped": false,
+    "closed_loop": false,
+    "tracks": null
+   }
+  },
+  {
+   "id": "barriers:147963898:2",
+   "source": {
+    "layer": "barriers",
+    "osm_id": "147963898",
+    "name": null,
+    "cls": "fence",
+    "tags": {
+     "h_src": "default"
+    },
+    "tile": [
+     11,
+     7
+    ],
+    "segment_index": 2,
+    "segment_count": 5
+   },
+   "profile_ids": {
+    "road": null,
+    "edge_left": "edge_barrier_only",
+    "edge_right": null,
+    "hedge_left": null,
+    "hedge_right": null
+   },
+   "points": [
+    {
+     "x": 5675.02,
+     "y": 3588.71,
+     "_z_06": 39.84
+    },
+    {
+     "x": 5676.68,
+     "y": 3589.99,
+     "_z_06": 39.87
+    },
+    {
+     "x": 5674.05,
+     "y": 3592.12,
+     "_z_06": 39.82
+    },
+    {
+     "x": 5679.98,
+     "y": 3597.46,
+     "_z_06": 39.77
+    },
+    {
+     "x": 5686.04,
+     "y": 3602.68,
+     "_z_06": 40.26
+    },
+    {
+     "x": 5686.3,
+     "y": 3602.91,
+     "_z_06": 40.38
+    },
+    {
+     "x": 5691.44,
+     "y": 3596.77,
+     "_z_06": 40.58
+    },
+    {
+     "x": 5706.85,
+     "y": 3578.37,
+     "_z_06": 41.51
+    }
+   ],
+   "segments": [
+    {
+     "id": "adapter",
+     "s0_m": 0,
+     "s1_m": null,
+     "side": "left",
+     "edge": {
+      "barrier": {
+       "type": "wood_fence",
+       "height_m": 1.5,
+       "thickness_m": 0.05,
+       "material": "wood_fence",
+       "post_pitch_m": 1.8,
+       "offset_m": -0.025
+      }
+     }
+    }
+   ],
+   "drop_kerbs": [],
+   "overlay": {
+    "kind": "osm_way",
+    "pts": [
+     [
+      5566.62,
+      3460.95,
+      38.47
+     ],
+     [
+      5590.49,
+      3477.89,
+      38.45
+     ],
+     [
+      5621.53,
+      3498.45,
+      38.58
+     ],
+     [
+      5650.35,
+      3517.52,
+      39.09
+     ],
+     [
+      5652.02,
+      3523.73,
+      39.09
+     ],
+     [
+      5653.91,
+      3525.12,
+      39.12
+     ],
+     [
+      5665.92,
+      3536.74,
+      39.77
+     ],
+     [
+      5643.38,
+      3564.24,
+      39.15
+     ],
+     [
+      5676.68,
+      3589.99,
+      39.87
+     ],
+     [
+      5674.05,
+      3592.12,
+      39.82
+     ],
+     [
+      5679.98,
+      3597.46,
+      39.77
+     ],
+     [
+      5686.3,
+      3602.91,
+      40.38
+     ],
+     [
+      5711.8,
+      3572.47,
+      41.71
+     ],
+     [
+      5719.02,
+      3564.05,
+      41.34
+     ],
+     [
+      5731.11,
+      3562.11,
+      41.92
+     ],
+     [
+      5763.5,
+      3583.76,
+      42.78
+     ],
+     [
+      5770.25,
+      3583.06,
+      42.85
+     ],
+     [
+      5776.08,
+      3582.78,
+      43.26
+     ],
+     [
+      5804.8,
+      3595.05,
+      43.58
+     ],
+     [
+      5806.62,
+      3605.63,
+      43.51
+     ],
+     [
+      5809.63,
+      3607.81,
+      43.44
+     ],
+     [
+      5813.36,
+      3609.73,
+      43.5
+     ],
+     [
+      5826.55,
+      3604.25,
+      43.99
+     ],
+     [
+      5859.56,
+      3613.59,
+      44.39
+     ],
+     [
+      5881.4,
+      3618.56,
+      44.46
+     ],
+     [
+      5887.34,
+      3619.92,
+      44.6
+     ],
+     [
+      5910.34,
+      3624.01,
+      44.81
+     ],
+     [
+      5931.51,
+      3629.77,
+      45.09
+     ],
+     [
+      5948.92,
+      3636.65,
+      45.25
+     ],
+     [
+      5966.76,
+      3646.4,
+      45.39
+     ],
+     [
+      5988.93,
+      3662.62,
+      45.35
+     ],
+     [
+      6007.99,
+      3678.04,
+      45.24
+     ],
+     [
+      6061.72,
+      3720.85,
+      45.36
+     ]
+    ],
+    "osm_id": "147963898"
+   },
+   "junction_start": null,
+   "junction_end": null,
+   "continues_from": "barriers:147963898:1",
+   "continues_to": "barriers:147963898:3",
+   "continuation_kind": {
+    "from": "seam",
+    "to": "seam"
+   },
+   "overrun_points": {
+    "before": [
+     5649.71,
+     3569.13,
+     39.7
+    ],
+    "after": [
+     5717.01,
+     3566.4,
+     41.43
+    ]
+   },
+   "flags": {
+    "bridge": false,
+    "tunnel": false,
+    "z_gap": false,
+    "steps": false,
+    "disused": false,
+    "gauge_unmapped": false,
+    "closed_loop": false,
+    "tracks": null
+   }
+  },
+  {
+   "id": "barriers:147963898:4",
+   "source": {
+    "layer": "barriers",
+    "osm_id": "147963898",
+    "name": null,
+    "cls": "fence",
+    "tags": {
+     "h_src": "default"
+    },
+    "tile": [
+     11,
+     7
+    ],
+    "segment_index": 4,
+    "segment_count": 5
+   },
+   "profile_ids": {
+    "road": null,
+    "edge_left": "edge_barrier_only",
+    "edge_right": null,
+    "hedge_left": null,
+    "hedge_right": null
+   },
+   "points": [
+    {
+     "x": 5783.44,
+     "y": 3585.92,
+     "_z_06": 43.39
+    },
+    {
+     "x": 5798.15,
+     "y": 3592.21,
+     "_z_06": 43.69
+    },
+    {
+     "x": 5804.8,
+     "y": 3595.05,
+     "_z_06": 43.58
+    },
+    {
+     "x": 5806.16,
+     "y": 3602.94,
+     "_z_06": 43.56
+    },
+    {
+     "x": 5806.62,
+     "y": 3605.63,
+     "_z_06": 43.51
+    },
+    {
+     "x": 5809.63,
+     "y": 3607.81,
+     "_z_06": 43.44
+    },
+    {
+     "x": 5813.36,
+     "y": 3609.73,
+     "_z_06": 43.5
+    },
+    {
+     "x": 5820.75,
+     "y": 3606.66,
+     "_z_06": 43.9
+    },
+    {
+     "x": 5826.55,
+     "y": 3604.25,
+     "_z_06": 43.99
+    },
+    {
+     "x": 5834.24,
+     "y": 3606.43,
+     "_z_06": 43.95
+    },
+    {
+     "x": 5859.56,
+     "y": 3613.59,
+     "_z_06": 44.39
+    },
+    {
+     "x": 5875.16,
+     "y": 3617.14,
+     "_z_06": 44.48
+    },
+    {
+     "x": 5887.34,
+     "y": 3619.92,
+     "_z_06": 44.6
+    },
+    {
+     "x": 5910.34,
+     "y": 3624.01,
+     "_z_06": 44.81
+    },
+    {
+     "x": 5918.06,
+     "y": 3626.11,
+     "_z_06": 44.87
+    },
+    {
+     "x": 5931.51,
+     "y": 3629.77,
+     "_z_06": 45.09
+    },
+    {
+     "x": 5938.95,
+     "y": 3632.71,
+     "_z_06": 45.2
+    },
+    {
+     "x": 5948.92,
+     "y": 3636.65,
+     "_z_06": 45.25
+    },
+    {
+     "x": 5955.94,
+     "y": 3640.48,
+     "_z_06": 45.21
+    },
+    {
+     "x": 5962.96,
+     "y": 3644.32,
+     "_z_06": 45.35
+    },
+    {
+     "x": 5966.76,
+     "y": 3646.4,
+     "_z_06": 45.39
+    },
+    {
+     "x": 5973.22,
+     "y": 3651.12,
+     "_z_06": 45.32
+    },
+    {
+     "x": 5988.93,
+     "y": 3662.62,
+     "_z_06": 45.35
+    },
+    {
+     "x": 6007.99,
+     "y": 3678.04,
+     "_z_06": 45.24
+    },
+    {
+     "x": 6061.72,
+     "y": 3720.85,
+     "_z_06": 45.36
+    }
+   ],
+   "segments": [
+    {
+     "id": "adapter",
+     "s0_m": 0,
+     "s1_m": null,
+     "side": "left",
+     "edge": {
+      "barrier": {
+       "type": "wood_fence",
+       "height_m": 1.5,
+       "thickness_m": 0.05,
+       "material": "wood_fence",
+       "post_pitch_m": 1.8,
+       "offset_m": -0.025
+      }
+     }
+    }
+   ],
+   "drop_kerbs": [],
+   "overlay": {
+    "kind": "osm_way",
+    "pts": [
+     [
+      5566.62,
+      3460.95,
+      38.47
+     ],
+     [
+      5590.49,
+      3477.89,
+      38.45
+     ],
+     [
+      5621.53,
+      3498.45,
+      38.58
+     ],
+     [
+      5650.35,
+      3517.52,
+      39.09
+     ],
+     [
+      5652.02,
+      3523.73,
+      39.09
+     ],
+     [
+      5653.91,
+      3525.12,
+      39.12
+     ],
+     [
+      5665.92,
+      3536.74,
+      39.77
+     ],
+     [
+      5643.38,
+      3564.24,
+      39.15
+     ],
+     [
+      5676.68,
+      3589.99,
+      39.87
+     ],
+     [
+      5674.05,
+      3592.12,
+      39.82
+     ],
+     [
+      5679.98,
+      3597.46,
+      39.77
+     ],
+     [
+      5686.3,
+      3602.91,
+      40.38
+     ],
+     [
+      5711.8,
+      3572.47,
+      41.71
+     ],
+     [
+      5719.02,
+      3564.05,
+      41.34
+     ],
+     [
+      5731.11,
+      3562.11,
+      41.92
+     ],
+     [
+      5763.5,
+      3583.76,
+      42.78
+     ],
+     [
+      5770.25,
+      3583.06,
+      42.85
+     ],
+     [
+      5776.08,
+      3582.78,
+      43.26
+     ],
+     [
+      5804.8,
+      3595.05,
+      43.58
+     ],
+     [
+      5806.62,
+      3605.63,
+      43.51
+     ],
+     [
+      5809.63,
+      3607.81,
+      43.44
+     ],
+     [
+      5813.36,
+      3609.73,
+      43.5
+     ],
+     [
+      5826.55,
+      3604.25,
+      43.99
+     ],
+     [
+      5859.56,
+      3613.59,
+      44.39
+     ],
+     [
+      5881.4,
+      3618.56,
+      44.46
+     ],
+     [
+      5887.34,
+      3619.92,
+      44.6
+     ],
+     [
+      5910.34,
+      3624.01,
+      44.81
+     ],
+     [
+      5931.51,
+      3629.77,
+      45.09
+     ],
+     [
+      5948.92,
+      3636.65,
+      45.25
+     ],
+     [
+      5966.76,
+      3646.4,
+      45.39
+     ],
+     [
+      5988.93,
+      3662.62,
+      45.35
+     ],
+     [
+      6007.99,
+      3678.04,
+      45.24
+     ],
+     [
+      6061.72,
+      3720.85,
+      45.36
+     ]
+    ],
+    "osm_id": "147963898"
+   },
+   "junction_start": null,
+   "junction_end": null,
+   "continues_from": "barriers:147963898:3",
+   "continues_to": null,
+   "continuation_kind": {
+    "from": "seam",
+    "to": null
+   },
+   "overrun_points": {
+    "before": [
+     5776.08,
+     3582.78,
+     43.26
+    ],
+    "after": null
+   },
+   "flags": {
+    "bridge": false,
+    "tunnel": false,
+    "z_gap": false,
+    "steps": false,
+    "disused": false,
+    "gauge_unmapped": false,
+    "closed_loop": false,
+    "tracks": null
+   }
+  },
+  {
+   "id": "barriers:563911155:2",
+   "source": {
+    "layer": "barriers",
+    "osm_id": "563911155",
+    "name": null,
+    "cls": "fence",
+    "tags": {
+     "h_src": "default"
+    },
+    "tile": [
+     11,
+     7
+    ],
+    "segment_index": 2,
+    "segment_count": 4
+   },
+   "profile_ids": {
+    "road": null,
+    "edge_left": "edge_barrier_only",
+    "edge_right": null,
+    "hedge_left": null,
+    "hedge_right": null
+   },
+   "points": [
+    {
+     "x": 5813.2,
+     "y": 3584.32,
+     "_z_06": 43.86
+    },
+    {
+     "x": 5812.62,
+     "y": 3587.72,
+     "_z_06": 43.91
+    },
+    {
+     "x": 5820.22,
+     "y": 3590.25,
+     "_z_06": 44
+    },
+    {
+     "x": 5831.78,
+     "y": 3594.09,
+     "_z_06": 44.16
+    },
+    {
+     "x": 5835.61,
+     "y": 3595.91,
+     "_z_06": 44.18
+    },
+    {
+     "x": 5844.02,
+     "y": 3598.25,
+     "_z_06": 44.38
+    },
+    {
+     "x": 5867.31,
+     "y": 3604.08,
+     "_z_06": 44.6
+    },
+    {
+     "x": 5875.07,
+     "y": 3606.02,
+     "_z_06": 44.67
+    },
+    {
+     "x": 5876.22,
+     "y": 3606.31,
+     "_z_06": 44.73
+    },
+    {
+     "x": 5881.85,
+     "y": 3600.63,
+     "_z_06": 44.78
+    },
+    {
+     "x": 5885.95,
+     "y": 3596.49,
+     "_z_06": 44.8
+    },
+    {
+     "x": 5893.64,
+     "y": 3598.71,
+     "_z_06": 44.75
+    },
+    {
+     "x": 5914.47,
+     "y": 3604.7,
+     "_z_06": 44.95
+    },
+    {
+     "x": 5920.15,
+     "y": 3606.73,
+     "_z_06": 45.26
+    },
+    {
+     "x": 5920.44,
+     "y": 3614.73,
+     "_z_06": 45.1
+    },
+    {
+     "x": 5920.46,
+     "y": 3615.4,
+     "_z_06": 45.07
+    },
+    {
+     "x": 5927.91,
+     "y": 3618.33,
+     "_z_06": 45.09
+    },
+    {
+     "x": 5957.7,
+     "y": 3630.02,
+     "_z_06": 45.54
+    },
+    {
+     "x": 5972.6,
+     "y": 3636.26,
+     "_z_06": 45.54
+    },
+    {
+     "x": 5977.48,
+     "y": 3638.31,
+     "_z_06": 45.51
+    },
+    {
+     "x": 5983.85,
+     "y": 3643.16,
+     "_z_06": 45.55
+    },
+    {
+     "x": 5990.21,
+     "y": 3648,
+     "_z_06": 45.57
+    },
+    {
+     "x": 6016.48,
+     "y": 3668.01,
+     "_z_06": 45.43
+    },
+    {
+     "x": 6034.99,
+     "y": 3683.3,
+     "_z_06": 45.43
+    },
+    {
+     "x": 6075.55,
+     "y": 3716.74,
+     "_z_06": 45.6
+    },
+    {
+     "x": 6094.86,
+     "y": 3732.63,
+     "_z_06": 45.6
+    },
+    {
+     "x": 6129.58,
+     "y": 3759.2,
+     "_z_06": 46
+    },
+    {
+     "x": 6135.5,
+     "y": 3763.73,
+     "_z_06": 46.27
+    },
+    {
+     "x": 6147.04,
+     "y": 3774.81,
+     "_z_06": 46.25
+    }
+   ],
+   "segments": [
+    {
+     "id": "adapter",
+     "s0_m": 0,
+     "s1_m": null,
+     "side": "left",
+     "edge": {
+      "barrier": {
+       "type": "wood_fence",
+       "height_m": 1.5,
+       "thickness_m": 0.05,
+       "material": "wood_fence",
+       "post_pitch_m": 1.8,
+       "offset_m": -0.025
+      }
+     }
+    }
+   ],
+   "drop_kerbs": [],
+   "overlay": {
+    "kind": "osm_way",
+    "pts": [
+     [
+      5608.58,
+      3371.7,
+      39.58
+     ],
+     [
+      5593.8,
+      3395.98,
+      39.15
+     ],
+     [
+      5653.38,
+      3439.52,
+      38.11
+     ],
+     [
+      5660.33,
+      3446.13,
+      38.1
+     ],
+     [
+      5693.04,
+      3456.05,
+      39.1
+     ],
+     [
+      5709.83,
+      3467.59,
+      40.09
+     ],
+     [
+      5722.85,
+      3476.54,
+      40.8
+     ],
+     [
+      5725.11,
+      3478.09,
+      40.9
+     ],
+     [
+      5789.36,
+      3469.54,
+      42.32
+     ],
+     [
+      5813.63,
+      3460.96,
+      42.63
+     ],
+     [
+      5831.38,
+      3456.67,
+      43.17
+     ],
+     [
+      5861.85,
+      3457.98,
+      43.66
+     ],
+     [
+      5873.95,
+      3458.19,
+      43.9
+     ],
+     [
+      5891.27,
+      3471.66,
+      44.28
+     ],
+     [
+      5894.71,
+      3474.64,
+      44.38
+     ],
+     [
+      5895.42,
+      3475.25,
+      44.46
+     ],
+     [
+      5901.15,
+      3562.49,
+      45.28
+     ],
+     [
+      5815.89,
+      3568.55,
+      43.97
+     ],
+     [
+      5812.62,
+      3587.72,
+      43.91
+     ],
+     [
+      5831.78,
+      3594.09,
+      44.16
+     ],
+     [
+      5835.61,
+      3595.91,
+      44.18
+     ],
+     [
+      5844.02,
+      3598.25,
+      44.38
+     ],
+     [
+      5876.22,
+      3606.31,
+      44.73
+     ],
+     [
+      5885.95,
+      3596.49,
+      44.8
+     ],
+     [
+      5914.47,
+      3604.7,
+      44.95
+     ],
+     [
+      5920.15,
+      3606.73,
+      45.26
+     ],
+     [
+      5920.46,
+      3615.4,
+      45.07
+     ],
+     [
+      5957.84,
+      3630.08,
+      45.54
+     ],
+     [
+      5977.48,
+      3638.31,
+      45.51
+     ],
+     [
+      6016.48,
+      3668.01,
+      45.43
+     ],
+     [
+      6057.02,
+      3701.5,
+      45.49
+     ],
+     [
+      6094.86,
+      3732.63,
+      45.6
+     ],
+     [
+      6097.82,
+      3734.89,
+      45.65
+     ],
+     [
+      6135.5,
+      3763.73,
+      46.27
+     ],
+     [
+      6186.53,
+      3812.7,
+      46.38
+     ],
+     [
+      6227.96,
+      3855.09,
+      45.76
+     ],
+     [
+      6250.15,
+      3887.91,
+      45.73
+     ],
+     [
+      6263.96,
+      3916.35,
+      46.03
+     ],
+     [
+      6321.69,
+      4042.46,
+      47.15
+     ],
+     [
+      6330.79,
+      4046.43,
+      47.05
+     ],
+     [
+      6337.94,
+      4049.56,
+      47.17
+     ],
+     [
+      6344.24,
+      4049.82,
+      47.14
+     ],
+     [
+      6349.55,
+      4048.95,
+      47.12
+     ],
+     [
+      6352.59,
+      4054.63,
+      47.16
+     ]
+    ],
+    "osm_id": "563911155"
+   },
+   "junction_start": null,
+   "junction_end": null,
+   "continues_from": "barriers:563911155:1",
+   "continues_to": "barriers:563911155:3",
+   "continuation_kind": {
+    "from": "seam",
+    "to": "seam"
+   },
+   "overrun_points": {
+    "before": [
+     5814.55,
+     3576.43,
+     43.93
+    ],
+    "after": [
+     6170.13,
+     3796.97,
+     46.3
+    ]
+   },
+   "flags": {
+    "bridge": false,
+    "tunnel": false,
+    "z_gap": false,
+    "steps": false,
+    "disused": false,
+    "gauge_unmapped": false,
+    "closed_loop": false,
+    "tracks": null
+   }
+  },
+  {
+   "id": "barriers:563911065:2",
+   "source": {
+    "layer": "barriers",
+    "osm_id": "563911065",
+    "name": null,
+    "cls": "fence",
+    "tags": {
+     "h_src": "default"
+    },
+    "tile": [
+     9,
+     5
+    ],
+    "segment_index": 2,
+    "segment_count": 7
+   },
+   "profile_ids": {
+    "road": null,
+    "edge_left": "edge_barrier_only",
+    "edge_right": null,
+    "hedge_left": null,
+    "hedge_right": null
+   },
+   "points": [
+    {
+     "x": 5118.34,
+     "y": 3040.9,
+     "_z_06": 47.62
+    },
+    {
+     "x": 5111.11,
+     "y": 3044.01,
+     "_z_06": 47.42
+    },
+    {
+     "x": 5113.15,
+     "y": 3049.77,
+     "_z_06": 47.32
+    },
+    {
+     "x": 5105.77,
+     "y": 3052.85,
+     "_z_06": 47.3
+    },
+    {
+     "x": 5098.38,
+     "y": 3055.93,
+     "_z_06": 47.29
+    },
+    {
+     "x": 5076.23,
+     "y": 3065.15,
+     "_z_06": 47.17
+    },
+    {
+     "x": 5068.84,
+     "y": 3068.23,
+     "_z_06": 47.04
+    },
+    {
+     "x": 5062.47,
+     "y": 3070.88,
+     "_z_06": 47.05
+    },
+    {
+     "x": 5054.7,
+     "y": 3072.79,
+     "_z_06": 46.95
+    }
+   ],
+   "segments": [
+    {
+     "id": "adapter",
+     "s0_m": 0,
+     "s1_m": null,
+     "side": "left",
+     "edge": {
+      "barrier": {
+       "type": "wood_fence",
+       "height_m": 1.5,
+       "thickness_m": 0.05,
+       "material": "wood_fence",
+       "post_pitch_m": 1.8,
+       "offset_m": -0.025
+      }
+     }
+    }
+   ],
+   "drop_kerbs": [],
+   "overlay": {
+    "kind": "osm_way",
+    "pts": [
+     [
+      5191.86,
+      3090.66,
+      46.07
+     ],
+     [
+      5173.35,
+      3072.73,
+      47.26
+     ],
+     [
+      5148.13,
+      3043.56,
+      47.63
+     ],
+     [
+      5146.32,
+      3039.5,
+      47.59
+     ],
+     [
+      5145.06,
+      3036.83,
+      47.67
+     ],
+     [
+      5140.39,
+      3031.42,
+      47.72
+     ],
+     [
+      5111.11,
+      3044.01,
+      47.42
+     ],
+     [
+      5113.15,
+      3049.77,
+      47.32
+     ],
+     [
+      5062.47,
+      3070.88,
+      47.05
+     ],
+     [
+      5047.72,
+      3074.5,
+      46.85
+     ],
+     [
+      4950.92,
+      3116.62,
+      46.45
+     ],
+     [
+      4858.7,
+      3099.7,
+      46.45
+     ]
+    ],
+    "osm_id": "563911065"
+   },
+   "junction_start": null,
+   "junction_end": null,
+   "continues_from": "barriers:563911065:1",
+   "continues_to": "barriers:563911065:3",
+   "continuation_kind": {
+    "from": "seam",
+    "to": "seam"
+   },
+   "overrun_points": {
+    "before": [
+     5133.04,
+     3034.58,
+     47.76
+    ],
+    "after": [
+     5047.72,
+     3074.5,
+     46.85
+    ]
+   },
+   "flags": {
+    "bridge": false,
+    "tunnel": false,
+    "z_gap": false,
+    "steps": false,
+    "disused": false,
+    "gauge_unmapped": false,
+    "closed_loop": false,
+    "tracks": null
+   }
+  },
+  {
+   "id": "barriers:563911065:3",
+   "source": {
+    "layer": "barriers",
+    "osm_id": "563911065",
+    "name": null,
+    "cls": "fence",
+    "tags": {
+     "h_src": "default"
+    },
+    "tile": [
+     9,
+     6
+    ],
+    "segment_index": 3,
+    "segment_count": 7
+   },
+   "profile_ids": {
+    "road": null,
+    "edge_left": "edge_barrier_only",
+    "edge_right": null,
+    "hedge_left": null,
+    "hedge_right": null
+   },
+   "points": [
+    {
+     "x": 5054.7,
+     "y": 3072.79,
+     "_z_06": 46.95
+    },
+    {
+     "x": 5047.72,
+     "y": 3074.5,
+     "_z_06": 46.85
+    },
+    {
+     "x": 5040.39,
+     "y": 3077.69,
+     "_z_06": 46.5
+    },
+    {
+     "x": 5025.72,
+     "y": 3084.08,
+     "_z_06": 46.09
+    },
+    {
+     "x": 4981.7,
+     "y": 3103.23,
+     "_z_06": 45.83
+    },
+    {
+     "x": 4959.7,
+     "y": 3112.8,
+     "_z_06": 46.29
+    },
+    {
+     "x": 4952.36,
+     "y": 3116,
+     "_z_06": 46.4
+    },
+    {
+     "x": 4950.92,
+     "y": 3116.62,
+     "_z_06": 46.45
+    },
+    {
+     "x": 4943.05,
+     "y": 3115.18,
+     "_z_06": 46.68
+    },
+    {
+     "x": 4927.32,
+     "y": 3112.29,
+     "_z_06": 46.52
+    },
+    {
+     "x": 4864.37,
+     "y": 3100.74,
+     "_z_06": 47.13
+    }
+   ],
+   "segments": [
+    {
+     "id": "adapter",
+     "s0_m": 0,
+     "s1_m": null,
+     "side": "left",
+     "edge": {
+      "barrier": {
+       "type": "wood_fence",
+       "height_m": 1.5,
+       "thickness_m": 0.05,
+       "material": "wood_fence",
+       "post_pitch_m": 1.8,
+       "offset_m": -0.025
+      }
+     }
+    }
+   ],
+   "drop_kerbs": [],
+   "overlay": {
+    "kind": "osm_way",
+    "pts": [
+     [
+      5191.86,
+      3090.66,
+      46.07
+     ],
+     [
+      5173.35,
+      3072.73,
+      47.26
+     ],
+     [
+      5148.13,
+      3043.56,
+      47.63
+     ],
+     [
+      5146.32,
+      3039.5,
+      47.59
+     ],
+     [
+      5145.06,
+      3036.83,
+      47.67
+     ],
+     [
+      5140.39,
+      3031.42,
+      47.72
+     ],
+     [
+      5111.11,
+      3044.01,
+      47.42
+     ],
+     [
+      5113.15,
+      3049.77,
+      47.32
+     ],
+     [
+      5062.47,
+      3070.88,
+      47.05
+     ],
+     [
+      5047.72,
+      3074.5,
+      46.85
+     ],
+     [
+      4950.92,
+      3116.62,
+      46.45
+     ],
+     [
+      4858.7,
+      3099.7,
+      46.45
+     ]
+    ],
+    "osm_id": "563911065"
+   },
+   "junction_start": null,
+   "junction_end": null,
+   "continues_from": "barriers:563911065:2",
+   "continues_to": "barriers:563911065:4",
+   "continuation_kind": {
+    "from": "seam",
+    "to": "gap"
+   },
+   "overrun_points": {
+    "before": [
+     5062.47,
+     3070.88,
+     47.05
+    ],
+    "after": [
+     5704.8,
+     2382.33,
+     50.1
+    ]
+   },
+   "flags": {
+    "bridge": false,
+    "tunnel": false,
+    "z_gap": false,
+    "steps": false,
+    "disused": false,
+    "gauge_unmapped": false,
+    "closed_loop": false,
+    "tracks": null
+   }
+  },
+  {
+   "id": "barriers:661308441:1",
+   "source": {
+    "layer": "barriers",
+    "osm_id": "661308441",
+    "name": null,
+    "cls": "fence",
+    "tags": {
+     "h_src": "default"
+    },
+    "tile": [
+     9,
+     6
+    ],
+    "segment_index": 1,
+    "segment_count": 2
+   },
+   "profile_ids": {
+    "road": null,
+    "edge_left": "edge_barrier_only",
+    "edge_right": null,
+    "hedge_left": null,
+    "hedge_right": null
+   },
+   "points": [
+    {
+     "x": 5114.82,
+     "y": 3156.81,
+     "_z_06": 45.48
+    },
+    {
+     "x": 5107.82,
+     "y": 3152.94,
+     "_z_06": 45.61
+    },
+    {
+     "x": 5103.41,
+     "y": 3150.51,
+     "_z_06": 45.81
+    },
+    {
+     "x": 5108.78,
+     "y": 3144.57,
+     "_z_06": 45.53
+    },
+    {
+     "x": 5114.15,
+     "y": 3138.64,
+     "_z_06": 45.58
+    },
+    {
+     "x": 5119.51,
+     "y": 3132.71,
+     "_z_06": 45.67
+    },
+    {
+     "x": 5119.77,
+     "y": 3132.42,
+     "_z_06": 45.69
+    },
+    {
+     "x": 5111.78,
+     "y": 3132.08,
+     "_z_06": 45.63
+    },
+    {
+     "x": 5095.79,
+     "y": 3131.38,
+     "_z_06": 45.63
+    },
+    {
+     "x": 5091.05,
+     "y": 3131.17,
+     "_z_06": 45.75
+    },
+    {
+     "x": 5086.46,
+     "y": 3124.62,
+     "_z_06": 45.95
+    },
+    {
+     "x": 5077.28,
+     "y": 3111.51,
+     "_z_06": 46.38
+    },
+    {
+     "x": 5072.95,
+     "y": 3105.33,
+     "_z_06": 46.43
+    },
+    {
+     "x": 5070.45,
+     "y": 3107.99,
+     "_z_06": 46.18
+    },
+    {
+     "x": 5068.41,
+     "y": 3110.18,
+     "_z_06": 46.15
+    },
+    {
+     "x": 5070.47,
+     "y": 3115.81,
+     "_z_06": 46.19
+    },
+    {
+     "x": 5063.66,
+     "y": 3119.36,
+     "_z_06": 45.71
+    },
+    {
+     "x": 5061.31,
+     "y": 3127.01,
+     "_z_06": 45.78
+    },
+    {
+     "x": 5059.28,
+     "y": 3133.61,
+     "_z_06": 45.97
+    },
+    {
+     "x": 5051.37,
+     "y": 3132.37,
+     "_z_06": 46.01
+    },
+    {
+     "x": 5035.57,
+     "y": 3129.89,
+     "_z_06": 45.97
+    },
+    {
+     "x": 4950.92,
+     "y": 3116.62,
+     "_z_06": 46.45
+    }
+   ],
+   "segments": [
+    {
+     "id": "adapter",
+     "s0_m": 0,
+     "s1_m": null,
+     "side": "left",
+     "edge": {
+      "barrier": {
+       "type": "wood_fence",
+       "height_m": 1.5,
+       "thickness_m": 0.05,
+       "material": "wood_fence",
+       "post_pitch_m": 1.8,
+       "offset_m": -0.025
+      }
+     }
+    }
+   ],
+   "drop_kerbs": [],
+   "overlay": {
+    "kind": "osm_way",
+    "pts": [
+     [
+      5293.18,
+      3233.85,
+      44.58
+     ],
+     [
+      5280.31,
+      3247.2,
+      44.07
+     ],
+     [
+      5183.63,
+      3194.67,
+      45.18
+     ],
+     [
+      5182.75,
+      3188.72,
+      45.37
+     ],
+     [
+      5185.88,
+      3182.66,
+      45.48
+     ],
+     [
+      5179.77,
+      3179.98,
+      45.53
+     ],
+     [
+      5173.69,
+      3177.58,
+      45.7
+     ],
+     [
+      5170.6,
+      3181.4,
+      45.61
+     ],
+     [
+      5163.83,
+      3183.91,
+      45.74
+     ],
+     [
+      5103.41,
+      3150.51,
+      45.81
+     ],
+     [
+      5119.77,
+      3132.42,
+      45.69
+     ],
+     [
+      5091.05,
+      3131.17,
+      45.75
+     ],
+     [
+      5072.95,
+      3105.33,
+      46.43
+     ],
+     [
+      5070.45,
+      3107.99,
+      46.18
+     ],
+     [
+      5068.41,
+      3110.18,
+      46.15
+     ],
+     [
+      5070.47,
+      3115.81,
+      46.19
+     ],
+     [
+      5063.66,
+      3119.36,
+      45.71
+     ],
+     [
+      5059.28,
+      3133.61,
+      45.97
+     ],
+     [
+      4950.92,
+      3116.62,
+      46.45
+     ]
+    ],
+    "osm_id": "661308441"
+   },
+   "junction_start": null,
+   "junction_end": null,
+   "continues_from": "barriers:661308441:0",
+   "continues_to": null,
+   "continuation_kind": {
+    "from": "seam",
+    "to": null
+   },
+   "overrun_points": {
+    "before": [
+     5149.83,
+     3176.17,
+     45.42
+    ],
+    "after": null
+   },
+   "flags": {
+    "bridge": false,
+    "tunnel": false,
+    "z_gap": false,
+    "steps": false,
+    "disused": false,
+    "gauge_unmapped": false,
+    "closed_loop": false,
+    "tracks": null
+   }
+  }
+ ],
+ "junctions": []
+}

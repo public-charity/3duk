@@ -83,7 +83,7 @@ class Router:
         # Avoid steep terrain; this is a blockout routing criterion, not accessibility certification.
         gy,gx = np.gradient(self.z, STEP)
         self.slope = np.hypot(gx,gy)
-        self.free &= self.slope < .08
+        self.free &= self.slope < .12
         self.free[[0,-1],:] = False
         self.free[:,[0,-1]] = False
         regions,_=label(self.free)
@@ -122,7 +122,7 @@ class Router:
                     continue
                 length=STEP*math.hypot(dx,dy)
                 grade=abs(float(self.z[q]-self.z[p]))/length
-                if grade > .08:
+                if grade > .12:
                     continue
                 cost=best[p]+length*(1+12*grade+4*float(self.slope[q]))
                 if cost < best.get(q,math.inf):
@@ -147,7 +147,7 @@ class Router:
                 indices=np.round((samples-BOUNDS[:2])/STEP).astype(int)
                 heights=self.hf.sample(samples[:,0]-ORIGIN[0],samples[:,1]-ORIGIN[1])
                 grade=np.abs(np.diff(heights))/np.maximum(np.linalg.norm(np.diff(samples,axis=0),axis=1),1e-9)
-                if np.all(self.free[indices[:,1],indices[:,0]]) and np.isfinite(heights).all() and grade.max() <= .08:
+                if np.all(self.free[indices[:,1],indices[:,0]]) and np.isfinite(heights).all() and grade.max() <= .12:
                     chosen=j;break
             out.append(p[chosen]);i=chosen
         return np.array(out)
@@ -174,6 +174,11 @@ def build(landscape_dir):
             leg=router.astar(a,b)
             points.extend(leg if not points else leg[1:])
         simple=router.simplify(points)
+        # Rounded corners keep a 3 m ribbon from folding at A* grid turns.
+        for _ in range(2):
+            p,q=simple[:-1],simple[1:]
+            rounded=np.stack([.75*p+.25*q,.25*p+.75*q],axis=1).reshape(-1,2)
+            simple=np.vstack([simple[0],rounded,simple[-1]])
         if not np.array_equal(simple[0],simple[-1]):
             raise ValueError('Loop lost its closure')
         local=simple-ORIGIN
@@ -241,7 +246,7 @@ def build(landscape_dir):
             source_url=f['source_url'],survival=f['survival_as_recorded'],
             historical_floor_z_odn_m=None,historical_portals_bng=None,
             geometry_status='Representative evidence point; not a surveyed entrance or footprint'))
-    gateway=router.xy(router.cell(proposal['gates'][0]['bng']))
+    gateway=designed[0]['points_bng'][0]
     furniture=[]
     all_samples=np.vstack([np.array(r['local_xyz_m']) for r in path_samples])
     def place_near(index, samples):
