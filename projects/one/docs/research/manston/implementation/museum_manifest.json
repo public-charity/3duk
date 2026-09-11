@@ -986,8 +986,9 @@
       "length_m": 879.9,
       "samples": 1425,
       "minimum_centre_to_building_m": 5.54,
-      "max_longitudinal_grade_pct": 11.66,
-      "p95_longitudinal_grade_pct": 5.45,
+      "max_longitudinal_grade_pct": 6.02,
+      "p95_longitudinal_grade_pct": 6.0,
+      "maximum_centre_lift_above_terrain_m": 0.236,
       "walk_minutes_at_3kmh": 17.6,
       "closed_loop": true,
       "road_triangles": 22784
@@ -997,8 +998,9 @@
       "length_m": 3609.9,
       "samples": 5270,
       "minimum_centre_to_building_m": 5.26,
-      "max_longitudinal_grade_pct": 8.98,
-      "p95_longitudinal_grade_pct": 4.31,
+      "max_longitudinal_grade_pct": 6.21,
+      "p95_longitudinal_grade_pct": 6.0,
+      "maximum_centre_lift_above_terrain_m": 0.292,
       "walk_minutes_at_3kmh": 72.2,
       "closed_loop": true,
       "road_triangles": 84304
@@ -1486,8 +1488,389 @@
       "geometry_status": "Representative evidence point; not a surveyed entrance or footprint"
     }
   ],
+  "furniture": [
+    {
+      "id": "sign_MKE98025",
+      "kind": "sign",
+      "name": "RAF control tower",
+      "text": "RAF control tower\nHistorical location nearby\nGeometry under research",
+      "source_id": "MKE98025",
+      "bng": [
+        633485.8143915796,
+        166573.61781491718
+      ],
+      "surface_z_odn_m": 43.61545974532055,
+      "heading_deg": -17.82388556825731
+    },
+    {
+      "id": "sign_MKE98027",
+      "kind": "sign",
+      "name": "Battle Headquarters",
+      "text": "Battle Headquarters\nHistorical location nearby\nGeometry under research",
+      "source_id": "MKE98027",
+      "bng": [
+        633568.2008952382,
+        166575.8752912762
+      ],
+      "surface_z_odn_m": 44.97878037619694,
+      "heading_deg": 66.43425774529051
+    },
+    {
+      "id": "sign_MKE98021",
+      "kind": "sign",
+      "name": "Civilian control tower",
+      "text": "Civilian control tower\nHistorical location nearby\nGeometry under research",
+      "source_id": "MKE98021",
+      "bng": [
+        633454.2808223089,
+        165809.50877089976
+      ],
+      "surface_z_odn_m": 51.359375,
+      "heading_deg": 93.57786551482042
+    },
+    {
+      "id": "sign_MKE98020",
+      "kind": "sign",
+      "name": "T2 hangar",
+      "text": "T2 hangar\nHistorical location nearby\nGeometry under research",
+      "source_id": "MKE98020",
+      "bng": [
+        632855.9076538916,
+        166168.03928474456
+      ],
+      "surface_z_odn_m": 46.629619772045544,
+      "heading_deg": 4.246515112019976
+    },
+    {
+      "id": "sign_MKE98024",
+      "kind": "sign",
+      "name": "E-type fighter pen",
+      "text": "E-type fighter pen\nHistorical location nearby\nGeometry under research",
+      "source_id": "MKE98024",
+      "bng": [
+        633067.1832945687,
+        166343.18066591915
+      ],
+      "surface_z_odn_m": 42.839454033546644,
+      "heading_deg": -135.02366616125667
+    },
+    {
+      "id": "sign_MKE125515",
+      "kind": "sign",
+      "name": "Camp railway terminus",
+      "text": "Camp railway terminus\nHistorical location nearby\nGeometry under research",
+      "source_id": "MKE125515",
+      "bng": [
+        633044.2451664003,
+        166478.50716302524
+      ],
+      "surface_z_odn_m": 41.33986058341429,
+      "heading_deg": 160.62548538445455
+    },
+    {
+      "id": "sign_MKE125655",
+      "kind": "sign",
+      "name": "Erecting shops",
+      "text": "Erecting shops\nHistorical location nearby\nGeometry under research",
+      "source_id": "MKE125655",
+      "bng": [
+        632974.3746765017,
+        166595.03533898233
+      ],
+      "surface_z_odn_m": 40.866433949364136,
+      "heading_deg": -176.11824716396427
+    },
+    {
+      "id": "rest_R1_0",
+      "kind": "bench",
+      "name": "Rest stop",
+      "bng": [
+        633421.654910193,
+        166543.84936055564
+      ],
+      "surface_z_odn_m": 41.14968110110749,
+      "heading_deg": -46.28909836552827
+    },
+    {
+      "id": "rest_R1_1",
+      "kind": "bench",
+      "name": "Rest stop",
+      "bng": [
+        633529.2784213888,
+        166643.36361301155
+      ],
+      "surface_z_odn_m": 44.61434677334728,
+      "heading_deg": -90.64709177607718
+    },
+    {
+      "id": "rest_R1_2",
+      "kind": "bench",
+      "name": "Rest stop",
+      "bng": [
+        633530.6836526165,
+        166633.85948305958
+      ],
+      "surface_z_odn_m": 44.54505184554341,
+      "heading_deg": 87.87896843990336
+    },
+    {
+      "id": "rest_R1_3",
+      "kind": "bench",
+      "name": "Rest stop",
+      "bng": [
+        633438.6930411762,
+        166609.235789558
+      ],
+      "surface_z_odn_m": 41.82863121899004,
+      "heading_deg": 61.08999208707889
+    },
+    {
+      "id": "rest_R1_4",
+      "kind": "bench",
+      "name": "Rest stop",
+      "bng": [
+        633337.4945152325,
+        166534.17857003125
+      ],
+      "surface_z_odn_m": 38.12491430050795,
+      "heading_deg": -163.79058527099113
+    },
+    {
+      "id": "rest_R2_0",
+      "kind": "bench",
+      "name": "Rest stop",
+      "bng": [
+        633212.9276036997,
+        166517.7225131263
+      ],
+      "surface_z_odn_m": 38.49994776445533,
+      "heading_deg": -50.73483374614913
+    },
+    {
+      "id": "rest_R2_1",
+      "kind": "bench",
+      "name": "Rest stop",
+      "bng": [
+        633077.1387930469,
+        166516.14114373902
+      ],
+      "surface_z_odn_m": 39.043783180573655,
+      "heading_deg": 34.76349563703908
+    },
+    {
+      "id": "rest_R2_2",
+      "kind": "bench",
+      "name": "Rest stop",
+      "bng": [
+        633015.6567506692,
+        166616.33698847442
+      ],
+      "surface_z_odn_m": 38.95217133711367,
+      "heading_deg": -132.32745210424932
+    },
+    {
+      "id": "rest_R2_3",
+      "kind": "bench",
+      "name": "Rest stop",
+      "bng": [
+        633135.3852526257,
+        166550.32652504524
+      ],
+      "surface_z_odn_m": 38.661608884636735,
+      "heading_deg": 49.4793820851996
+    },
+    {
+      "id": "rest_R2_4",
+      "kind": "bench",
+      "name": "Rest stop",
+      "bng": [
+        633083.4596590769,
+        166531.18809093747
+      ],
+      "surface_z_odn_m": 38.2918620375649,
+      "heading_deg": 43.29696424184421
+    },
+    {
+      "id": "rest_R2_5",
+      "kind": "bench",
+      "name": "Rest stop",
+      "bng": [
+        632973.9498734102,
+        166602.48959643167
+      ],
+      "surface_z_odn_m": 40.80764296202187,
+      "heading_deg": -177.37370591536762
+    },
+    {
+      "id": "rest_R2_6",
+      "kind": "bench",
+      "name": "Rest stop",
+      "bng": [
+        633015.3212423195,
+        166464.24141781888
+      ],
+      "surface_z_odn_m": 42.04554049958597,
+      "heading_deg": 137.61687004737234
+    },
+    {
+      "id": "rest_R2_7",
+      "kind": "bench",
+      "name": "Rest stop",
+      "bng": [
+        632962.0828653795,
+        166397.376190311
+      ],
+      "surface_z_odn_m": 43.31708320205462,
+      "heading_deg": 81.84625055954405
+    },
+    {
+      "id": "rest_R2_8",
+      "kind": "bench",
+      "name": "Rest stop",
+      "bng": [
+        633022.8364063204,
+        166285.22109689706
+      ],
+      "surface_z_odn_m": 44.49775378056597,
+      "heading_deg": 42.977554435246255
+    },
+    {
+      "id": "rest_R2_9",
+      "kind": "bench",
+      "name": "Rest stop",
+      "bng": [
+        633034.0245010027,
+        166278.68766777328
+      ],
+      "surface_z_odn_m": 44.35137747070894,
+      "heading_deg": 86.50535032120476
+    },
+    {
+      "id": "rest_R2_10",
+      "kind": "bench",
+      "name": "Rest stop",
+      "bng": [
+        632882.141812763,
+        166237.05986082225
+      ],
+      "surface_z_odn_m": 45.6461645610525,
+      "heading_deg": -42.5934094119323
+    },
+    {
+      "id": "rest_R2_11",
+      "kind": "bench",
+      "name": "Rest stop",
+      "bng": [
+        632927.1524768987,
+        166127.51078618295
+      ],
+      "surface_z_odn_m": 47.03770274012004,
+      "heading_deg": -115.40660783390929
+    },
+    {
+      "id": "rest_R2_12",
+      "kind": "bench",
+      "name": "Rest stop",
+      "bng": [
+        633015.4232600483,
+        166040.43884757566
+      ],
+      "surface_z_odn_m": 48.490791794133656,
+      "heading_deg": -117.16449440983192
+    },
+    {
+      "id": "rest_R2_13",
+      "kind": "bench",
+      "name": "Rest stop",
+      "bng": [
+        633172.0668237866,
+        165957.99000065995
+      ],
+      "surface_z_odn_m": 49.47768474150962,
+      "heading_deg": -122.7187991492154
+    },
+    {
+      "id": "rest_R2_14",
+      "kind": "bench",
+      "name": "Rest stop",
+      "bng": [
+        633332.0473812666,
+        165897.9931773954
+      ],
+      "surface_z_odn_m": 50.14210566458132,
+      "heading_deg": -134.6750189205713
+    },
+    {
+      "id": "rest_R2_15",
+      "kind": "bench",
+      "name": "Rest stop",
+      "bng": [
+        633442.1440728549,
+        165834.63613760372
+      ],
+      "surface_z_odn_m": 50.98464163128665,
+      "heading_deg": -20.29901131507064
+    },
+    {
+      "id": "rest_R2_16",
+      "kind": "bench",
+      "name": "Rest stop",
+      "bng": [
+        633483.6210894355,
+        166007.96715816102
+      ],
+      "surface_z_odn_m": 47.90165431565197,
+      "heading_deg": -24.334141195921884
+    },
+    {
+      "id": "rest_R2_17",
+      "kind": "bench",
+      "name": "Rest stop",
+      "bng": [
+        633528.3905211652,
+        166165.3922939397
+      ],
+      "surface_z_odn_m": 45.37360426098803,
+      "heading_deg": 4.082991509298974
+    },
+    {
+      "id": "rest_R2_18",
+      "kind": "bench",
+      "name": "Rest stop",
+      "bng": [
+        633487.8046715027,
+        166335.66265873765
+      ],
+      "surface_z_odn_m": 42.171463861940765,
+      "heading_deg": 17.748020314368212
+    },
+    {
+      "id": "rest_R2_19",
+      "kind": "bench",
+      "name": "Rest stop",
+      "bng": [
+        633375.0730806482,
+        166469.43568816624
+      ],
+      "surface_z_odn_m": 39.29486525519496,
+      "heading_deg": 55.957735108318715
+    },
+    {
+      "id": "welcome",
+      "kind": "sign",
+      "name": "Manston Museum",
+      "text": "MANSTON\nRAF HERITAGE MUSEUM\nMuseum walk  R1\nAirfield walk  R2\nRestoration work in progress",
+      "bng": [
+        633316.3537226096,
+        166506.48607627169
+      ],
+      "surface_z_odn_m": 38.02448978276561,
+      "heading_deg": -94.5083869967319
+    }
+  ],
   "limitations": [
     "Proposed museum reuse in the explorer; not current public access.",
+    "Explicit promenade elevation is new museum design. Raised portions need edge/support detailing.",
     "Walks avoid mapped building footprints; fences and entrances still need detailed survey.",
     "Real gameplay and saved-world collision checks pending.",
     "Unknown historical footprints, underground portals, floor depths and links remain unmodelled."

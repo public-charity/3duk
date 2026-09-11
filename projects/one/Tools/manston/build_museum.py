@@ -195,6 +195,26 @@ def build(landscape_dir):
     path_samples=[]
     for route,definition in zip(designed,doc['splines']):
         result=build_spline(site,definition['id'],hf)
+        # A museum promenade needs its own authored elevation. This does not move
+        # the survey or the site's other roads. Lift across the full path width,
+        # then form the lowest closed grade-limited profile above those samples.
+        ground=hf.sample(result.road.v[:,0],result.road.v[:,1])
+        required=np.zeros(len(result.spline.s))
+        station=np.searchsorted(result.spline.s,result.road.vs)
+        np.maximum.at(required,station,ground-result.road.v[:,2]+.08)
+        elevation=result.spline.z_ref+required
+        ds=np.diff(result.spline.s)
+        for _ in range(4):
+            elevation[0]=elevation[-1]=max(elevation[0],elevation[-1])
+            for i in range(1,len(elevation)):
+                elevation[i]=max(elevation[i],elevation[i-1]-.06*ds[i-1])
+            for i in range(len(elevation)-2,-1,-1):
+                elevation[i]=max(elevation[i],elevation[i+1]-.06*ds[i])
+        definition['elevation_profile']=[{'s_m':float(s),'z_m':float(z),'bank_deg':float(b)}
+            for s,z,b in zip(result.spline.s,elevation,result.spline.bank_deg)]
+        save(OUT/'museum_walks.streetscape.json',doc)
+        site=load_site(str(OUT/'museum_walks.streetscape.json'))
+        result=build_spline(site,definition['id'],hf)
         samples=np.c_[result.spline.xy,result.spline.z_ref]
         xy=samples[:,:2]+ORIGIN
         clearance=distance_to_buildings(xy,basemap['buildings'])
@@ -206,6 +226,7 @@ def build(landscape_dir):
             'samples':len(samples),'minimum_centre_to_building_m':round(float(clearance.min()),2),
             'max_longitudinal_grade_pct':round(float(grade.max()*100),2),
             'p95_longitudinal_grade_pct':round(float(np.percentile(grade,95)*100),2),
+            'maximum_centre_lift_above_terrain_m':round(float((samples[:,2]-result.spline.z_raw).max()),3),
             'walk_minutes_at_3kmh':round(float(result.spline.s[-1])/50,1),
             'closed_loop':True,'road_triangles':len(result.road.f)}
         metrics.append(stat)
@@ -221,14 +242,58 @@ def build(landscape_dir):
             historical_floor_z_odn_m=None,historical_portals_bng=None,
             geometry_status='Representative evidence point; not a surveyed entrance or footprint'))
     gateway=router.xy(router.cell(proposal['gates'][0]['bng']))
+    furniture=[]
+    all_samples=np.vstack([np.array(r['local_xyz_m']) for r in path_samples])
+    def place_near(index, samples):
+        p=samples[index,:2]+ORIGIN
+        tangent=samples[min(index+4,len(samples)-1),:2]-samples[max(0,index-4),:2]
+        if np.linalg.norm(tangent)<.001:
+            return None
+        tangent/=np.linalg.norm(tangent)
+        normal=np.array([-tangent[1],tangent[0]])
+        candidates=np.array([p+4.5*normal,p-4.5*normal])
+        distances=distance_to_buildings(candidates,basemap['buildings'])
+        order=np.argsort(-distances)
+        for choice in order:
+            xy=candidates[choice]
+            local=xy-ORIGIN
+            z=float(hf.sample(local[0:1],local[1:2])[0])
+            if distances[choice]>=3 and math.isfinite(z):
+                # Face toward the walk. Yaw converted only at the Unreal boundary.
+                facing=p-xy
+                return {'bng':xy.tolist(),'surface_z_odn_m':z,
+                    'heading_deg':math.degrees(math.atan2(facing[1],facing[0]))}
+        return None
+    core_ids=('MKE98025','MKE98027','MKE98021','MKE98020','MKE98024','MKE125515','MKE125655')
+    for f in anchors:
+        if f['id'] not in core_ids:
+            continue
+        index=int(np.argmin(np.linalg.norm(all_samples[:,:2]+ORIGIN-np.array(f['anchor_bng']),axis=1)))
+        p=place_near(index,all_samples)
+        if p:
+            furniture.append(dict(id='sign_'+f['id'],kind='sign',name=f['name'],
+                text=f['name']+'\nHistorical location nearby\nGeometry under research',source_id=f['id'],**p))
+    for r in path_samples:
+        samples=np.array(r['local_xyz_m'])
+        distances=np.r_[0,np.cumsum(np.linalg.norm(np.diff(samples[:,:2],axis=0),axis=1))]
+        for k,station in enumerate(np.arange(120,distances[-1],180)):
+            p=place_near(int(np.searchsorted(distances,station)),samples)
+            if p:
+                furniture.append(dict(id='rest_'+r['id']+'_'+str(k),kind='bench',name='Rest stop',**p))
+    first=np.array(path_samples[0]['local_xyz_m'])
+    p=place_near(0,first)
+    if p:
+        furniture.append(dict(id='welcome',kind='sign',name='Manston Museum',
+            text='MANSTON\nRAF HERITAGE MUSEUM\nMuseum walk  R1\nAirfield walk  R2\nRestoration work in progress',**p))
     manifest={'schema':'manston-implementation-0.1','phase':'Phase 0 placed; Phase 1 blockout candidate',
         'origin':doc['origin'],'crs':'EPSG:27700','vertical_datum':'ODN',
         'terrain_dir':str(landscape_dir.relative_to(ROOT)).replace('\\','/'),
         'terrain_manifest_sha256':hashlib.sha256((landscape_dir/'landscape_manifest.json').read_bytes()).hexdigest(),
         'input_sha256':{p:hashlib.sha256((RESEARCH/p).read_bytes()).hexdigest() for p in
             ('features.bng.json','museum_proposal.bng.json','basemap.bng.json')},
-        'gateway_bng':gateway,'routes':designed,'metrics':metrics,'anchors':anchors,
+        'gateway_bng':gateway,'routes':designed,'metrics':metrics,'anchors':anchors,'furniture':furniture,
         'limitations':['Proposed museum reuse in the explorer; not current public access.',
+            'Explicit promenade elevation is new museum design. Raised portions need edge/support detailing.',
             'Walks avoid mapped building footprints; fences and entrances still need detailed survey.',
             'Real gameplay and saved-world collision checks pending.',
             'Unknown historical footprints, underground portals, floor depths and links remain unmodelled.']}
