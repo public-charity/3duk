@@ -52,6 +52,31 @@ def apply_retained_trims(docs,trims,end_trims):
     for record,value in edits:record['trim_radius_m']=value
 
 
+def apply_retained_controls(docs,selections):
+    """Validate every endpoint-preserving source subsequence before any mutation."""
+    if not selections:return
+    from diag.road_control_candidates import verify_document
+    import copy
+    locations={}
+    for name,raw in docs.items():
+        for d in raw['splines']:
+            if d['id'] in locations:raise ValueError('duplicate source control binding')
+            locations[d['id']]=name
+    if set(selections)-set(locations):raise ValueError('retained control coverage changed')
+    proposals={}
+    for sid,keep in selections.items():
+        if not isinstance(keep,list) or any(type(i) is not int for i in keep):raise ValueError('retained indices must be integers')
+        name=locations[sid]
+        if name not in proposals:proposals[name]=copy.deepcopy(docs[name])
+        d=next(d for d in proposals[name]['splines'] if d['id']==sid)
+        if len(keep)<2 or keep!=sorted(set(keep)) or keep[0]!=0 or keep[-1]!=len(d['points'])-1:
+            raise ValueError('retained control endpoints/order changed')
+        d['points']=[d['points'][i] for i in keep]
+    for name,raw in proposals.items():
+        verify_document(docs[name],raw,{s:k for s,k in selections.items() if locations[s]==name})
+    docs.update(proposals)
+
+
 def main():
     ap=argparse.ArgumentParser(description=__doc__)
     ap.add_argument('--manifest',type=Path,default=TOOLS.parent/'docs/checkpoints/phase1_23_geometry_selection.json')
@@ -60,7 +85,7 @@ def main():
     args=ap.parse_args()
     if not 1<=args.max_docs<=32:raise ValueError('max-docs must be 1..32')
     if not args.out.resolve().is_relative_to((TOOLS.parent/'Saved/Phase1').resolve()):raise ValueError('output must stay under Saved/Phase1')
-    manifest=json.loads(args.manifest.read_text());digest=sha256(args.manifest)
+    manifest=json.loads(args.manifest.read_text(encoding='utf-8'));digest=sha256(args.manifest)
     for name,expected in manifest['input_sha256'].items():
         if sha256(REPO/name)!=expected:raise ValueError('source dependency changed: '+name)
     source=REPO/'data/thanet/out/unreal/streetscape';names=sorted(manifest['document_sha256'])
@@ -68,17 +93,17 @@ def main():
     root=args.out/digest[:20];root.mkdir(parents=True,exist_ok=True)
     with run_lock(root/'run.lock'):
         path=root/'state.json'
-        state=json.loads(path.read_text()) if path.exists() else dict(status='pending',phase1_accepted=False,
+        state=json.loads(path.read_text(encoding='utf-8')) if path.exists() else dict(status='pending',phase1_accepted=False,
             manifest=str(args.manifest),manifest_sha256=digest,documents={})
         if state['manifest_sha256']!=digest:raise ValueError('selection identity changed')
         pending=pending_documents(root,manifest['document_sha256'],state['documents'])
         if pending:
-            docs={name:json.loads((source/name).read_text()) for name in names}
+            docs={name:json.loads((source/name).read_text(encoding='utf-8')) for name in names}
             definitions=[d for raw in docs.values() for d in raw['splines']]
             selected=manifest['width_spline_ids']
             osm=REPO/'data/thanet/raw/thanet.osm'
             tags=read_osm_way_tags(osm,{d['source']['osm_id'] for d in definitions if d['id'] in selected})
-            tuning=json.loads((REPO/'sources/config/tuning.json').read_text())['roads']
+            tuning=json.loads((REPO/'sources/config/tuning.json').read_text(encoding='utf-8'))['roads']
             profiles={}
             for raw in docs.values():
                 for key,profile in raw['profiles']['road'].items():
@@ -91,6 +116,7 @@ def main():
                     if d['id'] in selected:
                         pid=d['profile_ids']['road'];raw['profiles']['road'][pid]=profiles[pid]
             apply_retained_trims(docs,manifest['junction_trims_m'],manifest.get('junction_end_trims_m',{}))
+            apply_retained_controls(docs,manifest.get('retained_point_indices',{}))
             for name in pending[:args.max_docs]:
                 target=root/name;atomic_json(target,docs[name])
                 actual=sha256(target)

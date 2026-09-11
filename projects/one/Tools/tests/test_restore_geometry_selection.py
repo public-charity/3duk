@@ -1,11 +1,23 @@
 import copy,sys,tempfile,unittest
 from pathlib import Path
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
-from diag.restore_geometry_selection import pending_documents,apply_retained_trims
+from diag.restore_geometry_selection import pending_documents,apply_retained_trims,apply_retained_controls
 from phase1_qc import sha256
 
 
 class SelectionRecoveryTest(unittest.TestCase):
+    def test_control_recovery_preserves_endpoints_and_rejects_all_invalid_edits_before_mutation(self):
+        d=dict(id='roads:1:0',source=dict(layer='roads'),profile_ids=dict(road='road'),
+            points=[dict(x=x,y=0.,width_m=7.) for x in (0.,10.,10.01)],flags={})
+        source={'doc':dict(junctions=[],splines=[d,dict(copy.deepcopy(d),id='roads:2:0')])}
+        for keep in ([0,1],[0,0,2],[0,1.5,2],[False,2],[0,3,2],[0,-1,2],[],[0,1,2,3]):
+            docs=copy.deepcopy(source)
+            with self.assertRaises(ValueError):apply_retained_controls(docs,{'roads:1:0':[0,2],'roads:2:0':keep})
+            self.assertEqual(docs,source)
+        docs=copy.deepcopy(source);apply_retained_controls(docs,{'roads:1:0':[0,2]})
+        self.assertEqual(docs['doc']['splines'][0]['points'],[d['points'][0],d['points'][-1]])
+        self.assertEqual(docs['doc']['splines'][1],source['doc']['splines'][1])
+
     def test_interruption_between_document_and_state_write_recovers_completed_document(self):
         with tempfile.TemporaryDirectory() as temp:
             root=Path(temp);a=root/'site_x1_y1.json';a.write_text('{"valid":true}')

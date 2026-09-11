@@ -35,7 +35,7 @@ def retained_indices(points,tolerance):
 
 def semantic_reasons(definition,keep,bound_ids=()):
     d=definition;reasons=[];flags=d.get('flags') or {};points=d['points']
-    if len(keep)<2 or keep!=sorted(set(keep)) or keep[0]!=0 or keep[-1]!=len(points)-1:
+    if any(type(i) is not int for i in keep) or len(keep)<2 or keep!=sorted(set(keep)) or keep[0]!=0 or keep[-1]!=len(points)-1:
         return ['selection must preserve ordered original endpoints']
     if d['id'] in bound_ids or d.get('junction_start') or d.get('junction_end'):reasons.append('junction arm')
     if not d['profile_ids'].get('road') or (d.get('source') or {}).get('layer')!='roads':reasons.append('not ordinary road')
@@ -50,17 +50,20 @@ def semantic_reasons(definition,keep,bound_ids=()):
 
 def verify_document(source,candidate,selections):
     """Exact source preservation, except explicitly selected original controls."""
-    expected=copy.deepcopy(source);found=set()
-    for d in expected['splines']:
-        if d['id'] not in selections:continue
-        keep=selections[d['id']];found.add(d['id'])
-        bound={e['spline_id'] for j in source['junctions'] for e in j['ends']}
-        reasons=semantic_reasons(d,keep,bound)
-        if reasons:raise ValueError('invalid retained controls: '+str(reasons))
-        if not any(retained_indices(d['points'],tol)==keep for tol in (.025,.05,.1)):
-            raise ValueError('selection is not a bounded redundant-control removal')
-        d['points']=[d['points'][i] for i in keep]
-    if found!=set(selections) or expected!=candidate:raise ValueError('candidate changed source outside selected controls')
+    if set(source)!=set(candidate) or any(source[k]!=candidate[k] for k in source if k!='splines'):
+        raise ValueError('candidate changed source outside selected controls')
+    if len(source['splines'])!=len(candidate['splines']):raise ValueError('candidate changed spline coverage')
+    found=set();bound={e['spline_id'] for j in source['junctions'] for e in j['ends']}
+    for d,other in zip(source['splines'],candidate['splines']):
+        expected=d
+        if d['id'] in selections:
+            keep=selections[d['id']];found.add(d['id']);reasons=semantic_reasons(d,keep,bound)
+            if reasons:raise ValueError('invalid retained controls: '+str(reasons))
+            if not any(retained_indices(d['points'],tol)==keep for tol in (.025,.05,.1)):
+                raise ValueError('selection is not a bounded redundant-control removal')
+            expected=dict(d,points=[d['points'][i] for i in keep])
+        if expected!=other:raise ValueError('candidate changed source outside selected controls')
+    if found!=set(selections):raise ValueError('candidate changed source outside selected controls')
 
 
 def directed_distance_bound(a,b,step=.01):
@@ -194,21 +197,26 @@ def main():
         state=json.loads(state_path.read_text(encoding='utf-8')) if state_path.exists() else dict(status='pending',phase1_accepted=False,
             fingerprint=identity,input_sha256=hashes,config=config,source=str(args.streetscape),attempts={},documents={},selections={})
         if state['fingerprint']!=identity or set(state['attempts'])-set(selected):raise ValueError('candidate checkpoint identity changed')
-        load_completed(root,state);current_docs=copy.deepcopy(docs)
+        load_completed(root,state);current_docs=dict(docs)
         for name,row in state['documents'].items():current_docs[name]=json.loads((root/row['path']).read_text(encoding='utf-8'))
-        for name,raw in current_docs.items():verify_document(docs[name],raw,{sid:k for sid,k in state['selections'].items() if locations[sid]==name})
+        for name in state['documents']:
+            verify_document(docs[name],current_docs[name],{sid:k for sid,k in state['selections'].items() if locations[sid]==name})
         survey=Heightfield.from_landscape_dir(str(terrain));survey.sampling='landscape_triangulated'
-        cache={}
+        cache={};contexts={}
         def spline(sid,original=False):
-            name=locations[sid];raw=docs[name] if original else current_docs[name];key=(sid,original,sha256_json(raw))
+            name=locations[sid];raw=docs[name] if original else current_docs[name];digest=sha256_json(raw);key=(sid,digest)
             if key not in cache:
-                site=io_json.site_from_dict(raw);plan=JunctionPlan(site)
+                if digest not in contexts:
+                    site=io_json.site_from_dict(raw);contexts[digest]=(site,JunctionPlan(site))
+                site,plan=contexts[digest]
                 cache[key]=Spline(site.spline(sid),site,survey,trim=plan.trim_for(sid))
             return cache[key]
         for sid,trials in [(sid,t) for sid,t in selected.items() if sid not in state['attempts']][:args.max_splines]:
             started=time.perf_counter();name=locations[sid];old=spline(sid);initial=spline(sid,True);results=[];retained=None
             for request in trials:
-                proposal=copy.deepcopy(current_docs[name]);d=next(d for d in proposal['splines'] if d['id']==sid)
+                proposal=dict(current_docs[name]);proposal['splines']=list(proposal['splines'])
+                index=next(i for i,d in enumerate(proposal['splines']) if d['id']==sid)
+                d=dict(proposal['splines'][index]);proposal['splines'][index]=d
                 keep=request['retained_indices'];d['points']=[definitions[sid]['points'][i] for i in keep]
                 choices=dict(state['selections'],**{sid:keep});verify_document(docs[name],proposal,{s:k for s,k in choices.items() if locations[s]==name})
                 site=io_json.site_from_dict(proposal);plan=JunctionPlan(site);after=measure_surface(site,sid,survey,plan)

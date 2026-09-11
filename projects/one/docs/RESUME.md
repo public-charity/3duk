@@ -18,7 +18,7 @@ section against either original or current selection. Checkpoints are atomic per
 spline; complete source, core, terrain and report hashes bind every run. Candidate
 outputs stay under Saved. Full combined verification is still required.
 
-**98 tool tests PASS (8.249 s)**, including actual centimetre-corner fold failure,
+**99 tool tests PASS (6.894 s)**, including actual centimetre-corner fold failure,
 bounded repair, segment-interior distance and KD fallback, protected metadata,
 planted pavement seam regression and corrupt checkpoint rejection. No core/native
 geometry change. Real Marrose reproduction: `road_control_candidates/5f4ea26bb73cd5cb60d0`,
@@ -26,11 +26,17 @@ one retained body; 16.601 mm centreline bound, all actual endpoint sections impr
 or stay unchanged. Initial private 32-case sample retained 14 with road-edge seam
 checks; the durable tool adds actual kerb/pavement checks and must supersede it.
 
-CURRENT NETWORK ROOT: `road_control_candidates/fdabfd2fd6be537fb94b` (verify latest
-state; first batch started). Run the following repeatedly, <=16 splines per call:
+CURRENT NETWORK ROOT: `road_control_candidates/97dee31510fc77ddc4fb` (verify latest
+state; 32/988 attempted, 12 retained, then batches3–6 launched). Profiling removed
+unnecessary whole-document deep copies and reused parsed site/plan context. All
+32 original attempts and every trial geometry metric reproduce EXACTLY; the first
+optimized 16-road batch takes 13.140 s. Earlier root fdabfd2fd6be537fb94b is historical.
+`road_control_optimization_verification.json` preserves the comparison. The recovery
+tool now accepts `retained_point_indices`, validates all before mutation and proves
+endpoint/order/semantic rejection. Run repeatedly, <=16 splines per call:
 `Tools/python.ps1 Tools/diag/road_control_candidates.py --streetscape Saved/Phase1/arm_network_candidates/fae0375edf30782333ac --census Saved/Phase1/road_surface_census/68a2bc3b5fffa79d7a76 --max-splines 16`
 Paths above are relative to projects/one; invoke from repo with full relative paths.
-Logs `Saved/phase1_road_control_network_batchN.log`. Initial tool connection drop
+Logs `Saved/phase1_road_control_optimized_batchN.log`. Initial tool connection drop
 left no running Python process or completed network state; resumed safely. Native
 API is actually `PreviewDocumentJson` (older summaries' SafePreviewDocumentJson
 name was shorthand); existing validation already allows point edits.
