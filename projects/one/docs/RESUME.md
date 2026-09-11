@@ -8,11 +8,32 @@ Continue search from the unchanged fae input (NOT from the newer pilot):
 `Tools/python.ps1 Tools/diag/road_control_candidates.py --streetscape Saved/Phase1/arm_network_candidates/fae0375edf30782333ac --census Saved/Phase1/road_surface_census/68a2bc3b5fffa79d7a76 --max-splines 16`
 Paths above relative to projects/one; invoke from repo with full relative paths.
 State: `road_control_candidates/97dee31510fc77ddc4fb/state.json`.
-988 eligible ordinary roads, checkpoint after every attempt. Batches1–24 complete:
-384 attempted /183 retained; batches25–40 started, session87562. Revalidate actual
+988 eligible ordinary roads, checkpoint after every attempt. Batches1–52 complete:
+832 attempted /430 retained; batches53–62 started (check current process). Revalidate actual
 process/handle before resuming. Logs `Saved/phase1_road_control_optimized_batchN.log`.
 No core/tool changes while this search is active. Only checkpoints are retained;
 there is no production rollout. Search currently includes the checkpoint29 pilot.
+
+PRIVATE NEXT-GEOMETRY DIAGNOSIS: a two-arm bend can reuse the existing A/B patch
+and pavement sweep, but the present schema/core require at least three arms.
+`probe_two_arm_bend.py` changes minimum-arm guards only in memory: 30 synthetic
+angle/radius cases show shallow bends can pass; ordinary right-angle cases need
+different handle/trim treatment. `probe_real_two_arm_bend.py` splits Garrard Avenue
+roads:4590601:0 at original control5 (s=176.46636m, turn90.572deg). Before:16.70127m2
+folds. Private handle cap0.65 with6–7m trims, or cap1 with6–8m trims, produces two
+passing road bodies and a passing pavement/patch (zero folds/overlap). This is NOT
+serializable or accepted: no source/core/schema/native changes. Full source and
+timeline splitting, continuation preservation, seam/terrain checks and native
+parity/preview support would be required. Results `real_two_arm_bend_feasibility.json`,
+`two_arm_bend_feasibility.json`; logs `phase1_{real_,}two_arm_bend_feasibility.log`.
+
+Before designing new topology, retest the earlier rejected continuation-context
+prototype on the completed control-cleanup candidate. The earlier47/96 body
+regressions may include centimetre-control artefacts now removed; this is only a
+hypothesis. Recompute stored overruns from the actual retained reciprocal neighbour
+controls (old overrun points can be stale after pruning), and measure full bodies,
+actual continuation sections, bank-rate limits and all affected junctions together.
+Do not adopt context curves merely because their seam positions improve.
 
 After all attempts finish, run `Saved/Phase1/compose_road_control_candidate.py
 --search projects/one/Saved/Phase1/road_control_candidates/97dee31510fc77ddc4fb`.
