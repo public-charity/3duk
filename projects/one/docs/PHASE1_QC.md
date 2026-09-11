@@ -7,6 +7,26 @@ decorative presentation remain later work.
 
 ## Pavement mapping diagnosis — 2026-09-11
 
+**Whole-site search and body check:** 437 bounded trims across 132 documents
+produce 1,140 passing junctions, with zero junction regressions against the width
+input. The original-base comparison still finds 21 inherited width regressions.
+Independent preservation accounts for all 246 documents, 15,422 definitions,
+1,642 junctions and 1,054 source/dependency hashes. No production rollout.
+
+The new actual-body screen checks every changed road and pavement ribbon, including
+shared-plan trim effects. Winding-independent signed mapping includes tops below
+reference height and excludes vertical backs. All 84 tool tests pass. Full comparison
+finds 14 body regressions among 1,226 trim-affected splines, and 16 among 1,507
+combined changes relative to original. Two newly folded bodies came from trims;
+even the small existing-fold increases remain failures. Filter the affected trims
+and whole width groups, then recheck neighbours and original geometry. A junction
+pass is insufficient to accept the adjoining street.
+
+A continuation-control prototype closes large endpoint gaps, with all 43 equal-width
+sample joins within 5 mm after a private bank projection. However, it increases
+folding on 47/96 tested road bodies. Reject blanket adoption. Seam, body, junction,
+terrain and structure gates must agree before porting or promoting a geometry change.
+
 **Bounded trim search:** actual A/B meshes drive <=30 trials per junction, with
 unchanged plan curves/arm geometry cached. Every affected neighbouring junction
 is checked; a retained proposal must exactly match a fresh full-document audit.

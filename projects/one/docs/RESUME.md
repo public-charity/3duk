@@ -2,6 +2,72 @@
 
 ## Current checkpoint — 2026-09-10, Phase 1 completion
 
+### Twenty-third checkpoint IN PROGRESS — 2026-09-11: complete trim search and road-body QC
+
+**Whole-site trim search complete:** all 246 documents / 1,642 junctions,
+**437 retained trims**, **1,140 pass / 356 fold / 143 overlap / 3 curve failures**.
+Current complete candidate/ledger: `Saved/Phase1/trim_network/de314a726618c74d605d`.
+All documents and reports are materialized at its root. Compared with width-only
+input `420a620141998ae68e97`: 437 new passes, **zero junction regressions**.
+Compared with original `9969ee73aaeab33a1028`: 496 new passes, 21 surviving
+inherited width mapping-fold regressions (including lost original pass J21_8:5).
+`comparison_to_{widths,original}.json` retains every ID and metric. Do not promote.
+
+Independent preservation/provenance verification PASS: all 246 documents,
+15,422 definitions, 1,642 junctions, 437 exact recorded edits in 132 documents,
+1,054 unique source/dependency hashes. Only bounded existing trim fields changed
+from the complete width input. `independent_verification.json`; helper
+`Saved/Phase1/verify_trim_network.py`, log `phase1_trim_network_independent_verification.log`.
+This verifies immutable reports and source preservation, not fresh road/terrain acceptance.
+
+**Completed comparisons:** full changed-road-body comparisons in sessions **8404**
+(widths -> trims) and **31870** (original -> combined) both finished, eight bounded batches each,
+32 documents per process and atomic hashed reports after every document. Logs
+`Saved/phase1_{trim,combined}_body_batchN.log`; states under `road_body_quality/`.
+Tool `Tools/diag/road_body_quality.py` builds actual active A/B ribbons and detects
+signed mapping folds independent of face winding, including dropped/cambered
+pavement tops below reference height and excluding vertical backs. Unchanged
+spline/profile/plan dependencies are reused explicitly; missing coverage fails.
+The 15_14 pilot checks 37 changed bodies, zero regressions in 1.513 s. **84 tool
+tests pass** in 1.856 s (`phase1_road_body_tool_tests.log`). No core/native edits.
+Complete body audit: widths -> trims checks 1,226 changed splines, **14 regressions**; original -> combined checks 1,507, **16 regressions**. All 15,422 source definitions accounted for. Roots `road_body_quality/ac1e9b0291697fe75147` and `82c7460f5bf00050250a`. Two newly folded road bodies are trim-caused; the third is width-caused. Small existing-fold increases remain failures too. Both jobs finished. Filtering helper `Saved/Phase1/filter_combined_geometry.py` currently runs in session75230 (log `phase1_filter_combined_geometry.log`). It restores whole width components or recorded trim fields only, then independently normalizes the full documents against original source. Next hold surviving
+width regressions by whole continuation component, and recheck changed bodies
+and all affected junctions against ORIGINAL geometry. Junction passes cannot
+excuse body folds. Terrain, seam, support, structures and native acceptance remain open.
+
+**Rejected continuation prototype:** both spline and junction-plan builders ignore
+stored overrun controls. Whole plan census finds 5,110 reciprocal pairs, 5,100
+untrimmed; 2,367 have nominal direction-induced edge displacement >5 cm. 5,099
+untrimmed pairs have source-neighbour controls matching within 1 mm; their analytic
+endpoint directions agree within 1.71e-6 degrees. One centre mismatch and four
+missing/nonreciprocal links remain explicit. `continuation_plan_seams/2f7ef1b6441c9777ae1e`.
+Private contextual Catmull-Rom prototype improves 49/50 deliberately risky actual
+kerb seams, median 2.107 m -> 8.662 mm; seven have width mismatches. A private
+endpoint bank-cone projection keeps both end banks and the existing 0.25 deg/m
+rate bound: all 43 equal-width sample joins <=5 mm. HOWEVER complete active body
+QA finds **47/96 road splines regress** under the contextual curve change.
+Reject blanket rollout. Preserve source/core; seam closure alone is insufficient.
+`corner_topology/continuation_{mesh_pinned_bank,body_quality}_pilot.json`, helpers
+`probe_continuation_{controls,mesh_seams,body_quality}.py`. The body probe excludes
+four rail samples explicitly. Earlier anchor-roll experiment output predates a
+clamp fix and is historical. Two short curve failures become overlaps, not passes;
+J18_4:6 remains unbuildable. Do not port this prototype as-is.
+
+Other rejected private experiments: tapering B section/pavement toward unedged
+footway creates folds; joint trim search for J15_14:21/:34 tries 34 length-valid
+pairs, none pass both without regression. `corner_topology/joint_trim_probe/results.json`,
+`phase1_unedged_{pavement_,}taper_pilot.log`. Pilot unresolved context is in
+`junction_trim_candidates/site_x15_y14/24681a486340421661c8/unresolved_context.json`.
+Short fragments and compound corners need geometry/context, not relaxed quality limits.
+
+The finished scheduler `Saved/Phase1/run_trim_network.py` uses two independent
+process workers, <=4 jobs per invocation, <=8 junctions and a 60 s deadline per
+child. Each accepted trial has immutable document/report + atomic child state.
+Its archived serial predecessor is `run_trim_network_serial_checkpoint23.py`,
+old ledger `dcd614fec4b1740ca840`; hashes verified before migration into `de314...`.
+52 batches complete. Resume command is safe, but there are no pending trim jobs.
+Latest verified commit **6ca96d9**. No production documents/terrain changed.
+
 ### Twenty-second checkpoint IN PROGRESS — 2026-09-11: cached bounded trim candidates
 
 **Pilot complete and independently verified; no jobs running.** 13 retained trims
