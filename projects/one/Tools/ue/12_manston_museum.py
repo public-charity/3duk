@@ -3,8 +3,8 @@
 --inspect is read-only. --apply saves only Manston actor packages. --verify reopens
 the saved map and tests the generated walk surfaces. Engine interfaces:
 StreetscapeEditorLibrary.h: ImportStreetscapeJson, LoadRegion, ActorStatsJson;
-Engine/Classes/Components/TextRenderComponent.h: SetText / SetWorldSize;
-UnrealEd/Public/FileHelpers.h: UEditorLoadingAndSavingUtils::SavePackages.
+Engine/Classes/Components/TextRenderComponent.h:148 (SetWorldSize);
+UnrealEd/Public/FileHelpers.h:86 (UEditorLoadingAndSavingUtils::SavePackages).
 """
 from pathlib import Path
 import json
@@ -166,12 +166,13 @@ def apply(manifest,report):
     if not unreal.EditorAssetLibrary.does_asset_exist(text_mat_path):
         unreal.EditorAssetLibrary.duplicate_asset('/Engine/EngineMaterials/DefaultTextMaterialOpaque',text_mat_path)
         text_mat=unreal.load_asset(text_mat_path)
-        mel=unreal.MaterialEditingLibrary
-        vc=mel.create_material_expression(text_mat,unreal.MaterialExpressionVertexColor,-300,300)
-        mel.connect_material_property(vc,'RGB',unreal.MaterialProperty.MP_EMISSIVE_COLOR)
     text_mat=unreal.load_asset(text_mat_path)
     text_mat.set_editor_property('shading_model',unreal.MaterialShadingModel.MSM_UNLIT)
     mel=unreal.MaterialEditingLibrary
+    if mel.get_material_property_input_node(text_mat,unreal.MaterialProperty.MP_EMISSIVE_COLOR) is None:
+        vc=mel.create_material_expression(text_mat,unreal.MaterialExpressionVertexColor,-300,300)
+        if not mel.connect_material_property(vc,'',unreal.MaterialProperty.MP_EMISSIVE_COLOR):
+            raise RuntimeError('Could not connect text emissive output')
     mel.recompile_material(text_mat)
     unreal.EditorAssetLibrary.save_loaded_asset(text_mat,False)
     active={'manston:R1','manston:R2'}
@@ -280,9 +281,15 @@ def verify(manifest,report):
     actors=museum_actors()
     by_label={a.get_actor_label():a for a in actors}
     expected=json.loads((REPORTS/'import_report.json').read_text())
+    report['verified_import_checkpoint']=expected['checkpoint']
+    report['implementation_manifest_sha256']=hashlib.sha256((IMPL/'museum_manifest.json').read_bytes()).hexdigest()
     if len(by_label)!=len(actors) or len(actors)!=expected['museum_actors']:
         raise ValueError('Saved museum actors missing or duplicated')
     samples=json.loads((IMPL/'walk_samples.json').read_text())['routes']
+    reference=json.loads((IMPL/'collision_reference.json').read_text())
+    if reference['walk_document_sha256']!=hashlib.sha256((IMPL/'museum_walks.streetscape.json').read_bytes()).hexdigest():
+        raise RuntimeError('Collision references are from another route generation')
+    expected_mesh={r['id']:{s['sample']:s['mesh_z_m'] for s in r['samples']} for r in reference['routes']}
     world=unreal.get_editor_subsystem(unreal.UnrealEditorSubsystem).get_editor_world()
     landscape=unreal.StreetscapeLandscapeImporter.find_landscape()
     routes=[]
@@ -292,7 +299,7 @@ def verify(manifest,report):
         road=a.get_editor_property('road')
         stats=json.loads(unreal.StreetscapeEditorLibrary.actor_stats_json('manston:'+r['id']))
         xyz=r['local_xyz_m']
-        missing=[];buried=[];obstacles=[];checks=0;max_error=0.;worst=None
+        missing=[];buried=[];obstacles=[];checks=0;max_error=0.;worst=None;max_mesh_error=0.
         # Probe the centre and both usable edges against THIS road component,
         # so ordinary terrain cannot masquerade as a surviving museum walkway.
         for i in range(1,len(xyz)-1,4):
@@ -312,6 +319,7 @@ def verify(manifest,report):
                 if math.isfinite(ground) and hit_z < ground-.02:
                     buried.append({'sample':i,'side':side,'depth_m':ground-hit_z})
                 if side==0:
+                    max_mesh_error=max(max_mesh_error,abs(hit_z-expected_mesh[r['id']][i]))
                     if abs(hit_z-p[2])>max_error:
                         max_error=abs(hit_z-p[2])
                         worst={'sample':i,'xyz_m':p,'hit_z_m':hit_z,'signed_offset_m':hit_z-p[2]}
@@ -330,7 +338,8 @@ def verify(manifest,report):
                     'xyz_m':p})
         routes.append({'id':r['id'],'road_triangles':stats['buffers']['road']['tris'],
             'collision_samples':checks,'missing_surface_hits':missing,'buried_samples':buried,
-            'capsule_obstacles':obstacles,'max_native_centre_height_error_m':max_error,
+            'capsule_obstacles':obstacles,'max_centreline_reference_offset_m':max_error,
+            'max_independent_mesh_collision_error_m':max_mesh_error,
             'worst_height_comparison':worst,'triangles_per_material':stats['buffers']['road']['per_material'],
             'material_slots':[road.get_material(i).get_path_name() if road.get_material(i) else None for i in range(road.get_num_materials())]})
     report.update({'saved_actor_count':len(actors),'routes':routes,
@@ -363,18 +372,9 @@ def verify(manifest,report):
         photos.append({'path':str(path),'bytes':size,'distinct_rgb':distinct,'mean_luminance':lum})
         if distinct<12 or not 6<lum<250:
             raise RuntimeError('Empty or overexposed museum capture')
-    board=by_label['manston:welcome_board'].static_mesh_component
-    board.set_visibility(False)
-    try:
-        _,x,y,z,yaw,pitch,fov=cameras[0]
-        camera={'eye_ue':[100*x,-100*y,100*z],'roll':0.,'pitch':pitch,'yaw':yaw,'fov_deg':fov}
-        ss.capture(world,camera,rt,str(REPORTS/'arrival_text_debug.png'),'final_ldr',0.,0.)
-        ss.force_opaque(str(REPORTS/'arrival_text_debug.png'))
-    finally:
-        board.set_visibility(True)
     report['captures']=photos
     report['pass']=all(not r['missing_surface_hits'] and not r['buried_samples'] and not r['capsule_obstacles']
-        and r['max_native_centre_height_error_m']<.03 for r in routes)
+        and r['max_independent_mesh_collision_error_m']<.005 for r in routes)
     save_json(REPORTS/'verification_report.json',report)
     return report
 
@@ -442,6 +442,8 @@ def main():
         report=verify(manifest,report)
         report['content_guard']=require_unchanged(before,snapshot(CONTENT))
         save_json(REPORTS/'verification_report.json',report)
+        if not report['pass']:
+            uc.fail(NAME,'Museum collision validation failed; see verification_report.json')
         uc.report(NAME,{'pass':report['pass'],'saved_actor_count':report['saved_actor_count'],
             'routes':[{k:(len(v) if isinstance(v,list) else v) for k,v in r.items()} for r in report['routes']],
             'captures':report['captures'],'content_guard':report['content_guard']})

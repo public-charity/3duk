@@ -45,3 +45,22 @@ Current next step: finish the reopened collision/obstacle checks and inspect the
 - `Tools/manston/check_checkpoint.py` passed both schemas, both closed/connected loops, all seven preserved baseline fence definitions, all 32 unknown underground geometry fields, and the complete-generation hashes. Interrupted builds are refused by the importer.
 
 Current next step: inspect the sign/collision detail diagnostics, finish the visual check, and save the final validation report. Do not mark the museum phase complete: historical shells, detailed entrances/interiors, path supports/crossings and a full in-game walking session remain.
+
+## Checkpoint 04 — validated first blockout; restart package ready
+
+- The saved core now has two closed museum walks (768.7 m and 2,694.3 m), 19 active rest stops, 8 readable information boards and 13 proposed fence openings. All 32 evidence anchors retain unknown underground floors/portals; no historical tunnel network or measured interiors have been fabricated.
+- The arrival sign renders correctly. Captured lettering uses an explicit checked emissive connection; its material graph is reused on later updates.
+- Investigated the 3.8 cm reference-height discrepancy: it is the upper face where path ribbons overlap, not a native coordinate error. Independent triangle calculations reproduce the native collision surface. The current verifier checks the actual ribbon mesh, including overlaps, rather than treating a lower centreline as the top surface.
+- The reopened museum checks pass: **3,837 floor probes**, no missing/buried path samples, no capsule-sweep obstacles, and maximum independent mesh/native collision residual under **0.025 mm**. This tiny residual describes computational agreement, not historical survey accuracy. The full CharacterMovement/Play-in-Editor walk and accessibility assessment remain unperformed.
+- Latest asset checkpoint: **`Saved/Manston/checkpoints/20260911T213333Z/`**. Its `Content/` holds pre-update copies and `after/` holds resulting assets. Native updates preserved identities; the negative missing-target test preserved all existing definitions. No files outside the declared museum/fence scope changed. Verification left all 16,111 Content files unchanged.
+- Current guide: `IMPLEMENTATION_GUIDE.md`. Distributable restart archive: repository-root `output/manston_phase1_checkpoint.zip`. The archive includes source recipes, native updater, reviewed renders, reports, hashes, and before/after package copies. It requires this existing Thanet world/data.
+- The two unrelated pre-existing road-junction load errors remain; the museum's positive report is not a clean whole-project engine verdict.
+
+### Resume from here
+
+1. Run `Tools/manston/check_checkpoint.py`; inspect the matching import and verification reports in `implementation/`.
+2. Open the explorer and perform the full on-foot R1/R2 traversal, using the guide's gateway command. Detail crossings, directional signs, promenade supports and the few overlapping path joins.
+3. Continue Phase 0 plan registration and Phase 1 historically supported restoration models: two existing museums, old RAF tower, T2 hangar and fighter pen. This checkpoint provides circulation and interpretation, not completed heritage architecture.
+4. Advance Phases 2–3 only with the evidence gates in `MANSTON_MUSEUM_PLAN.md`: separate sunken hangars, railway/War Flight/FIDO layers, and individually evidenced underground features. Keep unknown portal/depth/connectivity fields unknown.
+
+Source and implementation checkpoints are in Git on `thanet-explorer`; stage only Manston-owned files and preserve the other active road/vehicle work.

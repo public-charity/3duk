@@ -4,6 +4,8 @@ Start with [the museum plan](MANSTON_MUSEUM_PLAN.md) and [the source chest](SOUR
 The typeset approval report is at `output/pdf/manston_museum_approval_plan.pdf` from the repository root.
 Research date: 11 September 2026. The user approved starting implementation. **Phases 0–1 are underway**; see [the saved checkpoints](PROGRESS.md) for the current state and resume action. The original approval report remains a dated research/concept record.
 
+Use [the implementation guide](IMPLEMENTATION_GUIDE.md) to visit the saved museum blockout, reproduce it, or recover from the packaged checkpoint.
+
 The recommendation is selected restoration within today's mapped landscape, with a museum gateway, a short command loop, an aircraft/engineering circuit and optional archaeology/runway trails.
 The underground records support separate features. Unknown coordinates, depths and connectivity are not fabricated.
 

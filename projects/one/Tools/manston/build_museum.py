@@ -278,7 +278,7 @@ def build(landscape_dir):
         p=place_near(index,all_samples)
         if p:
             furniture.append(dict(id='sign_'+f['id'],kind='sign',name=f['name'],
-                text=f['name']+'\nHistorical location nearby\nGeometry under research',source_id=f['id'],**p))
+                text=f['name']+'\nHistorical location nearby\nRestoration planned',source_id=f['id'],**p))
     for r in path_samples:
         samples=np.array(r['local_xyz_m'])
         distances=np.r_[0,np.cumsum(np.linalg.norm(np.diff(samples[:,:2],axis=0),axis=1))]

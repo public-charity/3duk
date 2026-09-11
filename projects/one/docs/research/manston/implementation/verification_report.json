@@ -1,0 +1,104 @@
+{
+  "map": "/Game/Thanet/Maps/Thanet",
+  "terrain": "landscape:C:/Users/Shadow/code/3duk/data/thanet/out/unreal/landscape tile_m=512 res=513 px_m=1 n_tiles=391 origin=(627680, 163080) shift=(0, 0) xy0=(0, 0) sampling=landscape_triangulated",
+  "landscape_dir": "",
+  "gateway_height_odn_m": 38.28125,
+  "verified_import_checkpoint": "C:\\Users\\Shadow\\code\\3duk\\projects\\one\\Saved\\Manston\\checkpoints\\20260911T213333Z",
+  "implementation_manifest_sha256": "dc90b5fd081211b09a044708e1666d53a36d39149a2ee6fd5e105a5f3caa39c9",
+  "saved_actor_count": 169,
+  "routes": [
+    {
+      "id": "R1",
+      "road_triangles": 19488,
+      "collision_samples": 915,
+      "missing_surface_hits": [],
+      "buried_samples": [],
+      "capsule_obstacles": [],
+      "max_centreline_reference_offset_m": 0.03805303573607688,
+      "max_independent_mesh_collision_error_m": 2.448190242887449e-05,
+      "worst_height_comparison": {
+        "sample": 537,
+        "xyz_m": [
+          5890.7759,
+          3511.056,
+          45.3347
+        ],
+        "hit_z_m": 45.372753035736075,
+        "signed_offset_m": 0.03805303573607688
+      },
+      "triangles_per_material": {
+        "gravel": {
+          "tris": 19488,
+          "verts": 10971
+        }
+      },
+      "material_slots": [
+        "/Game/Thanet/Materials/MI_tarmac.MI_tarmac",
+        "/Game/Thanet/Materials/MI_gravel.MI_gravel"
+      ]
+    },
+    {
+      "id": "R2",
+      "road_triangles": 62304,
+      "collision_samples": 2922,
+      "missing_surface_hits": [],
+      "buried_samples": [],
+      "capsule_obstacles": [],
+      "max_centreline_reference_offset_m": 0.03111803531647439,
+      "max_independent_mesh_collision_error_m": 2.2933626709686905e-05,
+      "worst_height_comparison": {
+        "sample": 881,
+        "xyz_m": [
+          5302.125,
+          3328.625,
+          43.1565
+        ],
+        "hit_z_m": 43.187618035316476,
+        "signed_offset_m": 0.03111803531647439
+      },
+      "triangles_per_material": {
+        "gravel": {
+          "tris": 62304,
+          "verts": 35055
+        }
+      },
+      "material_slots": [
+        "/Game/Thanet/Materials/MI_tarmac.MI_tarmac",
+        "/Game/Thanet/Materials/MI_gravel.MI_gravel"
+      ]
+    }
+  ],
+  "full_character_walk_test": "pending; line and capsule traces are not a PIE movement test",
+  "text_debug": {
+    "actor_location": "<Struct 'Vector' (0x0000020560951960) {x: 563563.292069, y: -343240.473073, z: 4017.203669}>",
+    "actor_rotation": "<Struct 'Rotator' (0x0000020560951960) {pitch: 0.000000, yaw: 85.236122, roll: -0.000000}>",
+    "forward": "<Struct 'Vector' (0x0000020560951960) {x: 0.083050, y: 0.996545, z: 0.000000}>",
+    "world_size": "<Struct 'Vector' (0x0000020560951960) {x: 196.626093, y: 16.386324, z: 90.000000}>",
+    "text": "MANSTON<br>RAF HERITAGE MUSEUM<br>Museum walk  R1<br>Airfield walk  R2<br>Restoration work in progress",
+    "visible": true,
+    "hidden_in_scene_capture": false,
+    "font": "<Object '/Engine/EngineFonts/RobotoDistanceField.RobotoDistanceField' (0x0000020497896200) Class 'Font'>",
+    "material": "<Object '/Game/Thanet/Manston/Materials/M_MuseumText.M_MuseumText' (0x00000205557FEE00) Class 'Material'>",
+    "board_location": "<Struct 'Vector' (0x0000020560951960) {x: 563562.627672, y: -343248.445436, z: 4022.203669}>"
+  },
+  "captures": [
+    {
+      "path": "C:\\Users\\Shadow\\code\\3duk\\projects\\one\\Saved\\Manston\\arrival.png",
+      "bytes": 1506403,
+      "distinct_rgb": 42440,
+      "mean_luminance": 106.45973522808234
+    },
+    {
+      "path": "C:\\Users\\Shadow\\code\\3duk\\projects\\one\\Saved\\Manston\\museum_overview.png",
+      "bytes": 1567268,
+      "distinct_rgb": 18108,
+      "mean_luminance": 133.42149247542494
+    }
+  ],
+  "pass": true,
+  "content_guard": {
+    "unchanged": true,
+    "files": 16111,
+    "sha256": "de46fa41f863a70710f9b5d51b871161465e569696ea88a94676b582a8a79b19"
+  }
+}

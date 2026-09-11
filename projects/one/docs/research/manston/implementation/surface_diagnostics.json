@@ -1,0 +1,30 @@
+{
+  "native_report_matches_current_manifest": true,
+  "current_manifest_sha256": "dc90b5fd081211b09a044708e1666d53a36d39149a2ee6fd5e105a5f3caa39c9",
+  "comparisons": [
+    {
+      "id": "R1",
+      "reference_z": 45.3347,
+      "numpy_surface_z": 45.37275200484909,
+      "native_surface_z": 45.372753035736075,
+      "mesh_native_error_m": 1.0308869846653579e-06,
+      "number_of_overlapping_faces": 2,
+      "all_surface_heights": [
+        45.334668,
+        45.372752
+      ]
+    },
+    {
+      "id": "R2",
+      "reference_z": 43.1565,
+      "numpy_surface_z": 43.18761819439311,
+      "native_surface_z": 43.187618035316476,
+      "mesh_native_error_m": 1.5907663453162968e-07,
+      "number_of_overlapping_faces": 7,
+      "all_surface_heights": [
+        43.156534,
+        43.187618
+      ]
+    }
+  ]
+}
