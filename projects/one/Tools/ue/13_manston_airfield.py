@@ -22,7 +22,7 @@ def capture(label):
  spec=importlib.util.spec_from_file_location('airfield_capture',str(P/'Tools/ue/05_screenshot.py'));ss=importlib.util.module_from_spec(spec);spec.loader.exec_module(ss)
  world=unreal.get_editor_subsystem(unreal.UnrealEditorSubsystem).get_editor_world()
  rt=ss.make_render_target(world,1800,1150);results=[]
- for name,xy,z,yaw,pitch,fov in [('overview',[5450,3050],2800,-90,-90,70),('runway_west',[4120,2760],95,-9,-5,80),('dispersals',[5210,3000],240,-45,-45,80)]:
+ for name,xy,z,yaw,pitch,fov in [('overview',[5450,3050],2800,-90,-90,70),('runway_west',[4036,2790],75,9,-4,80),('dispersals',[5210,3000],240,-45,-45,80)]:
   path=SAVED/(label+'_'+name+'.png');camera=dict(eye_ue=[xy[0]*100,-xy[1]*100,z*100],roll=0.,pitch=pitch,yaw=yaw,fov_deg=fov)
   if not ss.capture(world,camera,rt,str(path),'final_ldr',0.,0.):raise RuntimeError('Capture failed')
   size,colours,lum=ss.force_opaque(str(path));results.append(dict(file=path.name,bytes=size,colours=colours,luminance=lum))
@@ -125,8 +125,21 @@ def verify(manifest,state):
    a=by.get('manston_airfield:asphalt_%d_%d'%(tx,ty));runway_checks+=1
    if a is None or a.get_dynamic_mesh_component().line_trace_component(vec([x,y,150]),vec([x,y,-10]),True,False,False) is None:
     runway_missing.append([x,y])
- photos=capture('after');guard=require_unchanged(baseline,snapshot(CONTENT))
- report=dict(pass_checks=not missing and not buried and not runway_missing and max_error<.005,checkpoint=imp['checkpoint'],manifest_sha256=state['manifest_sha256'],probes=len(manifest['probes']),
+ photos=capture('after')
+ surface_pass=not missing and not buried and not runway_missing and max_error<.005
+ regression=None
+ if surface_pass:
+  # Reuse the established walk validation with the new pavement present in this reopened world.
+  spec=importlib.util.spec_from_file_location('airfield_museum_regression',str(P/'Tools/ue/12_manston_museum.py'))
+  museum=importlib.util.module_from_spec(spec);spec.loader.exec_module(museum)
+  regression=museum.verify(json.loads((museum.IMPL/'museum_manifest.json').read_text()),
+   dict(map=MAP,airfield_manifest_sha256=state['manifest_sha256']))
+ guard=require_unchanged(baseline,snapshot(CONTENT))
+ if regression is not None:
+  regression['content_guard']=guard;save(SAVED/'museum_regression.json',regression)
+ report=dict(pass_checks=surface_pass and regression is not None and regression['pass'],surface_checks_pass=surface_pass,
+  museum_regression_pass=regression['pass'] if regression else None,
+  checkpoint=imp['checkpoint'],manifest_sha256=state['manifest_sha256'],probes=len(manifest['probes']),
   runway_width_and_length_probes=runway_checks,missing_runway_probes=runway_missing,saved_triangle_count=sum(triangle_counts.values()),
   hidden_landscape_probe_count=sum(not p['native_landscape_present'] for p in manifest['probes']),
   missing=missing,buried=buried,maximum_cache_collision_error_m=max_error,maximum_pavement_lift_m=max_lift,minimum_pavement_clearance_m=minimum_clearance,captures=photos,content_guard=guard)

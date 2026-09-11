@@ -214,9 +214,9 @@ def main():
    a,b,c=floors[index];ab=b[:2]-a[:2];ac=c[:2]-a[:2];det=ab[0]*ac[1]-ab[1]*ac[0]
    for t in shapely.get_parts(shapely.constrained_delaunay_triangles(cut)):
     q=np.array(t.exterior.coords)[:3];delta=q-a[:2]
-    u=(delta[:,0]*ac[1]-delta[:,1]*ac[0])/det;v=(ab[0]*delta[:,1]-ab[1]*delta[:,0])/det
-    z=a[2]+u*(b[2]-a[2])+v*(c[2]-a[2])+.009
-    signed=np.cross(q[1]-q[0],q[2]-q[0]).item()
+    bu=(delta[:,0]*ac[1]-delta[:,1]*ac[0])/det;bv=(ab[0]*delta[:,1]-ab[1]*delta[:,0])/det
+    z=a[2]+bu*(b[2]-a[2])+bv*(c[2]-a[2])+.009
+    ab2=q[1]-q[0];ac2=q[2]-q[0];signed=ab2[0]*ac2[1]-ab2[1]*ac2[0]
     if abs(signed)<1e-8:continue
     face=list(range(len(vertices),len(vertices)+3));faces.append(face if signed>0 else face[::-1])
     vertices.extend(np.c_[q+ORIGIN,z]);covered_area+=abs(signed)/2

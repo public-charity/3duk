@@ -9,9 +9,11 @@ def main():
  state=json.loads((OUT/'build_state.json').read_text());m=json.loads((OUT/'airfield_manifest.json').read_text())
  assert ver['pass_checks'] and imp['checkpoint']==ver['checkpoint'] and imp['manifest_sha256']==ver['manifest_sha256']==state['manifest_sha256']==sha(OUT/'airfield_manifest.json')
  assert not any(imp['unexpected_changes'].values()) and ver['content_guard']['unchanged']
+ walks=json.loads((SAVED/'museum_regression.json').read_text())
+ assert walks['pass'] and walks['airfield_manifest_sha256']==state['manifest_sha256']
  for row in imp['saved_files']:assert sha(P/'Content'/row['path'])==row['sha256']
  checkpoint=Path(imp['checkpoint'])
- for name in ['import_report.json','verification_report.json','before_overview.png','after_overview.png','after_runway_west.png','after_dispersals.png']:
+ for name in ['import_report.json','verification_report.json','museum_regression.json','before_overview.png','after_overview.png','after_runway_west.png','after_dispersals.png']:
   shutil.copy2(SAVED/name,OUT/name);shutil.copy2(SAVED/name,checkpoint/name)
  guide=f'''# Manston airfield completion
 
@@ -24,7 +26,7 @@ Saved in `/Game/Thanet/Maps/Thanet`. This is the museum reconstruction in the ex
 - One additional central apron interpreted from aerial imagery, approximately 71,368 m² before surface overlap removal.
 - Total pavement {m['areas_m2']['paved']:,.0f} m² and {m['areas_m2']['terrain_extension']:,.0f} m² of restored ground on the clipped side of the airport.
 
-The whole-island landscape crop and original roads were not rewritten. A local terrain mesh restores the airport land from raw Environment Agency DTM. Existing museum actors are preserved. The source JSON splines drive the runway/taxiways; joined footprint caches eliminate coplanar pavement overlaps. The same road renderer generates the markings.
+The whole-island landscape crop and original roads were not rewritten. A local terrain mesh restores the airport land from raw Environment Agency DTM. Existing museum actors are preserved. The source JSON splines drive the runway/taxiways; joined footprint caches eliminate coplanar pavement overlaps. The same road renderer generates the marking footprints, which are fitted 9 mm above their exact supporting pavement triangles.
 
 ## Evidence and interpretation
 
@@ -38,12 +40,14 @@ Geometry checks passed {len(m['caches'])} caches / {sum(c['triangles'] for c in 
 
 The saved map was reopened. {ver['probes']:,} surface probes and {ver['runway_width_and_length_probes']:,} additional runway probes passed. No missing runway samples or buried pavement samples were found. Maximum native/cache collision discrepancy: {ver['maximum_cache_collision_error_m']:.6f} m. This is computational agreement, not LiDAR accuracy. Verification changed no Content files. The visual review and complete engine runner verdict are recorded in PROGRESS.md.
 
+The original landscape's visibility clip excludes {ver['hidden_landscape_probe_count']:,} samples from the terrain-occlusion comparison; Unreal's editor height query reports filled texels even where that landscape is hidden. Surface collision remains checked at all samples. The existing R1/R2 museum walks also passed {sum(r['collision_samples'] for r in walks['routes']):,} floor checks and the raised body-capsule obstruction checks with the new airfield loaded. A full manual character walk remains untested.
+
 ## Visit and resume
 
 Open `projects/one/Thanet.uproject`, load Thanet and fly to Manston. For the western runway, use the Unreal console command:
 
 ```text
-BugItGo 412000 -276000 6000 0 -9 0
+BugItGo 412000 -276000 6000 0 9 0
 ```
 
 This navigation shortcut has not been tested in a manual Play-in-Editor session. The explorer's F key toggles flight.
@@ -56,7 +60,7 @@ Read `PROGRESS.md` before continuing. From the repository root, use `C:/Users/Sh
 4. Reopen/check using the same command with `-Args "--verify"`.
 5. Package with `projects/one/Tools/manston/package_airfield.py` after reviewing the renders and runner verdict.
 
-The generator writes its ready state last. The importer rejects stale geometry checks/caches and saves every eight actor updates. Latest native checkpoint: `{checkpoint.name}`. Its journal lists saved IDs. Existing owned assets are copied before updates; this first import records their prior absence in `before.json`. Resulting assets and generated caches are included in the ZIP with hashes. Recover only declared paths while the project has no active writer. The archive requires the existing Thanet world; it is not a standalone game.
+The generator writes its ready state last. The importer rejects stale geometry checks/caches and saves every eight actor updates. Latest native checkpoint: `{checkpoint.name}`. Its journal lists saved IDs. Existing owned assets are copied before updates; `before/` contains the preceding iteration and `after/` contains this verified result. The original absence of these airfield assets is recorded separately in `initial_before.json`. Resulting assets and generated caches are included in the ZIP with hashes. Recover only declared paths while the project has no active writer. The archive requires the existing Thanet world; it is not a standalone game.
 
 ## Sources
 
@@ -71,6 +75,9 @@ The generator writes its ready state last. The importer rejects stale geometry c
    if p.is_file() and '__pycache__' not in p.parts:files[str(p.relative_to(R)).replace('\\','/')]=p
  for relative in ['Tools/ue/13_manston_airfield.py','Plugins/Streetscape/Source/StreetscapeEditor/Public/StreetMeshCacheLibrary.h','Plugins/Streetscape/Source/StreetscapeEditor/Private/StreetMeshCacheLibrary.cpp','Plugins/Streetscape/Source/StreetscapeEditor/StreetscapeEditor.Build.cs']:
   p=P/relative;files[str(p.relative_to(R)).replace('\\','/')]=p
+ for name in ['basemap.bng.json','aeroway_source.json','acquisition_manifest.json','SOURCE_CHEST.md']:
+  p=OUT.parent/name;files[str(p.relative_to(R)).replace('\\','/')]=p
+ files['recovery/initial_before.json']=SAVED/'checkpoints/20260911T220935Z/before.json'
  for folder in ['before','after']:
   for p in (checkpoint/folder).rglob('*'):
    if p.is_file():files['recovery/'+folder+'/'+str(p.relative_to(checkpoint/folder)).replace('\\','/')]=p
