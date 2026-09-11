@@ -2,6 +2,45 @@
 
 ## Current checkpoint — 2026-09-10, Phase 1 completion
 
+### Twenty-ninth checkpoint IN PROGRESS — 2026-09-11: bounded road-control cleanup
+
+New `Tools/diag/road_control_candidates.py` removes only selected redundant
+interior controls within 0.1 m on ordinary roads with no junction-arm binding.
+First/last point dictionaries, all retained points and every other document field
+are exact. Structures, steps, loops, explicit z/roll pins and distinct point
+semantics are excluded. `_z_06` is documented historical drape, not a height pin;
+removed notes remain in the hashed original source and retained-index manifest.
+
+Each candidate must eliminate ALL target body folds, stay within 50 mm of the
+original dense polyline (conservative nearest-segment/Lipschitz bound), change
+length by <=50 mm, and worsen no actual road-edge/kerb/pavement continuation
+section against either original or current selection. Checkpoints are atomic per
+spline; complete source, core, terrain and report hashes bind every run. Candidate
+outputs stay under Saved. Full combined verification is still required.
+
+**98 tool tests PASS (8.249 s)**, including actual centimetre-corner fold failure,
+bounded repair, segment-interior distance and KD fallback, protected metadata,
+planted pavement seam regression and corrupt checkpoint rejection. No core/native
+geometry change. Real Marrose reproduction: `road_control_candidates/5f4ea26bb73cd5cb60d0`,
+one retained body; 16.601 mm centreline bound, all actual endpoint sections improve
+or stay unchanged. Initial private 32-case sample retained 14 with road-edge seam
+checks; the durable tool adds actual kerb/pavement checks and must supersede it.
+
+CURRENT NETWORK ROOT: `road_control_candidates/fdabfd2fd6be537fb94b` (verify latest
+state; first batch started). Run the following repeatedly, <=16 splines per call:
+`Tools/python.ps1 Tools/diag/road_control_candidates.py --streetscape Saved/Phase1/arm_network_candidates/fae0375edf30782333ac --census Saved/Phase1/road_surface_census/68a2bc3b5fffa79d7a76 --max-splines 16`
+Paths above are relative to projects/one; invoke from repo with full relative paths.
+Logs `Saved/phase1_road_control_network_batchN.log`. Initial tool connection drop
+left no running Python process or completed network state; resumed safely. Native
+API is actually `PreviewDocumentJson` (older summaries' SafePreviewDocumentJson
+name was shorthand); existing validation already allows point edits.
+
+After search: compose complete 246-doc candidate, independently verify all changed
+bodies, full document/source preservation, unchanged junction dependencies and
+every combined continuation section. Add a committed retained-point selection and
+verify byte-exact reconstruction before adopting the candidate. Current retained
+data remains fae0375edf30782333ac; phase 1 and production remain unchanged.
+
 ### Twenty-eighth checkpoint COMPLETE — 2026-09-11: every road/rail body measured
 
 All 246 documents /15,422 definitions accounted for: **10,626 passed /2,471
