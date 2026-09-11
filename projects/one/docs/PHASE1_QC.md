@@ -5,6 +5,24 @@ Thanet base suitable for high-quality building overlays. Survey registration, te
 roads, rail, junctions and their transitions belong to Phase 1. Hero buildings and
 decorative presentation remain later work.
 
+## Bounded continuation screening and full-document proof — 2026-09-11
+
+Measure current actual sections; old nominal gaps only prioritize the queue. Each
+pair has <=33 trials, a 15 s budget, atomic results and source hashes. Require
+simple footprint boundaries before trusting fan area: a star winding twice can
+have zero area excess. Catch proper crossings, nonadjacent touches and adjacent
+collinear backtracking. Preserve opposite active trim-plane sections as well as
+original endpoints, and independently measure finished A/B mesh seams.
+
+The first ten pairs produce seven local proposals. Six pass complete-document
+proofs: 510 untouched bodies, 7,910 arrays and 340 old junction mesh groups exact.
+One is held because the inherited stair junction prevents complete source and
+candidate builds; its local pass is not promoted. Six distinct edited documents
+compose without interactions, with the other 240 reused byte-exact. The complete
+246-document candidate reconstructs byte-exact from checkpoint 36. 117 workflow
+tests pass. Counts become 1,192 passing junctions and ten connectors, with body
+counts unchanged. Terrain/native proof and all inherited defects remain open.
+
 ## Exact terrain-edge constraints — 2026-09-11
 
 A sampled terrain candidate passed its 25 cm edge checks but failed an independent

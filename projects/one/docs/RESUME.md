@@ -2,6 +2,49 @@
 
 ## Current checkpoint — 2026-09-10, Phase 1 completion
 
+### Thirty-sixth checkpoint COMPLETE — 2026-09-11: ten verified local connectors
+
+**Current retained geometry candidate:** `connector_compositions/34110f2359c7883dedc8`.
+All 246 documents /15,422 definitions /1,652 junctions. Six new joins extend the
+four-connector checkpoint 32. **11,164 passing bodies /1,933 folds /2,325 non-road;
+1,192 passing junctions /327 fold /130 overlap /3 needs_geometry.** No body
+regressions. Six complete document builds verify 510 untouched bodies, 7,910
+untouched mesh arrays and 340 existing junction mesh groups exactly (58 old
+junctions). Opposite ACTIVE trim-plane road/kerb/pavement sections move <=1 nm.
+The remaining 240 documents are byte-exact checkpoint 32 reuse.
+
+Every new connector has a simple footprint, no fan overlap/corner folds, and
+finished A/B seams <=1 nm. A new star-shaped counterexample test proves zero fan
+area excess can conceal self-crossing overlap; the new boundary check catches
+crossings, nonadjacent touching and collinear backtracking. All four previously
+retained connector boundaries pass too. **117 workflow tests pass (7.400 s).**
+
+Source-hashed bounded search `local_connector_candidates/77b43f39e1cf42e9fc98`
+has 10/2,176 pairs screened, seven local proposals: six full-document passes and
+one HELD. Held pair index 9, roads 28853582:0 /951744428:0, site_x23_y9, encounters
+the same inherited `junction:23_9:18` stair-junction build failure in source and
+candidate. It is excluded from the retained composition. Logs
+`phase1_local_connector_full_document7.log` FAILED; classification3 confirms the
+same sole junction failure. Three other pairs have no passing local geometry.
+Search batches 1..3 checkpoint each pair, up to 33 trials /15 s per pair.
+
+Recovery manifest `docs/checkpoints/phase1_36_geometry_selection.json`
+SHA ddd72c379bc4a8731b550a901f905c1ba472674e833a778246a52709e6213f79. All 246 documents reconstructed byte-exact in eight <=32-document
+calls under `restored_geometry_selection/ddd72c379bc4a8731b55`; logs
+`phase1_connector36_restore_batch1..8.log`. Search/proof state frozen inside the
+candidate's `search_snapshot.json`; independent proofs remain in search root's
+`full_verification`. Helper `compose_local_connector_checkpoint36.py` uses atomic
+file copies and preserves full original document payloads except appended joins.
+
+CURRENT NEXT ACTION: continue the existing bounded search from pair 10 using
+`Tools/diag/local_connector_candidates.py --max-pairs 4` (same source/config).
+Keep individual screening distinct from combined per-document verification,
+especially when future proposals share a spline or a document. The six new joins
+still need terrain/native coverage. Wings Close's separate contact candidate and
+native proof remain checkpoints 34/35. No Phase 1 production promotion occurred.
+Other user tasks are actively importing Manston/police-car assets; check CIM before
+any native run and take fresh Content hashes. Never interrupt their UE processes.
+
 ### Thirty-fourth checkpoint NUMERICAL PASS — 2026-09-11: Wings Close contact
 
 Exact triangle clipping found 101.450 mm penetration in the new connector patch
@@ -56,7 +99,7 @@ failure. All Content bytes remained unchanged; no document/terrain edit occurred
 
 ### Thirty-second checkpoint COMPLETE — 2026-09-11: recoverable network with four connectors
 
-**Current retained geometry candidate:** `connector_compositions/3b827be0962f2fbf0ae9`.
+**Historical retained geometry candidate:** `connector_compositions/3b827be0962f2fbf0ae9`.
 All 246 documents /15,422 definitions /1,646 junctions. Four complete rebuilt
 documents match checkpoint 31's proof; the other 242 are byte-exact checkpoint 30
 documents with the unchanged legacy geometry path. **11,164 passing bodies /
