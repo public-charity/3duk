@@ -5,6 +5,38 @@ Thanet base suitable for high-quality building overlays. Survey registration, te
 roads, rail, junctions and their transitions belong to Phase 1. Hero buildings and
 decorative presentation remain later work.
 
+## Checkpoint 42: require contact on new corners, then inspect the real level
+
+Inherited daylight protection is insufficient for newly generated geometry.
+`terrain_finish_candidate.py --contact-junction` explicitly requires the named
+corner bases to contact ground inside the rectangle, independently of named road
+coverage. Missing/unbuilt/outside bases fail. A planted 250 mm floating diagonal
+base remains floating under the old protection rule and is filled to <=1/128 m
+under the new requirement. The full workflow suite passes 128 tests.
+
+Garrard is the first retained interior bend. A 20 x 21 m finish examines 18,022
+surface constraints, including 70 steep corner faces, and needs **zero terrain
+edits**: zero penetration and zero required-base daylight. The actual native
+before/after images show the crossed pavement replaced by a continuous rounded
+bend. All 52 actors export/restore correctly, all 462 ground posts match the raw
+R16 codes, and all 16,249 saved Content files stay byte-identical. Native float
+probes differ by at most 0.097657 mm, below the separate 0.5 mm readback limit.
+The 238.6 s run has the documented teardown AV after successful Python work and
+clean log closure; it is not counted as a clean engine exit. Fan/transition
+shading remains visible and is an explicit finish issue.
+
+Recovery appends station masks without editing source definitions, and validates
+all affected plans before any mutation. The 246-document selection has 230
+connectors and one bend, 11,186 passing bodies /1,911 folds and 1,413 passing
+junctions. Reconstruct 64 documents (including Garrard) from raw inputs; reuse
+182 byte-identical documents from the previously verified checkpoint-40 recovery,
+then reconcile all 246 exact hashes. Avoid rebuilding unchanged artifacts merely
+to repeat evidence. This reuse is recorded separately from fresh reconstruction.
+Next, screen at most two internal bends per call against the current core and
+selection, with per-trial deadlines, then require full-document proof, new-corner
+contact and actual mesh inspection before retaining repairs. Whole-site terrain,
+structures, original junction failures and final material/normal finish remain open.
+
 ## Checkpoint 41: prove the exact seam and serialized reconstruction
 
 Restrict A seam queries to the exact junction group and B queries to that

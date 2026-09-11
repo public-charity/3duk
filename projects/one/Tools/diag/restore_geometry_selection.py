@@ -113,6 +113,31 @@ def apply_retained_connectors(docs,selections):
     docs.update(proposals)
 
 
+def apply_retained_bends(docs,selections):
+    """Append reviewed station masks while preserving every complete source spline.
+
+    Validate all affected document plans before mutating any input. This is exact
+    reconstruction only; the manifest still needs separate physical evidence.
+    """
+    if not selections:return
+    import copy
+    sys.path.insert(0,str(TOOLS/'blender'))
+    from streetscape import io_json
+    from streetscape.spline import JunctionPlan
+    if set(selections)-set(docs):raise ValueError('retained bend document missing')
+    taken={j['id'] for raw in docs.values() for j in raw['junctions']};proposals={}
+    for name,additions in selections.items():
+        candidate=copy.deepcopy(docs[name])
+        for addition in additions:
+            j=copy.deepcopy(addition)
+            if j.get('kind')!='bend' or j.get('id') in taken:
+                raise ValueError('invalid retained bend topology or duplicate id')
+            taken.add(j.get('id'));candidate['junctions'].append(j)
+        JunctionPlan(io_json.site_from_dict(candidate))
+        proposals[name]=candidate
+    docs.update(proposals)
+
+
 def main():
     ap=argparse.ArgumentParser(description=__doc__)
     ap.add_argument('--manifest',type=Path,default=TOOLS.parent/'docs/checkpoints/phase1_23_geometry_selection.json')
@@ -154,6 +179,7 @@ def main():
             apply_retained_trims(docs,manifest['junction_trims_m'],manifest.get('junction_end_trims_m',{}))
             apply_retained_controls(docs,manifest.get('retained_point_indices',{}))
             apply_retained_connectors(docs,manifest.get('connectors',{}))
+            apply_retained_bends(docs,manifest.get('bends',{}))
             for name in pending[:args.max_docs]:
                 target=root/name;atomic_json(target,docs[name])
                 actual=sha256(target)

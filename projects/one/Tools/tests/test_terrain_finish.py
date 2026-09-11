@@ -7,6 +7,8 @@ sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'blender'))
 from diag.terrain_finish import minimum_adjustment,apply_adjustments,TerrainFinishInfeasible
 from diag.terrain_contact import exact_penetration
 from streetscape.terrain import Heightfield
+from diag.terrain_finish_candidate import contact_targets,required_contact_coverage
+from diag.terrain_edge_contact import constraint_points,compare_segments
 
 
 class TerrainFinishTest(unittest.TestCase):
@@ -51,6 +53,34 @@ class TerrainFinishTest(unittest.TestCase):
         diagnostic=caught.exception.diagnostic
         self.assertEqual(diagnostic['status'],'complete')
         self.assertGreaterEqual(diagnostic['achievable_max_contact_gap_m'],.21-1e-8)
+
+    def test_new_floating_corner_requires_fill_while_inherited_gap_is_preserved(self):
+        f=Heightfield.from_function(lambda x,y: np.zeros_like(x),extent_m=(8,8),tile_m=8)
+        f.sampling='landscape_triangulated'
+        # This diagonal crosses terrain triangles between integer posts. Checking
+        # only mesh vertices would miss constraints when neighbouring posts move.
+        segments=np.array([[[2.2,2.1,.25],[5.8,5.7,.25]]])
+        points=constraint_points(segments,f,(1,1,7,7),gap_roots=(1/128-.005,))
+        top=np.array([[[1,1,.3],[7,1,.3],[7,7,.3]],[[1,1,.3],[7,7,.3],[1,7,.3]]])
+        protected=contact_targets(points,f.sample(*points[:,:2].T),1/128,False)
+        old_changes,_=minimum_adjustment(top,f,(1,1,7,7),protected,edge_gap_m=1/128)
+        old=apply_adjustments(f,old_changes)
+        self.assertEqual(old_changes,{})
+        self.assertEqual(compare_segments(segments,f,old)['after_max_gap_m'],.25)
+        required=contact_targets(points,f.sample(*points[:,:2].T),1/128,True)
+        changes,stats=minimum_adjustment(top,f,(1,1,7,7),required,edge_gap_m=1/128)
+        after=apply_adjustments(f,changes)
+        self.assertGreater(stats['raised_posts'],0)
+        self.assertLessEqual(compare_segments(segments,f,after)['after_max_gap_m'],1/128+1e-8)
+        self.assertLessEqual(exact_penetration(top,after)['max_penetration_m'],1e-8)
+
+    def test_new_corner_contact_cannot_be_substituted_by_a_same_named_road(self):
+        with self.assertRaisesRegex(ValueError,'named junction.*join'):
+            required_contact_coverage(['join'],['join'],{'join'},set())
+        with self.assertRaisesRegex(ValueError,'named road.*road'):
+            required_contact_coverage(['road'],[],set(),{'road'})
+        self.assertEqual(required_contact_coverage(['road'],['join'],{'road'},{'join'}),
+                         {'roads':['road'],'junctions':['join']})
 
 
 if __name__=='__main__':unittest.main()

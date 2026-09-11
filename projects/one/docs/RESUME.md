@@ -2,6 +2,67 @@
 
 ## Current checkpoint — 2026-09-10, Phase 1 completion
 
+### Forty-second checkpoint COMPLETE — Garrard bend physical proof and retention
+
+**Current retained geometry:** `bend_compositions/4e0d147340617fc60322`.
+246 documents /15,422 definitions /1,873 junctions: **230 connectors +1 bend**.
+**11,186 passing bodies /1,911 folds /2,325 non-road; 1,413 passing junctions /
+327 folds /130 overlaps /3 needs_geometry.** One folded road repaired, zero
+regressions; 245 complete documents are byte-exact checkpoint-40 parents.
+
+Garrard `roads:4590601:0`, new junction `bend:4590601:0:5`, site_x12_y13:
+original source definition, 152 stations and length exact; 16.7013 m2 fold gone.
+51 untouched bodies /875 arrays /61 old junction groups exact. Actual A seam
+zero, B <=2.729e-12 m, simple patch and zero overlap (checkpoint-41 full proof).
+Terrain finish `terrain_finish_candidates/25fb1275289667cfbe12` examines the
+20 x 21 m rectangle **6247,6731,6267,6752**, 18,022 contact constraints including
+70 steep corner faces. **Zero height edits, zero penetration, zero daylight**
+on the named road and NEW corner bases; 35 corner segments /121 exact breakpoints.
+Minimum surface clearance 40.621 mm. New `--contact-junction` gate refuses missing
+measured corners; planted 250 mm floating-base test catches the old false pass.
+
+Native `native_bend_preview_garrard_01`: inspected both 1600x900 images, crossed
+pavement replaced by continuous rounded road/kerbs/pavements. All 52 actor
+identities and full document export/rollback pass. All **462** baseline/candidate/
+restored ground probes match independently decoded raw R16 codes exactly;
+float max error **0.097657 mm** (<0.5 mm readback bound). All **16,249 Content
+files unchanged**. Terrain was not edited. Fan and pavement transition shading
+remain visible; this is a geometric/contact repair, not a finish-quality pass.
+Native runner 238.6 s, teardown AV AFTER successful Python and clean log closure,
+classified `teardown_crash_after_success`, zero other errors/crash markers.
+Logs `phase1_garrard42_native_preview1.log` and `..._runner.log`.
+
+**128 workflow tests PASS (11.756 s)**, including eight recovery and six terrain
+finish tests. No shared runtime/native changes since checkpoint 41. Recovery
+validates all bend plans before mutation and preserves whole spline definitions.
+All **246 files recovered exact** at `restored_geometry_selection/fc20b7b49f33240ed01e`:
+64 fresh raw-source reconstructions (including Garrard), 182 exact files reused
+from the verified checkpoint-40 recovery. Separate `recovery_reuse.json` records
+the distinction; `state.json` is complete. Logs `phase1_garrard42_restore_batch1..2.log`
+and `phase1_garrard42_restore_reconcile.log`. This avoids six redundant rebuilds.
+
+Selection `docs/checkpoints/phase1_42_geometry_selection.json`, SHA
+fc20b7b49f33240ed01e9361ed122f684e746a0af4fdc765f835e6463c5edaa6.
+Physical/evidence/helper bundle `phase1_42_garrard_physical.json`, SHA
+b63eb060bb815417e9834811d7aed996326c6ad6185c871c0ace8196d58bd0b4.
+Recovery report `phase1_42_recovery.json` includes the exact reuse inventory/helper.
+Saved helpers `measure_garrard_contact42.py`, `prepare_garrard_native42.py`,
+`finish_garrard_checkpoint42.py`, `reuse_garrard_recovery42.py` already ran;
+sealed-output guards mean do not rerun blindly. Helpers/evidence embedded in docs;
+images/raw assets remain under Saved or data, not backed up by a code commit.
+
+**Next:** extend the proven station-mask approach with a NEW source/core-hashed,
+bounded internal-bend search against checkpoint 42. At most two roads per call,
+small trial sets with timeouts and atomic per-road state. Source control nodes
+and original timelines stay fixed. Require actual boundary simplicity, no new
+folds, exact junction-specific A/B seams, and whole-document regression checks.
+Every new corner needs required contact; sample actual meshes before retention.
+Do not use candidates needing unproved hedge/barrier corner continuity. Investigate
+fan/transition shading separately; do not conceal geometric creases with normals.
+Old connector search identity is incompatible with shared core 41 and remains idle.
+No jobs intentionally left running. Check processes before UE/build jobs; other
+tasks work on this branch. Phase 1 remains ACTIVE, NOT accepted; no promotion.
+
 ### Forty-first checkpoint COMPLETE — 2026-09-12: native interior bends and stronger seam QC
 
 **Shared Python/C++ bend implementation verified. Retained network is still

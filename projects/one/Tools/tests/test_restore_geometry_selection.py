@@ -1,11 +1,39 @@
 import copy,json,sys,tempfile,unittest
 from pathlib import Path
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
-from diag.restore_geometry_selection import pending_documents,apply_retained_trims,apply_retained_controls,apply_retained_connectors
+from diag.restore_geometry_selection import pending_documents,apply_retained_trims,apply_retained_controls,apply_retained_connectors,apply_retained_bends
 from phase1_qc import sha256
 
 
 class SelectionRecoveryTest(unittest.TestCase):
+    def bend_source(self):
+        path=Path(__file__).resolve().parents[1]/'blender/tests/fixtures/junction_interior_bend_garrard.json'
+        joined=json.loads(path.read_text(encoding='utf-8'));source=copy.deepcopy(joined);source['junctions']=[]
+        return source,joined
+
+    def test_bend_recovery_preserves_entire_original_spline_and_timeline(self):
+        source,joined=self.bend_source();docs={'doc':source}
+        apply_retained_bends(docs,{'doc':joined['junctions']})
+        self.assertEqual(docs['doc'],joined)
+        self.assertEqual(docs['doc']['splines'],source['splines'])
+
+    def test_invalid_later_bend_does_not_partially_restore_an_earlier_document(self):
+        source,joined=self.bend_source();original={'a':source,'b':copy.deepcopy(source)}
+        for case in ('station','range','node','duplicate','same_role','kind','trim','overlap'):
+            first=copy.deepcopy(joined['junctions'][0]);second=copy.deepcopy(first);second['id']='second'
+            if case=='station':second['ends'][0]['station_m']=float('nan')
+            elif case=='range':second['ends'][1]['station_m']=10000
+            elif case=='node':second['x']+=.01
+            elif case=='duplicate':second['id']=first['id']
+            elif case=='same_role':second['ends'][0]['end']=second['ends'][1]['end']
+            elif case=='kind':second['kind']='connector'
+            elif case=='trim':second['trim_radius_m']=2
+            selections={'a':[first],'b':[second]}
+            if case=='overlap':selections={'a':[first,second]}
+            docs=copy.deepcopy(original)
+            with self.assertRaises(ValueError,msg=case):apply_retained_bends(docs,selections)
+            self.assertEqual(docs,original)
+
     def connector_source(self):
         path=Path(__file__).resolve().parents[1]/'blender/tests/fixtures/junction_connector_reverse.json'
         joined=json.loads(path.read_text(encoding='utf-8'));source=copy.deepcopy(joined);source['junctions']=[]

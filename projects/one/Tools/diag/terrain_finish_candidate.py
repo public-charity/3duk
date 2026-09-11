@@ -1,8 +1,9 @@
-"""Create a source-hashed, bounded terrain finish candidate around named road edges.
+"""Create a source-hashed, bounded terrain finish candidate around named outer bases.
 
 All nearby road/path/pavement surfaces constrain clearance. Named outer bases
 must contact ground within one height encoding unit; other outer bases retain
 their existing contact within 5 mm. Surface clearance tapers at skirt bases.
+New junction corners must be named explicitly to require contact.
 Only a sparse candidate is written under Saved, never a production raster.
 """
 import argparse
@@ -28,12 +29,30 @@ from diag.terrain_contact import exact_penetration
 from diag.bridge_crossing_audit import highest_triangle_z
 
 
+def contact_targets(points, baseline, contact_gap, required):
+    """New/required bases must touch ground; inherited bases may retain daylight."""
+    target=np.asarray(points,dtype=float).copy()
+    if not required:target[:,2]=np.minimum(target[:,2],baseline+contact_gap-.005)
+    return target
+
+
+def required_contact_coverage(roads,junctions,measured_roads,measured_junctions):
+    result={}
+    for kind,requested,measured in (('road',roads,measured_roads),('junction',junctions,measured_junctions)):
+        missing=set(requested)-measured
+        if missing:raise ValueError('named '+kind+' has no measured outer base in rectangle: '+', '.join(sorted(missing)))
+        result[kind+'s']=sorted(set(requested))
+    return result
+
+
 def main():
     ap=argparse.ArgumentParser(description=__doc__)
     ap.add_argument('--document',type=Path,required=True)
     ap.add_argument('--landscape',type=Path,required=True)
     ap.add_argument('--bounds',required=True)
     ap.add_argument('--contact-road',action='append',required=True)
+    ap.add_argument('--contact-junction',action='append',default=[],
+                    help='require ground contact on this junction corner outer base inside the rectangle')
     ap.add_argument('--max-contact-gap-m',type=float,help='explicit review target, at most 25 mm; default one encoded height unit')
     ap.add_argument('--out',type=Path,default=TOOLS.parent/'Saved/Phase1/terrain_finish_candidates')
     args=ap.parse_args()
@@ -62,7 +81,8 @@ def main():
     for directory in (survey_dir,args.landscape):
         inputs += [directory/'landscape_manifest.json']+list(directory.glob('hm_*.r16'))+list(directory.glob('clip_*.r8'))
     config=dict(model='bounded_surface_edge_finish',document=str(args.document.resolve()),landscape=str(args.landscape.resolve()),bounds_m=bounds.tolist(),
-        contact_roads=args.contact_road,max_cut_m=.5,max_raise_m=.5,clearance_m=.01,edge_gap_m=contact_gap,
+        contact_roads=args.contact_road,contact_junctions=args.contact_junction,
+        max_cut_m=.5,max_raise_m=.5,clearance_m=.01,edge_gap_m=contact_gap,
         seam_rule='clearance tapers to zero at intentional skirt bases; upper road and pavement retain 10 mm',
         edge_measurement='exact emitted segments at terrain triangle crossings, region boundaries and protected-gap roots',
         surface_measurement='all supplied semantic height-graph faces regardless of slope or winding; vertical XY faces explicitly counted')
@@ -85,6 +105,7 @@ def main():
             p=np.array([[p.x,p.y] for p in d.points])
             if np.all(p.max(axis=0)+32>=lo) and np.all(p.min(axis=0)-32<=hi):ids.add(d.id)
         splines={}; surfaces=[]; edges=[];edge_segments={}
+        measured_roads=set();measured_junctions=set()
         def add_surface(name,mesh,mask=None,clearance=None):
             faces=mesh.f if mask is None else mesh.f[mask]
             top=mesh.v[faces]
@@ -100,17 +121,17 @@ def main():
         def add_edges(name,points,required=False):
             keep=np.all(points[:,:2]>=lo,axis=1)&np.all(points[:,:2]<=hi,axis=1)
             points=points[keep]
-            if not len(points):return
+            if not len(points):return False
             if required:
                 inside=np.all(points[:,:2]>=bounds[:2],axis=1)&np.all(points[:,:2]<=bounds[2:],axis=1)
                 add_edges(name+':protected_halo',points[~inside],False)
                 points=points[inside]
-                if not len(points):return
+                if not len(points):return False
             baseline=ground.sample(*points[:,:2].T)
             if not np.isfinite(baseline).all():raise ValueError('missing edge ground')
-            target=points.copy()
-            if not required:target[:,2]=np.minimum(target[:,2],baseline+contact_gap-.005)
+            target=contact_targets(points,baseline,contact_gap,required)
             edges.append((name,points,target,required))
+            return True
         for sid in sorted(ids):
             d=site.spline(sid)
             if d.flags and (d.flags.bridge or d.flags.tunnel):
@@ -131,7 +152,8 @@ def main():
                 mask &= np.min(m.vh[m.f],axis=1)>=-1e-8
                 add_surface(sid+':edge:'+str(side),m,mask)
             segments=ribbon_bottom_segments(sp,(lo,hi));edge_segments[sid]=segments
-            add_edges(sid,constraint_points(segments,ground,bounds,gap_roots=(contact_gap-.005,)),sid in args.contact_road)
+            if add_edges(sid,constraint_points(segments,ground,bounds,gap_roots=(contact_gap-.005,)),sid in args.contact_road):
+                measured_roads.add(sid)
         for j in junctions:
             if j.id not in plan.arms or any(a.spline_id not in splines for a in plan.arms[j.id]):continue
             m=MeshBuffer()
@@ -146,9 +168,10 @@ def main():
             add_surface(j.id+':corners',m,np.min(m.vh[m.f],axis=1)>=-1e-8)
             if any(g.startswith('corner_pavement:') for g in m.group_names):
                 segments=bottom_segments(m);edge_segments[j.id]=segments
-                add_edges(j.id,constraint_points(segments,ground,bounds,gap_roots=(contact_gap-.005,)))
-        if set(args.contact_road)-{sid for sid,_,_,required in edges if required}:
-            raise ValueError('named road has no measured outer base in rectangle')
+                if add_edges(j.id,constraint_points(segments,ground,bounds,gap_roots=(contact_gap-.005,)),j.id in args.contact_junction):
+                    measured_junctions.add(j.id)
+        report['required_contact_coverage']=required_contact_coverage(
+            args.contact_road,args.contact_junction,measured_roads,measured_junctions)
         triangles=np.concatenate([top for _,top,_ in surfaces]); limits=np.concatenate([limit for _,_,limit in surfaces])
         targets=np.concatenate([target for _,_,target,_ in edges])
         relaxable=np.concatenate([np.full(len(target),required,dtype=bool) for _,_,target,required in edges])
