@@ -15,3 +15,10 @@ User direction, 11 September 2026: start the approved phases and save progress f
 Read this file, `MANSTON_MUSEUM_PLAN.md`, and the latest implementation manifest/report before continuing. Keep checkpoints in this directory and generated assets under a dedicated Manston package path. Stage only Manston-owned files; preserve unrelated working-tree changes. Save before and after each engine mutation.
 
 Next: inspect terrain and engine import interfaces, produce the terrain/obstacle-checked blockout, then import and validate a scoped museum overlay.
+
+## Checkpoint 01 — placement generator saved
+
+- `Tools/manston/build_museum.py` uses the existing terrain sampler and Streetscape schema. It routes R1/R2 around mapped buildings, keeps both loops connected, and places 32 evidence records without filling unknown historical floor/portal values.
+- The initial route candidate passes schema and geometry generation: R1 880 m / R2 3,610 m, minimum sampled centre-to-building clearance above 5.2 m. The conservative terrain routing lengthens the concept walks. Short grades still exceed the desired gentle-access target; this is a blockout, not an accessibility sign-off.
+- `Tools/ue/12_manston_museum.py --inspect` successfully loaded the real map. The site's runtime spline source is the original survey while the project also has a conformed terrain product. Checking the actual landscape before import.
+- Files are saved; no Manston geometry has yet been saved into the map. Next: verify rendered terrain registration, add the two routes and scoped wayfinding, then reopen and collision-check.
