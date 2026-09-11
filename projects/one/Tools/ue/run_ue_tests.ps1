@@ -16,7 +16,7 @@ param(
 $ErrorActionPreference = "Continue"
 $UE = "C:\Program Files\Epic Games\UE_5.8\Engine\Binaries\Win64\UnrealEditor-Cmd.exe"
 $Proj = (Resolve-Path "$PSScriptRoot\..\..\Thanet.uproject").Path
-if (-not $ParityJson -and ("Streetscape.Spline.NumpyParity".StartsWith($Filter) -or "Streetscape.Edge.SupportNumpyParity".StartsWith($Filter) -or "Streetscape.Junction.CornerQualityParity".StartsWith($Filter))) {
+if (-not $ParityJson -and ("Streetscape.Spline.NumpyParity".StartsWith($Filter) -or "Streetscape.Edge.SupportNumpyParity".StartsWith($Filter) -or "Streetscape.Junction.CornerQualityParity".StartsWith($Filter) -or "Streetscape.Junction.ArmTrimParity".StartsWith($Filter))) {
     $ParityJson = Join-Path (Split-Path $Proj) "Saved/Tests/numpy_parity_current.json"
     & powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$PSScriptRoot/../python.ps1" "$PSScriptRoot/numpy_parity_dump.py" --out $ParityJson
     if ($LASTEXITCODE -ne 0) { Write-Host "run_ue_tests: numpy parity generation failed"; exit 3 }

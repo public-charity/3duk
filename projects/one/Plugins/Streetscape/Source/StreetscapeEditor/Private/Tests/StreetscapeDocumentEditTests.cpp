@@ -18,6 +18,16 @@ bool FStreetDocumentPreviewValidationTest::RunTest(const FString&)
 	TestTrue(TEXT("profile changes accepted without replacing components"),StreetDocumentEdit::ValidatePreview(Source,Candidate,Error));
 	Candidate.Junctions[0].TrimRadiusM = 8.;
 	TestTrue(TEXT("bounded junction trim accepted"),StreetDocumentEdit::ValidatePreview(Source,Candidate,Error));
+	Candidate.Junctions[0].Ends[0].TrimRadiusM = 7.5;
+	TestTrue(TEXT("bounded per-arm trim accepted"),StreetDocumentEdit::ValidatePreview(Source,Candidate,Error));
+	Candidate.Junctions[0].Ends[0].TrimRadiusM = 33.;
+	TestFalse(TEXT("oversized per-arm trim rejected"),StreetDocumentEdit::ValidatePreview(Source,Candidate,Error));
+	Candidate.Junctions[0].Ends[0].TrimRadiusM.Reset();
+	Candidate.Junctions[0].Ends[0].NullKeys.Add(TEXT("trim_radius_m"));
+	TestTrue(TEXT("explicit null arm override preserves the source binding"),StreetDocumentEdit::ValidatePreview(Source,Candidate,Error));
+	Candidate.Junctions[0].Ends[0].SplineId += TEXT("_changed");
+	TestFalse(TEXT("arm override cannot mask a changed binding"),StreetDocumentEdit::ValidatePreview(Source,Candidate,Error));
+	Candidate.Junctions[0].Ends[0] = Source.Junctions[0].Ends[0];
 	Candidate.Junctions[0].TrimRadiusM = 33.;
 	TestFalse(TEXT("oversized preview trim rejected"),StreetDocumentEdit::ValidatePreview(Source,Candidate,Error));
 	Candidate.Junctions[0].TrimRadiusM = 8.;

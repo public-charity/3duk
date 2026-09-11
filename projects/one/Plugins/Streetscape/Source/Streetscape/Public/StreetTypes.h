@@ -507,6 +507,8 @@ struct STREETSCAPE_API FStreetJunctionEnd : public FStreetJsonBase
 	GENERATED_BODY()
 	UPROPERTY(EditAnywhere, Category = "Streetscape") FString SplineId;
 	UPROPERTY(EditAnywhere, Category = "Streetscape") EStreetSplineEnd End = EStreetSplineEnd::Start;
+	/** Optional requested radial trim for this arm, (0,32] m; takes precedence over the junction-wide override. */
+	UPROPERTY() TOptional<double> TrimRadiusM;
 };
 
 USTRUCT(BlueprintType)

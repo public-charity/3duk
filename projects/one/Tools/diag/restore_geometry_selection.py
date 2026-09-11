@@ -4,7 +4,7 @@ Writes only complete documents below Saved/Phase1, at most 32 per invocation.
 The manifest records historical geometry evidence; recreation does not accept
 terrain, structures, seams, native rendering or later geometry-core changes.
 """
-import argparse,json,sys
+import argparse,json,math,sys
 from pathlib import Path
 TOOLS=Path(__file__).resolve().parents[1];REPO=TOOLS.parents[2]
 sys.path.insert(0,str(TOOLS))
@@ -22,6 +22,34 @@ def pending_documents(root,expected,records):
         if target.exists() and sha256(target)==digest:records[name]=dict(sha256=digest)
         else:records.pop(name,None);pending.append(name)
     return pending
+
+
+def apply_retained_trims(docs,trims,end_trims):
+    """Restore only existing, unambiguous bindings with bounded numeric requests."""
+    junctions={}
+    for raw in docs.values():
+        for junction in raw['junctions']:
+            jid=junction['id']
+            if jid in junctions:raise ValueError('duplicate source junction binding')
+            junctions[jid]=junction
+    if (set(trims)|set(end_trims))-set(junctions):raise ValueError('retained trim coverage changed')
+    def checked(value):
+        if isinstance(value,bool) or not isinstance(value,(int,float)) or not math.isfinite(value) or not 0<value<=32:
+            raise ValueError('invalid retained trim')
+        return value
+    edits=[]
+    for jid,value in trims.items():edits.append((junctions[jid],checked(value)))
+    for jid,requests in end_trims.items():
+        ends=junctions[jid]['ends'];bindings={(e['spline_id'],e['end']):e for e in ends}
+        if len(bindings)!=len(ends):raise ValueError('duplicate source end binding')
+        seen=set()
+        for request in requests:
+            if set(request)!={'spline_id','end','trim_radius_m'}:raise ValueError('unexpected retained end trim fields')
+            key=(request['spline_id'],request['end'])
+            if key in seen or key not in bindings:raise ValueError('invalid retained end binding')
+            seen.add(key);edits.append((bindings[key],checked(request['trim_radius_m'])))
+    # Validate the entire selection before changing any source dictionary.
+    for record,value in edits:record['trim_radius_m']=value
 
 
 def main():
@@ -57,17 +85,12 @@ def main():
                     if key in profiles and profiles[key]!=profile:raise ValueError('conflicting source road profile')
                     profiles[key]=profile
             lane_width_candidate(dict(splines=definitions,profiles=dict(road=profiles)),selected,tags,tuning)
-            selected=set(selected);trims=manifest['junction_trims_m'];seen_trims=set()
+            selected=set(selected)
             for name,raw in docs.items():
                 for d in raw['splines']:
                     if d['id'] in selected:
                         pid=d['profile_ids']['road'];raw['profiles']['road'][pid]=profiles[pid]
-                for j in raw['junctions']:
-                    if j['id'] in trims:
-                        value=trims[j['id']]
-                        if not isinstance(value,(int,float)) or not 0<value<=32:raise ValueError('invalid retained trim')
-                        j['trim_radius_m']=value;seen_trims.add(j['id'])
-            if seen_trims!=set(trims):raise ValueError('retained trim coverage changed')
+            apply_retained_trims(docs,manifest['junction_trims_m'],manifest.get('junction_end_trims_m',{}))
             for name in pending[:args.max_docs]:
                 target=root/name;atomic_json(target,docs[name])
                 actual=sha256(target)

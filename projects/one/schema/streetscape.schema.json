@@ -579,7 +579,9 @@
         "ends": {
           "type": "array", "items": {
             "type": "object", "additionalProperties": false, "patternProperties": { "^_": {} }, "required": ["spline_id", "end"],
-            "properties": { "spline_id": { "$ref": "#/$defs/Id" }, "end": { "type": "string", "enum": ["start", "end"] } }
+            "properties": { "spline_id": { "$ref": "#/$defs/Id" }, "end": { "type": "string", "enum": ["start", "end"] },
+              "trim_radius_m": { "type": ["number", "null"], "exclusiveMinimum": 0, "maximum": 32, "default": null,
+                "description": "Reviewed radial trim request for this arm, metres. Overrides the junction-wide radius for this end; shared minimum-remaining reconciliation still applies. Missing/null preserves the common solve." } }
           },
           "description": "Every spline in the same document whose first or last point lies within junction_snap_m (0.3) of (x, y)."
         }

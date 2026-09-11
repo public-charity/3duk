@@ -1299,8 +1299,9 @@ TSharedRef<FJsonObject> WriteSplineDef(const FStreetSplineDef& X)
 
 void ReadJunctionEnd(const FJsonObject& O, const FString& Path, FStreetJunctionEnd& X, TArray<FString>& E)
 {
-	FObj R(O, Path, E, &X, { TEXT("spline_id"), TEXT("end") });
+	FObj R(O, Path, E, &X, { TEXT("spline_id"), TEXT("end"), TEXT("trim_radius_m") });
 	R.Id(TEXT("spline_id"), X.SplineId, true); R.Enum(TEXT("end"), X.End, true);
+	R.OptNum(TEXT("trim_radius_m"), X.TrimRadiusM, false, true, 0.0, 32.0, true);
 }
 void ReadJunction(const FJsonObject& O, const FString& Path, FStreetJunction& X, TArray<FString>& E)
 {
@@ -1320,6 +1321,7 @@ TSharedRef<FJsonObject> WriteJunction(const FStreetJunction& X)
 	{
 		FW WE(En);
 		WE.Str(TEXT("spline_id"), En.SplineId); WE.Enum(TEXT("end"), En.End);
+		WE.Opt(TEXT("trim_radius_m"), En.TrimRadiusM);
 		A.Add(ObjVal(WE.Finish()));
 	}
 	W.ObjList(TEXT("ends"), A, true);

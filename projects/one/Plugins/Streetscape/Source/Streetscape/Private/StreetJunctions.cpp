@@ -232,6 +232,7 @@ void FStreetJunctionPlan::Build(const FStreetSiteDoc& InDoc, const FStreetJuncti
 			continue;
 		}
 		TArray<TPair<FString, EStreetSplineEnd>> Keys;
+		TArray<TOptional<double>> RadiusOverrides;
 		TSet<FString> Seen;
 		for (const FStreetJunctionEnd& En : J.Ends)
 		{
@@ -252,6 +253,7 @@ void FStreetJunctionPlan::Build(const FStreetSiteDoc& InDoc, const FStreetJuncti
 				continue;
 			}
 			Keys.Add(TPair<FString, EStreetSplineEnd>(En.SplineId, En.End));
+			RadiusOverrides.Add(En.TrimRadiusM);
 		}
 		if (Keys.Num() < 3)
 		{
@@ -285,6 +287,14 @@ void FStreetJunctionPlan::Build(const FStreetSiteDoc& InDoc, const FStreetJuncti
 			else
 			{
 				SolveRadii(LocalArms, RFloor, DNew, Unsep);
+			}
+			// End-specific requests still pass through the shared minimum-remaining
+			// reconciliation, so A/B/C consume identical trim stations.
+			for (int32 Q = 0; Q < RadiusOverrides.Num(); ++Q)
+			{
+				if (!RadiusOverrides[Q].IsSet()) continue;
+				DNew[Q] = RadiusOverrides[Q].GetValue();
+				Unsep[Q] = false;
 			}
 			double MaxDelta = 0.0;
 			for (int32 Q = 0; Q < Keys.Num(); ++Q) MaxDelta = FMath::Max(MaxDelta, FMath::Abs(DNew[Q] - D[Q]));

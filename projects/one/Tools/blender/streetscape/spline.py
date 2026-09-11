@@ -840,6 +840,7 @@ class JunctionPlan:
                 self.stats["junctions_skipped_kind"] += 1
                 continue
             keys, seen = [], set()
+            radius_overrides = []
             for e in j.ends:
                 k = (e.spline_id, e.end)
                 if k in seen:
@@ -854,6 +855,7 @@ class JunctionPlan:
                     self.stats["arms_dropped"] += 1     # a level crossing is not a tarmac junction
                     continue
                 keys.append(k)
+                radius_overrides.append(e.trim_radius_m)
             if len(keys) < 3:
                 self.stats["junctions_skipped_arms"] += 1
                 continue
@@ -869,6 +871,13 @@ class JunctionPlan:
                     d_new, unsep = [float(j.trim_radius_m)] * len(keys), [False] * len(keys)
                 else:
                     d_new, unsep = self._solve_radii(arms, r_floor)
+                # An explicit end overrides the common solve for that arm only.
+                # The common minimum-remaining reconciliation below still owns
+                # every renderer's actual trim and mandatory station.
+                for q, value in enumerate(radius_overrides):
+                    if value is not None:
+                        d_new[q] = float(value)
+                        unsep[q] = False
                 if max(abs(x - y) for x, y in zip(d_new, d)) < 1e-9:
                     d = d_new
                     break

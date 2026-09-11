@@ -1020,9 +1020,20 @@ class SplineDef(SchemaObject):
 
 @dataclass
 class JunctionEnd(SchemaObject):
-    SPEC = {"spline_id": (ID, True, ""), "end": (_S("enum", ("start", "end")), True, "start")}
+    SPEC = {"spline_id": (ID, True, ""), "end": (_S("enum", ("start", "end")), True, "start"),
+            "trim_radius_m": (_S("opt", _S("num", 0.0, 32.0, True)), False, None)}
     spline_id: str = ""
     end: str = "start"
+    trim_radius_m: Optional[float] = None
+
+    def _post(self, d, path, errs):
+        self._trim_was_null = "trim_radius_m" in d and d["trim_radius_m"] is None
+
+    def to_dict(self):
+        out = super().to_dict()
+        if self.trim_radius_m is None and getattr(self, "_trim_was_null", False):
+            out["trim_radius_m"] = None
+        return out
 
 
 @dataclass

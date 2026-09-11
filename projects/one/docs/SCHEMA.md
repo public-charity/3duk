@@ -443,7 +443,7 @@ informative.
 ### 4.18 `Junction`
 
 `{id, x, y, z: number|null, radius_m, trim_radius_m: number|null, kind: disc|none,
-ends: [{spline_id, end: start|end}]}`. Step 06 `_junction` records map to `kind: disc`,
+ends: [{spline_id, end: start|end, trim_radius_m?: number|null}]}`. Step 06 `_junction` records map to `kind: disc`,
 `radius_m = r`; `ends` lists the splines of the same document whose first/last point is within
 `junction_snap_m` = 0.3 m (measured maximum on Thanet: 0.257 m over 5,185 ends).
 
@@ -453,10 +453,15 @@ between adjacent arms. `none`: a plain node — nothing is trimmed and nothing i
 with fewer than three surviving arms is treated as `none` (two splines meeting end to end already
 share their end point; there is nothing to fill).
 
-**One field was added and it is an override, not a stored derivation.** `trim_radius_m` is null in
-every adapter document and should stay null: everything a renderer needs beyond the fields above is
-DERIVED from the arms themselves, so it cannot go stale when a profile width changes. What is derived,
-and how:
+**Trim overrides are explicit models, not stored derivations.** The adapter leaves
+`trim_radius_m` null. Reviewed candidates may set a common junction radius or an
+individual `ends[].trim_radius_m` in (0,32] m. An end request takes precedence over
+the common override or automatic solve for that arm; other ends keep their existing
+behaviour. All requests pass through the same minimum-remaining reconciliation and
+mandatory station set. Missing/null end requests preserve existing geometry and JSON
+presence. These fields do not alter centreline points or rebase station ranges.
+Candidate QC must retain the half-arm bound, check all affected junctions and road
+bodies, and separately verify terrain and native seams. What is derived, and how:
 
 | derived | from |
 |---|---|

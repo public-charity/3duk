@@ -101,6 +101,24 @@ bool StreetDocumentEdit::ValidatePreview(const FStreetSiteDoc& Source, const FSt
 		if (Trim.IsSet() && (!FMath::IsFinite(Trim.GetValue()) || Trim.GetValue()<=0. || Trim.GetValue()>32.))
 		{ Error = TEXT("preview junction trim must be finite and within (0,32] m"); return false; }
 		Comparable.Junctions[I].TrimRadiusM = Source.Junctions[I].TrimRadiusM;
+		const auto& OriginalEnds = Source.Junctions[I].Ends;
+		const auto& CandidateEnds = Candidate.Junctions[I].Ends;
+		if (OriginalEnds.Num() != CandidateEnds.Num())
+		{ Error = TEXT("preview must preserve all junction ends"); return false; }
+		for (int32 K=0; K<CandidateEnds.Num(); ++K)
+		{
+			const auto& End = CandidateEnds[K];
+			const auto& OriginalEnd = OriginalEnds[K];
+			if (End.SplineId != OriginalEnd.SplineId || End.End != OriginalEnd.End)
+			{ Error = TEXT("preview must preserve junction end bindings and order"); return false; }
+			if (End.TrimRadiusM.IsSet() && (!FMath::IsFinite(End.TrimRadiusM.GetValue()) || End.TrimRadiusM.GetValue()<=0. || End.TrimRadiusM.GetValue()>32.))
+			{ Error = TEXT("preview arm trim must be finite and within (0,32] m"); return false; }
+			auto& ComparableEnd = Comparable.Junctions[I].Ends[K];
+			ComparableEnd.TrimRadiusM = OriginalEnd.TrimRadiusM;
+			for (auto* Keys : { &ComparableEnd.JsonKeys, &ComparableEnd.NullKeys }) Keys->Remove(TEXT("trim_radius_m"));
+			if (OriginalEnd.JsonKeys.Contains(TEXT("trim_radius_m"))) ComparableEnd.JsonKeys.Add(TEXT("trim_radius_m"));
+			if (OriginalEnd.NullKeys.Contains(TEXT("trim_radius_m"))) ComparableEnd.NullKeys.Add(TEXT("trim_radius_m"));
+		}
 	}
 	if (JunctionText(Source) != JunctionText(Comparable))
 	{ Error = TEXT("preview must preserve junction topology and registration; only trim radius may change"); return false; }
