@@ -17,9 +17,9 @@ Emits a 4-band Byte GeoTIFF per tile (grass, sand, rock, water as 0-255 fraction
 to 255), north-up and georeferenced in the site CRS -- not a flipped PNG in some engine's
 alphamap order. Consumers reorder for themselves; sources/adapters/unity.py shows it.
 
-Tiles with no DTM at all (step 02 got EMPTY, or the mosaic is empty there) get no raster
-and are listed in the manifest; the old code painted them grass. Whether they are sea is
-a per-site fact (coast.missing_tiles_are_water), not something to assume.
+Tiles with no DTM at all remain listed as unmeasured. They normally get no raster;
+an opted-in offshore review can give confirmed missing sea explicit water weights.
+Whether they are sea is a per-site fact, not something to assume.
 
 The thresholds live in the site config because they are properties of one survey and
 one coastline, not universal truths. Read the note in the config before reusing them.
@@ -31,6 +31,7 @@ gdal.UseExceptions(); ogr.UseExceptions()
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import lib
+import offshore
 
 CFG = lib.load()
 P   = lib.paths(CFG)
@@ -128,6 +129,10 @@ WFLAT = float(COAST.get("water_flat_dz_per_m", 0.08)) * min(pw, ph)     # ~4.6 d
 below = np.isfinite(A) & (A < WATER_Y - 0.1)
 band  = np.isfinite(A) & (np.abs(A - WATER_Y) < WTOL) & (dz < WFLAT)
 water = below | band
+OFFSHORE = offshore.masks(CFG, gt, A)
+OFF_MASK = None if OFFSHORE is None else OFFSHORE[0]
+if OFF_MASK is not None:
+    water |= OFF_MASK
 sand = sand & ~water
 print(f"water surface (|z - {WATER_Y}| < {WTOL} m and flat): {water.sum()*px_area/1e4:.1f} ha")
 
@@ -165,7 +170,14 @@ for i in range(NX):
             missing.append([i, j]); continue             # outside the mosaic: no tile from step 02
         sub_h = A[row0:row1, col0:col0+TPX]
         if np.isfinite(sub_h).mean() < 0.01:
-            missing.append([i, j]); continue             # inside the mosaic but empty: same thing
+            missing.append([i, j])
+            # These explicitly documented missing sea tiles need real water weights,
+            # not a null raster that leaves the consumer with zero/grass weights.
+            if OFF_MASK is None or not COAST.get('missing_tiles_are_water', False) or not OFF_MASK[row0:row1,col0:col0+TPX].any():
+                continue
+            water[row0:row1,col0:col0+TPX] = True
+            sand[row0:row1,col0:col0+TPX] = False
+            water_tiles.append([i,j])
         # Does this tile need a water surface? For a tile straddling the clip line, judge the KEPT
         # DTM cells only: the sea beyond the line is not part of the model.
         sub_w = sub_h
@@ -173,7 +185,7 @@ for i in range(NX):
             kd = lib.cell_mask(CLIP, gt, TPY, TPX, row0=row0, col0=col0)
             sub_w = np.where(kd, sub_h, np.nan)
         if np.isfinite(sub_w).any() and np.nanmin(np.where(np.isfinite(sub_w), sub_w, 1e9)) < WATER_Y + COAST["water_margin_m"]:
-            water_tiles.append([i, j])
+            if [i,j] not in water_tiles: water_tiles.append([i, j])
 
         # Pixel centres sit on integer metres, so a 512 m tile spans 513 centres and a 2:1
         # downsample into 256 edge-aligned cells cannot be exact: each class cell is biased
@@ -215,6 +227,11 @@ json.dump({"site": CFG["site"], "crs": CFG["crs"],
            "tiles_without_dtm": missing,
            "missing_tiles_are_water": assume_sea,
            "coastline_km_in_area": round(clipped_len / 1000, 2),
+           **({} if OFFSHORE is None else {'offshore_normalisation': {
+               'review_sha256': OFFSHORE[2]['review_sha256'],
+               'water_override_cells': int(OFF_MASK.sum()),
+               'rule': 'imagery-reviewed sea regions; coast and connected land protected',
+               'missing_sea_tiles_have_explicit_weights': True}}),
            **({} if CLIP is None else {
                "clip": lib.clip_manifest(CLIP, CFG),
                "tiles_clipped": clipped,

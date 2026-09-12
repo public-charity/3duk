@@ -27,6 +27,7 @@ gdal.UseExceptions()
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import lib
+import offshore
 
 CFG = lib.load()
 P = lib.paths(CFG)
@@ -104,6 +105,8 @@ if MINFO["overlap_conflicts"]:
              f"raw tiles that carry them (worst {MINFO['overlap_conflict_max']:g} m). Two tiles cut from one "
              f"composite cannot disagree about a shared sample: the raw directory holds tiles from more than "
              f"one fetch. Re-fetch, do not paper over it.")
+
+OFFSHORE = offshore.apply(CFG, GT_MOS, MOS, BAD, OUT)
 
 # ---- pass 2: cut the tiles back out, clip, write ----------------------------------------
 manifest, lo, hi, methods, missing = [], 1e9, -1e9, {}, []
@@ -260,6 +263,7 @@ json.dump({"site": CFG["site"], "crs": CFG["crs"],
            "tiles_missing": missing,
            **fill_block,
            **fab,
+           **OFFSHORE,
            **extra},
           open(os.path.join(OUT, "terrain_manifest.json"), "w"), indent=1)
 lib.end_product(OUT)

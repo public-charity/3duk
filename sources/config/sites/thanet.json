@@ -67,5 +67,13 @@
     "_note": "INHERITED FROM MARGATE (both are on the isle). Hand-authored overrides for buildings the LIDAR p50 estimator gets wrong, keyed by OSM name; step 07 reports how many applied. Do NOT pre-add Ramsgate or Broadstairs landmarks: qa_height_outliers.json from the first Thanet run decides whether the Royal Harbour buildings, Bleak House or the Granville need one.",
     "Arlington House": { "h_body": 57.0, "roof": "flat", "tier": "hero", "why": "18-storey tower on a large podium; p50 samples the podium (7.0m from 22px). Real height ~57m." },
     "Jubilee Clock Tower": { "h_body": 15.0, "roof": "tower", "tier": "hero", "why": "MEASURED 2026-09-08 against the Thanet mosaics, OSM way 589052636: over the 22 footprint cells DSM max 21.45 - DTM p50 6.49 = 14.96 m, nDSM p90 14.49 m, and the way's own OSM height tag says 14. Three independent numbers agree on ~15 m. The value inherited from margate.json was 24.0 with the unevidenced reason 'Real height ~24m', i.e. +9 m on a hero landmark; the override is kept only because the tiny footprint (7 px above min_pixels) makes the p50 rung read 12.1 m and because roof=tower is worth stating." }
+  },
+  "offshore_normalisation": {
+    "enabled": true,
+    "review_file": "config/offshore/thanet.json",
+    "clearance_m": 0.3,
+    "blend_m": 40,
+    "smooth_m": 80,
+    "reference_step": 4
   }
 }

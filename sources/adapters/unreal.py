@@ -739,7 +739,8 @@ def landscape(cfg, adp, src, out, clip, warnings, strict=False):
             visibility_weight(dist, px_m).tofile(os.path.join(o, vis_name)); n_vis += 1
         weights = None
         gpath = os.path.join(cd, f"ground_x{i}_y{j}.tif")
-        if cm is not None and (i, j) not in no_dtm and os.path.exists(gpath):
+        explicit_sea = cm is not None and cm.get('offshore_normalisation', {}).get('missing_sea_tiles_have_explicit_weights', False)
+        if cm is not None and ((i, j) not in no_dtm or explicit_sea) and os.path.exists(gpath):
             g = gdal.Open(gpath)
             if g.RasterCount < 4:
                 sys.exit(f"unreal adapter: {gpath} has {g.RasterCount} bands, expected 4 ({bands})")
@@ -812,7 +813,7 @@ def landscape(cfg, adp, src, out, clip, warnings, strict=False):
                         "disk predates that fix or was written by more than one run -- re-run step 05 for the whole "
                         "site, then this adapter. See landscape_manifest.seam_qa")
     pad_h16 = int(encode_h16(water_level if water_level is not None else 0.0, per_unit, offset))
-    no_ground = sorted(set(map(tuple, list(no_dtm) + [tuple(t) for t in no_ground_raster])))
+    no_ground = sorted((t['x'],t['y']) for t in tiles if t['files']['weights'] is None)
     man = {"site": cfg["site"], "crs": tm["crs"], "origin": {"E": E0, "N": N0}, "vertical_datum": tm.get("vertical_datum"),
            "tile_m": T, "res": RES, "nx": NX, "ny": NY, "weight_res": class_res, "px_m": px_m,
            "frame": FRAME, "frame_note": FRAME_NOTE,
@@ -887,6 +888,9 @@ def landscape(cfg, adp, src, out, clip, warnings, strict=False):
                             "weights null only for tiles_without_ground_raster (coast tiles_without_dtm or no ground raster)"),
            "warnings": list(warnings),
            "tiles": tiles}
+    if 'offshore_normalisation' in tm:
+        man['offshore_normalisation'] = tm['offshore_normalisation']
+        man['tiles_fabricated_note'] = 'Source gaps remain unmeasured. Approved offshore heights are inferred marine terrain; see offshore_normalisation.'
     _jdump(man, os.path.join(o, "landscape_manifest.json"))
     print(f"landscape : {n_hm} heightmaps, {n_hm} clip masks, {n_vis} visibility masks, {n_wt} tiles with weights, {n_null} without"
           f" (range {tm['range_m'][0]}..{tm['range_m'][1]} m, h16 window {man['heightmap']['window_m']})")
@@ -1406,6 +1410,8 @@ def derived_products(out):
             entry["max_fill_m"] = c.get("max_fill_m")
             entry["max_cut_m"] = c.get("max_cut_m")
             entry["heightmap_semantics"] = (man.get("heightmap") or {}).get("semantics")
+            if man.get("offshore_normalisation"):
+                entry["offshore_normalisation"] = man["offshore_normalisation"]
             # The two modelling choices a consumer of this product has to know about, surfaced here
             # rather than left three files down: how far the ground was put UNDER the built surface,
             # and which ways were deliberately not burned at all.

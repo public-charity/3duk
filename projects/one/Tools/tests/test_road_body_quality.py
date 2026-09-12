@@ -11,6 +11,25 @@ import synthetic
 
 
 class RoadBodyQualityTest(unittest.TestCase):
+    def test_interior_mask_add_change_and_removal_cannot_hit_unchanged_cache(self):
+        fixture=Path(__file__).resolve().parents[1]/'blender/tests/fixtures/junction_interior_bend_garrard.json'
+        bent=json.loads(fixture.read_text(encoding='utf-8'));original=copy.deepcopy(bent);original['junctions']=[]
+        terrain=synthetic.junction_terrain_for(bent)
+        with tempfile.TemporaryDirectory() as temp:
+            a=Path(temp)/'a.json';b=Path(temp)/'b.json';c=Path(temp)/'c.json'
+            a.write_text(json.dumps(original));b.write_text(json.dumps(bent))
+            added=compare_document(a,b,terrain)
+            self.assertEqual(added['changed_splines'],1)
+            self.assertEqual(added['before'],{'fold_review':1})
+            self.assertEqual(added['after'],{'passed':1})
+            removed=compare_document(b,a,terrain)
+            self.assertEqual(removed['changed_splines'],1)
+            self.assertEqual(removed['regressions'],1)
+            changed=copy.deepcopy(bent);changed['junctions'][0]['ends'][0]['station_m']-=.5
+            c.write_text(json.dumps(changed))
+            self.assertEqual(compare_document(b,c,terrain)['changed_splines'],1)
+            self.assertEqual(compare_document(b,b,terrain)['unchanged_road_splines'],1)
+
     def test_actual_fold_below_reference_height_survives_winding_correction(self):
         theta=np.linspace(0,-np.pi/2,41)
         pos=np.column_stack([np.cos(theta),np.sin(theta),np.zeros(len(theta))])

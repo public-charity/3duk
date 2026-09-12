@@ -852,6 +852,29 @@ class SyntheticSite(unittest.TestCase):
         finally:
             open(path, "ab").close()                       # the fake keeps the raster; only the file was gone
 
+    def test_reviewed_missing_sea_keeps_explicit_water_weights(self):
+        path=os.path.join(self.src,"coast","coast_manifest.json")
+        original=jload(path); updated=json.loads(json.dumps(original))
+        updated["tiles_without_dtm"]=[[0,0]]
+        updated["offshore_normalisation"]={"missing_sea_tiles_have_explicit_weights":True}
+        raster=self.ground[0]
+        bands=[raster.GetRasterBand(b).ReadAsArray().copy() for b in range(1,5)]
+        try:
+            jdump(updated,path)
+            for b,a in enumerate(bands,1):
+                raster.GetRasterBand(b).WriteArray(np.full_like(a,255 if b==4 else 0))
+            self._landscape()
+            generated=os.path.join(self.root,"refusal","landscape")
+            man=jload(os.path.join(generated,"landscape_manifest.json"))
+            tile=next(t for t in man["tiles"] if t["x"]==0 and t["y"]==0)
+            self.assertIsNotNone(tile["files"]["weights"])
+            self.assertNotIn([0,0],man["tiles_without_ground_raster"])
+            water=np.fromfile(os.path.join(generated,tile["files"]["weights"]["water"]),dtype="u1")
+            self.assertTrue((water==255).all())
+        finally:
+            jdump(original,path)
+            for b,a in enumerate(bands,1):raster.GetRasterBand(b).WriteArray(a)
+
     def test_tiles_fabricated_are_counted_and_warned(self):
         """Every cell NoData in the source: step 05 exports a flat plate (terrain_manifest
         tiles_fabricated). Fabricated ground, and nothing in the adapter's manifest counted it."""

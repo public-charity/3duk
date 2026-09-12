@@ -1,4 +1,6 @@
 #include "ThanetExplorerPawn.h"
+#include "ThanetPoliceCar.h"
+#include "Engine/Engine.h"
 
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
@@ -45,6 +47,29 @@ void AThanetExplorerPawn::BeginPlay()
 {
 	Super::BeginPlay();
 	ApplySpeeds();
+    if(GEngine) GEngine->AddOnScreenDebugMessage(-1,12,FColor::Cyan,TEXT("Explore Thanet | WASD walk | E police car | F fly | Shift sprint"));
+}
+
+void AThanetExplorerPawn::EnterPoliceCar()
+{
+    if (!IsValid(PoliceCar))
+    {
+        FActorSpawnParameters Params;
+        Params.SpawnCollisionHandlingOverride=ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+        PoliceCar=GetWorld()->SpawnActor<AThanetPoliceCar>(GetActorLocation()+FVector(0,0,500),FRotator::ZeroRotator,Params);
+        if(!PoliceCar) return;
+        PoliceCar->Walker=this;
+        FTransform Spot;
+        if(!PoliceCar->FindParkingSpot(GetActorLocation(),GetActorRotation().Yaw,Spot))
+        {
+            PoliceCar->Destroy();PoliceCar=nullptr;
+            if(GEngine) GEngine->AddOnScreenDebugMessage(-1,4,FColor::Yellow,TEXT("Move to an open road or clear ground to call the car."));
+            return;
+        }
+        PoliceCar->SetActorTransform(Spot,false,nullptr,ETeleportType::TeleportPhysics);
+    }
+    if(!PoliceCar->Enter(this) && GEngine)
+        GEngine->AddOnScreenDebugMessage(-1,4,FColor::Yellow,TEXT("Walk closer to the police car (within 8 metres)."));
 }
 
 void AThanetExplorerPawn::ApplySpeeds()
@@ -153,6 +178,7 @@ FString AThanetExplorerPawn::DescribeBindings() const
 void AThanetExplorerPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
+    PlayerInputComponent->BindKey(EKeys::E,IE_Pressed,this,&AThanetExplorerPawn::EnterPoliceCar);
 	BuildInputObjects();
 
 	if (APlayerController* PC = Cast<APlayerController>(GetController()))

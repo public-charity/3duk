@@ -1,0 +1,9 @@
+*.blend
+*.fbx
+*.png
+*.log
+build_manifest.json
+import_report.json
+archive/
+*.blend1
+__pycache__/

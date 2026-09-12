@@ -2,6 +2,57 @@
 
 ## Current checkpoint — 2026-09-10, Phase 1 completion
 
+### Checkpoint 43 IN PROGRESS — bounded interior bend search
+
+Previous turn progressed: checkpoint 42 committed `e074768`, Garrard physically
+verified and retained. Shared geometry core remains checkpoint 41.
+`Tools/diag/internal_bend_candidates.py` now measures current fold clusters and
+tries at most three cuts per road, four radii /three handle fractions per cut,
+20 s search /35 s hard child-process bound, at most two roads per invocation.
+Per-trial progress, unique attempts and per-road atomic hashed reports survive
+interruption. No source definitions or semantic timelines are edited. Barrier,
+hedge and support timelines are held until their corner continuity is proved.
+Local proposals still require combined full-document, required corner contact,
+and actual mesh/native risk checks. **No new bends retained yet.**
+
+Fixed generic `road_body_quality.compare_document` reuse to include interior
+mask stations. Otherwise adding/removing a bend could falsely count as unchanged.
+The actual add/change/remove regression test passes; checkpoint-42 direct full
+mesh proof was unaffected. Complete-document checker now handles appended bends
+as well as connectors, with whole source spline payload preservation.
+**136 workflow tests PASS (16.061 s)** in `phase1_bend43_workflow_tests_final.log`.
+Search `internal_bend_candidates/0ca1d84fff6635e619d8` is idle at **14 /2,318**,
+12 bend proposals on seven roads. Immutable prefix-12 snapshot
+`bend_search_snapshots/d5267abd788636d57ed2.json` has 11 bends /six documents.
+Combined proof `bend_document_verification/9376966ce3decb644f19` has four of six
+documents passed; continue at most two per call and inspect state/process first.
+Logs `phase1_bend43_search_batch1..7.log`, `..._document_batch1..5.log`.
+
+Tollemache three-bend full document passes: 26.7085 m2 fold removed, 45 untouched
+bodies /805 arrays /seven old junction groups exact. Terrain window
+5316,3410,5353,3446 (`terrain_finish_candidates/e08138a6bcbe16130ece`): 51,439
+surface constraints, zero edited posts, zero penetration or required corner-base
+daylight. Native `_tollemache_01` aborted before preview because three loaded
+barriers contain saved Manston gate openings absent from raw data. Definitions
+match committed `docs/research/manston/implementation/museum_gates.streetscape.json`
+exactly. `tollemache_authored_preview43` preserves those definitions and passes
+another complete-document proof; 770 road/rail mesh arrays are exact, so the
+zero-edit terrain proof is reused. Preview source override is provenance-hashed.
+
+Native `native_bend_preview_tollemache_02` transaction completed: 46 actors and
+16,249 Content files restored/exact, 1,406 ground posts checked. Both PNGs inspected:
+three folded corners repaired, inherited loop entrance pavement still crosses
+road; fan/transition shading remains. **Runner FAIL**, Python OK but two genuine
+geometry errors during initial region load: `junction:23_9:18` (coastal stairs),
+`junction:16_9:25` (roads:1154393739:0). Teardown AV is NOT waived when these errors
+exist. No clean native acceptance and no new retention. Logs
+`phase1_tollemache43_native_preview1..2_runner.log`; both jobs have exited.
+
+Before any future global promotion/recovery, explicitly preserve ALL seven saved
+Manston barrier definitions (three appear in this document). Current checkpoint-42
+selection predates these authored gates. Never overwrite them with raw source.
+Checkpoint-43 evidence/helper bundle and commit still pending at this WIP point.
+
 ### Forty-second checkpoint COMPLETE — Garrard bend physical proof and retention
 
 **Current retained geometry:** `bend_compositions/4e0d147340617fc60322`.

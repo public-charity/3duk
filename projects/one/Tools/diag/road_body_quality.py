@@ -68,6 +68,11 @@ def spline_signature(raw,definition):
     return [definition,profiles,{k:v for k,v in raw.items() if k not in ('splines','profiles','junctions')}]
 
 
+def interior_mask_signature(plan,sid):
+    return sorted((j.id,tuple(sorted((e.end,e.station_m) for e in j.ends)))
+                  for j in plan.site.junctions if j.kind=='bend' and any(e.spline_id==sid for e in j.ends))
+
+
 def body_regressions(before,after):
     reasons=[]
     if before['status']=='passed' and after['status']!='passed':reasons.append('body pass lost')
@@ -92,7 +97,9 @@ def compare_document(before_path,after_path,survey):
         other=definitions[1][sid]
         if not d['profile_ids'].get('road') and not other['profile_ids'].get('road'):
             without_road+=1;continue
-        if spline_signature(raws[0],d)==spline_signature(raws[1],other) and plans[0].trim_for(sid)==plans[1].trim_for(sid):
+        if (spline_signature(raws[0],d)==spline_signature(raws[1],other)
+                and plans[0].trim_for(sid)==plans[1].trim_for(sid)
+                and interior_mask_signature(plans[0],sid)==interior_mask_signature(plans[1],sid)):
             unchanged+=1;continue
         a,b=[measure_spline(site,sid,survey,plan) for site,plan in zip(sites,plans)]
         rows.append(dict(id=sid,before=a,after=b,reasons=body_regressions(a,b)))

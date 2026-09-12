@@ -17,6 +17,7 @@ import ue_common as uc
 from content_guard import snapshot, require_unchanged
 from diag_document_roundtrip import canonical
 from ground_probe_checks import compare_ground_posts
+from document_preview_inputs import preview_source_path
 
 NAME="diag_document_preview"
 
@@ -52,7 +53,7 @@ def main(argv):
                 raise ValueError("ground probes require finite x,y,baseline_z,candidate_z")
             if any(abs(v-round(v))>1e-8 for v in point[:2]):
                 raise ValueError("ground verification probes require integer metre posts")
-    source=Path(uc.data_dir())/"streetscape"/candidate_path.name
+    source=preview_source_path(provenance,Path(uc.data_dir())/"streetscape"/candidate_path.name)
     original=json.loads(source.read_text(encoding='utf-8'))
     candidate=json.loads(candidate_path.read_text(encoding='utf-8'))
     ids={d["id"] for d in original["splines"]}

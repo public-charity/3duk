@@ -31,3 +31,6 @@ projects/one/docs/checkpoints/*.patch text eol=lf
 
 # Blender prototype exports (Tools/blender/renders) -- geometry is binary
 *.glb  filter=lfs diff=lfs merge=lfs -text
+
+# Compressed recovery snapshots; do not store generated raster/package data in normal Git.
+backups/*.zip filter=lfs diff=lfs merge=lfs -text

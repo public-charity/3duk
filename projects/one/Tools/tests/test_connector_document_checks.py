@@ -8,6 +8,17 @@ from diag.restore_geometry_selection import apply_retained_connectors
 
 
 class ConnectorDocumentChecksTests(unittest.TestCase):
+    def test_bend_full_document_preserves_every_source_definition(self):
+        candidate=json.loads((TOOLS/'blender/tests/fixtures/junction_interior_bend_garrard.json').read_text(encoding='utf-8'))
+        source=copy.deepcopy(candidate);source['junctions']=[]
+        result=check_complete_document(source,candidate,None)
+        self.assertEqual(result['before_body_totals'],{'fold_review':1})
+        self.assertEqual(result['after_body_totals'],{'passed':1})
+        self.assertEqual(len(result['new_bends']),1)
+        self.assertEqual(result['new_connectors'],[])
+        altered=copy.deepcopy(candidate);altered['splines'][0]['points'][0]['width_m']+=.01
+        with self.assertRaisesRegex(ValueError,'source payload'):preserved_source(source,altered)
+
     def test_preserved_vertices_use_absolute_vector_limit_and_reject_invalid_coverage(self):
         source=np.array([[12100.,4685.,14.]])
         rounding=source.copy();rounding[0,2]+=5e-12

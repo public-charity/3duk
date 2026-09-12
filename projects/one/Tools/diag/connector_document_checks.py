@@ -1,4 +1,4 @@
-"""Complete-document checks for several combined connector additions."""
+"""Complete-document checks for combined connector and interior-bend additions."""
 import copy
 import numpy as np
 from streetscape import io_json
@@ -16,17 +16,18 @@ def preserved_source(original,candidate):
     if candidate['junctions'][:len(original['junctions'])]!=original['junctions']:
         raise ValueError('existing junction payload changed')
     additions=candidate['junctions'][len(original['junctions']):]
-    if not additions or any(j.get('kind')!='connector' for j in additions):raise ValueError('only appended connector additions are supported')
+    if not additions or any(j.get('kind') not in ('connector','bend') for j in additions):raise ValueError('only appended connector/bend additions are supported')
     restored=copy.deepcopy(candidate);restored['junctions']=copy.deepcopy(original['junctions'])
     before={d['id']:d for d in original['splines']};after={d['id']:d for d in restored['splines']};changed=set()
     if before.keys()!=after.keys():raise ValueError('definition coverage changed')
     for j in additions:
         for end in j['ends']:
             sid=end['spline_id'];field='junction_'+end['end'];changed.add(sid)
+            if j['kind']=='bend':continue
             if before[sid].get(field) is not None or after[sid].get(field)!=j['id']:raise ValueError('connector end binding not preserved')
             if field in before[sid]:after[sid][field]=before[sid][field]
             else:after[sid].pop(field)
-    if restored!=original:raise ValueError('source payload changed beyond appended connectors and bindings')
+    if restored!=original:raise ValueError('source payload changed beyond appended joins and connector bindings')
     return additions,changed
 
 
@@ -114,11 +115,12 @@ def check_complete_document(original,candidate,terrain):
         # Keep a large inherited gap elsewhere from masking a new local gap.
         selected=copy.copy(plan);selected.arms={jid:plan.arms[jid]};seams=junction_audit(selected,builds[1])
         if seams['patches']!=1 or seams['worst_patch_gap_m']>1e-9 or seams['worst_corner_gap_m']>1e-9 or seams['corners_skipped_incompatible']:raise ValueError('combined connector finished seam failed: '+jid)
-        new_rows.append(dict(id=jid,boundary=simple,patch_overlap_area_m2=overlap,pavement=pavement,finished_mesh_seams=seams))
+        new_rows.append(dict(id=jid,kind=j['kind'],boundary=simple,patch_overlap_area_m2=overlap,pavement=pavement,finished_mesh_seams=seams))
     from collections import Counter
     return dict(status='complete_document_geometry_verified',definitions=len(before),additions=len(additions),changed_bodies=len(changed),
         before_body_totals=dict(Counter(r['status'] for r in before.values())),after_body_totals=dict(Counter(r['status'] for r in after.values())),
         untouched_bodies_exact=len(unchanged)-roundoff_bodies,untouched_mesh_arrays_exact=arrays,existing_junction_mesh_groups_exact=len(old)-roundoff_junction_groups,
         untouched_bodies_with_roundoff=roundoff_bodies,untouched_mesh_arrays_with_roundoff=roundoff_arrays,existing_junction_mesh_groups_with_roundoff=roundoff_junction_groups,
         maximum_preserved_vertex_displacement_m=maximum_displacement,preserved_position_absolute_tolerance_m=1e-9,
-        new_connectors=new_rows,source_payload_preserved=True,body_regressions=0)
+        new_connectors=[row for row in new_rows if row['kind']=='connector'],
+        new_bends=[row for row in new_rows if row['kind']=='bend'],source_payload_preserved=True,body_regressions=0)

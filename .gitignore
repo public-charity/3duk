@@ -52,3 +52,8 @@ images/*
 !images/README.md
 geo/*
 !geo/README.md
+
+# Generated recovery work is preserved in dated, verified LFS archives under backups/.
+# Source code lives in sources/ and projects/; consult output/README.md before restoring.
+/output/*
+!/output/README.md

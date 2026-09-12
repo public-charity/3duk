@@ -21,6 +21,14 @@ class STREETSCAPEEDITOR_API UStreetscapeLandscapeImporter : public UBlueprintFun
 {
 	GENERATED_BODY()
 public:
+	/** Load only landscape proxies (and optionally building masses), retaining refs for this commandlet. */
+	UFUNCTION(BlueprintCallable, Category = "Streetscape")
+	static int32 LoadLandscapeForReview(bool bIncludeMassing = false);
+
+	/** Apply one approved masked tile in place. Preflight compares touched live heights to its baseline;
+	 * untouched samples/layers are copied from the live world. No actors replaced and no packages saved. */
+	UFUNCTION(BlueprintCallable, Category = "Streetscape")
+	static FString ApplyOffshoreTileJson(const FString& PatchPath, bool bPreflightOnly = false);
 	/**
 	 * Read the manifest and report what an import WOULD do (component size, counts, padding, extent, placement,
 	 * the engine helper's own suggestion) without touching the world. Returns the report JSON, or a JSON object

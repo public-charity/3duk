@@ -15,6 +15,7 @@
 #include "ThanetExplorerPawn.generated.h"
 
 class UCameraComponent;
+class AThanetPoliceCar;
 class UInputAction;
 class UInputMappingContext;
 struct FInputActionValue;
@@ -26,6 +27,8 @@ class THANET_API AThanetExplorerPawn : public ACharacter
 
 public:
 	AThanetExplorerPawn();
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Thanet") TObjectPtr<AThanetPoliceCar> PoliceCar;
+	UFUNCTION(BlueprintCallable, Category="Thanet") void EnterPoliceCar();
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Thanet") TObjectPtr<UCameraComponent> Camera;
 
